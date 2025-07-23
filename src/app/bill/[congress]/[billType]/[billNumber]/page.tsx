@@ -2,10 +2,10 @@
 import { notFound } from 'next/navigation';
 import type { Bill } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare, UserSquare2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Separator } from '@/components/ui/separator';
 
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
@@ -171,42 +171,43 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Accordion type="single" collapsible className="w-full">
-                                {hasSponsors && (
-                                    <AccordionItem value="sponsors">
-                                    <AccordionTrigger className="text-sm">Sponsors ({bill.sponsors.length})</AccordionTrigger>
-                                    <AccordionContent>
-                                        <ul className="space-y-2 pt-2">
-                                            {bill.sponsors.map((sponsor, index) => (
-                                                <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
-                                                    <a href={sponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
-                                                        {sponsor.fullName} ({sponsor.party}-{sponsor.state}) <ExternalLink className="h-3 w-3" />
-                                                    </a>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </AccordionContent>
-                                    </AccordionItem>
-                                )}
-                                {hasCosponsors && (
-                                     <AccordionItem value="cosponsors">
-                                        <AccordionTrigger className="text-sm">
-                                            Cosponsors ({bill.cosponsors.items!.length.toLocaleString()})
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                            <ul className="space-y-2 pt-2 max-h-60 overflow-y-auto">
-                                                {bill.cosponsors.items!.map((cosponsor, index) => (
-                                                    <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
-                                                        <a href={cosponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
-                                                            {cosponsor.fullName} ({cosponsor.party}-{cosponsor.state}) <ExternalLink className="h-3 w-3" />
-                                                        </a>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </AccordionContent>
-                                     </AccordionItem>
-                                )}
-                            </Accordion>
+                            {hasSponsors && (
+                                <div className="space-y-3">
+                                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                                        <UserSquare2 className="h-4 w-4" />
+                                        Sponsors ({bill.sponsors.length})
+                                    </h4>
+                                    <ul className="space-y-2">
+                                        {bill.sponsors.map((sponsor, index) => (
+                                            <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
+                                                <a href={sponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
+                                                    {sponsor.fullName} ({sponsor.party}-{sponsor.state}) <ExternalLink className="h-3 w-3" />
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {hasSponsors && hasCosponsors && (
+                                <Separator className="my-4" />
+                            )}
+                            {hasCosponsors && (
+                                <div className="space-y-3">
+                                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                                       <Users className="h-4 w-4" />
+                                        Cosponsors ({bill.cosponsors.items.length.toLocaleString()})
+                                    </h4>
+                                     <ul className="space-y-2 max-h-60 overflow-y-auto">
+                                        {bill.cosponsors.items.map((cosponsor, index) => (
+                                            <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
+                                                <a href={cosponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
+                                                    {cosponsor.fullName} ({cosponsor.party}-{cosponsor.state}) <ExternalLink className="h-3 w-3" />
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 )}
