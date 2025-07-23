@@ -79,6 +79,9 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.amendments = amendmentsData;
     bill.committees.items = committeesData;
     
+    // Sort amendments by updateDate, newest first
+    bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
+
     return bill;
   } catch (error) {
     console.error("Error fetching bill details:", error);
@@ -262,7 +265,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    {bill.amendments.map((amendment, index) => (
+                    {bill.amendments.slice(0, 20).map((amendment, index) => (
                       <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
                           <div className="font-semibold flex justify-between items-center">
                             <span>{amendment.type} {amendment.number}</span>
@@ -283,6 +286,39 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                            )}
                       </li>
                     ))}
+                     {bill.amendments.length > 20 && (
+                      <Collapsible>
+                        <CollapsibleContent className="space-y-3">
+                          {bill.amendments.slice(20).map((amendment, index) => (
+                            <li key={index + 20} className="text-sm p-3 bg-secondary/50 rounded-md">
+                                <div className="font-semibold flex justify-between items-center">
+                                  <span>{amendment.type} {amendment.number}</span>
+                                  <span className="text-xs text-muted-foreground font-normal">
+                                     Updated: {formatDate(amendment.updateDate)}
+                                  </span>
+                                </div>
+                                 {amendment.description && (
+                                  <p className="text-sm text-muted-foreground mt-2 prose prose-sm max-w-none">
+                                      {amendment.description}
+                                  </p>
+                                 )}
+                                 {amendment.latestAction && (
+                                  <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-secondary">
+                                      <p><span className="font-semibold">Latest Action:</span> {formatDate(amendment.latestAction.actionDate)}</p>
+                                      <p className="mt-1">{amendment.latestAction.text}</p>
+                                  </div>
+                                 )}
+                            </li>
+                          ))}
+                        </CollapsibleContent>
+                        <CollapsibleTrigger asChild>
+                           <Button variant="outline" className="w-full mt-4">
+                            <ChevronsUpDown className="mr-2 h-4 w-4" />
+                            Show all {bill.amendments.length} amendments
+                          </Button>
+                        </CollapsibleTrigger>
+                      </Collapsible>
+                    )}
                   </ul>
                 </CardContent>
               </Card>
