@@ -270,6 +270,12 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                                 {amendment.description}
                             </p>
                            )}
+                           {amendment.latestAction && (
+                            <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-secondary">
+                                <p><span className="font-semibold">Latest Action:</span> {formatDate(amendment.latestAction.actionDate)}</p>
+                                <p className="mt-1">{amendment.latestAction.text}</p>
+                            </div>
+                           )}
                       </li>
                     ))}
                   </ul>
@@ -328,5 +334,3 @@ export default async function BillDetailPage({ params }: { params: { congress: s
     </div>
   );
 }
-
-    

@@ -8,10 +8,10 @@ export interface Amendment {
     purpose: string;
     description: string;
     updateDate: string;
-    latestAction: {
+    latestAction?: {
         actionDate: string;
         text: string;
-    }
+    };
 }
 
 export interface Bill {
