@@ -35,12 +35,13 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.committees = bill.committees || { count: 0, items: [] };
     bill.summaries = bill.summaries || { count: 0 };
     bill.actions = bill.actions || [];
-    bill.amendments = []; // Always initialize as empty, will be populated by a separate fetch
+    bill.amendments = bill.amendments || [];
 
-    const [cosponsorsRes, actionsRes, amendmentsRes] = await Promise.all([
+    const [cosponsorsRes, actionsRes, amendmentsRes, committeesRes] = await Promise.all([
       fetch(`${baseUrl}/cosponsors?api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
       fetch(`${baseUrl}/actions?api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
-      fetch(`${baseUrl}/amendments?api_key=${API_KEY}`, { next: { revalidate: 3600 } })
+      fetch(`${baseUrl}/amendments?api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
+      fetch(`${baseUrl}/committees?api_key=${API_KEY}`, { next: { revalidate: 3600 } })
     ]);
 
     if (cosponsorsRes.ok) {
@@ -62,6 +63,13 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
         bill.amendments = amendmentsData.amendments || [];
     } else {
         console.error(`API request for amendments failed with status: ${amendmentsRes.status}`);
+    }
+
+    if(committeesRes.ok) {
+        const committeesData = await committeesRes.json();
+        bill.committees.items = committeesData.committees || [];
+    } else {
+        console.error(`API request for committees failed with status: ${committeesRes.status}`);
     }
     
     return bill;
