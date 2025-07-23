@@ -1,5 +1,7 @@
+
 export interface Bill {
   congress: number;
+  introducedDate: string;
   latestAction: {
     actionDate: string;
     text: string;
@@ -10,7 +12,42 @@ export interface Bill {
   title: string;
   type: string;
   updateDate: string;
-  url: string; 
+  url: string;
+  sponsors: {
+    bioguideId: string;
+    fullName: string;
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    party: string;
+    state: string;
+    url: string;
+  }[];
+  cosponsors: {
+    count: number;
+    url: string;
+  };
+  committees: {
+    count: number;
+    items: {
+      chamber: string;
+      name: string;
+      systemCode: string;
+      type: string;
+      url: string;
+      activities: {
+        name: string;
+      }[];
+    }[];
+  };
+  summaries: {
+    count: number;
+    summary: {
+      text: string;
+      updateDate: string;
+      versionCode: string;
+    };
+  };
 }
 
 export interface CongressApiResponse {
