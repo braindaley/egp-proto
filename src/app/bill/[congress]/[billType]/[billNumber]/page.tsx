@@ -224,28 +224,30 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Committee</TableHead>
-                        <TableHead>Activity</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {bill.committees.items.map((committee, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">
-                            <a href={committee.url} target="_blank" rel="noopener noreferrer" className="hover:underline flex items-center gap-1">
-                                {committee.name} <ExternalLink className="h-3 w-3" />
-                            </a>
-                            </TableCell>
-                          <TableCell>
-                            {committee.activities.map(activity => activity.name).join(', ')}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Committee</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Activity</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {bill.committees.items.flatMap((committee, committeeIndex) =>
+                                committee.activities.map((activity, activityIndex) => (
+                                    <TableRow key={`${committeeIndex}-${activityIndex}`}>
+                                        <TableCell className="font-medium">
+                                            <a href={committee.url} target="_blank" rel="noopener noreferrer" className="hover:underline flex items-center gap-1">
+                                                {committee.name} <ExternalLink className="h-3 w-3" />
+                                            </a>
+                                        </TableCell>
+                                        <TableCell>{formatDate(activity.date || '')}</TableCell>
+                                        <TableCell>{activity.name}</TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
                 </CardContent>
               </Card>
             )}
