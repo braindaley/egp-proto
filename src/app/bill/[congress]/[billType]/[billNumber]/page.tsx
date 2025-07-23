@@ -94,7 +94,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
   const hasCosponsors = bill.cosponsors && bill.cosponsors.items && bill.cosponsors.items.length > 0;
   const hasCommittees = bill.committees && bill.committees.items && bill.committees.items.length > 0;
-  const hasSummaries = bill.summaries && bill.summaries.summary && bill.summaries.summary.text;
+  const hasSummaries = bill.summaries?.summary?.text;
   const hasActions = bill.actions && bill.actions.length > 0;
   const hasAmendments = bill.amendments && bill.amendments.length > 0;
 

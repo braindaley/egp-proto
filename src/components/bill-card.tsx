@@ -1,3 +1,4 @@
+
 import type { Bill } from '@/types';
 import Link from 'next/link';
 import {
@@ -21,7 +22,7 @@ function formatDate(dateString: string) {
 }
 
 export function BillCard({ bill }: { bill: Bill }) {
-  const billType = bill.type.toLowerCase().replace('.', '');
+  const billType = bill.type.toLowerCase().replace(/\./g, '');
   const detailUrl = `/bill/${bill.congress}/${billType}/${bill.number}`;
 
   return (
