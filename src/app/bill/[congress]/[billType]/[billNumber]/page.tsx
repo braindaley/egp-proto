@@ -261,10 +261,15 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                       <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
                           <div className="font-semibold flex justify-between items-center">
                             <span>{amendment.type} {amendment.number}</span>
-                          </div>
-                           <p className="text-xs text-muted-foreground mt-1">
+                            <span className="text-xs text-muted-foreground font-normal">
                                Updated: {formatDate(amendment.updateDate)}
+                            </span>
+                          </div>
+                           {amendment.description && (
+                            <p className="text-sm text-muted-foreground mt-2 prose prose-sm max-w-none">
+                                {amendment.description}
                             </p>
+                           )}
                       </li>
                     ))}
                   </ul>
@@ -323,3 +328,5 @@ export default async function BillDetailPage({ params }: { params: { congress: s
     </div>
   );
 }
+
+    
