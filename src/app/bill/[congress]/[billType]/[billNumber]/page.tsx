@@ -134,8 +134,8 @@ export default async function BillDetailPage({ params }: { params: { congress: s
             {hasActions && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <h3 className="text-lg">All Actions</h3>
+                  <CardTitle className="text-lg">
+                    All Actions
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -154,9 +154,9 @@ export default async function BillDetailPage({ params }: { params: { congress: s
             {hasSummaries && (
                <Card>
                   <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+                      <CardTitle className="flex items-center gap-2 text-lg">
                           <FileText className="text-primary" />
-                          <h3 className="text-lg">Summary</h3>
+                          Summary
                       </CardTitle>
                   </CardHeader>
                   <CardContent className="prose prose-sm max-w-none text-muted-foreground">
@@ -168,9 +168,9 @@ export default async function BillDetailPage({ params }: { params: { congress: s
             {hasCommittees && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
                       <Library className="text-primary" />
-                      <h3 className="text-lg">Committees</h3>
+                      Committees
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -193,7 +193,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                       <CardHeader>
                           <CardTitle className="text-lg flex items-center gap-2">
                               <Users />
-                              <h3 className="text-lg">Sponsorship</h3>
+                              Sponsorship
                           </CardTitle>
                       </CardHeader>
                       <CardContent>
