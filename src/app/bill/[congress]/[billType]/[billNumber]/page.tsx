@@ -2,7 +2,7 @@
 import { notFound } from 'next/navigation';
 import type { Bill } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare, UserSquare2 } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -28,16 +28,25 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     const billData = await billRes.json();
     const bill: Bill = billData.bill;
 
-    if (bill.cosponsors && bill.cosponsors.count > 0) {
-      const cosponsorsRes = await fetch(`${baseUrl}/cosponsors?api_key=${API_KEY}`, {
-        next: { revalidate: 3600 },
-      });
-      if (cosponsorsRes.ok) {
-        const cosponsorsData = await cosponsorsRes.json();
-        bill.cosponsors.items = cosponsorsData.cosponsors;
-      } else {
-        console.error(`API request for cosponsors failed with status: ${cosponsorsRes.status}`);
+    const [cosponsorsRes, actionsRes] = await Promise.all([
+      fetch(`${baseUrl}/cosponsors?api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
+      fetch(`${baseUrl}/actions?api_key=${API_KEY}`, { next: { revalidate: 3600 } })
+    ]);
+
+    if (cosponsorsRes.ok) {
+      const cosponsorsData = await cosponsorsRes.json();
+      if(bill.cosponsors){
+          bill.cosponsors.items = cosponsorsData.cosponsors;
       }
+    } else {
+      console.error(`API request for cosponsors failed with status: ${cosponsorsRes.status}`);
+    }
+
+    if(actionsRes.ok) {
+        const actionsData = await actionsRes.json();
+        bill.actions = actionsData.actions;
+    } else {
+        console.error(`API request for actions failed with status: ${actionsRes.status}`);
     }
     
     return bill;
@@ -72,55 +81,76 @@ export default async function BillDetailPage({ params }: { params: { congress: s
   const hasCosponsors = bill.cosponsors && bill.cosponsors.items && bill.cosponsors.items.length > 0;
   const hasCommittees = bill.committees && bill.committees.items && bill.committees.items.length > 0;
   const hasSummaries = bill.summaries && bill.summaries.summary && bill.summaries.summary.text;
+  const hasActions = bill.actions && bill.actions.length > 0;
 
   return (
     <div className="bg-background min-h-screen">
       <main className="container mx-auto px-4 py-8 md:py-12">
-        <div className="max-w-4xl mx-auto">
-          <header className="mb-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <header>
             <p className="text-lg text-muted-foreground font-medium mb-1">{bill.number} &bull; {bill.congress}th Congress</p>
             <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary">
               {bill.title}
             </h1>
           </header>
 
-          <div className="space-y-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm">
+                    <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Introduced</span>
+                        <span className="font-medium">{formatDate(bill.introducedDate)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Chamber</span>
+                         <Badge variant="outline" className="flex items-center gap-1.5">
+                            <Landmark className="h-3 w-3" />
+                            {bill.originChamber}
+                        </Badge>
+                    </div>
+                     <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Bill Type</span>
+                        <Badge variant="secondary" className="font-semibold">{bill.type}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Last Update</span>
+                         <span className="font-medium">{formatDate(bill.updateDate)}</span>
+                    </div>
+                </CardContent>
+            </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">Latest Action</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-1">
+                    <p className="font-semibold">{formatDate(bill.latestAction.actionDate)}</p>
+                    <p className="text-muted-foreground">{bill.latestAction.text}</p>
+                </CardContent>
+            </Card>
+
+            {hasActions && (
               <Card>
-                  <CardHeader>
-                      <CardTitle className="text-lg">Details</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 text-sm">
-                      <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Introduced</span>
-                          <span className="font-medium">{formatDate(bill.introducedDate)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Chamber</span>
-                           <Badge variant="outline" className="flex items-center gap-1.5">
-                              <Landmark className="h-3 w-3" />
-                              {bill.originChamber}
-                          </Badge>
-                      </div>
-                       <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Bill Type</span>
-                          <Badge variant="secondary" className="font-semibold">{bill.type}</Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Last Update</span>
-                           <span className="font-medium">{formatDate(bill.updateDate)}</span>
-                      </div>
-                  </CardContent>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ChevronsUpDown className="text-primary" />
+                    <span>All Actions</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-4">
+                    {bill.actions.map((action, index) => (
+                      <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
+                        <p className="font-semibold">{formatDate(action.actionDate)}</p>
+                        <p className="text-muted-foreground mt-1">{action.text}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
               </Card>
-              
-              <Card>
-                  <CardHeader>
-                      <CardTitle className="text-lg">Latest Action</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm space-y-1">
-                      <p className="font-semibold">{formatDate(bill.latestAction.actionDate)}</p>
-                      <p className="text-muted-foreground">{bill.latestAction.text}</p>
-                  </CardContent>
-              </Card>
+            )}
 
             {hasSummaries && (
                <Card>
@@ -214,7 +244,6 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                     View on Congress.gov <ExternalLink className="ml-2 h-4 w-4" />
                 </a>
             </Button>
-          </div>
         </div>
       </main>
       <footer className="text-center py-6 text-sm text-muted-foreground mt-8 border-t">

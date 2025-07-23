@@ -59,6 +59,10 @@ export interface Bill {
       versionCode: string;
     };
   };
+  actions: {
+    actionDate: string;
+    text: string;
+  }[];
 }
 
 export interface CongressApiResponse {
