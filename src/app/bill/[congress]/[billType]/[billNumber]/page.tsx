@@ -89,6 +89,11 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     
     // Sort amendments by date after fetching all of them.
     bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
+    bill.relatedBills.sort((a, b) => {
+        if (!a.latestAction?.actionDate) return 1;
+        if (!b.latestAction?.actionDate) return -1;
+        return new Date(b.latestAction.actionDate).getTime() - new Date(a.latestAction.actionDate).getTime()
+    });
 
     return bill;
   } catch (error) {
@@ -272,8 +277,8 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ul className="space-y-3">
-                            {bill.relatedBills.map((relatedBill: RelatedBill, index: number) => {
+                         <ul className="space-y-3">
+                            {bill.relatedBills.slice(0, 5).map((relatedBill: RelatedBill, index: number) => {
                                 const billTypeSlug = relatedBill.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
                                 const detailUrl = `/bill/${relatedBill.congress}/${billTypeSlug}/${relatedBill.number}`;
 
@@ -296,6 +301,39 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                                 );
                             })}
                         </ul>
+                         {bill.relatedBills.length > 5 && (
+                          <Collapsible>
+                            <CollapsibleContent className="space-y-3">
+                              {bill.relatedBills.slice(5).map((relatedBill: RelatedBill, index: number) => {
+                                  const billTypeSlug = relatedBill.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
+                                  const detailUrl = `/bill/${relatedBill.congress}/${billTypeSlug}/${relatedBill.number}`;
+                                  return (
+                                      <li key={index + 5} className="text-sm p-3 bg-secondary/50 rounded-md">
+                                          <Link href={detailUrl} className="font-semibold hover:underline">
+                                              {relatedBill.type} {relatedBill.number}: {relatedBill.title}
+                                          </Link>
+                                          <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-secondary space-y-1">
+                                              {relatedBill.relationshipDetails?.items?.map((rel, relIndex) => (
+                                                  <p key={relIndex}>
+                                                      <span className="font-semibold">Relationship:</span> {rel.type} (Identified by: {rel.identifiedBy})
+                                                  </p>
+                                              ))}
+                                              {relatedBill.latestAction && (
+                                                  <p><span className="font-semibold">Latest Action:</span> {formatDate(relatedBill.latestAction.actionDate)}</p>
+                                              )}
+                                          </div>
+                                      </li>
+                                  );
+                              })}
+                            </CollapsibleContent>
+                            <CollapsibleTrigger asChild>
+                               <Button variant="outline" className="w-full mt-4">
+                                <ChevronsUpDown className="mr-2 h-4 w-4" />
+                                Show all {bill.relatedBills.length} related bills
+                              </Button>
+                            </CollapsibleTrigger>
+                          </Collapsible>
+                        )}
                     </CardContent>
                 </Card>
             )}
