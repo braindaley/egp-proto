@@ -7,6 +7,7 @@ export interface Amendment {
     url: string;
     purpose: string;
     description: string;
+    updateDate: string;
     latestAction: {
         actionDate: string;
         text: string;

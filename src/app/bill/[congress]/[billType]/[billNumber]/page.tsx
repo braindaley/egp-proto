@@ -97,11 +97,6 @@ function constructBillUrl(bill: Bill): string {
     return `https://www.congress.gov/bill/${bill.congress}th-congress/${chamber}-bill/${bill.number}`;
 }
 
-function constructAmendmentUrl(amendment: Amendment): string {
-    const type = amendment.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
-    return `https://www.congress.gov/amendment/${amendment.congress}th-congress/${type}-amendment/${amendment.number}`;
-}
-
 
 export default async function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
   const bill = await getBillDetails(params.congress, params.billType, params.billNumber);
@@ -264,15 +259,12 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                   <ul className="space-y-3">
                     {bill.amendments.map((amendment, index) => (
                       <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
-                          <a href={constructAmendmentUrl(amendment)} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
-                            <span>{amendment.type} {amendment.number}: {amendment.purpose}</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                          {amendment.latestAction && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Latest Action: {formatDate(amendment.latestAction.actionDate)} - {amendment.latestAction.text}
+                          <div className="font-semibold flex justify-between items-center">
+                            <span>{amendment.type} {amendment.number}</span>
+                          </div>
+                           <p className="text-xs text-muted-foreground mt-1">
+                               Updated: {formatDate(amendment.updateDate)}
                             </p>
-                          )}
                       </li>
                     ))}
                   </ul>
