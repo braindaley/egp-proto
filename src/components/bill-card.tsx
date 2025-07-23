@@ -14,7 +14,8 @@ import { ExternalLink, Landmark, CalendarDays } from 'lucide-react';
 import { Button } from './ui/button';
 
 function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toLocaleDate-String('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -22,7 +23,9 @@ function formatDate(dateString: string) {
 }
 
 export function BillCard({ bill }: { bill: Bill }) {
-  const detailUrl = `/bill/${bill.congress}/${bill.type}/${bill.number}`;
+  // Correctly format the bill type for the URL, removing all punctuation and making it lowercase.
+  const billTypeSlug = bill.type.toLowerCase().replace(/\./g, '');
+  const detailUrl = `/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
 
   return (
     <Link href={detailUrl} className="flex">
@@ -31,7 +34,7 @@ export function BillCard({ bill }: { bill: Bill }) {
             <CardTitle className="font-headline text-xl leading-snug text-primary">
             {bill.title}
             </CardTitle>
-            <CardDescription className="pt-2 font-medium !text-foreground/80">{bill.number}</CardDescription>
+            <CardDescription className="pt-2 font-medium !text-foreground/80">{bill.type} {bill.number}</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow space-y-4">
             <div className="flex gap-2">
