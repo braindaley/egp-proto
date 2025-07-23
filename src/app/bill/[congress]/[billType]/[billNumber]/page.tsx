@@ -23,7 +23,7 @@ async function fetchAllPages(url: string, apiKey: string) {
                 if (res.status === 429) {
                   console.error("Rate limit exceeded. Please try again later or use a dedicated API key.");
                 }
-                return []; 
+                return results; // Return what we have so far
             }
             const data = await res.json();
             
@@ -43,7 +43,7 @@ async function fetchAllPages(url: string, apiKey: string) {
             }
         } catch (error) {
             console.error("Error during paginated fetch:", error);
-            return []; // Return what we have so far on error.
+            return results; // Return what we have so far on error.
         }
     }
     
