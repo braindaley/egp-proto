@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getBillTypeSlug } from '@/lib/utils';
 
 async function fetchAllPages(url: string, apiKey: string, shouldFetchAll: boolean = true) {
     let results: any[] = [];
@@ -110,7 +111,7 @@ function formatDate(dateString: string) {
   
 function constructBillUrl(bill: Bill): string {
     const chamber = bill.originChamber.toLowerCase();
-    const billTypeSlug = bill.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
+    const billTypeSlug = getBillTypeSlug(bill.type);
     return `https://www.congress.gov/bill/${bill.congress}th-congress/${chamber}-bill/${bill.number}`;
 }
 
@@ -298,7 +299,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                     <CardContent>
                          <ul className="space-y-3 list-none p-0">
                             {bill.relatedBills.slice(0, 5).map((relatedBill: RelatedBill, index: number) => {
-                                const billTypeSlug = relatedBill.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
+                                const billTypeSlug = getBillTypeSlug(relatedBill.type);
                                 const detailUrl = `/bill/${relatedBill.congress}/${billTypeSlug}/${relatedBill.number}`;
 
                                 return (
@@ -324,7 +325,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                           <Collapsible>
                             <CollapsibleContent className="space-y-3 list-none p-0">
                               {bill.relatedBills.slice(5).map((relatedBill: RelatedBill, index: number) => {
-                                  const billTypeSlug = relatedBill.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
+                                  const billTypeSlug = getBillTypeSlug(relatedBill.type);
                                   const detailUrl = `/bill/${relatedBill.congress}/${billTypeSlug}/${relatedBill.number}`;
                                   return (
                                       <li key={index + 5} className="text-sm p-3 bg-secondary/50 rounded-md">

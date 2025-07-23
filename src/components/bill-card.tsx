@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Landmark, CalendarDays } from 'lucide-react';
+import { getBillTypeSlug } from '@/lib/utils';
 
 function formatDate(dateString: string) {
   if (!dateString) return 'N/A';
@@ -22,8 +23,7 @@ function formatDate(dateString: string) {
 }
 
 export function BillCard({ bill }: { bill: Bill }) {
-  // Correctly format the bill type for the URL, removing all punctuation and making it lowercase.
-  const billTypeSlug = bill.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
+  const billTypeSlug = getBillTypeSlug(bill.type);
   const detailUrl = `/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
 
   return (
