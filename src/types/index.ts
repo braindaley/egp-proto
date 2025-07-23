@@ -33,6 +33,24 @@ export interface RelatedBill {
     url: string;
 }
 
+export interface Summary {
+    actionDate: string;
+    actionDesc: string;
+    text: string;
+    updateDate: string;
+    versionCode: string;
+}
+
+export interface TextVersion {
+    date: string;
+    type: string;
+    formats: {
+        type: string;
+        url: string;
+    }[];
+}
+
+
 export interface Bill {
   congress: number;
   introducedDate: string;
@@ -94,6 +112,8 @@ export interface Bill {
       versionCode: string;
     };
   };
+  allSummaries: Summary[];
+  textVersions: TextVersion[];
   actions: {
     actionDate: string;
     text: string;
