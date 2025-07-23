@@ -59,7 +59,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
   const hasCosponsors = bill.cosponsors && bill.cosponsors.count > 0;
   const hasCommittees = bill.committees && bill.committees.items && bill.committees.items.length > 0;
-  const hasSummaries = bill.summaries && bill.summaries.count > 0;
+  const hasSummaries = bill.summaries && bill.summaries.count > 0 && bill.summaries.summary;
 
   return (
     <div className="bg-background min-h-screen">
