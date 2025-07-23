@@ -19,15 +19,13 @@ async function fetchAllPages(url: string, apiKey: string, shouldFetchAll: boolea
             const res = await fetch(nextUrl, { next: { revalidate: 3600 } });
             if (!res.ok) {
                 console.error(`API request failed with status: ${res.status} for URL: ${nextUrl}`);
-                // Stop trying to fetch more pages if one fails.
                 if (res.status === 429) {
                   console.error("Rate limit exceeded. Please try again later or use a dedicated API key.");
                 }
-                return results; // Return what we have so far
+                return results; 
             }
             const data = await res.json();
             
-            // Find the key in the response that contains the array of items.
             const dataKey = Object.keys(data).find(k => Array.isArray(data[k]));
             if (dataKey && Array.isArray(data[dataKey])) {
                 results = results.concat(data[dataKey]);
@@ -43,7 +41,7 @@ async function fetchAllPages(url: string, apiKey: string, shouldFetchAll: boolea
             }
         } catch (error) {
             console.error("Error during paginated fetch:", error);
-            return results; // Return what we have so far on error.
+            return results;
         }
     }
     
@@ -71,7 +69,6 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     const billData = await billRes.json();
     const bill: Bill = billData.bill;
 
-    // Initialize all optional properties to ensure they exist.
     bill.sponsors = bill.sponsors || [];
     bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
     bill.committees = bill.committees || { count: 0, items: [] };
@@ -81,8 +78,6 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.relatedBills = bill.relatedBills || [];
     bill.subjects = bill.subjects || { count: 0, items: [] };
 
-    // Fetch related data sequentially to avoid rate limiting.
-    // For cosponsors, only fetch the first page to avoid hitting rate limits on bills with thousands of them.
     bill.cosponsors.items = await fetchAllPages(`${baseUrl}/cosponsors`, API_KEY, false);
     bill.actions = await fetchAllPages(`${baseUrl}/actions`, API_KEY);
     bill.amendments = await fetchAllPages(`${baseUrl}/amendments`, API_KEY);
@@ -90,7 +85,6 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.relatedBills = await fetchAllPages(`${baseUrl}/relatedbills`, API_KEY);
     bill.subjects.items = await fetchAllPages(`${baseUrl}/subjects`, API_KEY);
     
-    // Sort amendments by date after fetching all of them.
     bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
     bill.relatedBills.sort((a, b) => {
         if (!a.latestAction?.actionDate) return 1;
