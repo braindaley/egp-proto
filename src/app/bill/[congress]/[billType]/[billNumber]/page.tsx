@@ -334,3 +334,5 @@ export default async function BillDetailPage({ params }: { params: { congress: s
     </div>
   );
 }
+
+    
