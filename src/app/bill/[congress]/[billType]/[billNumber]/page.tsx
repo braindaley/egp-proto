@@ -1,7 +1,7 @@
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { Bill, Amendment } from '@/types';
+import type { Bill, Amendment, RelatedBill } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2, ChevronsUpDown, FileJson } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,10 +19,15 @@ async function fetchAllPages(url: string, apiKey: string) {
             const res = await fetch(nextUrl, { next: { revalidate: 3600 } });
             if (!res.ok) {
                 console.error(`API request failed with status: ${res.status} for URL: ${nextUrl}`);
-                break;
+                // Stop trying to fetch more pages if one fails.
+                if (res.status === 429) {
+                  console.error("Rate limit exceeded. Please try again later or use a dedicated API key.");
+                }
+                return []; 
             }
             const data = await res.json();
             
+            // Find the key in the response that contains the array of items.
             const dataKey = Object.keys(data).find(k => Array.isArray(data[k]));
             if (dataKey && Array.isArray(data[dataKey])) {
                 results = results.concat(data[dataKey]);
@@ -31,7 +36,7 @@ async function fetchAllPages(url: string, apiKey: string) {
             nextUrl = data.pagination?.next || null;
         } catch (error) {
             console.error("Error during paginated fetch:", error);
-            break;
+            return []; // Return what we have so far on error.
         }
     }
     
@@ -59,6 +64,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     const billData = await billRes.json();
     const bill: Bill = billData.bill;
 
+    // Initialize all optional properties to ensure they exist.
     bill.sponsors = bill.sponsors || [];
     bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
     bill.committees = bill.committees || { count: 0, items: [] };
@@ -67,20 +73,14 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.amendments = bill.amendments || [];
     bill.relatedBills = bill.relatedBills || [];
 
-    const [cosponsorsData, actionsData, amendmentsData, committeesData, relatedBillsData] = await Promise.all([
-        fetchAllPages(`${baseUrl}/cosponsors`, API_KEY),
-        fetchAllPages(`${baseUrl}/actions`, API_KEY),
-        fetchAllPages(`${baseUrl}/amendments`, API_KEY),
-        fetchAllPages(`${baseUrl}/committees`, API_KEY),
-        fetchAllPages(`${baseUrl}/relatedbills`, API_KEY)
-    ]);
-
-    bill.cosponsors.items = cosponsorsData;
-    bill.actions = actionsData;
-    bill.amendments = amendmentsData;
-    bill.committees.items = committeesData;
-    bill.relatedBills = relatedBillsData;
+    // Fetch related data sequentially to avoid rate limiting.
+    bill.cosponsors.items = await fetchAllPages(`${baseUrl}/cosponsors`, API_KEY);
+    bill.actions = await fetchAllPages(`${baseUrl}/actions`, API_KEY);
+    bill.amendments = await fetchAllPages(`${baseUrl}/amendments`, API_KEY);
+    bill.committees.items = await fetchAllPages(`${baseUrl}/committees`, API_KEY);
+    bill.relatedBills = await fetchAllPages(`${baseUrl}/relatedbills`, API_KEY);
     
+    // Sort amendments by date after fetching all of them.
     bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
 
     return bill;
@@ -114,8 +114,8 @@ export default async function BillDetailPage({ params }: { params: { congress: s
   }
   
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
-  const hasCosponsors = bill.cosponsors && bill.cosponsors.items && bill.cosponsors.items.length > 0;
-  const hasCommittees = bill.committees && bill.committees.items && bill.committees.items.length > 0;
+  const hasCosponsors = bill.cosponsors?.items && bill.cosponsors.items.length > 0;
+  const hasCommittees = bill.committees?.items && bill.committees.items.length > 0;
   const hasSummaries = bill.summaries?.summary?.text;
   const hasActions = bill.actions && bill.actions.length > 0;
   const hasAmendments = bill.amendments && bill.amendments.length > 0;
@@ -266,7 +266,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                     </CardHeader>
                     <CardContent>
                         <ul className="space-y-3">
-                            {bill.relatedBills.map((relatedBill, index) => {
+                            {bill.relatedBills.map((relatedBill: RelatedBill, index: number) => {
                                 const billTypeSlug = relatedBill.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
                                 const detailUrl = `/bill/${relatedBill.congress}/${billTypeSlug}/${relatedBill.number}`;
 
