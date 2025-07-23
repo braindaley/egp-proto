@@ -2,7 +2,7 @@
 import { notFound } from 'next/navigation';
 import type { Bill } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, ChevronsUpDown } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -134,8 +134,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
             {hasActions && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <ChevronsUpDown className="text-primary" />
+                  <CardTitle className="flex items-center gap-2">
                     <h3 className="text-lg">All Actions</h3>
                   </CardTitle>
                 </CardHeader>
@@ -155,7 +154,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
             {hasSummaries && (
                <Card>
                   <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
+                      <CardTitle className="flex items-center gap-2">
                           <FileText className="text-primary" />
                           <h3 className="text-lg">Summary</h3>
                       </CardTitle>
@@ -169,7 +168,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
             {hasCommittees && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
+                  <CardTitle className="flex items-center gap-2">
                       <Library className="text-primary" />
                       <h3 className="text-lg">Committees</h3>
                   </CardTitle>
