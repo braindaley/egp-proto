@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-async function fetchAllPages(url: string, apiKey: string) {
+async function fetchAllPages(url: string, apiKey: string, shouldFetchAll: boolean = true) {
     let results: any[] = [];
     let nextUrl: string | null = `${url}?api_key=${apiKey}&limit=250`;
 
@@ -33,7 +33,7 @@ async function fetchAllPages(url: string, apiKey: string) {
                 results = results.concat(data[dataKey]);
             }
 
-            if (data.pagination?.next) {
+            if (data.pagination?.next && shouldFetchAll) {
                 nextUrl = data.pagination.next;
                 if (!nextUrl.includes('api_key=')) {
                     nextUrl += `&api_key=${apiKey}`;
@@ -81,7 +81,8 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.relatedBills = bill.relatedBills || [];
 
     // Fetch related data sequentially to avoid rate limiting.
-    bill.cosponsors.items = await fetchAllPages(`${baseUrl}/cosponsors`, API_KEY);
+    // For cosponsors, only fetch the first page to avoid hitting rate limits on bills with thousands of them.
+    bill.cosponsors.items = await fetchAllPages(`${baseUrl}/cosponsors`, API_KEY, false);
     bill.actions = await fetchAllPages(`${baseUrl}/actions`, API_KEY);
     bill.amendments = await fetchAllPages(`${baseUrl}/amendments`, API_KEY);
     bill.committees.items = await fetchAllPages(`${baseUrl}/committees`, API_KEY);
