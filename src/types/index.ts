@@ -14,6 +14,25 @@ export interface Amendment {
     };
 }
 
+export interface RelatedBill {
+    congress: number;
+    number: string;
+    type: string;
+    title: string;
+    latestAction?: {
+        actionDate: string;
+        text: string;
+    };
+    relationshipDetails: {
+        count: number;
+        items: {
+            type: string;
+            identifiedBy: string;
+        }[];
+    };
+    url: string;
+}
+
 export interface Bill {
   congress: number;
   introducedDate: string;
@@ -80,6 +99,7 @@ export interface Bill {
     text: string;
   }[];
   amendments: Amendment[];
+  relatedBills: RelatedBill[];
 }
 
 export interface CongressApiResponse {

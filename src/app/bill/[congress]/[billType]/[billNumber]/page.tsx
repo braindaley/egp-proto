@@ -1,8 +1,9 @@
 
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Bill, Amendment } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2, ChevronsUpDown } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2, ChevronsUpDown, FileJson } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -22,7 +23,6 @@ async function fetchAllPages(url: string, apiKey: string) {
             }
             const data = await res.json();
             
-            // The key for the data array can be different (e.g., 'amendments', 'actions', 'cosponsors')
             const dataKey = Object.keys(data).find(k => Array.isArray(data[k]));
             if (dataKey && Array.isArray(data[dataKey])) {
                 results = results.concat(data[dataKey]);
@@ -59,27 +59,28 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     const billData = await billRes.json();
     const bill: Bill = billData.bill;
 
-    // Safely initialize nested objects and arrays to prevent runtime errors
     bill.sponsors = bill.sponsors || [];
     bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
     bill.committees = bill.committees || { count: 0, items: [] };
     bill.summaries = bill.summaries || { count: 0 };
     bill.actions = bill.actions || [];
     bill.amendments = bill.amendments || [];
+    bill.relatedBills = bill.relatedBills || [];
 
-    const [cosponsorsData, actionsData, amendmentsData, committeesData] = await Promise.all([
+    const [cosponsorsData, actionsData, amendmentsData, committeesData, relatedBillsData] = await Promise.all([
         fetchAllPages(`${baseUrl}/cosponsors`, API_KEY),
         fetchAllPages(`${baseUrl}/actions`, API_KEY),
         fetchAllPages(`${baseUrl}/amendments`, API_KEY),
-        fetchAllPages(`${baseUrl}/committees`, API_KEY)
+        fetchAllPages(`${baseUrl}/committees`, API_KEY),
+        fetchAllPages(`${baseUrl}/relatedbills`, API_KEY)
     ]);
 
     bill.cosponsors.items = cosponsorsData;
     bill.actions = actionsData;
     bill.amendments = amendmentsData;
     bill.committees.items = committeesData;
+    bill.relatedBills = relatedBillsData;
     
-    // Sort amendments by updateDate, newest first
     bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
 
     return bill;
@@ -100,7 +101,6 @@ function formatDate(dateString: string) {
   
 function constructBillUrl(bill: Bill): string {
     const chamber = bill.originChamber.toLowerCase();
-    // The bill type in the URL needs to be massaged for congress.gov
     const billTypeSlug = bill.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
     return `https://www.congress.gov/bill/${bill.congress}th-congress/${chamber}-bill/${bill.number}`;
 }
@@ -119,6 +119,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
   const hasSummaries = bill.summaries?.summary?.text;
   const hasActions = bill.actions && bill.actions.length > 0;
   const hasAmendments = bill.amendments && bill.amendments.length > 0;
+  const hasRelatedBills = bill.relatedBills && bill.relatedBills.length > 0;
 
   return (
     <div className="bg-background min-h-screen">
@@ -255,6 +256,43 @@ export default async function BillDetailPage({ params }: { params: { congress: s
               </Card>
             )}
 
+             {hasRelatedBills && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <FileJson className="text-primary" />
+                            Related Bills ({bill.relatedBills.length})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="space-y-3">
+                            {bill.relatedBills.map((relatedBill, index) => {
+                                const billTypeSlug = relatedBill.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
+                                const detailUrl = `/bill/${relatedBill.congress}/${billTypeSlug}/${relatedBill.number}`;
+
+                                return (
+                                    <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
+                                        <Link href={detailUrl} className="font-semibold hover:underline">
+                                            {relatedBill.type} {relatedBill.number}: {relatedBill.title}
+                                        </Link>
+                                        <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-secondary space-y-1">
+                                            {relatedBill.relationshipDetails?.items.map((rel, relIndex) => (
+                                                <p key={relIndex}>
+                                                    <span className="font-semibold">Relationship:</span> {rel.type} (Identified by: {rel.identifiedBy})
+                                                </p>
+                                            ))}
+                                            {relatedBill.latestAction && (
+                                                <p><span className="font-semibold">Latest Action:</span> {formatDate(relatedBill.latestAction.actionDate)}</p>
+                                            )}
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </CardContent>
+                </Card>
+            )}
+
             {hasAmendments && (
               <Card>
                 <CardHeader>
@@ -375,5 +413,3 @@ export default async function BillDetailPage({ params }: { params: { congress: s
     </div>
   );
 }
-
-    
