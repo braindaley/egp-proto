@@ -120,16 +120,6 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                     </div>
                 </CardContent>
             </Card>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">Latest Action</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-1">
-                    <p className="font-semibold">{formatDate(bill.latestAction.actionDate)}</p>
-                    <p className="text-muted-foreground">{bill.latestAction.text}</p>
-                </CardContent>
-            </Card>
 
             {hasActions && (
               <Card>
