@@ -88,7 +88,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
       <main className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto space-y-8">
           <header>
-            <p className="text-lg text-muted-foreground font-medium mb-1">{bill.number} &bull; {bill.congress}th Congress</p>
+            <p className="text-lg text-muted-foreground font-medium mb-1">{bill.type} {bill.number} &bull; {bill.congress}th Congress</p>
             <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary">
               {bill.title}
             </h1>
@@ -109,10 +109,6 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                             <Landmark className="h-3 w-3" />
                             {bill.originChamber}
                         </Badge>
-                    </div>
-                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Bill Type</span>
-                        <Badge variant="secondary" className="font-semibold">{bill.type}</Badge>
                     </div>
                     <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Last Update</span>
