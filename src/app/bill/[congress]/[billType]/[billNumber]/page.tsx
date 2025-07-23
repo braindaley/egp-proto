@@ -265,7 +265,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    {bill.amendments.slice(0, 20).map((amendment, index) => (
+                    {bill.amendments.slice(0, 5).map((amendment, index) => (
                       <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
                           <div className="font-semibold flex justify-between items-center">
                             <span>{amendment.type} {amendment.number}</span>
@@ -286,11 +286,11 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                            )}
                       </li>
                     ))}
-                     {bill.amendments.length > 20 && (
+                     {bill.amendments.length > 5 && (
                       <Collapsible>
                         <CollapsibleContent className="space-y-3">
-                          {bill.amendments.slice(20).map((amendment, index) => (
-                            <li key={index + 20} className="text-sm p-3 bg-secondary/50 rounded-md">
+                          {bill.amendments.slice(5).map((amendment, index) => (
+                            <li key={index + 5} className="text-sm p-3 bg-secondary/50 rounded-md">
                                 <div className="font-semibold flex justify-between items-center">
                                   <span>{amendment.type} {amendment.number}</span>
                                   <span className="text-xs text-muted-foreground font-normal">
