@@ -121,26 +121,6 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                 </CardContent>
             </Card>
 
-            {hasActions && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    All Actions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-4">
-                    {bill.actions.map((action, index) => (
-                      <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
-                        <p className="font-semibold">{formatDate(action.actionDate)}</p>
-                        <p className="text-muted-foreground mt-1">{action.text}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
-
             {hasSummaries && (
                <Card>
                   <CardHeader>
@@ -154,30 +134,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                   </CardContent>
               </Card>
             )}
-
-            {hasCommittees && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                      <Library className="text-primary" />
-                      Committees
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
-                    {bill.committees.items.map((committee, index) => (
-                      <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
-                        <p className="font-semibold">{committee.name}</p>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {committee.activities.map(activity => activity.name).join(', ')}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
-
+            
             {(hasSponsors || hasCosponsors) && (
                   <Card>
                       <CardHeader>
@@ -227,6 +184,49 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                       </CardContent>
                   </Card>
               )}
+
+            {hasCommittees && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                      <Library className="text-primary" />
+                      Committees
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {bill.committees.items.map((committee, index) => (
+                      <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
+                        <p className="font-semibold">{committee.name}</p>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {committee.activities.map(activity => activity.name).join(', ')}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            {hasActions && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    Recent actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-4">
+                    {bill.actions.map((action, index) => (
+                      <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
+                        <p className="font-semibold">{formatDate(action.actionDate)}</p>
+                        <p className="text-muted-foreground mt-1">{action.text}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
             
             <Button asChild className="w-full">
                 <a href={constructBillUrl(bill)} target="_blank" rel="noopener noreferrer">
