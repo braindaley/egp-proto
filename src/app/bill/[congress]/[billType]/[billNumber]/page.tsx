@@ -9,6 +9,34 @@ import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+async function fetchAllPages(url: string, apiKey: string) {
+    let results: any[] = [];
+    let nextUrl: string | null = `${url}?api_key=${apiKey}&limit=250`;
+
+    while (nextUrl) {
+        try {
+            const res = await fetch(nextUrl, { next: { revalidate: 3600 } });
+            if (!res.ok) {
+                console.error(`API request failed with status: ${res.status} for URL: ${nextUrl}`);
+                break;
+            }
+            const data = await res.json();
+            
+            // The key for the data array can be different (e.g., 'amendments', 'actions', 'cosponsors')
+            const dataKey = Object.keys(data).find(k => Array.isArray(data[k]));
+            if (dataKey && Array.isArray(data[dataKey])) {
+                results = results.concat(data[dataKey]);
+            }
+
+            nextUrl = data.pagination?.next || null;
+        } catch (error) {
+            console.error("Error during paginated fetch:", error);
+            break;
+        }
+    }
+    
+    return results;
+}
 
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
@@ -39,40 +67,17 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.actions = bill.actions || [];
     bill.amendments = bill.amendments || [];
 
-    const [cosponsorsRes, actionsRes, amendmentsRes, committeesRes] = await Promise.all([
-      fetch(`${baseUrl}/cosponsors?api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
-      fetch(`${baseUrl}/actions?api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
-      fetch(`${baseUrl}/amendments?api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
-      fetch(`${baseUrl}/committees?api_key=${API_KEY}`, { next: { revalidate: 3600 } })
+    const [cosponsorsData, actionsData, amendmentsData, committeesData] = await Promise.all([
+        fetchAllPages(`${baseUrl}/cosponsors`, API_KEY),
+        fetchAllPages(`${baseUrl}/actions`, API_KEY),
+        fetchAllPages(`${baseUrl}/amendments`, API_KEY),
+        fetchAllPages(`${baseUrl}/committees`, API_KEY)
     ]);
 
-    if (cosponsorsRes.ok) {
-      const cosponsorsData = await cosponsorsRes.json();
-      bill.cosponsors.items = cosponsorsData.cosponsors || [];
-    } else {
-      console.error(`API request for cosponsors failed with status: ${cosponsorsRes.status}`);
-    }
-
-    if(actionsRes.ok) {
-        const actionsData = await actionsRes.json();
-        bill.actions = actionsData.actions || [];
-    } else {
-        console.error(`API request for actions failed with status: ${actionsRes.status}`);
-    }
-
-    if(amendmentsRes.ok) {
-        const amendmentsData = await amendmentsRes.json();
-        bill.amendments = amendmentsData.amendments || [];
-    } else {
-        console.error(`API request for amendments failed with status: ${amendmentsRes.status}`);
-    }
-
-    if(committeesRes.ok) {
-        const committeesData = await committeesRes.json();
-        bill.committees.items = committeesData.committees || [];
-    } else {
-        console.error(`API request for committees failed with status: ${committeesRes.status}`);
-    }
+    bill.cosponsors.items = cosponsorsData;
+    bill.actions = actionsData;
+    bill.amendments = amendmentsData;
+    bill.committees.items = committeesData;
     
     return bill;
   } catch (error) {
