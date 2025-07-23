@@ -116,7 +116,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
 
 function formatDate(dateString: string) {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDate-String('en-US', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
