@@ -283,7 +283,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                                             {relatedBill.type} {relatedBill.number}: {relatedBill.title}
                                         </Link>
                                         <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-secondary space-y-1">
-                                            {relatedBill.relationshipDetails?.items.map((rel, relIndex) => (
+                                            {relatedBill.relationshipDetails?.items?.map((rel, relIndex) => (
                                                 <p key={relIndex}>
                                                     <span className="font-semibold">Relationship:</span> {rel.type} (Identified by: {rel.identifiedBy})
                                                 </p>
