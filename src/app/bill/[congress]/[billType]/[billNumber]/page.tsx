@@ -141,7 +141,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                       </CardTitle>
                   </CardHeader>
                   <CardContent className="prose prose-sm max-w-none text-muted-foreground">
-                     <p>{bill.summaries.summary!.text}</p>
+                     <p>{bill.summaries.summary.text}</p>
                   </CardContent>
               </Card>
             )}
