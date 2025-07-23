@@ -136,7 +136,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ChevronsUpDown className="text-primary" />
-                    <span>All Actions</span>
+                    <h3>All Actions</h3>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
