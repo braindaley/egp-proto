@@ -84,8 +84,14 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.amendments = await fetchAllPages(`${baseUrl}/amendments`, API_KEY);
     bill.committees.items = await fetchAllPages(`${baseUrl}/committees`, API_KEY);
     bill.relatedBills = await fetchAllPages(`${baseUrl}/relatedbills`, API_KEY);
-    bill.subjects.items = await fetchAllPages(`${baseUrl}/subjects`, API_KEY);
     
+    const subjectsData = await fetchAllPages(`${baseUrl}/subjects`, API_KEY);
+    bill.subjects = {
+        count: subjectsData.length,
+        items: subjectsData.map(s => s.legislativeSubjects).flat().filter(Boolean)
+    }
+
+
     bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
     bill.relatedBills.sort((a, b) => {
         if (!a.latestAction?.actionDate) return 1;
