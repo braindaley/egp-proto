@@ -245,26 +245,16 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                             All Summaries ({bill.allSummaries.length})
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <Collapsible>
-                            <CollapsibleContent className="space-y-4">
-                                {bill.allSummaries.map((summary, index) => (
-                                    <div key={index} className="p-3 bg-secondary/50 rounded-md">
-                                        <div className="font-semibold text-sm mb-2 flex justify-between items-center">
-                                            <span>{summary.actionDesc} ({summary.versionCode})</span>
-                                            <span className="text-xs text-muted-foreground font-normal">{formatDate(summary.actionDate)}</span>
-                                        </div>
-                                        <TruncatedText text={summary.text} />
-                                    </div>
-                                ))}
-                            </CollapsibleContent>
-                            <CollapsibleTrigger asChild>
-                               <Button variant="outline" className="w-full mt-4">
-                                <ChevronsUpDown className="mr-2 h-4 w-4" />
-                                Show all summaries
-                              </Button>
-                            </CollapsibleTrigger>
-                        </Collapsible>
+                    <CardContent className="space-y-4">
+                        {bill.allSummaries.map((summary, index) => (
+                            <div key={index} className="p-3 bg-secondary/50 rounded-md">
+                                <div className="font-semibold text-sm mb-2 flex justify-between items-center">
+                                    <span>{summary.actionDesc} ({summary.versionCode})</span>
+                                    <span className="text-xs text-muted-foreground font-normal">{formatDate(summary.actionDate)}</span>
+                                </div>
+                                <TruncatedText text={summary.text} />
+                            </div>
+                        ))}
                     </CardContent>
                 </Card>
             )}
