@@ -11,11 +11,10 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Landmark, CalendarDays } from 'lucide-react';
-import { Button } from './ui/button';
 
 function formatDate(dateString: string) {
   if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDate-String('en-US', {
+  return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -24,7 +23,7 @@ function formatDate(dateString: string) {
 
 export function BillCard({ bill }: { bill: Bill }) {
   // Correctly format the bill type for the URL, removing all punctuation and making it lowercase.
-  const billTypeSlug = bill.type.toLowerCase().replace(/\./g, '');
+  const billTypeSlug = bill.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
   const detailUrl = `/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
 
   return (
@@ -44,13 +43,15 @@ export function BillCard({ bill }: { bill: Bill }) {
                     {bill.originChamber}
                 </Badge>
             </div>
-            <div>
-            <h4 className="font-headline font-semibold text-sm mb-1 text-foreground">Latest Action</h4>
-            <p className="text-sm text-muted-foreground line-clamp-3">
-                <span className="font-bold">{formatDate(bill.latestAction.actionDate)}:</span>{' '}
-                {bill.latestAction.text}
-            </p>
-            </div>
+            {bill.latestAction && (
+                <div>
+                    <h4 className="font-headline font-semibold text-sm mb-1 text-foreground">Latest Action</h4>
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                        <span className="font-bold">{formatDate(bill.latestAction.actionDate)}:</span>{' '}
+                        {bill.latestAction.text}
+                    </p>
+                </div>
+            )}
         </CardContent>
         <CardFooter className="flex justify-between items-center text-xs text-muted-foreground pt-4 border-t mt-auto">
             <div className="flex items-center gap-1.5">

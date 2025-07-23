@@ -92,8 +92,8 @@ function constructBillUrl(bill: Bill): string {
 }
 
 function constructAmendmentUrl(amendment: Amendment): string {
-    const type = amendment.type.toLowerCase().replace('.', '');
-    return `https://www.congress.gov/amendment/${amendment.congress}th-congress/house-amendment/${amendment.number}`;
+    const type = amendment.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
+    return `https://www.congress.gov/amendment/${amendment.congress}th-congress/${type}-amendment/${amendment.number}`;
 }
 
 
@@ -248,9 +248,11 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                             <span>{amendment.type} {amendment.number}: {amendment.purpose}</span>
                             <ExternalLink className="h-3 w-3" />
                           </a>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Latest Action: {formatDate(amendment.latestAction.actionDate)} - {amendment.latestAction.text}
-                          </p>
+                          {amendment.latestAction && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Latest Action: {formatDate(amendment.latestAction.actionDate)} - {amendment.latestAction.text}
+                            </p>
+                          )}
                       </li>
                     ))}
                   </ul>
