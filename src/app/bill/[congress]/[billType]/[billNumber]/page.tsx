@@ -29,17 +29,13 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     const billData = await billRes.json();
     const bill: Bill = billData.bill;
 
-    // Ensure nested objects exist before trying to populate them
-    if (!bill.cosponsors) {
-      bill.cosponsors = { count: 0, url: '' };
-    }
-    if (!bill.actions) {
-      bill.actions = [];
-    }
-    if (!bill.amendments) {
-      bill.amendments = [];
-    }
-
+    // Safely initialize nested objects and arrays to prevent runtime errors
+    bill.sponsors = bill.sponsors || [];
+    bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
+    bill.committees = bill.committees || { count: 0, items: [] };
+    bill.summaries = bill.summaries || { count: 0 };
+    bill.actions = bill.actions || [];
+    bill.amendments = []; // Always initialize as empty, will be populated by a separate fetch
 
     const [cosponsorsRes, actionsRes, amendmentsRes] = await Promise.all([
       fetch(`${baseUrl}/cosponsors?api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
@@ -49,21 +45,21 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
 
     if (cosponsorsRes.ok) {
       const cosponsorsData = await cosponsorsRes.json();
-      bill.cosponsors.items = cosponsorsData.cosponsors;
+      bill.cosponsors.items = cosponsorsData.cosponsors || [];
     } else {
       console.error(`API request for cosponsors failed with status: ${cosponsorsRes.status}`);
     }
 
     if(actionsRes.ok) {
         const actionsData = await actionsRes.json();
-        bill.actions = actionsData.actions;
+        bill.actions = actionsData.actions || [];
     } else {
         console.error(`API request for actions failed with status: ${actionsRes.status}`);
     }
 
     if(amendmentsRes.ok) {
         const amendmentsData = await amendmentsRes.json();
-        bill.amendments = amendmentsData.amendments;
+        bill.amendments = amendmentsData.amendments || [];
     } else {
         console.error(`API request for amendments failed with status: ${amendmentsRes.status}`);
     }
@@ -192,10 +188,10 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                           <div className="space-y-3">
                               <h4 className="font-semibold text-sm flex items-center gap-2">
                                   <Users className="h-4 w-4" />
-                                  Cosponsors ({bill.cosponsors.items.length.toLocaleString()})
+                                  Cosponsors ({bill.cosponsors?.items?.length.toLocaleString() || 0})
                               </h4>
                                 <ul className="space-y-2 max-h-60 overflow-y-auto">
-                                  {bill.cosponsors.items.map((cosponsor, index) => (
+                                  {bill.cosponsors?.items?.map((cosponsor, index) => (
                                       <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
                                           <a href={cosponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
                                               {cosponsor.fullName} ({cosponsor.party}-{cosponsor.state}) <ExternalLink className="h-3 w-3" />
@@ -263,7 +259,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
             {hasActions && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold tracking-tight">
+                  <CardTitle className="text-lg">
                     Recent actions
                   </CardTitle>
                 </CardHeader>
