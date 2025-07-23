@@ -33,7 +33,14 @@ async function fetchAllPages(url: string, apiKey: string) {
                 results = results.concat(data[dataKey]);
             }
 
-            nextUrl = data.pagination?.next || null;
+            if (data.pagination?.next) {
+                nextUrl = data.pagination.next;
+                if (!nextUrl.includes('api_key=')) {
+                    nextUrl += `&api_key=${apiKey}`;
+                }
+            } else {
+                nextUrl = null;
+            }
         } catch (error) {
             console.error("Error during paginated fetch:", error);
             return []; // Return what we have so far on error.
