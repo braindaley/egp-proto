@@ -84,140 +84,136 @@ export default async function BillDetailPage({ params }: { params: { congress: s
             </h1>
           </header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              {hasSummaries && (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <FileText className="text-primary" />
-                            <span>Summary</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="prose prose-sm max-w-none text-muted-foreground">
-                       <p>{bill.summaries.summary!.text}</p>
-                    </CardContent>
-                </Card>
-              )}
-
-              {hasCommittees && (
-                <Card>
+          <div className="space-y-8">
+              <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Library className="text-primary" />
-                        <span>Committees</span>
-                    </CardTitle>
+                      <CardTitle className="text-lg">Details</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-3">
-                      {bill.committees.items.map((committee, index) => (
-                        <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
-                          <p className="font-semibold">{committee.name}</p>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {committee.activities.map(activity => activity.name).join(', ')}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
+                  <CardContent className="space-y-4 text-sm">
+                      <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Introduced</span>
+                          <span className="font-medium">{formatDate(bill.introducedDate)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Chamber</span>
+                           <Badge variant="outline" className="flex items-center gap-1.5">
+                              <Landmark className="h-3 w-3" />
+                              {bill.originChamber}
+                          </Badge>
+                      </div>
+                       <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Bill Type</span>
+                          <Badge variant="secondary" className="font-semibold">{bill.type}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Last Update</span>
+                           <span className="font-medium">{formatDate(bill.updateDate)}</span>
+                      </div>
                   </CardContent>
-                </Card>
+              </Card>
+              
+              <Card>
+                  <CardHeader>
+                      <CardTitle className="text-lg">Latest Action</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-1">
+                      <p className="font-semibold">{formatDate(bill.latestAction.actionDate)}</p>
+                      <p className="text-muted-foreground">{bill.latestAction.text}</p>
+                  </CardContent>
+              </Card>
+
+            {hasSummaries && (
+               <Card>
+                  <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                          <FileText className="text-primary" />
+                          <span>Summary</span>
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent className="prose prose-sm max-w-none text-muted-foreground">
+                     <p>{bill.summaries.summary!.text}</p>
+                  </CardContent>
+              </Card>
+            )}
+
+            {hasCommittees && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                      <Library className="text-primary" />
+                      <span>Committees</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {bill.committees.items.map((committee, index) => (
+                      <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
+                        <p className="font-semibold">{committee.name}</p>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {committee.activities.map(activity => activity.name).join(', ')}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            {(hasSponsors || hasCosponsors) && (
+                  <Card>
+                      <CardHeader>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                              <Users />
+                              <span>Sponsorship</span>
+                          </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                          {hasSponsors && (
+                              <div className="space-y-3">
+                                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                                      <UserSquare2 className="h-4 w-4" />
+                                      Sponsors ({bill.sponsors.length})
+                                  </h4>
+                                  <ul className="space-y-2">
+                                      {bill.sponsors.map((sponsor, index) => (
+                                          <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
+                                              <a href={sponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
+                                                  {sponsor.fullName} ({sponsor.party}-{sponsor.state}) <ExternalLink className="h-3 w-3" />
+                                              </a>
+                                          </li>
+                                      ))}
+                                  </ul>
+                              </div>
+                          )}
+                          {hasSponsors && hasCosponsors && (
+                              <Separator className="my-4" />
+                          )}
+                          {hasCosponsors && (
+                              <div className="space-y-3">
+                                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                                     <Users className="h-4 w-4" />
+                                      Cosponsors ({bill.cosponsors.items.length.toLocaleString()})
+                                  </h4>
+                                   <ul className="space-y-2 max-h-60 overflow-y-auto">
+                                      {bill.cosponsors.items.map((cosponsor, index) => (
+                                          <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
+                                              <a href={cosponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
+                                                  {cosponsor.fullName} ({cosponsor.party}-{cosponsor.state}) <ExternalLink className="h-3 w-3" />
+                                              </a>
+                                          </li>
+                                      ))}
+                                  </ul>
+                              </div>
+                          )}
+                      </CardContent>
+                  </Card>
               )}
-            </div>
-
-            <div className="space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Details</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4 text-sm">
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Introduced</span>
-                            <span className="font-medium">{formatDate(bill.introducedDate)}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Chamber</span>
-                             <Badge variant="outline" className="flex items-center gap-1.5">
-                                <Landmark className="h-3 w-3" />
-                                {bill.originChamber}
-                            </Badge>
-                        </div>
-                         <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Bill Type</span>
-                            <Badge variant="secondary" className="font-semibold">{bill.type}</Badge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Last Update</span>
-                             <span className="font-medium">{formatDate(bill.updateDate)}</span>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Latest Action</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm space-y-1">
-                        <p className="font-semibold">{formatDate(bill.latestAction.actionDate)}</p>
-                        <p className="text-muted-foreground">{bill.latestAction.text}</p>
-                    </CardContent>
-                </Card>
-
-                {(hasSponsors || hasCosponsors) && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <Users />
-                                <span>Sponsorship</span>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {hasSponsors && (
-                                <div className="space-y-3">
-                                    <h4 className="font-semibold text-sm flex items-center gap-2">
-                                        <UserSquare2 className="h-4 w-4" />
-                                        Sponsors ({bill.sponsors.length})
-                                    </h4>
-                                    <ul className="space-y-2">
-                                        {bill.sponsors.map((sponsor, index) => (
-                                            <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
-                                                <a href={sponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
-                                                    {sponsor.fullName} ({sponsor.party}-{sponsor.state}) <ExternalLink className="h-3 w-3" />
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                            {hasSponsors && hasCosponsors && (
-                                <Separator className="my-4" />
-                            )}
-                            {hasCosponsors && (
-                                <div className="space-y-3">
-                                    <h4 className="font-semibold text-sm flex items-center gap-2">
-                                       <Users className="h-4 w-4" />
-                                        Cosponsors ({bill.cosponsors.items.length.toLocaleString()})
-                                    </h4>
-                                     <ul className="space-y-2 max-h-60 overflow-y-auto">
-                                        {bill.cosponsors.items.map((cosponsor, index) => (
-                                            <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
-                                                <a href={cosponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
-                                                    {cosponsor.fullName} ({cosponsor.party}-{cosponsor.state}) <ExternalLink className="h-3 w-3" />
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
-
-                <Button asChild className="w-full">
-                    <a href={constructBillUrl(bill)} target="_blank" rel="noopener noreferrer">
-                        View on Congress.gov <ExternalLink className="ml-2 h-4 w-4" />
-                    </a>
-                </Button>
-            </div>
+            
+            <Button asChild className="w-full">
+                <a href={constructBillUrl(bill)} target="_blank" rel="noopener noreferrer">
+                    View on Congress.gov <ExternalLink className="ml-2 h-4 w-4" />
+                </a>
+            </Button>
           </div>
         </div>
       </main>
