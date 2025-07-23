@@ -1,8 +1,8 @@
 
 import { notFound } from 'next/navigation';
-import type { Bill } from '@/types';
+import type { Bill, Amendment } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2 } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -28,9 +28,10 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     const billData = await billRes.json();
     const bill: Bill = billData.bill;
 
-    const [cosponsorsRes, actionsRes] = await Promise.all([
+    const [cosponsorsRes, actionsRes, amendmentsRes] = await Promise.all([
       fetch(`${baseUrl}/cosponsors?api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
-      fetch(`${baseUrl}/actions?api_key=${API_KEY}`, { next: { revalidate: 3600 } })
+      fetch(`${baseUrl}/actions?api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
+      fetch(`${baseUrl}/amendments?api_key=${API_KEY}`, { next: { revalidate: 3600 } })
     ]);
 
     if (cosponsorsRes.ok) {
@@ -47,6 +48,13 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
         bill.actions = actionsData.actions;
     } else {
         console.error(`API request for actions failed with status: ${actionsRes.status}`);
+    }
+
+    if(amendmentsRes.ok) {
+        const amendmentsData = await amendmentsRes.json();
+        bill.amendments = amendmentsData.amendments;
+    } else {
+        console.error(`API request for amendments failed with status: ${amendmentsRes.status}`);
     }
     
     return bill;
@@ -70,6 +78,12 @@ function constructBillUrl(bill: Bill): string {
     return `https://www.congress.gov/bill/${bill.congress}th-congress/${chamber}-bill/${bill.number}`;
 }
 
+function constructAmendmentUrl(amendment: Amendment): string {
+    const type = amendment.type.toLowerCase().replace('.', '');
+    return `https://www.congress.gov/amendment/${amendment.congress}th-congress/house-amendment/${amendment.number}`;
+}
+
+
 export default async function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
   const bill = await getBillDetails(params.congress, params.billType, params.billNumber);
 
@@ -82,6 +96,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
   const hasCommittees = bill.committees && bill.committees.items && bill.committees.items.length > 0;
   const hasSummaries = bill.summaries && bill.summaries.summary && bill.summaries.summary.text;
   const hasActions = bill.actions && bill.actions.length > 0;
+  const hasAmendments = bill.amendments && bill.amendments.length > 0;
 
   return (
     <div className="bg-background min-h-screen">
@@ -197,6 +212,32 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                         <div className="text-xs text-muted-foreground mt-1">
                           {committee.activities.map(activity => activity.name).join(', ')}
                         </div>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            {hasAmendments && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                      <FilePlus2 className="text-primary" />
+                      Amendments ({bill.amendments.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {bill.amendments.map((amendment, index) => (
+                      <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
+                          <a href={constructAmendmentUrl(amendment)} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
+                            <span>{amendment.type} {amendment.number}: {amendment.purpose}</span>
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Latest Action: {formatDate(amendment.latestAction.actionDate)} - {amendment.latestAction.text}
+                          </p>
                       </li>
                     ))}
                   </ul>

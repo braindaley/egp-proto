@@ -1,4 +1,18 @@
 
+
+export interface Amendment {
+    congress: number;
+    number: number;
+    type: string;
+    url: string;
+    purpose: string;
+    description: string;
+    latestAction: {
+        actionDate: string;
+        text: string;
+    }
+}
+
 export interface Bill {
   congress: number;
   introducedDate: string;
@@ -63,6 +77,7 @@ export interface Bill {
     actionDate: string;
     text: string;
   }[];
+  amendments: Amendment[];
 }
 
 export interface CongressApiResponse {
