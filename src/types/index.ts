@@ -26,6 +26,17 @@ export interface Bill {
   cosponsors: {
     count: number;
     url: string;
+    items?: {
+        bioguideId: string;
+        fullName: string;
+        firstName: string;
+        lastName: string;
+        middleName?: string;
+        party: string;
+        state: string;
+        url: string;
+        isOriginalCosponsor: boolean;
+    }[];
   };
   committees: {
     count: number;
@@ -42,7 +53,7 @@ export interface Bill {
   };
   summaries: {
     count: number;
-    summary: {
+    summary?: {
       text: string;
       updateDate: string;
       versionCode: string;

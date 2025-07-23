@@ -2,33 +2,45 @@
 import { notFound } from 'next/navigation';
 import type { Bill } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, CalendarDays, Users, Library, FileText, ChevronRight } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
-  const url = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}?api_key=${API_KEY}`;
+  const baseUrl = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}`;
 
   try {
-    const res = await fetch(url, {
+    const billRes = await fetch(`${baseUrl}?api_key=${API_KEY}`, {
       next: { revalidate: 3600 },
     });
 
-    if (res.status === 404) {
+    if (billRes.status === 404) {
       return null;
     }
 
-    if (!res.ok) {
-      console.error(`API request failed with status: ${res.status}`);
-      const errorText = await res.text();
-      console.error(`Error details: ${errorText}`);
-      throw new Error(`Failed to fetch data: ${res.statusText}`);
+    if (!billRes.ok) {
+      console.error(`API request for bill failed with status: ${billRes.status}`);
+      throw new Error(`Failed to fetch bill data: ${billRes.statusText}`);
     }
     
-    const data = await res.json();
-    return data.bill;
+    const billData = await billRes.json();
+    const bill: Bill = billData.bill;
+
+    if (bill.cosponsors && bill.cosponsors.count > 0) {
+      const cosponsorsRes = await fetch(`${baseUrl}/cosponsors?api_key=${API_KEY}`, {
+        next: { revalidate: 3600 },
+      });
+      if (cosponsorsRes.ok) {
+        const cosponsorsData = await cosponsorsRes.json();
+        bill.cosponsors.items = cosponsorsData.cosponsors;
+      } else {
+        console.error(`API request for cosponsors failed with status: ${cosponsorsRes.status}`);
+      }
+    }
+    
+    return bill;
   } catch (error) {
     console.error("Error fetching bill details:", error);
     return null; 
@@ -57,9 +69,9 @@ export default async function BillDetailPage({ params }: { params: { congress: s
   }
   
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
-  const hasCosponsors = bill.cosponsors && bill.cosponsors.count > 0;
+  const hasCosponsors = bill.cosponsors && bill.cosponsors.items && bill.cosponsors.items.length > 0;
   const hasCommittees = bill.committees && bill.committees.items && bill.committees.items.length > 0;
-  const hasSummaries = bill.summaries && bill.summaries.count > 0 && bill.summaries.summary;
+  const hasSummaries = bill.summaries && bill.summaries.summary && bill.summaries.summary.text;
 
   return (
     <div className="bg-background min-h-screen">
@@ -83,7 +95,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="prose prose-sm max-w-none text-muted-foreground">
-                       <p>{bill.summaries.summary.text}</p>
+                       <p>{bill.summaries.summary!.text}</p>
                     </CardContent>
                 </Card>
               )}
@@ -179,10 +191,18 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                                 {hasCosponsors && (
                                      <AccordionItem value="cosponsors">
                                         <AccordionTrigger className="text-sm">
-                                            Cosponsors ({bill.cosponsors.count.toLocaleString()})
+                                            Cosponsors ({bill.cosponsors.items!.length.toLocaleString()})
                                         </AccordionTrigger>
-                                        <AccordionContent className="text-xs text-center text-muted-foreground pt-2">
-                                            <p>A full list of cosponsors is available on Congress.gov</p>
+                                        <AccordionContent>
+                                            <ul className="space-y-2 pt-2 max-h-60 overflow-y-auto">
+                                                {bill.cosponsors.items!.map((cosponsor, index) => (
+                                                    <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
+                                                        <a href={cosponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
+                                                            {cosponsor.fullName} ({cosponsor.party}-{cosponsor.state}) <ExternalLink className="h-3 w-3" />
+                                                        </a>
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </AccordionContent>
                                      </AccordionItem>
                                 )}
