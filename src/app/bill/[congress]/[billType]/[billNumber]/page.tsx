@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Bill, Amendment, RelatedBill } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2, ChevronsUpDown, FileJson } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2, ChevronsUpDown, FileJson, Tags } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -79,6 +79,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.actions = bill.actions || [];
     bill.amendments = bill.amendments || [];
     bill.relatedBills = bill.relatedBills || [];
+    bill.subjects = bill.subjects || { count: 0, items: [] };
 
     // Fetch related data sequentially to avoid rate limiting.
     // For cosponsors, only fetch the first page to avoid hitting rate limits on bills with thousands of them.
@@ -87,6 +88,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.amendments = await fetchAllPages(`${baseUrl}/amendments`, API_KEY);
     bill.committees.items = await fetchAllPages(`${baseUrl}/committees`, API_KEY);
     bill.relatedBills = await fetchAllPages(`${baseUrl}/relatedbills`, API_KEY);
+    bill.subjects.items = await fetchAllPages(`${baseUrl}/subjects`, API_KEY);
     
     // Sort amendments by date after fetching all of them.
     bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
@@ -133,6 +135,8 @@ export default async function BillDetailPage({ params }: { params: { congress: s
   const hasActions = bill.actions && bill.actions.length > 0;
   const hasAmendments = bill.amendments && bill.amendments.length > 0;
   const hasRelatedBills = bill.relatedBills && bill.relatedBills.length > 0;
+  const hasSubjects = bill.subjects?.items && bill.subjects.items.length > 0;
+
 
   return (
     <div className="bg-background min-h-screen">
@@ -178,6 +182,26 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                   </CardHeader>
                   <CardContent className="prose prose-sm max-w-none text-muted-foreground">
                      <p>{bill.summaries.summary.text}</p>
+                  </CardContent>
+              </Card>
+            )}
+
+            {hasSubjects && (
+              <Card>
+                  <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                          <Tags className="text-primary" />
+                          Subjects
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-2">
+                     {bill.subjects.items.map((subject, index) => (
+                        <a href={subject.url} target="_blank" rel="noopener noreferrer" key={index}>
+                            <Badge variant="secondary" className="text-xs hover:bg-primary/10 transition-colors">
+                                {subject.name}
+                            </Badge>
+                        </a>
+                     ))}
                   </CardContent>
               </Card>
             )}

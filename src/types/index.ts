@@ -25,7 +25,7 @@ export interface RelatedBill {
     };
     relationshipDetails: {
         count: number;
-        items: {
+        items?: {
             type: string;
             identifiedBy: string;
         }[];
@@ -100,6 +100,13 @@ export interface Bill {
   }[];
   amendments: Amendment[];
   relatedBills: RelatedBill[];
+  subjects: {
+    count: number;
+    items: {
+      name: string;
+      url: string;
+    }[];
+  };
 }
 
 export interface CongressApiResponse {
