@@ -36,11 +36,8 @@ export default async function Home() {
       <main className="container mx-auto px-4 py-8 md:py-12">
         <header className="text-center mb-12">
           <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
-            Congress Bills Explorer
+            Recent updates
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Stay informed with real-time data on the latest legislative developments from the U.S. Congress.
-          </p>
         </header>
 
         {bills.length > 0 ? (
