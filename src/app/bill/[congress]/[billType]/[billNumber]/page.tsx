@@ -2,10 +2,11 @@
 import { notFound } from 'next/navigation';
 import type { Bill, Amendment } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2 } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
@@ -28,6 +29,18 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     const billData = await billRes.json();
     const bill: Bill = billData.bill;
 
+    // Ensure nested objects exist before trying to populate them
+    if (!bill.cosponsors) {
+      bill.cosponsors = { count: 0, url: '' };
+    }
+    if (!bill.actions) {
+      bill.actions = [];
+    }
+    if (!bill.amendments) {
+      bill.amendments = [];
+    }
+
+
     const [cosponsorsRes, actionsRes, amendmentsRes] = await Promise.all([
       fetch(`${baseUrl}/cosponsors?api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
       fetch(`${baseUrl}/actions?api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
@@ -36,9 +49,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
 
     if (cosponsorsRes.ok) {
       const cosponsorsData = await cosponsorsRes.json();
-      if(bill.cosponsors){
-          bill.cosponsors.items = cosponsorsData.cosponsors;
-      }
+      bill.cosponsors.items = cosponsorsData.cosponsors;
     } else {
       console.error(`API request for cosponsors failed with status: ${cosponsorsRes.status}`);
     }
@@ -75,6 +86,8 @@ function formatDate(dateString: string) {
   
 function constructBillUrl(bill: Bill): string {
     const chamber = bill.originChamber.toLowerCase();
+    // The bill type in the URL needs to be massaged for congress.gov
+    const billTypeSlug = bill.type.toLowerCase().replace(/\./g, '').replace(/\s/g, '');
     return `https://www.congress.gov/bill/${bill.congress}th-congress/${chamber}-bill/${bill.number}`;
 }
 
@@ -147,54 +160,54 @@ export default async function BillDetailPage({ params }: { params: { congress: s
             )}
             
             {(hasSponsors || hasCosponsors) && (
-                  <Card>
-                      <CardHeader>
-                          <CardTitle className="text-lg flex items-center gap-2">
-                              <Users />
-                              Sponsorship
-                          </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                          {hasSponsors && (
-                              <div className="space-y-3">
-                                  <h4 className="font-semibold text-sm flex items-center gap-2">
-                                      <UserSquare2 className="h-4 w-4" />
-                                      Sponsors ({bill.sponsors.length})
-                                  </h4>
-                                  <ul className="space-y-2">
-                                      {bill.sponsors.map((sponsor, index) => (
-                                          <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
-                                              <a href={sponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
-                                                  {sponsor.fullName} ({sponsor.party}-{sponsor.state}) <ExternalLink className="h-3 w-3" />
-                                              </a>
-                                          </li>
-                                      ))}
-                                  </ul>
-                              </div>
-                          )}
-                          {hasSponsors && hasCosponsors && (
-                              <Separator className="my-4" />
-                          )}
-                          {hasCosponsors && (
-                              <div className="space-y-3">
-                                  <h4 className="font-semibold text-sm flex items-center gap-2">
-                                     <Users className="h-4 w-4" />
-                                      Cosponsors ({bill.cosponsors.items.length.toLocaleString()})
-                                  </h4>
-                                   <ul className="space-y-2 max-h-60 overflow-y-auto">
-                                      {bill.cosponsors.items.map((cosponsor, index) => (
-                                          <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
-                                              <a href={cosponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
-                                                  {cosponsor.fullName} ({cosponsor.party}-{cosponsor.state}) <ExternalLink className="h-3 w-3" />
-                                              </a>
-                                          </li>
-                                      ))}
-                                  </ul>
-                              </div>
-                          )}
-                      </CardContent>
-                  </Card>
-              )}
+              <Card>
+                  <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                          <Users />
+                          Sponsorship
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      {hasSponsors && (
+                          <div className="space-y-3">
+                              <h4 className="font-semibold text-sm flex items-center gap-2">
+                                  <UserSquare2 className="h-4 w-4" />
+                                  Sponsors ({bill.sponsors.length})
+                              </h4>
+                              <ul className="space-y-2">
+                                  {bill.sponsors.map((sponsor, index) => (
+                                      <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
+                                          <a href={sponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
+                                              {sponsor.fullName} ({sponsor.party}-{sponsor.state}) <ExternalLink className="h-3 w-3" />
+                                          </a>
+                                      </li>
+                                  ))}
+                              </ul>
+                          </div>
+                      )}
+                      {hasSponsors && hasCosponsors && (
+                          <Separator className="my-4" />
+                      )}
+                      {hasCosponsors && (
+                          <div className="space-y-3">
+                              <h4 className="font-semibold text-sm flex items-center gap-2">
+                                  <Users className="h-4 w-4" />
+                                  Cosponsors ({bill.cosponsors.items.length.toLocaleString()})
+                              </h4>
+                                <ul className="space-y-2 max-h-60 overflow-y-auto">
+                                  {bill.cosponsors.items.map((cosponsor, index) => (
+                                      <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
+                                          <a href={cosponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
+                                              {cosponsor.fullName} ({cosponsor.party}-{cosponsor.state}) <ExternalLink className="h-3 w-3" />
+                                          </a>
+                                      </li>
+                                  ))}
+                              </ul>
+                          </div>
+                      )}
+                  </CardContent>
+              </Card>
+            )}
 
             {hasCommittees && (
               <Card>
@@ -248,18 +261,36 @@ export default async function BillDetailPage({ params }: { params: { congress: s
             {hasActions && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">
+                  <CardTitle className="text-lg font-semibold tracking-tight">
                     Recent actions
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-4">
-                    {bill.actions.map((action, index) => (
+                    {bill.actions.slice(0, 5).map((action, index) => (
                       <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
                         <p className="font-semibold">{formatDate(action.actionDate)}</p>
                         <p className="text-muted-foreground mt-1">{action.text}</p>
                       </li>
                     ))}
+                    {bill.actions.length > 5 && (
+                      <Collapsible>
+                        <CollapsibleContent className="space-y-4">
+                          {bill.actions.slice(5).map((action, index) => (
+                            <li key={index + 5} className="text-sm p-3 bg-secondary/50 rounded-md">
+                              <p className="font-semibold">{formatDate(action.actionDate)}</p>
+                              <p className="text-muted-foreground mt-1">{action.text}</p>
+                            </li>
+                          ))}
+                        </CollapsibleContent>
+                        <CollapsibleTrigger asChild>
+                           <Button variant="outline" className="w-full mt-4">
+                            <ChevronsUpDown className="mr-2 h-4 w-4" />
+                            Show all {bill.actions.length} actions
+                          </Button>
+                        </CollapsibleTrigger>
+                      </Collapsible>
+                    )}
                   </ul>
                 </CardContent>
               </Card>

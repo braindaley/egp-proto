@@ -22,8 +22,7 @@ function formatDate(dateString: string) {
 }
 
 export function BillCard({ bill }: { bill: Bill }) {
-  const billType = bill.type.toLowerCase().replace(/\./g, '');
-  const detailUrl = `/bill/${bill.congress}/${billType}/${bill.number}`;
+  const detailUrl = `/bill/${bill.congress}/${bill.type}/${bill.number}`;
 
   return (
     <Link href={detailUrl} className="flex">
