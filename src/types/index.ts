@@ -62,6 +62,7 @@ export interface Bill {
       url: string;
       activities: {
         name: string;
+        date?: string; // Make date optional as it may not always be present
       }[];
     }[];
   };

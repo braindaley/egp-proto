@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
 
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
@@ -222,16 +224,28 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-3">
-                    {bill.committees.items.map((committee, index) => (
-                      <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
-                        <p className="font-semibold">{committee.name}</p>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {committee.activities.map(activity => activity.name).join(', ')}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Committee</TableHead>
+                        <TableHead>Activity</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bill.committees.items.map((committee, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">
+                            <a href={committee.url} target="_blank" rel="noopener noreferrer" className="hover:underline flex items-center gap-1">
+                                {committee.name} <ExternalLink className="h-3 w-3" />
+                            </a>
+                            </TableCell>
+                          <TableCell>
+                            {committee.activities.map(activity => activity.name).join(', ')}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
             )}
