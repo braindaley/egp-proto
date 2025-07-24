@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import type { Bill, Amendment, RelatedBill, Summary, TextVersion } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2, ChevronsUpDown, FileJson, Tags, BookText, Download, Loader2 } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2, ChevronsUpDown, FileJson, Tags, BookText, Download, Loader2, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -105,7 +105,7 @@ const SummaryDisplay = ({ summary }: { summary: Summary }) => {
     <div className="p-3 bg-secondary/50 rounded-md">
       <div className="font-semibold text-sm mb-2 flex justify-between items-center">
         <span>{summary.actionDesc} ({summary.versionCode})</span>
-        <span className="text-xs text-muted-foreground font-normal">{formatDate(summary.actionDate)}</span>
+        <span className="text-xs text-muted-foreground font-normal">{formatDate(summary.updateDate)}</span>
       </div>
       
       {isLoading && (
@@ -132,7 +132,7 @@ const SummaryDisplay = ({ summary }: { summary: Summary }) => {
           <DialogHeader>
             <DialogTitle>Original Text: {summary.actionDesc} ({summary.versionCode})</DialogTitle>
             <DialogDescription>
-              Full original text for the summary from {formatDate(summary.actionDate)}.
+              Full original text for the summary from {formatDate(summary.updateDate)}.
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="flex-grow pr-6">
@@ -155,10 +155,10 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   const hasCommittees = bill.committees?.items && bill.committees.items.length > 0;
   const hasSummaries = bill.summaries?.summary?.text;
   const hasAllSummaries = bill.allSummaries && bill.allSummaries.length > 0;
-  const hasTextVersions = bill.textVersions && bill.textVersions.length > 0;
-  const hasActions = bill.actions && bill.actions.length > 0;
-  const hasAmendments = bill.amendments && bill.amendments.length > 0;
-  const hasRelatedBills = bill.relatedBills && bill.relatedBills.length > 0;
+  const hasTextVersions = bill.textVersions?.items && bill.textVersions.items.length > 0;
+  const hasActions = bill.actions?.items && bill.actions.items.length > 0;
+  const hasAmendments = bill.amendments?.items && bill.amendments.items.length > 0;
+  const hasRelatedBills = bill.relatedBills?.items && bill.relatedBills.items.length > 0;
   const hasSubjects = bill.subjects?.items && bill.subjects.items.length > 0;
 
   return (
@@ -250,17 +250,17 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
                             <BookText className="text-primary" />
-                            Text Versions ({bill.textVersions.length})
+                            Text Versions ({bill.textVersions.count})
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Tabs defaultValue={bill.textVersions[0]?.type} className="w-full">
+                        <Tabs defaultValue={bill.textVersions.items[0]?.type} className="w-full">
                             <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-4 h-auto flex-wrap">
-                                {bill.textVersions.map((version) => (
+                                {bill.textVersions.items.map((version) => (
                                   <TabsTrigger key={version.type} value={version.type} className="flex-1 text-xs px-2 py-1.5 whitespace-normal h-auto">{version.type}</TabsTrigger>
                                 ))}
                             </TabsList>
-                            {bill.textVersions.map((version) => {
+                            {bill.textVersions.items.map((version) => {
                                 const fullText = version.formats.find(f => f.type.toLowerCase().includes('text'))?.url;
                                 const pdfUrl = version.formats.find(f => f.type === 'PDF')?.url;
 
@@ -354,7 +354,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                       <Library className="text-primary" />
-                      Committees
+                      Committees ({bill.committees.count})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -391,12 +391,12 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
                             <FileJson className="text-primary" />
-                            Related Bills ({bill.relatedBills.length})
+                            Related Bills ({bill.relatedBills.count})
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                          <ul className="space-y-3 list-none p-0">
-                            {bill.relatedBills.slice(0, 5).map((relatedBill: RelatedBill, index: number) => {
+                            {bill.relatedBills.items.slice(0, 5).map((relatedBill: RelatedBill, index: number) => {
                                 const billTypeSlug = getBillTypeSlug(relatedBill.type);
                                 const detailUrl = `/bill/${relatedBill.congress}/${billTypeSlug}/${relatedBill.number}`;
 
@@ -419,10 +419,10 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                 );
                             })}
                         </ul>
-                         {bill.relatedBills.length > 5 && (
+                         {bill.relatedBills.items.length > 5 && (
                           <Collapsible>
                             <CollapsibleContent className="space-y-3 list-none p-0 mt-3">
-                              {bill.relatedBills.slice(5).map((relatedBill: RelatedBill, index: number) => {
+                              {bill.relatedBills.items.slice(5).map((relatedBill: RelatedBill, index: number) => {
                                   const billTypeSlug = getBillTypeSlug(relatedBill.type);
                                   const detailUrl = `/bill/${relatedBill.congress}/${billTypeSlug}/${relatedBill.number}`;
                                   return (
@@ -447,7 +447,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                             <CollapsibleTrigger asChild>
                                <Button variant="outline" className="w-full mt-4">
                                 <ChevronsUpDown className="mr-2 h-4 w-4" />
-                                Show all {bill.relatedBills.length} related bills
+                                Show all {bill.relatedBills.items.length} related bills
                               </Button>
                             </CollapsibleTrigger>
                           </Collapsible>
@@ -461,18 +461,18 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                       <FilePlus2 className="text-primary" />
-                      Amendments ({bill.amendments.length})
+                      Amendments ({bill.amendments.count})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3 list-none p-0">
-                    {bill.amendments.slice(0, 5).map((amendment, index) => (
+                    {bill.amendments.items.slice(0, 5).map((amendment, index) => (
                       <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
                           <div className="font-semibold flex justify-between items-center">
                             <span>{amendment.type} {amendment.number}</span>
-                            <span className="text-xs text-muted-foreground font-normal">
-                               Updated: {formatDate(amendment.updateDate)}
-                            </span>
+                             <a href={amendment.url} target="_blank" rel="noopener noreferrer" className="hover:underline flex items-center gap-1 text-xs">
+                                <ExternalLink className="h-3 w-3" />
+                            </a>
                           </div>
                            {amendment.description && (
                             <p className="text-sm text-muted-foreground mt-2 prose prose-sm max-w-none">
@@ -487,16 +487,16 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                            )}
                       </li>
                     ))}
-                     {bill.amendments.length > 5 && (
+                     {bill.amendments.items.length > 5 && (
                       <Collapsible>
                         <CollapsibleContent className="space-y-3 list-none p-0 mt-3">
-                          {bill.amendments.slice(5).map((amendment, index) => (
+                          {bill.amendments.items.slice(5).map((amendment, index) => (
                             <li key={index + 5} className="text-sm p-3 bg-secondary/50 rounded-md">
                                 <div className="font-semibold flex justify-between items-center">
                                   <span>{amendment.type} {amendment.number}</span>
-                                  <span className="text-xs text-muted-foreground font-normal">
-                                     Updated: {formatDate(amendment.updateDate)}
-                                  </span>
+                                    <a href={amendment.url} target="_blank" rel="noopener noreferrer" className="hover:underline flex items-center gap-1 text-xs">
+                                        <ExternalLink className="h-3 w-3" />
+                                    </a>
                                 </div>
                                  {amendment.description && (
                                   <p className="text-sm text-muted-foreground mt-2 prose prose-sm max-w-none">
@@ -515,7 +515,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                         <CollapsibleTrigger asChild>
                            <Button variant="outline" className="w-full mt-4">
                             <ChevronsUpDown className="mr-2 h-4 w-4" />
-                            Show all {bill.amendments.length} amendments
+                            Show all {bill.amendments.items.length} amendments
                           </Button>
                         </CollapsibleTrigger>
                       </Collapsible>
@@ -528,22 +528,23 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
             {hasActions && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">
-                    Recent actions
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                      <History className="text-primary" />
+                      Actions ({bill.actions.count})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-4 list-none p-0">
-                    {bill.actions.slice(0, 5).map((action, index) => (
+                    {bill.actions.items.slice(0, 5).map((action, index) => (
                       <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
                         <p className="font-semibold">{formatDate(action.actionDate)}</p>
                         <p className="text-muted-foreground mt-1">{action.text}</p>
                       </li>
                     ))}
-                    {bill.actions.length > 5 && (
+                    {bill.actions.items.length > 5 && (
                       <Collapsible>
                         <CollapsibleContent className="space-y-4 list-none p-0 mt-3">
-                          {bill.actions.slice(5).map((action, index) => (
+                          {bill.actions.items.slice(5).map((action, index) => (
                             <li key={index + 5} className="text-sm p-3 bg-secondary/50 rounded-md">
                               <p className="font-semibold">{formatDate(action.actionDate)}</p>
                               <p className="text-muted-foreground mt-1">{action.text}</p>
@@ -553,7 +554,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                         <CollapsibleTrigger asChild>
                            <Button variant="outline" className="w-full mt-4">
                             <ChevronsUpDown className="mr-2 h-4 w-4" />
-                            Show all {bill.actions.length} actions
+                            Show all {bill.actions.items.length} actions
                           </Button>
                         </CollapsibleTrigger>
                       </Collapsible>

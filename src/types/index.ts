@@ -94,6 +94,10 @@ export interface PolicyArea {
     name: string;
 }
 
+type ApiCollection<T> = {
+    count: number;
+    items: T[];
+}
 
 export interface Bill {
   congress: number;
@@ -110,28 +114,18 @@ export interface Bill {
   updateDate: string;
   url: string;
   sponsors: Sponsor[];
-  cosponsors: {
-    count: number;
-    url: string;
-    items?: Cosponsor[];
-  };
-  committees: {
-    count: number;
-    items: Committee[];
-  };
+  cosponsors: ApiCollection<Cosponsor> & { url: string; };
+  committees: ApiCollection<Committee>;
   summaries: {
     count: number;
     summary?: Summary;
     items?: Summary[];
   };
   allSummaries: Summary[];
-  textVersions: TextVersion[];
-  actions: {
-    actionDate: string;
-    text: string;
-  }[];
-  amendments: Amendment[];
-  relatedBills: RelatedBill[];
+  textVersions: ApiCollection<TextVersion>;
+  actions: ApiCollection<{ actionDate: string; text: string; }>;
+  amendments: ApiCollection<Amendment>;
+  relatedBills: ApiCollection<RelatedBill>;
   subjects: {
     count: number;
     items: Subject[];

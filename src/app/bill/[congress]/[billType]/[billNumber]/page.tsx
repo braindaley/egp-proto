@@ -42,11 +42,11 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.committees.items = bill.committees.items || [];
     bill.summaries = bill.summaries || { count: 0, items: [] };
     bill.allSummaries = bill.summaries.items || [];
-    bill.actions = bill.actions || [];
-    bill.amendments = bill.amendments || [];
-    bill.relatedBills = bill.relatedBills || [];
+    bill.actions = bill.actions || { count:0, items:[] };
+    bill.amendments = bill.amendments || { count:0, items:[] };
+    bill.relatedBills = bill.relatedBills || { count:0, items:[] };
     bill.subjects = bill.subjects || { count: 0, items: [] };
-    bill.textVersions = bill.textVersions || [];
+    bill.textVersions = bill.textVersions || { count:0, items:[] };
     
     const legislativeSubjects = bill.subjects.legislativeSubjects || [];
     const policyArea = bill.subjects.policyArea ? [bill.subjects.policyArea] : [];
@@ -57,27 +57,33 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
       const sortedSummaries = [...bill.allSummaries].sort((a,b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
       bill.summaries.summary = sortedSummaries[0];
     }
+    
+    const sortableFields: (keyof Bill)[] = ['actions', 'amendments', 'relatedBills', 'textVersions', 'allSummaries'];
 
-    if (Array.isArray(bill.amendments)) {
-      bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
+    for (const field of sortableFields) {
+        if (bill[field] && Array.isArray((bill[field] as any).items)) {
+            (bill[field] as any).items.sort((a: any, b: any) => {
+                const dateA = a.updateDate || a.actionDate || a.date;
+                const dateB = b.updateDate || b.actionDate || b.date;
+                if (!dateA) return 1;
+                if (!dateB) return -1;
+                return new Date(dateB).getTime() - new Date(dateA).getTime();
+            });
+        }
     }
-    if (Array.isArray(bill.relatedBills)) {
-      bill.relatedBills.sort((a, b) => {
-          if (!a.latestAction?.actionDate) return 1;
-          if (!b.latestAction?.actionDate) return -1;
-          return new Date(b.latestAction.actionDate).getTime() - new Date(a.latestAction.actionDate).getTime()
+
+    if (Array.isArray(bill.committees?.items)) {
+      bill.committees.items.forEach(committee => {
+        if(Array.isArray(committee.activities)){
+          committee.activities.sort((a,b) => {
+            if(!a.date) return 1;
+            if(!b.date) return -1;
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+          });
+        }
       });
     }
-    if(Array.isArray(bill.allSummaries)) {
-      bill.allSummaries.sort((a, b) => new Date(b.actionDate).getTime() - new Date(a.actionDate).getTime());
-    }
-    if (Array.isArray(bill.textVersions)) {
-      bill.textVersions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }
-    if(Array.isArray(bill.actions)) {
-       bill.actions.sort((a,b) => new Date(b.actionDate).getTime() - new Date(a.actionDate).getTime());
-    }
-
+    
     return bill;
   } catch (error) {
     console.error("Error fetching or processing bill details:", error);
