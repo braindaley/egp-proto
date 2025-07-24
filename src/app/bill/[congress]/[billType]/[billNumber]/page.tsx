@@ -1,9 +1,11 @@
 
+'use client';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Bill, Amendment, RelatedBill, Summary, TextVersion } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2, ChevronsUpDown, FileJson, Tags, BookText, Download } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2, ChevronsUpDown, FileJson, Tags, BookText, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -11,6 +13,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getBillTypeSlug } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { summarizeText } from '@/ai/flows/summarize-text-flow';
 
 async function fetchAllPages(url: string, apiKey: string, shouldFetchAll: boolean = true) {
     let results: any[] = [];
@@ -142,7 +147,7 @@ const TruncatedText = ({ text, limit = 500 }: { text: string; limit?: number }) 
     return (
         <Collapsible>
             <CollapsibleContent className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6">
-                 {isHtml ? <div dangerouslySetInnerHTML={{ __html: text }} /> : <p>{text}</p>}
+                {isHtml ? <div dangerouslySetInnerHTML={{ __html: text }} /> : <p>{text}</p>}
             </CollapsibleContent>
             <CollapsibleTrigger asChild>
                 <Button variant="link" className="p-0 h-auto text-xs mt-2">
@@ -154,8 +159,98 @@ const TruncatedText = ({ text, limit = 500 }: { text: string; limit?: number }) 
     );
 };
 
-export default async function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
-  const bill = await getBillDetails(params.congress, params.billType, params.billNumber);
+const SummaryDisplay = ({ summary }: { summary: Summary }) => {
+  const [aiSummary, setAiSummary] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const generateSummary = async () => {
+      try {
+        setIsLoading(true);
+        setError('');
+        const result = await summarizeText(summary.text);
+        setAiSummary(result);
+      } catch (e) {
+        console.error("Error generating AI summary:", e);
+        setError('Could not generate summary.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    generateSummary();
+  }, [summary.text]);
+
+  return (
+    <div className="p-3 bg-secondary/50 rounded-md">
+      <div className="font-semibold text-sm mb-2 flex justify-between items-center">
+        <span>{summary.actionDesc} ({summary.versionCode})</span>
+        <span className="text-xs text-muted-foreground font-normal">{formatDate(summary.actionDate)}</span>
+      </div>
+      
+      {isLoading && (
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Generating AI summary...</span>
+        </div>
+      )}
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {!isLoading && !error && (
+        <>
+          <p className="text-sm text-muted-foreground italic">AI-generated overview:</p>
+          <p className="prose prose-sm max-w-none text-muted-foreground mt-1">{aiSummary}</p>
+        </>
+      )}
+
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="mt-4">View original text</Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[90vw] h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Original Text: {summary.actionDesc} ({summary.versionCode})</DialogTitle>
+            <DialogDescription>
+              Full original text for the summary from {formatDate(summary.actionDate)}.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-grow pr-6">
+             <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: summary.text }} />
+          </ScrollArea>
+          <DialogClose asChild>
+            <Button type="button" variant="secondary" className="mt-4">
+              Close
+            </Button>
+          </DialogClose>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+export default function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
+  const [bill, setBill] = useState<Bill | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadBill = async () => {
+      setLoading(true);
+      const billDetails = await getBillDetails(params.congress, params.billType, params.billNumber);
+      setBill(billDetails);
+      setLoading(false);
+    }
+    loadBill();
+  }, [params.congress, params.billType, params.billNumber]);
+
+
+  if (loading) {
+    return (
+        <div className="flex justify-center items-center min-h-screen">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    )
+  }
 
   if (!bill) {
     notFound();
@@ -251,13 +346,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {bill.allSummaries.map((summary, index) => (
-                            <div key={index} className="p-3 bg-secondary/50 rounded-md">
-                                <div className="font-semibold text-sm mb-2 flex justify-between items-center">
-                                    <span>{summary.actionDesc} ({summary.versionCode})</span>
-                                    <span className="text-xs text-muted-foreground font-normal">{formatDate(summary.actionDate)}</span>
-                                </div>
-                                <TruncatedText text={summary.text} />
-                            </div>
+                           <SummaryDisplay key={index} summary={summary} />
                         ))}
                     </CardContent>
                 </Card>
