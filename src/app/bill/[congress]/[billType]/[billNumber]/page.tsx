@@ -66,35 +66,39 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     }
     
     // Sort items with dates in descending order
-    const sortableFields: (keyof Bill)[] = ['actions', 'amendments', 'relatedBills', 'textVersions'];
+    try {
+        const sortableFields: (keyof Bill)[] = ['actions', 'amendments', 'relatedBills', 'textVersions'];
 
-    for (const field of sortableFields) {
-        const collection = bill[field] as any;
-        if (collection && Array.isArray(collection.items)) {
-            collection.items.sort((a: any, b: any) => {
-                const dateA = a.updateDate || a.actionDate || a.date;
-                const dateB = b.updateDate || b.actionDate || b.date;
-                if (!dateA) return 1;
-                if (!dateB) return -1;
-                return new Date(dateB).getTime() - new Date(dateA).getTime();
-            });
+        for (const field of sortableFields) {
+            const collection = bill[field] as any;
+            if (collection && Array.isArray(collection.items)) {
+                collection.items.sort((a: any, b: any) => {
+                    const dateA = a.updateDate || a.actionDate || a.date;
+                    const dateB = b.updateDate || b.actionDate || b.date;
+                    if (!dateA) return 1;
+                    if (!dateB) return -1;
+                    return new Date(dateB).getTime() - new Date(dateA).getTime();
+                });
+            }
         }
-    }
-    
-    if (bill.allSummaries) {
-        bill.allSummaries.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
-    }
+        
+        if (bill.allSummaries) {
+            bill.allSummaries.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
+        }
 
-    if (Array.isArray(bill.committees?.items)) {
-      bill.committees.items.forEach(committee => {
-        if(Array.isArray(committee.activities)){
-          committee.activities.sort((a,b) => {
-            if(!a.date) return 1;
-            if(!b.date) return -1;
-            return new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (Array.isArray(bill.committees?.items)) {
+          bill.committees.items.forEach(committee => {
+            if(Array.isArray(committee.activities)){
+              committee.activities.sort((a,b) => {
+                if(!a.date) return 1;
+                if(!b.date) return -1;
+                return new Date(b.date).getTime() - new Date(a.date).getTime();
+              });
+            }
           });
         }
-      });
+    } catch(error) {
+        console.error("Error sorting bill data:", error);
     }
     
     return bill;
