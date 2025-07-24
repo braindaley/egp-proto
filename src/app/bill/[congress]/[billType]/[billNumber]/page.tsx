@@ -235,9 +235,8 @@ export default function BillDetailPage({ params }: { params: { congress: string;
 
   useEffect(() => {
     const loadBill = async () => {
-      const { congress, billType, billNumber } = params;
       setLoading(true);
-      const billDetails = await getBillDetails(congress, billType, billNumber);
+      const billDetails = await getBillDetails(params.congress, params.billType, params.billNumber);
       setBill(billDetails);
       setLoading(false);
     }
