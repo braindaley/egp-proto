@@ -36,6 +36,7 @@ function constructBillUrl(bill: Bill): string {
 }
 
 const TruncatedText = ({ text, limit = 500 }: { text: string; limit?: number }) => {
+    if (!text) return null;
     const isHtml = /<[a-z][\s\S]*>/i.test(text);
 
     if (text.length <= limit) {
@@ -575,3 +576,5 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
     </div>
   );
 }
+
+    
