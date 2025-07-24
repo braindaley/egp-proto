@@ -20,10 +20,12 @@ import React, { useEffect } from 'react';
 
 function formatDate(dateString: string) {
     if (!dateString) return 'N/A';
+    // Use UTC to prevent hydration errors
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      timeZone: 'UTC'
     });
 }
   
