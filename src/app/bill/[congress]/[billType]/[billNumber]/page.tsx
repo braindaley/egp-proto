@@ -49,13 +49,14 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.subjects = bill.subjects || { count: 0, items: [] };
     bill.textVersions = bill.textVersions || { count:0, items:[] };
     
-    if (bill.subjects.legislativeSubjects) {
-      bill.subjects.items = [...(bill.subjects.items || []), ...bill.subjects.legislativeSubjects];
+    if (bill.subjects) {
+      if (!bill.subjects.items) {
+        const legislativeSubjects = bill.subjects.legislativeSubjects || [];
+        const policyArea = bill.subjects.policyArea ? [bill.subjects.policyArea] : [];
+        bill.subjects.items = [...legislativeSubjects, ...policyArea];
+      }
+      bill.subjects.count = bill.subjects.items?.length || 0;
     }
-    if (bill.subjects.policyArea) {
-       bill.subjects.items.push(bill.subjects.policyArea);
-    }
-    bill.subjects.count = bill.subjects.items.length;
 
 
     // Find the latest summary
