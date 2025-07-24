@@ -191,13 +191,15 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                         <span className="text-muted-foreground">Last Update</span>
                          <span className="font-medium">{formatDate(bill.updateDate)}</span>
                     </div>
-                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Latest Action</span>
-                        <div className="text-right">
-                            <span className="font-medium block">{formatDate(bill.latestAction.actionDate)}</span>
-                            <span className="text-muted-foreground text-xs">{bill.latestAction.text}</span>
+                     {bill.latestAction && (
+                        <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Latest Action</span>
+                            <div className="text-right">
+                                <span className="font-medium block">{formatDate(bill.latestAction.actionDate)}</span>
+                                <span className="text-muted-foreground text-xs">{bill.latestAction.text}</span>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </CardContent>
             </Card>
 

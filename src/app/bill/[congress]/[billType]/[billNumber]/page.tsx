@@ -64,7 +64,6 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     const sortableFields: (keyof Bill)[] = ['actions', 'amendments', 'relatedBills', 'textVersions'];
 
     for (const field of sortableFields) {
-        // This is a type assertion to handle the fact that TS doesn't know these fields have `items`
         const collection = bill[field] as any;
         if (collection && Array.isArray(collection.items)) {
             collection.items.sort((a: any, b: any) => {
@@ -72,7 +71,8 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
                 const dateB = b.updateDate || b.actionDate || b.date;
                 if (!dateA) return 1;
                 if (!dateB) return -1;
-                return new Date(dateB).getTime() - new Date(a.getTime());
+                // Use getTime() for reliable date comparison
+                return new Date(dateB).getTime() - new Date(dateA).getTime();
             });
         }
     }
