@@ -93,9 +93,9 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
 
     bill.cosponsors.items = await fetchAllPages(`${baseUrl}/cosponsors`, API_KEY, false);
     bill.actions = await fetchAllPages(`${baseUrl}/actions`, API_KEY);
-    bill.amendments = await fetchAllPages(`${baseUrl}/amendments`, API_KEY);
-    bill.committees.items = await fetchAllPages(`${baseUrl}/committees`, API_KEY);
-    bill.relatedBills = await fetchAllPages(`${baseUrl}/relatedbills`, API_KEY);
+    bill.amendments = await fetchAllPages(`${baseUrl}/amendments`, API_KEY, false);
+    bill.committees.items = await fetchAllPages(`${baseUrl}/committees`, API_KEY, false);
+    bill.relatedBills = await fetchAllPages(`${baseUrl}/relatedbills`, API_KEY, false);
     
     const summariesData = await fetchAllPages(`${baseUrl}/summaries`, API_KEY);
     bill.allSummaries = summariesData;
@@ -105,7 +105,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
 
     bill.textVersions = await fetchAllPages(`${baseUrl}/text`, API_KEY);
     
-    const subjectsData = await fetchAllPages(`${baseUrl}/subjects`, API_KEY);
+    const subjectsData = await fetchAllPages(`${baseUrl}/subjects`, API_KEY, false);
     bill.subjects = {
         count: subjectsData.length,
         items: subjectsData.map((s: any) => s.legislativeSubjects).flat().filter(Boolean)
