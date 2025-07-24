@@ -4,20 +4,28 @@ import type { Bill } from '@/types';
 import { BillDetailClient } from '@/components/bill-detail-client';
 
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
+  console.log('=== STARTING getBillDetails ===');
+  console.log('Parameters:', { congress, billType, billNumber });
+  
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
+  console.log('API Key being used:', API_KEY === 'DEMO_KEY' ? 'DEMO_KEY' : 'Custom API Key');
+  
   const baseUrl = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}`;
+  console.log('Base URL:', baseUrl);
   
-  const embedParams = [
-    'sponsors', 'cosponsors', 'committees', 'actions', 'amendments', 
-    'relatedbills', 'summaries', 'textversions', 'subjects'
-  ].map(p => `embed=${p}`).join('&');
-  
+  // Start with just sponsors to test
+  const embedParams = ['sponsors'].map(p => `embed=${p}`).join('&');
   const fullUrl = `${baseUrl}?${embedParams}&api_key=${API_KEY}`;
+  console.log('Full URL:', fullUrl);
 
   try {
+    console.log('Making API request...');
     const billRes = await fetch(fullUrl, {
       next: { revalidate: 3600 },
     });
+
+    console.log('Response received. Status:', billRes.status);
+    console.log('Response headers:', Object.fromEntries(billRes.headers.entries()));
 
     if (billRes.status === 404) {
       console.log(`Bill not found for URL: ${fullUrl}`);
@@ -25,101 +33,43 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     }
 
     if (!billRes.ok) {
-      console.error(`API request for bill failed with status: ${billRes.status} for URL: ${fullUrl}`);
-       if (billRes.status === 429) {
-          console.error("Rate limit exceeded. Please try again later or use a dedicated API key.");
-        }
+      console.error(`API request failed with status: ${billRes.status}`);
+      const errorText = await billRes.text();
+      console.error('Error response body:', errorText);
       return null;
     }
     
+    console.log('Parsing JSON response...');
     const billData = await billRes.json();
-    console.log('Full API response:', JSON.stringify(billData, null, 2));
+    console.log('JSON parsed successfully');
+    console.log('Response structure:', Object.keys(billData));
+    
+    if (billData.bill) {
+      console.log('Bill data structure:', Object.keys(billData.bill));
+      console.log('Sponsors data:', billData.bill.sponsors);
+    } else {
+      console.log('No bill property in response');
+    }
     
     const bill: Bill = billData.bill;
 
-    console.log('Embedded data received:', {
-      sponsors: bill.sponsors,
-      cosponsors: bill.cosponsors,
-      actions: bill.actions,
-      committees: bill.committees,
-      amendments: bill.amendments,
-      relatedBills: bill.relatedBills,
-      subjects: bill.subjects,
-      textVersions: bill.textVersions
-    });
-
-    // Ensure all nested objects and arrays are initialized to prevent runtime errors
-    bill.sponsors = bill.sponsors || [];
-    bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
-    bill.cosponsors.items = bill.cosponsors.items || [];
-    bill.committees = bill.committees || { count: 0, items: [] };
-    bill.committees.items = bill.committees.items || [];
-    bill.summaries = bill.summaries || { count: 0, items: [] };
-    bill.allSummaries = bill.summaries.items || [];
-    bill.actions = bill.actions || { count:0, items:[] };
-    bill.amendments = bill.amendments || { count:0, items:[] };
-    bill.relatedBills = bill.relatedBills || { count:0, items:[] };
-    bill.subjects = bill.subjects || { count: 0, items: [] };
-    bill.textVersions = bill.textVersions || { count:0, items:[] };
-    
-    if (bill.subjects) {
-      if (!bill.subjects.items) {
-        const legislativeSubjects = bill.subjects.legislativeSubjects || [];
-        const policyArea = bill.subjects.policyArea ? [bill.subjects.policyArea] : [];
-        bill.subjects.items = [...legislativeSubjects, ...policyArea];
-      }
-      bill.subjects.count = bill.subjects.items?.length || 0;
+    if (!bill) {
+      console.log('Bill is null or undefined');
+      return null;
     }
 
-
-    // Find the latest summary
-    if (bill.allSummaries.length > 0) {
-      const sortedSummaries = [...bill.allSummaries].sort((a,b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
-      bill.summaries.summary = sortedSummaries[0];
-    }
-    
-    // Sort items with dates in descending order
-    try {
-        const sortableFields: (keyof Bill)[] = ['actions', 'amendments', 'relatedBills', 'textVersions'];
-
-        for (const field of sortableFields) {
-            const collection = bill[field] as any;
-            if (collection && Array.isArray(collection.items)) {
-                collection.items.sort((a: any, b: any) => {
-                    const dateA = a.updateDate || a.actionDate || a.date;
-                    const dateB = b.updateDate || b.actionDate || b.date;
-                    if (!dateA) return 1;
-                    if (!dateB) return -1;
-                    return new Date(dateB).getTime() - new Date(dateA).getTime();
-                });
-            }
-        }
-        
-        if (bill.allSummaries) {
-            bill.allSummaries.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
-        }
-
-        if (Array.isArray(bill.committees?.items)) {
-          bill.committees.items.forEach(committee => {
-            if(Array.isArray(committee.activities)){
-              committee.activities.sort((a,b) => {
-                if(!a.date) return 1;
-                if(!b.date) return -1;
-                return new Date(b.date).getTime() - new Date(a.date).getTime();
-              });
-            }
-          });
-        }
-    } catch(error) {
-        console.error("Error sorting bill data:", error);
-    }
-    
+    console.log('=== PROCESSING COMPLETE ===');
     return bill;
+    
   } catch (error) {
-    console.error("Error fetching or processing bill details:", error);
+    console.error("=== ERROR IN getBillDetails ===");
+    console.error("Error details:", error);
+    console.error("Error message:", (error as Error).message);
+    console.error("Error stack:", (error as Error).stack);
     return null; 
   }
 }
+
 
 export default async function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
   const { congress, billType, billNumber } = params;
