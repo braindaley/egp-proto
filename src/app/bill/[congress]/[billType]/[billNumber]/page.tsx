@@ -153,15 +153,15 @@ const TruncatedText = ({ text, limit = 500 }: { text: string; limit?: number }) 
         }
         return <p>{text}</p>;
     }
-    
-    const content = isHtml ? 
-        <div className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6" dangerouslySetInnerHTML={{ __html: text }} /> : 
-        <p className="text-muted-foreground [&[data-state=closed]]:line-clamp-6">{text}</p>;
 
     return (
         <Collapsible>
             <CollapsibleContent>
-                {content}
+                {isHtml ? (
+                    <div className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6" dangerouslySetInnerHTML={{ __html: text }} />
+                ) : (
+                    <p className="text-muted-foreground [&[data-state=closed]]:line-clamp-6">{text}</p>
+                )}
             </CollapsibleContent>
             <CollapsibleTrigger asChild>
                 <Button variant="link" className="p-0 h-auto text-xs mt-2">
@@ -246,9 +246,9 @@ const SummaryDisplay = ({ summary }: { summary: Summary }) => {
 export default function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
   const [bill, setBill] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(true);
-  const { congress, billType, billNumber } = params;
-
+  
   useEffect(() => {
+    const { congress, billType, billNumber } = params;
     const loadBill = async () => {
       setLoading(true);
       const billDetails = await getBillDetails(congress, billType, billNumber);
@@ -256,7 +256,7 @@ export default function BillDetailPage({ params }: { params: { congress: string;
       setLoading(false);
     }
     loadBill();
-  }, [congress, billType, billNumber]);
+  }, [params]);
 
 
   if (loading) {
@@ -698,5 +698,3 @@ export default function BillDetailPage({ params }: { params: { congress: string;
     </div>
   );
 }
-
-    
