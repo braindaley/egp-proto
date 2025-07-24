@@ -61,13 +61,19 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     }
 
     // Sort various arrays by date to ensure consistent ordering
-    bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
-    bill.relatedBills.sort((a, b) => {
-        if (!a.latestAction?.actionDate) return 1;
-        if (!b.latestAction?.actionDate) return -1;
-        return new Date(b.latestAction.actionDate).getTime() - new Date(a.latestAction.actionDate).getTime()
-    });
-    bill.allSummaries.sort((a, b) => new Date(b.actionDate).getTime() - new Date(a.actionDate).getTime());
+    if (Array.isArray(bill.amendments)) {
+      bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
+    }
+    if (Array.isArray(bill.relatedBills)) {
+      bill.relatedBills.sort((a, b) => {
+          if (!a.latestAction?.actionDate) return 1;
+          if (!b.latestAction?.actionDate) return -1;
+          return new Date(b.latestAction.actionDate).getTime() - new Date(a.latestAction.actionDate).getTime()
+      });
+    }
+    if(Array.isArray(bill.allSummaries)) {
+      bill.allSummaries.sort((a, b) => new Date(b.actionDate).getTime() - new Date(a.actionDate).getTime());
+    }
     if (Array.isArray(bill.textVersions)) {
       bill.textVersions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
@@ -77,7 +83,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
 
     return bill;
   } catch (error) {
-    console.error("Error fetching bill details:", error);
+    console.error("Error fetching or processing bill details:", error);
     return null; 
   }
 }
