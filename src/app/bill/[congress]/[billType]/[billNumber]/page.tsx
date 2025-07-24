@@ -43,7 +43,6 @@ async function fetchAllPages(url: string, apiKey: string, shouldFetchAll: boolea
                 if (!nextUrl.includes('api_key=')) {
                     nextUrl += `&api_key=${apiKey}`;
                 }
-                // Add a small delay to avoid hitting rate limits
                 await new Promise(resolve => setTimeout(resolve, 200));
             } else {
                 nextUrl = null;
@@ -75,7 +74,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
        if (billRes.status === 429) {
           console.error("Rate limit exceeded. Please try again later or use a dedicated API key.");
         }
-      throw new Error(`Failed to fetch bill data: ${billRes.statusText}`);
+      return null;
     }
     
     const billData = await billRes.json();
@@ -100,7 +99,6 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     
     const summariesData = await fetchAllPages(`${baseUrl}/summaries`, API_KEY);
     bill.allSummaries = summariesData;
-    // The main summary is often the last one, let's find the most recent one to be safe.
     if (summariesData.length > 0) {
       bill.summaries.summary = summariesData.sort((a,b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime())[0]
     }
@@ -155,11 +153,15 @@ const TruncatedText = ({ text, limit = 500 }: { text: string; limit?: number }) 
         }
         return <p>{text}</p>;
     }
+    
+    const content = isHtml ? 
+        <div className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6" dangerouslySetInnerHTML={{ __html: text }} /> : 
+        <p className="text-muted-foreground [&[data-state=closed]]:line-clamp-6">{text}</p>;
 
     return (
         <Collapsible>
-            <CollapsibleContent className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6">
-                {isHtml ? <div dangerouslySetInnerHTML={{ __html: text }} /> : <p>{text}</p>}
+            <CollapsibleContent>
+                {content}
             </CollapsibleContent>
             <CollapsibleTrigger asChild>
                 <Button variant="link" className="p-0 h-auto text-xs mt-2">
@@ -696,3 +698,5 @@ export default function BillDetailPage({ params }: { params: { congress: string;
     </div>
   );
 }
+
+    
