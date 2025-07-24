@@ -9,7 +9,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
   
   const embedParams = [
     'sponsors', 'cosponsors', 'committees', 'actions', 'amendments', 
-    'relatedbills', 'summaries', 'textversions', 'subjects', 'titles'
+    'relatedbills', 'summaries', 'textversions', 'subjects'
   ].map(p => `embed=${p}`).join('&');
   
   const fullUrl = `${baseUrl}?${embedParams}&api_key=${API_KEY}`;
