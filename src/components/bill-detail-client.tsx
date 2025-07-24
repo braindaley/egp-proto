@@ -191,6 +191,13 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                         <span className="text-muted-foreground">Last Update</span>
                          <span className="font-medium">{formatDate(bill.updateDate)}</span>
                     </div>
+                     <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Latest Action</span>
+                        <div className="text-right">
+                            <span className="font-medium block">{formatDate(bill.latestAction.actionDate)}</span>
+                            <span className="text-muted-foreground text-xs">{bill.latestAction.text}</span>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -199,11 +206,11 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                   <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                           <FileText className="text-primary" />
-                          Summary
+                          Latest Summary
                       </CardTitle>
                   </CardHeader>
                   <CardContent>
-                     <TruncatedText text={bill.summaries.summary.text} />
+                     <TruncatedText text={bill.summaries.summary.text} limit={1000} />
                   </CardContent>
               </Card>
             )}
