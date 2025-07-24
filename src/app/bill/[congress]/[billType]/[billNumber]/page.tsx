@@ -29,15 +29,12 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
        if (billRes.status === 429) {
           console.error("Rate limit exceeded. Please try again later or use a dedicated API key.");
         }
-      // For other errors, we might still want to proceed if there's partial data,
-      // but for this prototype we'll treat it as not found.
       return null;
     }
     
     const billData = await billRes.json();
     const bill: Bill = billData.bill;
 
-    // Ensure all potentially missing fields are initialized to prevent runtime errors
     bill.sponsors = bill.sponsors || [];
     bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
     bill.cosponsors.items = bill.cosponsors.items || [];
@@ -51,19 +48,16 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.subjects = bill.subjects || { count: 0, items: [] };
     bill.textVersions = bill.textVersions || [];
     
-    // Combine legislative subjects and policy area into a single items array
     const legislativeSubjects = bill.subjects.legislativeSubjects || [];
     const policyArea = bill.subjects.policyArea ? [bill.subjects.policyArea] : [];
     bill.subjects.items = [...legislativeSubjects, ...policyArea];
     bill.subjects.count = bill.subjects.items.length;
 
-    // Find the latest summary
     if (bill.allSummaries.length > 0) {
       const sortedSummaries = [...bill.allSummaries].sort((a,b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
       bill.summaries.summary = sortedSummaries[0];
     }
 
-    // Sort various arrays by date to ensure consistent ordering
     if (Array.isArray(bill.amendments)) {
       bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
     }
