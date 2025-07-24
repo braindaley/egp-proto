@@ -130,14 +130,22 @@ function constructBillUrl(bill: Bill): string {
 }
 
 const TruncatedText = ({ text, limit = 500 }: { text: string; limit?: number }) => {
+    const isHtml = /<[a-z][\s\S]*>/i.test(text);
+
     if (text.length <= limit) {
+        if (isHtml) {
+            return <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: text }} />;
+        }
         return <p>{text}</p>;
     }
 
     return (
         <Collapsible>
-            <CollapsibleContent className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6">
-                <p>{text}</p>
+            <CollapsibleContent 
+                className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6"
+                dangerouslySetInnerHTML={isHtml ? { __html: text } : undefined}
+            >
+                {!isHtml && <p>{text}</p>}
             </CollapsibleContent>
             <CollapsibleTrigger asChild>
                 <Button variant="link" className="p-0 h-auto text-xs mt-2">
@@ -212,7 +220,7 @@ export default async function BillDetailPage({ params }: { params: { congress: s
                       </CardTitle>
                   </CardHeader>
                   <CardContent className="prose prose-sm max-w-none text-muted-foreground">
-                     <p>{bill.summaries.summary.text}</p>
+                     <div dangerouslySetInnerHTML={{ __html: bill.summaries.summary.text }} />
                   </CardContent>
               </Card>
             )}
