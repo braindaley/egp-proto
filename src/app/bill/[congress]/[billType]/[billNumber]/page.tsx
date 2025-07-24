@@ -34,6 +34,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     const billData = await billRes.json();
     const bill: Bill = billData.bill;
 
+    // Ensure all potentially missing fields are initialized to prevent runtime errors
     bill.sponsors = bill.sponsors || [];
     bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
     bill.cosponsors.items = bill.cosponsors.items || [];
@@ -47,16 +48,19 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.subjects = bill.subjects || { count: 0, items: [] };
     bill.textVersions = bill.textVersions || [];
     
+    // Combine legislative subjects and policy area into a single items array
     const legislativeSubjects = bill.subjects.legislativeSubjects || [];
     const policyArea = bill.subjects.policyArea ? [bill.subjects.policyArea] : [];
     bill.subjects.items = [...legislativeSubjects, ...policyArea];
     bill.subjects.count = bill.subjects.items.length;
 
+    // Find the latest summary
     if (bill.allSummaries.length > 0) {
       const sortedSummaries = [...bill.allSummaries].sort((a,b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
       bill.summaries.summary = sortedSummaries[0];
     }
 
+    // Sort various arrays by date to ensure consistent ordering
     bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
     bill.relatedBills.sort((a, b) => {
         if (!a.latestAction?.actionDate) return 1;
