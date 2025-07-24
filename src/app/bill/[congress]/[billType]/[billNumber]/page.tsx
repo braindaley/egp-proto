@@ -141,18 +141,9 @@ const TruncatedText = ({ text, limit = 500 }: { text: string; limit?: number }) 
 
     return (
         <Collapsible>
-            {isHtml ? (
-                <CollapsibleContent
-                    className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6"
-                    dangerouslySetInnerHTML={{ __html: text }}
-                />
-            ) : (
-                <CollapsibleContent
-                    className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6"
-                >
-                    <p>{text}</p>
-                </CollapsibleContent>
-            )}
+            <CollapsibleContent className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6">
+                 {isHtml ? <div dangerouslySetInnerHTML={{ __html: text }} /> : <p>{text}</p>}
+            </CollapsibleContent>
             <CollapsibleTrigger asChild>
                 <Button variant="link" className="p-0 h-auto text-xs mt-2">
                     <ChevronsUpDown className="mr-1 h-3 w-3" />
@@ -162,7 +153,6 @@ const TruncatedText = ({ text, limit = 500 }: { text: string; limit?: number }) 
         </Collapsible>
     );
 };
-
 
 export default async function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
   const bill = await getBillDetails(params.congress, params.billType, params.billNumber);
