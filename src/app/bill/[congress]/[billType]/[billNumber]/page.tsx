@@ -71,7 +71,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     if (Array.isArray(bill.textVersions)) {
       bill.textVersions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
-    if(bill.actions) {
+    if(Array.isArray(bill.actions)) {
        bill.actions.sort((a,b) => new Date(b.actionDate).getTime() - new Date(a.actionDate).getTime());
     }
 
