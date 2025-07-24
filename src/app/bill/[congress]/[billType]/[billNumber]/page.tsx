@@ -79,7 +79,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.sponsors = bill.sponsors || [];
     bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
     bill.committees = bill.committees || { count: 0, items: [] };
-    bill.summaries = bill.summaries || { count: 0 };
+    bill.summaries = bill.summaries || { count: 0, summary: { text: '', updateDate: '', versionCode: '' } };
     bill.actions = bill.actions || [];
     bill.amendments = bill.amendments || [];
     bill.relatedBills = bill.relatedBills || [];
@@ -92,13 +92,20 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.amendments = await fetchAllPages(`${baseUrl}/amendments`, API_KEY);
     bill.committees.items = await fetchAllPages(`${baseUrl}/committees`, API_KEY);
     bill.relatedBills = await fetchAllPages(`${baseUrl}/relatedbills`, API_KEY);
-    bill.allSummaries = await fetchAllPages(`${baseUrl}/summaries`, API_KEY);
+    
+    const summariesData = await fetchAllPages(`${baseUrl}/summaries`, API_KEY);
+    bill.allSummaries = summariesData;
+    // The main summary is often the last one, let's find the most recent one to be safe.
+    if (summariesData.length > 0) {
+      bill.summaries.summary = summariesData.sort((a,b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime())[0]
+    }
+
     bill.textVersions = await fetchAllPages(`${baseUrl}/text`, API_KEY);
     
     const subjectsData = await fetchAllPages(`${baseUrl}/subjects`, API_KEY);
     bill.subjects = {
         count: subjectsData.length,
-        items: subjectsData.map(s => s.legislativeSubjects).flat().filter(Boolean)
+        items: subjectsData.map((s: any) => s.legislativeSubjects).flat().filter(Boolean)
     }
 
 
@@ -232,16 +239,17 @@ const SummaryDisplay = ({ summary }: { summary: Summary }) => {
 export default function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
   const [bill, setBill] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(true);
+  const { congress, billType, billNumber } = params;
 
   useEffect(() => {
     const loadBill = async () => {
       setLoading(true);
-      const billDetails = await getBillDetails(params.congress, params.billType, params.billNumber);
+      const billDetails = await getBillDetails(congress, billType, billNumber);
       setBill(billDetails);
       setLoading(false);
     }
     loadBill();
-  }, [params]);
+  }, [congress, billType, billNumber]);
 
 
   if (loading) {
@@ -310,8 +318,8 @@ export default function BillDetailPage({ params }: { params: { congress: string;
                           Summary
                       </CardTitle>
                   </CardHeader>
-                  <CardContent className="prose prose-sm max-w-none text-muted-foreground">
-                     <div dangerouslySetInnerHTML={{ __html: bill.summaries.summary.text }} />
+                  <CardContent>
+                     <TruncatedText text={bill.summaries.summary.text} />
                   </CardContent>
               </Card>
             )}
@@ -361,14 +369,14 @@ export default function BillDetailPage({ params }: { params: { congress: string;
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Tabs defaultValue={bill.textVersions[0].type} className="w-full">
-                            <TabsList className="grid w-full grid-cols-3 mb-4">
+                        <Tabs defaultValue={bill.textVersions[0]?.type} className="w-full">
+                            <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-4 h-auto flex-wrap">
                                 {bill.textVersions.map((version) => (
-                                  <TabsTrigger key={version.type} value={version.type}>{version.type}</TabsTrigger>
+                                  <TabsTrigger key={version.type} value={version.type} className="flex-1 text-xs px-2 py-1.5 whitespace-normal h-auto">{version.type}</TabsTrigger>
                                 ))}
                             </TabsList>
                             {bill.textVersions.map((version) => {
-                                const fullText = version.formats.find(f => f.type === 'Formatted Text')?.url;
+                                const fullText = version.formats.find(f => f.type.toLowerCase().includes('text'))?.url;
                                 const pdfUrl = version.formats.find(f => f.type === 'PDF')?.url;
 
                                 return (
@@ -376,20 +384,25 @@ export default function BillDetailPage({ params }: { params: { congress: string;
                                     <div className="p-4 bg-secondary/50 rounded-md">
                                         <div className="flex justify-between items-center mb-3">
                                             <p className="text-sm font-medium">Published: {formatDate(version.date)}</p>
-                                            {pdfUrl && (
-                                                <Button asChild size="sm">
-                                                    <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
-                                                        <Download className="mr-2" />
-                                                        Download PDF
-                                                    </a>
-                                                </Button>
-                                            )}
+                                            <div className="flex gap-2">
+                                                {fullText && (
+                                                    <Button asChild size="sm" variant="outline">
+                                                        <a href={fullText} target="_blank" rel="noopener noreferrer">
+                                                            View text <ExternalLink className="ml-2" />
+                                                        </a>
+                                                    </Button>
+                                                )}
+                                                {pdfUrl && (
+                                                    <Button asChild size="sm">
+                                                        <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
+                                                            <Download className="mr-2" />
+                                                            Download PDF
+                                                        </a>
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </div>
-                                        {fullText ? (
-                                             <a href={fullText} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
-                                                View full text <ExternalLink className="inline-block ml-1 h-3 w-3" />
-                                            </a>
-                                        ) : (
+                                        {!fullText && !pdfUrl && (
                                             <p className="text-sm text-muted-foreground italic">Full text not available in this format.</p>
                                         )}
                                     </div>
@@ -523,7 +536,7 @@ export default function BillDetailPage({ params }: { params: { congress: string;
                         </ul>
                          {bill.relatedBills.length > 5 && (
                           <Collapsible>
-                            <CollapsibleContent className="space-y-3 list-none p-0">
+                            <CollapsibleContent className="space-y-3 list-none p-0 mt-3">
                               {bill.relatedBills.slice(5).map((relatedBill: RelatedBill, index: number) => {
                                   const billTypeSlug = getBillTypeSlug(relatedBill.type);
                                   const detailUrl = `/bill/${relatedBill.congress}/${billTypeSlug}/${relatedBill.number}`;
@@ -591,7 +604,7 @@ export default function BillDetailPage({ params }: { params: { congress: string;
                     ))}
                      {bill.amendments.length > 5 && (
                       <Collapsible>
-                        <CollapsibleContent className="space-y-3 list-none p-0">
+                        <CollapsibleContent className="space-y-3 list-none p-0 mt-3">
                           {bill.amendments.slice(5).map((amendment, index) => (
                             <li key={index + 5} className="text-sm p-3 bg-secondary/50 rounded-md">
                                 <div className="font-semibold flex justify-between items-center">
@@ -644,7 +657,7 @@ export default function BillDetailPage({ params }: { params: { congress: string;
                     ))}
                     {bill.actions.length > 5 && (
                       <Collapsible>
-                        <CollapsibleContent className="space-y-4 list-none p-0">
+                        <CollapsibleContent className="space-y-4 list-none p-0 mt-3">
                           {bill.actions.slice(5).map((action, index) => (
                             <li key={index + 5} className="text-sm p-3 bg-secondary/50 rounded-md">
                               <p className="font-semibold">{formatDate(action.actionDate)}</p>
