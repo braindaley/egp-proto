@@ -72,7 +72,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
                 const dateB = b.updateDate || b.actionDate || b.date;
                 if (!dateA) return 1;
                 if (!dateB) return -1;
-                return new Date(dateB).getTime() - new Date(a.date).getTime();
+                return new Date(dateB).getTime() - new Date(dateA).getTime();
             });
         }
     }
