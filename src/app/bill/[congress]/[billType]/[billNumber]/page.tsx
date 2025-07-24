@@ -141,12 +141,18 @@ const TruncatedText = ({ text, limit = 500 }: { text: string; limit?: number }) 
 
     return (
         <Collapsible>
-            <CollapsibleContent 
-                className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6"
-                dangerouslySetInnerHTML={isHtml ? { __html: text } : undefined}
-            >
-                {!isHtml && <p>{text}</p>}
-            </CollapsibleContent>
+            {isHtml ? (
+                <CollapsibleContent
+                    className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6"
+                    dangerouslySetInnerHTML={{ __html: text }}
+                />
+            ) : (
+                <CollapsibleContent
+                    className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6"
+                >
+                    <p>{text}</p>
+                </CollapsibleContent>
+            )}
             <CollapsibleTrigger asChild>
                 <Button variant="link" className="p-0 h-auto text-xs mt-2">
                     <ChevronsUpDown className="mr-1 h-3 w-3" />
