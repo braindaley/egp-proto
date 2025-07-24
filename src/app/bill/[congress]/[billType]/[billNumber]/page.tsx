@@ -20,6 +20,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     });
 
     if (billRes.status === 404) {
+      console.log(`Bill not found for URL: ${fullUrl}`);
       return null;
     }
 
@@ -28,6 +29,8 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
        if (billRes.status === 429) {
           console.error("Rate limit exceeded. Please try again later or use a dedicated API key.");
         }
+      // For other errors, we might still want to proceed if there's partial data,
+      // but for this prototype we'll treat it as not found.
       return null;
     }
     

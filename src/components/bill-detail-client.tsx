@@ -576,5 +576,3 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
     </div>
   );
 }
-
-    
