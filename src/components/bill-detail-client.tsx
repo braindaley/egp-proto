@@ -1,6 +1,6 @@
 
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Bill, Amendment, RelatedBill, Summary, TextVersion } from '@/types';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { summarizeText } from '@/ai/flows/summarize-text-flow';
-import React, { useEffect } from 'react';
 
 
 function formatDate(dateString: string) {

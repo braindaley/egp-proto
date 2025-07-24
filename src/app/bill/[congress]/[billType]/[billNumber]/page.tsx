@@ -35,6 +35,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     const billData = await billRes.json();
     const bill: Bill = billData.bill;
 
+    // Ensure all nested objects and arrays are initialized to prevent runtime errors
     bill.sponsors = bill.sponsors || [];
     bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
     bill.cosponsors.items = bill.cosponsors.items || [];
@@ -53,23 +54,31 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.subjects.items = [...legislativeSubjects, ...policyArea];
     bill.subjects.count = bill.subjects.items.length;
 
+    // Find the latest summary
     if (bill.allSummaries.length > 0) {
       const sortedSummaries = [...bill.allSummaries].sort((a,b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
       bill.summaries.summary = sortedSummaries[0];
     }
     
-    const sortableFields: (keyof Bill)[] = ['actions', 'amendments', 'relatedBills', 'textVersions', 'allSummaries'];
+    // Sort items with dates in descending order
+    const sortableFields: (keyof Bill)[] = ['actions', 'amendments', 'relatedBills', 'textVersions'];
 
     for (const field of sortableFields) {
-        if (bill[field] && Array.isArray((bill[field] as any).items)) {
-            (bill[field] as any).items.sort((a: any, b: any) => {
+        // This is a type assertion to handle the fact that TS doesn't know these fields have `items`
+        const collection = bill[field] as any;
+        if (collection && Array.isArray(collection.items)) {
+            collection.items.sort((a: any, b: any) => {
                 const dateA = a.updateDate || a.actionDate || a.date;
                 const dateB = b.updateDate || b.actionDate || b.date;
                 if (!dateA) return 1;
                 if (!dateB) return -1;
-                return new Date(dateB).getTime() - new Date(dateA).getTime();
+                return new Date(dateB).getTime() - new Date(a.getTime()).getTime();
             });
         }
+    }
+    
+    if (bill.allSummaries) {
+        bill.allSummaries.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
     }
 
     if (Array.isArray(bill.committees?.items)) {
