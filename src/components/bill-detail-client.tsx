@@ -545,7 +545,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                         <CollapsibleContent className="space-y-4 list-none p-0 mt-3">
                           {bill.actions.slice(5).map((action, index) => (
                             <li key={index + 5} className="text-sm p-3 bg-secondary/50 rounded-md">
-                              <p className="font-semibold">{formatDate(action.actionDate)}</p>
+                              <p className="font-semibold">{formatDate(action.actionD_ate)}</p>
                               <p className="text-muted-foreground mt-1">{action.text}</p>
                             </li>
                           ))}
