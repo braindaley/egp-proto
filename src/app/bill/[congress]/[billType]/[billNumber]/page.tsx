@@ -226,16 +226,17 @@ const SummaryDisplay = ({ summary }: { summary: Summary }) => {
 export default function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
   const [bill, setBill] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(true);
+  const { congress, billType, billNumber } = params;
   
   useEffect(() => {
     const loadBill = async () => {
       setLoading(true);
-      const billDetails = await getBillDetails(params.congress, params.billType, params.billNumber);
+      const billDetails = await getBillDetails(congress, billType, billNumber);
       setBill(billDetails);
       setLoading(false);
     }
     loadBill();
-  }, [params.congress, params.billType, params.billNumber]);
+  }, [congress, billType, billNumber]);
 
 
   if (loading) {
