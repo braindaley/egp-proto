@@ -17,51 +17,20 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { summarizeText } from '@/ai/flows/summarize-text-flow';
 
-async function fetchAllPages(url: string, apiKey: string, shouldFetchAll: boolean = true) {
-    let results: any[] = [];
-    let nextUrl: string | null = `${url}?api_key=${apiKey}&limit=250`;
-
-    while (nextUrl) {
-        try {
-            const res = await fetch(nextUrl, { next: { revalidate: 3600 } });
-            if (!res.ok) {
-                console.error(`API request failed with status: ${res.status} for URL: ${nextUrl}`);
-                if (res.status === 429) {
-                  console.error("Rate limit exceeded. Please try again later or use a dedicated API key.");
-                }
-                return results; 
-            }
-            const data = await res.json();
-            
-            const dataKey = Object.keys(data).find(k => Array.isArray(data[k]));
-            if (dataKey && Array.isArray(data[dataKey])) {
-                results = results.concat(data[dataKey]);
-            }
-
-            if (data.pagination?.next && shouldFetchAll) {
-                nextUrl = data.pagination.next;
-                if (!nextUrl.includes('api_key=')) {
-                    nextUrl += `&api_key=${apiKey}`;
-                }
-                await new Promise(resolve => setTimeout(resolve, 200));
-            } else {
-                nextUrl = null;
-            }
-        } catch (error) {
-            console.error("Error during paginated fetch:", error);
-            return results;
-        }
-    }
-    
-    return results;
-}
-
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
   const baseUrl = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}`;
+  
+  // Combine all data fetching into a single API call using embeds
+  const embedParams = [
+    'sponsors', 'cosponsors', 'committees', 'actions', 'amendments', 
+    'relatedbills', 'summaries', 'textversions', 'subjects'
+  ].map(p => `embed=${p}`).join('&');
+  
+  const fullUrl = `${baseUrl}?${embedParams}&api_key=${API_KEY}`;
 
   try {
-    const billRes = await fetch(`${baseUrl}?api_key=${API_KEY}`, {
+    const billRes = await fetch(fullUrl, {
       next: { revalidate: 3600 },
     });
 
@@ -70,7 +39,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     }
 
     if (!billRes.ok) {
-      console.error(`API request for bill failed with status: ${billRes.status}`);
+      console.error(`API request for bill failed with status: ${billRes.status} for URL: ${fullUrl}`);
        if (billRes.status === 429) {
           console.error("Rate limit exceeded. Please try again later or use a dedicated API key.");
         }
@@ -80,38 +49,33 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     const billData = await billRes.json();
     const bill: Bill = billData.bill;
 
+    // Set defaults for potentially missing data
     bill.sponsors = bill.sponsors || [];
     bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
+    bill.cosponsors.items = bill.cosponsors.items || [];
     bill.committees = bill.committees || { count: 0, items: [] };
+    bill.committees.items = bill.committees.items || [];
     bill.summaries = bill.summaries || { count: 0, summary: { text: '', updateDate: '', versionCode: '' } };
+    bill.allSummaries = bill.summaries.items || [];
     bill.actions = bill.actions || [];
     bill.amendments = bill.amendments || [];
     bill.relatedBills = bill.relatedBills || [];
     bill.subjects = bill.subjects || { count: 0, items: [] };
-    bill.allSummaries = bill.allSummaries || [];
     bill.textVersions = bill.textVersions || [];
-
-    bill.cosponsors.items = await fetchAllPages(`${baseUrl}/cosponsors`, API_KEY, false);
-    bill.actions = await fetchAllPages(`${baseUrl}/actions`, API_KEY);
-    bill.amendments = await fetchAllPages(`${baseUrl}/amendments`, API_KEY, false);
-    bill.committees.items = await fetchAllPages(`${baseUrl}/committees`, API_KEY, false);
-    bill.relatedBills = await fetchAllPages(`${baseUrl}/relatedbills`, API_KEY, false);
     
-    const summariesData = await fetchAllPages(`${baseUrl}/summaries`, API_KEY);
-    bill.allSummaries = summariesData;
-    if (summariesData.length > 0) {
-      bill.summaries.summary = summariesData.sort((a,b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime())[0]
+    // The API might return subjects as 'legislativeSubjects' and 'policyArea'
+    const legislativeSubjects = bill.subjects.legislativeSubjects || [];
+    const policyArea = bill.subjects.policyArea ? [bill.subjects.policyArea] : [];
+    bill.subjects.items = [...legislativeSubjects, ...policyArea];
+    bill.subjects.count = bill.subjects.items.length;
+
+
+    // Pick the most recent summary for the main display
+    if (bill.allSummaries.length > 0) {
+      bill.summaries.summary = [...bill.allSummaries].sort((a,b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime())[0];
     }
 
-    bill.textVersions = await fetchAllPages(`${baseUrl}/text`, API_KEY);
-    
-    const subjectsData = await fetchAllPages(`${baseUrl}/subjects`, API_KEY, false);
-    bill.subjects = {
-        count: subjectsData.length,
-        items: subjectsData.map((s: any) => s.legislativeSubjects).flat().filter(Boolean)
-    }
-
-
+    // Sort related data arrays by date
     bill.amendments.sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
     bill.relatedBills.sort((a, b) => {
         if (!a.latestAction?.actionDate) return 1;
@@ -120,7 +84,9 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     });
     bill.allSummaries.sort((a, b) => new Date(b.actionDate).getTime() - new Date(a.actionDate).getTime());
     bill.textVersions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+    if(bill.actions) {
+       bill.actions.sort((a,b) => new Date(b.actionDate).getTime() - new Date(a.actionDate).getTime());
+    }
 
     return bill;
   } catch (error) {
@@ -156,14 +122,23 @@ const TruncatedText = ({ text, limit = 500 }: { text: string; limit?: number }) 
 
     return (
         <Collapsible>
+            <CollapsibleTrigger asChild>
+                 <div className="relative">
+                    {isHtml ? (
+                        <div className="prose prose-sm max-w-none text-muted-foreground line-clamp-6" dangerouslySetInnerHTML={{ __html: text }} />
+                    ) : (
+                        <p className="text-muted-foreground line-clamp-6">{text}</p>
+                    )}
+                </div>
+            </CollapsibleTrigger>
             <CollapsibleContent>
                  {isHtml ? (
-                    <div className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6" dangerouslySetInnerHTML={{ __html: text }} />
+                    <div className="prose prose-sm max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: text }} />
                 ) : (
-                    <p className="text-muted-foreground [&[data-state=closed]]:line-clamp-6">{text}</p>
+                    <p className="text-muted-foreground">{text}</p>
                 )}
             </CollapsibleContent>
-            <CollapsibleTrigger asChild>
+             <CollapsibleTrigger asChild>
                 <Button variant="link" className="p-0 h-auto text-xs mt-2">
                     <ChevronsUpDown className="mr-1 h-3 w-3" />
                     Show more
@@ -180,6 +155,11 @@ const SummaryDisplay = ({ summary }: { summary: Summary }) => {
 
   useEffect(() => {
     const generateSummary = async () => {
+      if (!summary.text) {
+          setIsLoading(false);
+          setAiSummary('No summary text available to analyze.');
+          return;
+      }
       try {
         setIsLoading(true);
         setError('');
@@ -220,7 +200,7 @@ const SummaryDisplay = ({ summary }: { summary: Summary }) => {
 
       <Dialog>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="mt-4">View original text</Button>
+          <Button variant="outline" size="sm" className="mt-4" disabled={!summary.text}>View original text</Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[90vw] h-[90vh] flex flex-col">
           <DialogHeader>

@@ -50,6 +50,50 @@ export interface TextVersion {
     }[];
 }
 
+export interface Sponsor {
+    bioguideId: string;
+    fullName: string;
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    party: string;
+    state: string;
+    url: string;
+}
+
+export interface Cosponsor {
+    bioguideId: string;
+    fullName: string;
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    party: string;
+    state: string;
+    url: string;
+    isOriginalCosponsor: boolean;
+}
+
+export interface Committee {
+    chamber: string;
+    name: string;
+    systemCode: string;
+    type: string;
+    url: string;
+    activities: {
+        name: string;
+        date?: string; 
+    }[];
+}
+
+export interface Subject {
+    name: string;
+    url: string;
+}
+
+export interface PolicyArea {
+    name: string;
+}
+
 
 export interface Bill {
   congress: number;
@@ -65,52 +109,20 @@ export interface Bill {
   type: string;
   updateDate: string;
   url: string;
-  sponsors: {
-    bioguideId: string;
-    fullName: string;
-    firstName: string;
-    lastName: string;
-    middleName?: string;
-    party: string;
-    state: string;
-    url: string;
-  }[];
+  sponsors: Sponsor[];
   cosponsors: {
     count: number;
     url: string;
-    items?: {
-        bioguideId: string;
-        fullName: string;
-        firstName: string;
-        lastName: string;
-        middleName?: string;
-        party: string;
-        state: string;
-        url: string;
-        isOriginalCosponsor: boolean;
-    }[];
+    items?: Cosponsor[];
   };
   committees: {
     count: number;
-    items: {
-      chamber: string;
-      name: string;
-      systemCode: string;
-      type: string;
-      url: string;
-      activities: {
-        name: string;
-        date?: string; 
-      }[];
-    }[];
+    items: Committee[];
   };
   summaries: {
     count: number;
-    summary?: {
-      text: string;
-      updateDate: string;
-      versionCode: string;
-    };
+    summary?: Summary;
+    items?: Summary[];
   };
   allSummaries: Summary[];
   textVersions: TextVersion[];
@@ -122,10 +134,9 @@ export interface Bill {
   relatedBills: RelatedBill[];
   subjects: {
     count: number;
-    items: {
-      name: string;
-      url: string;
-    }[];
+    items: Subject[];
+    legislativeSubjects?: Subject[];
+    policyArea?: PolicyArea;
   };
 }
 
