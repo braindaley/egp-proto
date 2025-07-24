@@ -223,29 +223,9 @@ const SummaryDisplay = ({ summary }: { summary: Summary }) => {
   );
 }
 
-export default function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
-  const [bill, setBill] = useState<Bill | null>(null);
-  const [loading, setLoading] = useState(true);
+export default async function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
   const { congress, billType, billNumber } = params;
-  
-  useEffect(() => {
-    const loadBill = async () => {
-      setLoading(true);
-      const billDetails = await getBillDetails(congress, billType, billNumber);
-      setBill(billDetails);
-      setLoading(false);
-    }
-    loadBill();
-  }, [congress, billType, billNumber]);
-
-
-  if (loading) {
-    return (
-        <div className="flex justify-center items-center min-h-screen">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    )
-  }
+  const bill = await getBillDetails(congress, billType, billNumber);
 
   if (!bill) {
     notFound();
