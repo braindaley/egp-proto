@@ -49,10 +49,14 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.subjects = bill.subjects || { count: 0, items: [] };
     bill.textVersions = bill.textVersions || { count:0, items:[] };
     
-    const legislativeSubjects = bill.subjects.legislativeSubjects || [];
-    const policyArea = bill.subjects.policyArea ? [bill.subjects.policyArea] : [];
-    bill.subjects.items = [...legislativeSubjects, ...policyArea];
+    if (bill.subjects.legislativeSubjects) {
+      bill.subjects.items = [...(bill.subjects.items || []), ...bill.subjects.legislativeSubjects];
+    }
+    if (bill.subjects.policyArea) {
+       bill.subjects.items.push(bill.subjects.policyArea);
+    }
     bill.subjects.count = bill.subjects.items.length;
+
 
     // Find the latest summary
     if (bill.allSummaries.length > 0) {
@@ -71,7 +75,6 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
                 const dateB = b.updateDate || b.actionDate || b.date;
                 if (!dateA) return 1;
                 if (!dateB) return -1;
-                // Use getTime() for reliable date comparison
                 return new Date(dateB).getTime() - new Date(dateA).getTime();
             });
         }
