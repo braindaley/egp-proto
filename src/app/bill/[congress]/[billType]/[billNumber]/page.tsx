@@ -157,7 +157,7 @@ const TruncatedText = ({ text, limit = 500 }: { text: string; limit?: number }) 
     return (
         <Collapsible>
             <CollapsibleContent>
-                {isHtml ? (
+                 {isHtml ? (
                     <div className="prose prose-sm max-w-none text-muted-foreground [&[data-state=closed]]:line-clamp-6" dangerouslySetInnerHTML={{ __html: text }} />
                 ) : (
                     <p className="text-muted-foreground [&[data-state=closed]]:line-clamp-6">{text}</p>
@@ -248,9 +248,9 @@ export default function BillDetailPage({ params }: { params: { congress: string;
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    const { congress, billType, billNumber } = params;
     const loadBill = async () => {
       setLoading(true);
+      const { congress, billType, billNumber } = params;
       const billDetails = await getBillDetails(congress, billType, billNumber);
       setBill(billDetails);
       setLoading(false);
