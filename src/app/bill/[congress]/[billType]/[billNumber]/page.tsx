@@ -33,7 +33,20 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     }
     
     const billData = await billRes.json();
+    console.log('Full API response:', JSON.stringify(billData, null, 2));
+    
     const bill: Bill = billData.bill;
+
+    console.log('Embedded data received:', {
+      sponsors: bill.sponsors,
+      cosponsors: bill.cosponsors,
+      actions: bill.actions,
+      committees: bill.committees,
+      amendments: bill.amendments,
+      relatedBills: bill.relatedBills,
+      subjects: bill.subjects,
+      textVersions: bill.textVersions
+    });
 
     // Ensure all nested objects and arrays are initialized to prevent runtime errors
     bill.sponsors = bill.sponsors || [];
