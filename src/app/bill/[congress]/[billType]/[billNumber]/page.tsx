@@ -43,6 +43,8 @@ async function fetchAllPages(url: string, apiKey: string, shouldFetchAll: boolea
                 if (!nextUrl.includes('api_key=')) {
                     nextUrl += `&api_key=${apiKey}`;
                 }
+                // Add a small delay to avoid hitting rate limits
+                await new Promise(resolve => setTimeout(resolve, 200));
             } else {
                 nextUrl = null;
             }
@@ -70,6 +72,9 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
 
     if (!billRes.ok) {
       console.error(`API request for bill failed with status: ${billRes.status}`);
+       if (billRes.status === 429) {
+          console.error("Rate limit exceeded. Please try again later or use a dedicated API key.");
+        }
       throw new Error(`Failed to fetch bill data: ${billRes.statusText}`);
     }
     
