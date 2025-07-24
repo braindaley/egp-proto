@@ -64,7 +64,9 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
         return new Date(b.latestAction.actionDate).getTime() - new Date(a.latestAction.actionDate).getTime()
     });
     bill.allSummaries.sort((a, b) => new Date(b.actionDate).getTime() - new Date(a.actionDate).getTime());
-    bill.textVersions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    if (Array.isArray(bill.textVersions)) {
+      bill.textVersions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }
     if(bill.actions) {
        bill.actions.sort((a,b) => new Date(b.actionDate).getTime() - new Date(a.actionDate).getTime());
     }
