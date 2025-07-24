@@ -230,13 +230,12 @@ export default function BillDetailPage({ params }: { params: { congress: string;
   useEffect(() => {
     const loadBill = async () => {
       setLoading(true);
-      const { congress, billType, billNumber } = params;
-      const billDetails = await getBillDetails(congress, billType, billNumber);
+      const billDetails = await getBillDetails(params.congress, params.billType, params.billNumber);
       setBill(billDetails);
       setLoading(false);
     }
     loadBill();
-  }, [params]);
+  }, [params.congress, params.billType, params.billNumber]);
 
 
   if (loading) {
