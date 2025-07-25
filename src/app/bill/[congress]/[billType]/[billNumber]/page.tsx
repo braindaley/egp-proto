@@ -54,6 +54,34 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     console.log('Reading response...');
     const billData = await billRes.json();
     console.log('Response parsed successfully');
+
+    console.log('=== RAW API RESPONSE INSPECTION ===');
+    console.log('Raw bill keys:', Object.keys(billData.bill));
+
+    // Check what embedded data actually came back
+    const rawBill = billData.bill;
+    console.log('Raw embedded data:', {
+      sponsors: rawBill.sponsors?.length || 'undefined',
+      cosponsors: rawBill.cosponsors ? `count: ${rawBill.cosponsors.count}, items: ${rawBill.cosponsors.items?.length || 0}` : 'undefined',
+      committees: rawBill.committees ? `count: ${rawBill.committees.count}, items: ${rawBill.committees.items?.length || 0}` : 'undefined',
+      actions: rawBill.actions ? `count: ${rawBill.actions.count}, items: ${rawBill.actions.items?.length || 0}` : 'undefined',
+      amendments: rawBill.amendments ? `count: ${rawBill.amendments.count}, items: ${rawBill.amendments.items?.length || 0}` : 'undefined',
+      relatedBills: rawBill.relatedBills ? `count: ${rawBill.relatedBills.count}, items: ${rawBill.relatedBills.items?.length || 0}` : 'undefined',
+      subjects: rawBill.subjects ? `count: ${rawBill.subjects.count}, items: ${rawBill.subjects.items?.length || 0}` : 'undefined',
+      summaries: rawBill.summaries ? `count: ${rawBill.summaries.count}, items: ${rawBill.summaries.items?.length || 0}` : 'undefined',
+      textVersions: rawBill.textVersions ? `count: ${rawBill.textVersions.count}, items: ${rawBill.textVersions.items?.length || 0}` : 'undefined'
+    });
+
+    // Check subjects structure specifically
+    if (rawBill.subjects) {
+      console.log('Subjects structure:', {
+        hasItems: !!rawBill.subjects.items,
+        hasLegislativeSubjects: !!rawBill.subjects.legislativeSubjects,
+        hasPolicyArea: !!rawBill.subjects.policyArea,
+        itemsLength: rawBill.subjects.items?.length || 0,
+        legislativeSubjectsLength: rawBill.subjects.legislativeSubjects?.length || 0
+      });
+    }
     
     const bill: Bill = billData.bill;
 
