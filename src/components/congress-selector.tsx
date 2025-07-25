@@ -15,7 +15,10 @@ export function CongressSelector({ congresses }: { congresses: Congress[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const currentCongress = searchParams.get('congress') || '119';
+  
+  // Use the latest congress from the sorted list as the default, or fallback to current param
+  const defaultCongress = congresses[0]?.number.toString();
+  const currentCongress = searchParams.get('congress') || defaultCongress || '119';
 
   const handleValueChange = (congressNumber: string) => {
     const params = new URLSearchParams(searchParams);
