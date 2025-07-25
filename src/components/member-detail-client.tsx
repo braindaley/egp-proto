@@ -94,14 +94,18 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
     : 'bg-gray-500';
 
   const allTerms = member.terms?.item?.slice().sort((a, b) => b.startYear - a.startYear) || [];
-  const currentTerm = allTerms[0];
+  const currentTerm = allTerms.find(term => {
+      const currentYear = new Date().getFullYear();
+      return term.startYear <= currentYear && term.endYear >= currentYear;
+  }) || allTerms[0];
+  
   const firstTerm = allTerms[allTerms.length - 1];
   
   const yearsOfService = calculateYearsOfService(firstTerm);
   const serving = isCurrentlyServing(member);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8">
         <header className="mb-8 flex flex-col md:flex-row items-center gap-6">
             <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-primary/20 shrink-0 shadow-lg">
                 <Image
@@ -130,86 +134,85 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
             </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-                {(member.sponsoredLegislation?.length || member.cosponsoredLegislation?.length) ? (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Gavel /> Legislative Activity</CardTitle>
-                            <CardDescription>Recent bills sponsored and cosponsored by the member.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <Tabs defaultValue="sponsored">
-                                <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="sponsored" disabled={!member.sponsoredLegislation?.length}>
-                                        <FileText className="mr-2" /> Sponsored ({member.sponsoredLegislation?.length || 0})
-                                    </TabsTrigger>
-                                    <TabsTrigger value="cosponsored" disabled={!member.cosponsoredLegislation?.length}>
-                                        <Users className="mr-2" /> Cosponsored ({member.cosponsoredLegislation?.length || 0})
-                                    </TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="sponsored">
-                                    {member.sponsoredLegislation && <LegislationTable bills={member.sponsoredLegislation} type="sponsored" congress={congress}/>}
-                                </TabsContent>
-                                <TabsContent value="cosponsored">
-                                    {member.cosponsoredLegislation && <LegislationTable bills={member.cosponsoredLegislation} type="cosponsored" congress={congress}/>}
-                                </TabsContent>
-                            </Tabs>
-                        </CardContent>
-                    </Card>
-                ) : null}
-                 <Card>
+        <div className="space-y-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><User /> Basic Info</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    <p><strong>Full Name:</strong> {member.directOrderName}</p>
+                    <p><strong>Born:</strong> {formatDate(member.birthDate)}</p>
+                    {member.deathDate && <p><strong>Died:</strong> {formatDate(member.deathDate)}</p>}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Briefcase /> Service</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear)}</p>}
+                    <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
+                    {currentTerm?.office && <p><strong>Office:</strong> {currentTerm.office}</p>}
+                    {currentTerm?.phone && <p><strong>Phone:</strong> {currentTerm.phone}</p>}
+                     {member.officialWebsiteUrl && (
+                        <Button asChild size="sm" className="w-full mt-2">
+                            <a href={member.officialWebsiteUrl} target="_blank" rel="noopener noreferrer">
+                                Official Website <ExternalLink className="ml-2 h-4 w-4" />
+                            </a>
+                        </Button>
+                    )}
+                </CardContent>
+            </Card>
+
+            {(member.sponsoredLegislation?.length || member.cosponsoredLegislation?.length) ? (
+                <Card>
                     <CardHeader>
-                        <CardTitle>All Terms of Service</CardTitle>
-                        <CardDescription>A complete history of the congresses this member has served in.</CardDescription>
+                        <CardTitle className="flex items-center gap-2"><Gavel /> Legislative Activity</CardTitle>
+                        <CardDescription>Recent bills sponsored and cosponsored by the member.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <div className="space-y-4">
-                            {allTerms.map((term, index) => (
-                                <div key={index} className="p-3 bg-secondary/50 rounded-md text-sm">
-                                    <p className="font-semibold">{term.congress}th Congress ({term.startYear} - {term.endYear})</p>
-                                    <div className="text-muted-foreground grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 mt-2">
-                                        <span><strong className="text-foreground">Chamber:</strong> {term.chamber}</span>
-                                        <span><strong className="text-foreground">Party:</strong> {term.partyName}</span>
-                                        <span><strong className="text-foreground">State:</strong> {term.stateCode}</span>
-                                        {term.district && <span><strong className="text-foreground">District:</strong> {term.district}</span>}
-                                    </div>
+                         <Tabs defaultValue="sponsored">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="sponsored" disabled={!member.sponsoredLegislation?.length}>
+                                    <FileText className="mr-2" /> Sponsored ({member.sponsoredLegislation?.length || 0})
+                                </TabsTrigger>
+                                <TabsTrigger value="cosponsored" disabled={!member.cosponsoredLegislation?.length}>
+                                    <Users className="mr-2" /> Cosponsored ({member.cosponsoredLegislation?.length || 0})
+                                </TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="sponsored">
+                                {member.sponsoredLegislation && <LegislationTable bills={member.sponsoredLegislation} type="sponsored" congress={congress}/>}
+                            </TabsContent>
+                            <TabsContent value="cosponsored">
+                                {member.cosponsoredLegislation && <LegislationTable bills={member.cosponsoredLegislation} type="cosponsored" congress={congress}/>}
+                            </TabsContent>
+                        </Tabs>
+                    </CardContent>
+                </Card>
+            ) : null}
+
+             <Card>
+                <CardHeader>
+                    <CardTitle>All Terms of Service</CardTitle>
+                    <CardDescription>A complete history of the congresses this member has served in.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <div className="space-y-4">
+                        {allTerms.map((term, index) => (
+                            <div key={index} className="p-3 bg-secondary/50 rounded-md text-sm">
+                                <p className="font-semibold">{term.congress}th Congress ({term.startYear} - {term.endYear})</p>
+                                <div className="text-muted-foreground grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 mt-2">
+                                    <span><strong className="text-foreground">Chamber:</strong> {term.chamber}</span>
+                                    <span><strong className="text-foreground">Party:</strong> {term.partyName}</span>
+                                    <span><strong className="text-foreground">State:</strong> {term.stateCode}</span>
+                                    {term.district && <span><strong className="text-foreground">District:</strong> {term.district}</span>}
                                 </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-             <div className="space-y-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><User /> Basic Info</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-sm">
-                        <p><strong>Full Name:</strong> {member.directOrderName}</p>
-                        <p><strong>Born:</strong> {formatDate(member.birthDate)}</p>
-                        {member.deathDate && <p><strong>Died:</strong> {formatDate(member.deathDate)}</p>}
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Briefcase /> Service</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-sm">
-                        {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear)}</p>}
-                        <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
-                        {currentTerm?.office && <p><strong>Office:</strong> {currentTerm.office}</p>}
-                        {currentTerm?.phone && <p><strong>Phone:</strong> {currentTerm.phone}</p>}
-                         {member.officialWebsiteUrl && (
-                            <Button asChild size="sm" className="w-full mt-2">
-                                <a href={member.officialWebsiteUrl} target="_blank" rel="noopener noreferrer">
-                                    Official Website <ExternalLink className="ml-2 h-4 w-4" />
-                                </a>
-                            </Button>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     </div>
   );
