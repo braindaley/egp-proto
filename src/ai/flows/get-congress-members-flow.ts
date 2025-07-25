@@ -36,20 +36,13 @@ async function fetchMembers(
 
   try {
     const response = await fetch(url, { next: { revalidate: 3600 } });
-    const data = await response.json();
-
-    // Add these lines right after:
-    console.log('🔍 API URL CALLED:', url);
-    console.log('🔍 API RESPONSE STATUS:', response.status);
-    console.log('🔍 API RESPONSE DATA:', JSON.stringify(data, null, 2));
-
-
     if (!response.ok) {
       console.error(`Failed to fetch members from internal API for ${upperCaseState}: ${response.status}`);
       return { senators: [], representatives: [] };
     }
     
     // Directly return the data from the API which should already be in the correct format
+    const data = await response.json();
     return {
         senators: data.senators || [],
         representatives: data.representatives || [],
@@ -73,7 +66,6 @@ const getCongressMembersFlow = ai.defineFlow(
 );
 
 export async function getCongressMembers(input: GetCongressMembersInput): Promise<GetCongressMembersOutput> {
-  console.log('--- getCongressMembers flow invoked with:', input); // <-- ADDED THIS LOG
   const result = await getCongressMembersFlow(input);
   // Ensure we always return a valid structure, even on failure.
   return result || { senators: [], representatives: [] };
