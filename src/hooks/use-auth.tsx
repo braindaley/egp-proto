@@ -19,24 +19,59 @@ import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import type { Congress } from '@/types';
 
+// Add this outside your component
+let congressCache: Congress[] | null = null;
+let cacheExpiry: number = 0;
+
+function getFallbackCongresses(): Congress[] {
+  console.warn('Using fallback congress data.');
+  return [
+    { name: '119th Congress', number: 119, startYear: '2025', endYear: '2027' },
+    { name: '118th Congress', number: 118, startYear: '2023', endYear: '2025' },
+    { name: '117th Congress', number: 117, startYear: '2021', endYear: '2023' },
+    { name: '116th Congress', number: 116, startYear: '2019', endYear: '2021' },
+    { name: '115th Congress', number: 115, startYear: '2017', endYear: '2019' },
+  ].sort((a, b) => b.number - a.number);
+}
+
 async function getCongresses(): Promise<Congress[]> {
+    const now = Date.now();
+    if (congressCache && now < cacheExpiry) {
+        return congressCache;
+    }
+
     const API_KEY = process.env.NEXT_PUBLIC_CONGRESS_API_KEY || 'DEMO_KEY';
     const url = `https://api.congress.gov/v3/congress?limit=250&api_key=${API_KEY}`;
     try {
         const res = await fetch(url);
+        if (res.status === 429) {
+          if (congressCache) {
+            console.warn('Rate limit exceeded, using cached data.');
+            return congressCache;
+          }
+          return getFallbackCongresses();
+        }
+
         if (!res.ok) {
-            return [];
+            console.error(`Failed to fetch congresses: ${res.status}`);
+            return getFallbackCongresses();
         }
         const data = await res.json();
-        return (data.congresses || [])
+        const result = (data.congresses || [])
             .filter(Boolean)
             .map(congress => ({
                 ...congress,
                 number: parseInt(congress.name.match(/(\d+)/)?.[1] || '0', 10)
             }))
             .sort((a, b) => b.number - a.number);
+
+        congressCache = result;
+        cacheExpiry = now + (60 * 60 * 1000); // Cache for 1 hour
+        
+        return result;
     } catch (error) {
-        return [];
+        console.error('Error fetching congresses:', error);
+        return getFallbackCongresses();
     }
 }
 
