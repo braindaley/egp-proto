@@ -1,3 +1,4 @@
+
 // /app/api/congress/members/route.ts
 import { NextResponse } from 'next/server';
 import type { Member } from '@/types';
@@ -30,6 +31,8 @@ export async function GET(req: Request) {
     const senateData = senateResponse.ok ? await senateResponse.json() : { members: [] };
     const houseData = houseResponse.ok ? await houseResponse.json() : { members: [] };
 
+    // console.log("Raw Senate Data:", JSON.stringify(senateData, null, 2));
+    // console.log("Raw House Data:", JSON.stringify(houseData, null, 2));
 
     return NextResponse.json({
       senators: senateData.members || [],
