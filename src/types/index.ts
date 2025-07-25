@@ -111,6 +111,7 @@ export interface Bill {
   originChamber: string;
   originChamberCode: string;
   title: string;
+  shortTitle?: string;
   type: string;
   updateDate: string;
   url: string;

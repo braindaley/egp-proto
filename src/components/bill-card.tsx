@@ -31,7 +31,7 @@ export function BillCard({ bill }: { bill: Bill }) {
         <Card className="flex flex-col h-full bg-card hover:shadow-accent/20 hover:shadow-lg transition-shadow duration-300 ease-in-out w-full">
         <CardHeader>
             <CardTitle className="font-headline text-xl leading-snug text-primary">
-            {bill.title}
+            {bill.shortTitle || bill.title}
             </CardTitle>
             <CardDescription className="pt-2 font-medium !text-foreground/80">{bill.type} {bill.number}</CardDescription>
         </CardHeader>
