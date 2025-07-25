@@ -50,6 +50,9 @@ function isCurrentlyServing(member: Member): boolean {
 }
 
 const LegislationTable = ({ bills, type, congress }: { bills: (SponsoredLegislation | CosponsoredLegislation)[], type: 'sponsored' | 'cosponsored', congress: string }) => {
+    if (!bills || bills.length === 0) {
+        return <p className="text-muted-foreground text-sm">No {type} bills found.</p>
+    }
     return (
         <Table>
             <TableHeader>
@@ -125,11 +128,7 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
                     {currentTerm?.chamber} for {member.state} {currentTerm?.district ? `(District ${currentTerm.district})` : ''}
                 </p>
                  <div className="mt-4 flex flex-wrap gap-2 justify-center md:justify-start">
-                    <Badge className={`text-white text-base px-4 py-1 ${partyColor}`}>{member.partyName}</Badge>
                     {currentTerm?.congress && <Badge variant="secondary" className="text-base px-4 py-1">{currentTerm.congress}th Congress</Badge>}
-                     <Badge variant={serving ? "default" : "secondary"} className="text-base px-4 py-1">
-                        {serving ? 'Currently Serving' : 'Former Member'}
-                    </Badge>
                 </div>
             </div>
         </header>
@@ -165,32 +164,30 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
                 </CardContent>
             </Card>
 
-            {(member.sponsoredLegislation?.length || member.cosponsoredLegislation?.length) ? (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Gavel /> Legislative Activity</CardTitle>
-                        <CardDescription>Recent bills sponsored and cosponsored by the member.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <Tabs defaultValue="sponsored">
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="sponsored" disabled={!member.sponsoredLegislation?.length}>
-                                    <FileText className="mr-2" /> Sponsored ({member.sponsoredLegislation?.length || 0})
-                                </TabsTrigger>
-                                <TabsTrigger value="cosponsored" disabled={!member.cosponsoredLegislation?.length}>
-                                    <Users className="mr-2" /> Cosponsored ({member.cosponsoredLegislation?.length || 0})
-                                </TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="sponsored">
-                                {member.sponsoredLegislation && <LegislationTable bills={member.sponsoredLegislation} type="sponsored" congress={congress}/>}
-                            </TabsContent>
-                            <TabsContent value="cosponsored">
-                                {member.cosponsoredLegislation && <LegislationTable bills={member.cosponsoredLegislation} type="cosponsored" congress={congress}/>}
-                            </TabsContent>
-                        </Tabs>
-                    </CardContent>
-                </Card>
-            ) : null}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Gavel /> Legislative Activity</CardTitle>
+                    <CardDescription>Recent bills sponsored and cosponsored by the member.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                        <Tabs defaultValue="sponsored">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="sponsored">
+                                <FileText className="mr-2" /> Sponsored ({member.sponsoredLegislation?.length || 0})
+                            </TabsTrigger>
+                            <TabsTrigger value="cosponsored">
+                                <Users className="mr-2" /> Cosponsored ({member.cosponsoredLegislation?.length || 0})
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="sponsored">
+                            <LegislationTable bills={member.sponsoredLegislation || []} type="sponsored" congress={congress}/>
+                        </TabsContent>
+                        <TabsContent value="cosponsored">
+                            <LegislationTable bills={member.cosponsoredLegislation || []} type="cosponsored" congress={congress}/>
+                        </TabsContent>
+                    </Tabs>
+                </CardContent>
+            </Card>
 
              <Card>
                 <CardHeader>
