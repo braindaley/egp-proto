@@ -48,6 +48,13 @@ export default async function StateCongressPage({ params }: { params: { congress
            Senators and Representatives for {state.toUpperCase()}
         </p>
       </header>
+
+      <div className="bg-muted p-4 rounded-lg my-8">
+        <h3 className="text-lg font-semibold mb-2">Debug Info:</h3>
+        <pre className="text-xs bg-background p-2 rounded-md overflow-x-auto">
+            {JSON.stringify(memberData, null, 2)}
+        </pre>
+      </div>
       
       <section>
         <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">Senate</h2>
