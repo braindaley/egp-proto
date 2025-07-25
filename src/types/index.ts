@@ -1,6 +1,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -158,6 +159,7 @@ export interface Member {
   terms: {
     current?: {
       startYear: string;
+      congress?: number;
     }
   };
   depiction?: {

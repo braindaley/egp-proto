@@ -23,28 +23,34 @@ const GetCongressMembersOutputSchema = z.object({
 });
 export type GetCongressMembersOutput = z.infer<typeof GetCongressMembersOutputSchema>;
 
-async function fetchMembersByChamber(
+async function fetchMembers(
   congress: string,
   state: string,
-  chamber: 'senate' | 'house'
 ): Promise<Member[]> {
   const API_KEY = process.env.CONGRESS_API_KEY;
   const upperCaseState = state.toUpperCase();
-  const url = `https://api.congress.gov/v3/member/${congress}/${chamber}?state=${upperCaseState}&api_key=${API_KEY}`;
+  // Note: The API is inconsistent. A general 'member' endpoint seems more reliable
+  // for state-based queries than chamber-specific ones which 404.
+  const url = `https://api.congress.gov/v3/member?state=${upperCaseState}&api_key=${API_KEY}&limit=250`;
 
   try {
     const response = await fetch(url, { next: { revalidate: 3600 } });
 
     if (!response.ok) {
-      console.error(`Failed to fetch ${chamber} members for ${upperCaseState}: ${response.status}`);
+      console.error(`Failed to fetch members for ${upperCaseState}: ${response.status}`);
       return [];
     }
 
     const data = await response.json();
-    return data.members || [];
+    
+    // Filter by the specific congress since the API gives members from multiple congresses.
+    // The terms object is not always present, so we need to handle that.
+    return (data.members || []).filter((member: Member) => {
+        return member.terms.current && member.terms.current.congress === parseInt(congress);
+    });
 
   } catch (error) {
-    console.error(`Error fetching ${chamber} members for ${upperCaseState}:`, error);
+    console.error(`Error fetching members for ${upperCaseState}:`, error);
     return [];
   }
 }
@@ -59,11 +65,14 @@ const getCongressMembersFlow = ai.defineFlow(
   async ({ congress, state }) => {
     console.log("Calling Congress API with:", congress, state);
     
-    // Fetch senators and representatives in parallel
-    const [senators, representatives] = await Promise.all([
-        fetchMembersByChamber(congress, state, 'senate'),
-        fetchMembersByChamber(congress, state, 'house')
-    ]);
+    const allMembers = await fetchMembers(congress, state);
+
+    if (allMembers.length === 0) {
+        return { senators: [], representatives: [] };
+    }
+    
+    const senators = allMembers.filter(m => m.chamber.toLowerCase() === 'senate');
+    const representatives = allMembers.filter(m => m.chamber.toLowerCase() === 'house');
 
     return {
       senators,
