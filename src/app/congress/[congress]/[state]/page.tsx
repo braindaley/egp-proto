@@ -17,8 +17,8 @@ const states: Record<string, string> = {
   va: 'Virginia', wa: 'Washington', wv: 'West Virginia', wi: 'Wisconsin', wy: 'Wyoming'
 };
 
-export default async function StateCongressPage({ params }: { params: Promise<{ congress: string, state: string }> }) {
-  const { congress, state } = await params;
+export default async function StateCongressPage({ params }: { params: { congress: string, state: string } }) {
+  const { congress, state } = params;
   const stateName = states[state.toLowerCase()];
 
   if (!stateName) {
@@ -26,7 +26,7 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
   }
 
   const memberData = await getCongressMembers({ congress, state });
-  
+
   const senators = memberData?.senators || [];
   const representatives = memberData?.representatives || [];
 
@@ -45,8 +45,8 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
         <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">Senate</h2>
         {senators.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {senators.map((senator) => (
-              <MemberCard key={senator.bioguideId} member={senator} />
+            {senators.map((senator, index) => (
+              <MemberCard key={senator.bioguideId || index} member={senator} />
             ))}
           </div>
         ) : (
@@ -58,8 +58,8 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
         <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">House of Representatives</h2>
         {representatives.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {representatives.map((rep) => (
-              <MemberCard key={rep.bioguideId} member={rep} />
+            {representatives.map((rep, index) => (
+              <MemberCard key={rep.bioguideId || index} member={rep} />
             ))}
           </div>
         ) : (

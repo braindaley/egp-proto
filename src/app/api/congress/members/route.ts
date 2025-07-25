@@ -14,8 +14,7 @@ export async function GET(req: Request) {
   }
 
   const url = `https://api.congress.gov/v3/member?congress=${congress}&state=${state}&api_key=${API_KEY}&limit=250`;
-  console.log(`Fetching all members from external API: ${url}`);
-
+  
   try {
     const res = await fetch(url, { next: { revalidate: 3600 } });
 
