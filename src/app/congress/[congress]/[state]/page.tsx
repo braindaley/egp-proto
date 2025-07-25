@@ -2,7 +2,7 @@
 import { notFound } from 'next/navigation';
 import { getCongressMembers } from '@/ai/flows/get-congress-members-flow';
 import { MemberCard } from '@/components/member-card';
-import type { Member } from '@/types';
+import type { Member, MemberTerm } from '@/types';
 
 const states: Record<string, string> = {
   al: 'Alabama', ak: 'Alaska', az: 'Arizona', ar: 'Arkansas', ca: 'California',
@@ -17,6 +17,15 @@ const states: Record<string, string> = {
   va: 'Virginia', wa: 'Washington', wv: 'West Virginia', wi: 'Wisconsin', wy: 'Wyoming'
 };
 
+// Helper function to calculate service years
+function getYearsOfService(member: Member): number {
+  if (!member.terms?.item) return 0;
+  const firstTerm = [...member.terms.item].sort((a, b) => a.startYear - b.startYear)[0];
+  if (!firstTerm) return 0;
+  const currentYear = new Date().getFullYear();
+  return Math.max(1, currentYear - firstTerm.startYear);
+}
+
 export default async function StateCongressPage({ params }: { params: Promise<{ congress: string, state: string }> }) {
   const { congress, state } = await params;
 
@@ -28,8 +37,8 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
 
   const memberData = await getCongressMembers({ congress, state });
 
-  const senators = memberData?.senators || [];
-  const representatives = memberData?.representatives || [];
+  const senators = (memberData?.senators || []).sort((a, b) => getYearsOfService(b) - getYearsOfService(a));
+  const representatives = (memberData?.representatives || []).sort((a, b) => getYearsOfService(b) - getYearsOfService(a));
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
