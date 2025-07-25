@@ -44,12 +44,11 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
         if (summariesRes.ok) {
           const summariesData = await summariesRes.json();
           if (summariesData.summaries?.length > 0) {
-            bill.summaries.items = summariesData.summaries;
-            bill.allSummaries = summariesData.summaries;
-            
-            // Find the latest summary
-            const sortedSummaries = [...bill.allSummaries].sort((a,b) => 
-              new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
+            const sortedSummaries = [...summariesData.summaries].sort((a, b) =>
+              new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime()
+            );
+            bill.summaries.items = sortedSummaries;
+            bill.allSummaries = sortedSummaries;
             bill.summaries.summary = sortedSummaries[0];
             
             console.log(`Got ${bill.allSummaries.length} summaries`);
