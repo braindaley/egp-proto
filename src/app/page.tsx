@@ -1,3 +1,4 @@
+
 import { BillCard } from '@/components/bill-card';
 import type { Bill, CongressApiResponse } from '@/types';
 
@@ -15,11 +16,11 @@ async function getBills(): Promise<Bill[]> {
     const listData: CongressApiResponse = await listRes.json();
     const recentBills = listData.bills;
 
-    // 2. Fetch the specific large bill (H.R. 1 from 118th Congress)
-    // Assuming H.R.1 from 118th Congress as a test case.
+    // 2. Fetch the specific large bill (H.R. 1 from 119th Congress)
+    // Assuming H.R.1 from 119th Congress as a test case.
     let specialBill: Bill | null = null;
     try {
-      const specialBillUrl = `https://api.congress.gov/v3/bill/118/hr/1?api_key=${API_KEY}`;
+      const specialBillUrl = `https://api.congress.gov/v3/bill/119/hr/1?api_key=${API_KEY}`;
       const specialBillRes = await fetch(specialBillUrl, { next: { revalidate: 3600 } });
       if (specialBillRes.ok) {
         const specialBillData = await specialBillRes.json();
