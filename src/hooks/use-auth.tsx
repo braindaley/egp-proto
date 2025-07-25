@@ -40,16 +40,9 @@ async function getCongresses(): Promise<Congress[]> {
         return congressCache;
     }
 
-    const API_KEY = process.env.NEXT_PUBLIC_CONGRESS_API_KEY;
-
-    if (!API_KEY) {
-        console.warn('NEXT_PUBLIC_CONGRESS_API_KEY is not defined. Using fallback data.');
-        return getFallbackCongresses();
-    }
-
-    const url = `https://api.congress.gov/v3/congress?limit=250&api_key=${API_KEY}`;
     try {
-        const res = await fetch(url);
+        const res = await fetch('/api/congresses');
+
         if (res.status === 429) {
           if (congressCache) {
             console.warn('Rate limit exceeded, using cached data.');
@@ -59,24 +52,20 @@ async function getCongresses(): Promise<Congress[]> {
         }
 
         if (!res.ok) {
-            console.error(`Failed to fetch congresses: ${res.status}`);
+            console.error(`Failed to fetch congresses from local API: ${res.status}`);
             return getFallbackCongresses();
         }
         const data = await res.json();
-        const result = (data.congresses || [])
-            .filter(Boolean)
-            .map(congress => ({
-                ...congress,
-                number: parseInt(congress.name.match(/(\\d+)/)?.[1] || '0', 10)
-            }))
-            .sort((a, b) => b.number - a.number);
-
-        congressCache = result;
-        cacheExpiry = now + (60 * 60 * 1000); // Cache for 1 hour
+        const result = data.congresses || [];
         
-        return result;
+        if (result.length > 0) {
+            congressCache = result;
+            cacheExpiry = now + (60 * 60 * 1000); // Cache for 1 hour
+        }
+        
+        return result.length > 0 ? result : getFallbackCongresses();
     } catch (error) {
-        console.error('Error fetching congresses:', error);
+        console.error('Error fetching congresses from local API:', error);
         return getFallbackCongresses();
     }
 }
