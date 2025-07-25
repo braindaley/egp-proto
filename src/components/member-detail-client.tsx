@@ -5,7 +5,7 @@ import type { Member } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Building, Calendar, MapPin, Party, User, ExternalLink } from 'lucide-react';
+import { Building, Calendar, MapPin, Flag, User, ExternalLink } from 'lucide-react';
 import { Button } from './ui/button';
 
 function formatDate(dateString: string | undefined) {
@@ -71,7 +71,7 @@ export function MemberDetailClient({ member }: { member: Member }) {
                     {currentTerm ? (
                         <>
                             <p><strong className="flex items-center gap-1.5"><MapPin className="h-4 w-4" /> State/District:</strong> {member.state} {currentTerm.district ? `- District ${currentTerm.district}` : ''}</p>
-                            <p><strong className="flex items-center gap-1.5"><Party className="h-4 w-4" /> Party:</strong> {currentTerm.partyName}</p>
+                            <p><strong className="flex items-center gap-1.5"><Flag className="h-4 w-4" /> Party:</strong> {currentTerm.partyName}</p>
                             <p><strong className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> Term Start:</strong> {formatDate(currentTerm.startYear?.toString())}</p>
                             <p><strong className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> Term End:</strong> {formatDate(currentTerm.endYear?.toString())}</p>
                         </>
