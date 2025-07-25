@@ -25,7 +25,8 @@ export type GetCongressMembersOutput = z.infer<typeof GetCongressMembersOutputSc
 
 async function fetchMembersByChamber(congress: string, state: string, chamber: 'senate' | 'house'): Promise<Member[]> {
     const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
-    const url = `https://api.congress.gov/v3/congress/${congress}/${chamber}?limit=50&api_key=${API_KEY}`;
+    // The API now uses /v3/congress/{congress}/{chamber} and filters by state
+    const url = `https://api.congress.gov/v3/congress/${congress}/${chamber}?api_key=${API_KEY}`;
     
     try {
         const response = await fetch(url, { next: { revalidate: 3600 } });
