@@ -36,7 +36,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Fetch senators and representatives in parallel
+    // Fetch senators and representatives in parallel using the new helper
     const [senateData, houseData] = await Promise.all([
         getMembers(congress, 'senate', state, API_KEY),
         getMembers(congress, 'house', state, API_KEY)
