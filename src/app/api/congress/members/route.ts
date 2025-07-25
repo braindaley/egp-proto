@@ -13,9 +13,6 @@ async function getMembers(congress: string, chamber: 'senate' | 'house', state: 
             return [];
         }
         const json = await res.json();
-        // Log the raw JSON to inspect its structure during debugging
-        // console.log(`🔥 Raw ${chamber} response for ${state}:`, JSON.stringify(json, null, 2));
-        
         // The API returns members in the `members` key
         return json.members || [];
     } catch (error) {
@@ -46,9 +43,6 @@ export async function GET(req: Request) {
         senators: senateData,
         representatives: houseData,
     };
-    
-    // Log what is being sent to the client
-    // console.log("✅ Returning to client:", JSON.stringify(response, null, 2));
 
     return NextResponse.json(response);
 
