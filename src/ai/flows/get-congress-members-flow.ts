@@ -25,8 +25,8 @@ export type GetCongressMembersOutput = z.infer<typeof GetCongressMembersOutputSc
 
 async function fetchAllMembers(congress: string): Promise<Member[]> {
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
-  // The /member endpoint returns all members from all chambers for a specific congress.
-  const url = `https://api.congress.gov/v3/congress/${congress}/member?limit=500&api_key=${API_KEY}`;
+  // Using the general /member endpoint is more reliable than /congress/{congress}/member
+  const url = `https://api.congress.gov/v3/member?limit=500&api_key=${API_KEY}`;
   
   try {
     const response = await fetch(url, { next: { revalidate: 3600 } });
@@ -35,7 +35,19 @@ async function fetchAllMembers(congress: string): Promise<Member[]> {
       return [];
     }
     const data = await response.json();
-    return data.members;
+
+    // The general /member endpoint returns members from all congresses, so we need to filter
+    // them to find members who served in the specified congress.
+    const congressNumber = parseInt(congress, 10);
+    const filteredMembers = data.members.filter((member: any) => {
+        if (!member.terms || !Array.isArray(member.terms.item)) return false;
+        
+        return member.terms.item.some((term: any) => {
+            return term.congress === congressNumber;
+        });
+    });
+
+    return filteredMembers;
   } catch (error) {
     console.error(`Error fetching all members:`, error);
     return [];
