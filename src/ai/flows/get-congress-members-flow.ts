@@ -31,14 +31,15 @@ async function fetchMembers(
     // This assumes the app is running on localhost, which is fine for dev.
     // In a real deployment, you'd use a relative URL or an env var for the base URL.
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
-    const url = `${baseUrl}/api/congress/members?congress=${congress}&state=${state}`;
+    const upperCaseState = state.toUpperCase();
+    const url = `${baseUrl}/api/congress/members?congress=${congress}&state=${upperCaseState}`;
     console.log("Calling internal API:", url);
 
   try {
     const response = await fetch(url, { next: { revalidate: 3600 } });
 
     if (!response.ok) {
-      console.error(`Failed to fetch members from internal API for ${state}: ${response.status}`);
+      console.error(`Failed to fetch members from internal API for ${upperCaseState}: ${response.status}`);
       return { senators: [], representatives: [] };
     }
 
@@ -48,7 +49,7 @@ async function fetchMembers(
         representatives: data.representatives || [],
     }
   } catch (error) {
-    console.error(`Error fetching members for ${state}:`, error);
+    console.error(`Error fetching members for ${upperCaseState}:`, error);
     return { senators: [], representatives: [] };
   }
 }
