@@ -3,28 +3,6 @@
 import { NextResponse } from 'next/server';
 import type { Member } from '@/types';
 
-// Helper function to fetch members for a specific chamber
-async function getMembers(congress: string, chamber: 'senate' | 'house', state: string, apiKey: string): Promise<Member[]> {
-    const url = `https://api.congress.gov/v3/member?congress=${congress}&chamber=${chamber}&state=${state}&api_key=${apiKey}&limit=250`;
-    console.log(`Fetching from external API: ${url}`);
-    try {
-        const res = await fetch(url, { next: { revalidate: 3600 } });
-        if (!res.ok) {
-            console.error(`Failed to fetch ${chamber} for ${state}: ${res.status}`);
-            return [];
-        }
-        const json = await res.json();
-        return (json.members || []).map((member: any) => ({
-            ...member,
-            chamber: chamber === 'senate' ? 'Senate' : 'House'
-        }));
-    } catch (error) {
-        console.error(`Error fetching ${chamber} for ${state}:`, error);
-        return [];
-    }
-}
-
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const congress = searchParams.get('congress');
@@ -35,16 +13,26 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
   }
 
+  const url = `https://api.congress.gov/v3/member?congress=${congress}&state=${state}&api_key=${API_KEY}&limit=250`;
+  console.log(`Fetching all members from external API: ${url}`);
+
   try {
-    // Fetch senators and representatives in parallel using the new helper
-    const [senateData, houseData] = await Promise.all([
-        getMembers(congress, 'senate', state, API_KEY),
-        getMembers(congress, 'house', state, API_KEY)
-    ]);
+    const res = await fetch(url, { next: { revalidate: 3600 } });
+
+    if (!res.ok) {
+      console.error(`Failed to fetch members for ${state}: ${res.status}`);
+      return NextResponse.json({ error: 'Failed to fetch members' }, { status: res.status });
+    }
+
+    const json = await res.json();
+    const members: Member[] = json.members || [];
+
+    const senators = members.filter(m => m.chamber === 'Senate');
+    const representatives = members.filter(m => m.chamber === 'House');
 
     const response = {
-        senators: senateData,
-        representatives: houseData,
+      senators,
+      representatives,
     };
 
     return NextResponse.json(response);
