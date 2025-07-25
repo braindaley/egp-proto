@@ -8,23 +8,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useRouter, useParams } from 'next/navigation';
-import type { Congress } from '@/types';
+import { useAuth } from '@/hooks/use-auth';
 
-export function CongressSelector({ congresses }: { congresses: Congress[] }) {
-  const router = useRouter();
-  const params = useParams();
-
-  // The current congress is derived from the URL params if available.
-  // We use the latest congress as a fallback.
-  const currentCongress = params.congress?.toString() || congresses[0]?.number.toString();
-
+export function CongressSelector() {
+  const { congresses, selectedCongress, setSelectedCongress } = useAuth();
+  
   const handleValueChange = (congressNumber: string) => {
-    // Navigate to the new congress-specific bill page
-    router.push(`/bill/${congressNumber}`);
+    setSelectedCongress(congressNumber);
   };
 
-  if (!Array.isArray(congresses) || congresses.length === 0) {
+  if (!congresses || congresses.length === 0) {
     return (
         <div className="w-[180px] h-9 text-xs flex items-center justify-center bg-muted rounded-md">
             Loading...
@@ -34,8 +27,7 @@ export function CongressSelector({ congresses }: { congresses: Congress[] }) {
 
   return (
     <div className="flex items-center gap-2">
-      {/* The `value` prop makes this a controlled component that reflects the URL */}
-      <Select onValueChange={handleValueChange} value={currentCongress}>
+      <Select onValueChange={handleValueChange} value={selectedCongress}>
         <SelectTrigger className="w-[180px] h-9 text-xs">
           <SelectValue placeholder="Select Congress" />
         </SelectTrigger>
