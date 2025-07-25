@@ -25,24 +25,24 @@ export type GetCongressMembersOutput = z.infer<typeof GetCongressMembersOutputSc
 
 async function fetchMembersByChamber(congress: string, state: string, chamber: 'senate' | 'house'): Promise<Member[]> {
     const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
-    // The API now uses /v3/congress/{congress}/{chamber} and filters by state
+    const upperCaseState = state.toUpperCase();
     const url = `https://api.congress.gov/v3/congress/${congress}/${chamber}?api_key=${API_KEY}`;
     
     try {
         const response = await fetch(url, { next: { revalidate: 3600 } });
         if (!response.ok) {
-            console.error(`Failed to fetch ${chamber} members for ${state}: ${response.status}`);
+            console.error(`Failed to fetch ${chamber} members for ${upperCaseState}: ${response.status}`);
             return [];
         }
         const data = await response.json();
         
         // The API returns all members for the chamber, so we filter by state
-        const stateMembers = data.members.filter((member: any) => member.state === state.toUpperCase());
+        const stateMembers = data.members.filter((member: any) => member.state === upperCaseState);
         
         return stateMembers;
 
     } catch (error) {
-        console.error(`Error fetching ${chamber} members for ${state}:`, error);
+        console.error(`Error fetching ${chamber} members for ${upperCaseState}:`, error);
         return [];
     }
 }
