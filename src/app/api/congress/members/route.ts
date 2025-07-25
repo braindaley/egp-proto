@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     }
 
     const json = await res.json();
-    const allMembers: Member[] = json.members || [];
+    const allMembers: Member[] = json.content?.members || [];
 
     const senators = allMembers
       .filter(m => m.state === state && m.chamber === 'Senate');
