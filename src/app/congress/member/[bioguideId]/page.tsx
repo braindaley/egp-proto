@@ -25,7 +25,7 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
   }
 }
 
-export default async function MemberDetailPage({ params }: { params: Promise<{ bioguideId: string }> }) {
+export default async function MemberDetailPage({ params }: { params: { bioguideId: string } }) {
   const { bioguideId } = await params;
   
   const member = await getMemberDetails(bioguideId);
