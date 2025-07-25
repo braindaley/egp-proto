@@ -19,6 +19,9 @@ const states: Record<string, string> = {
 
 export default async function StateCongressPage({ params }: { params: Promise<{ congress: string, state: string }> }) {
   const { congress, state } = await params;
+  console.log('--- DEBUG: STATE CONGRESS PAGE ---');
+  console.log('Received params:', { congress, state });
+
   const stateName = states[state.toLowerCase()];
 
   if (!stateName) {
@@ -26,9 +29,14 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
   }
 
   const memberData = await getCongressMembers({ congress, state });
+  console.log('Fetched member data:', JSON.stringify(memberData, null, 2));
 
   const senators = memberData?.senators || [];
   const representatives = memberData?.representatives || [];
+
+  console.log('Processed Senators:', { count: senators.length, data: senators });
+  console.log('Processed Representatives:', { count: representatives.length, data: representatives });
+  console.log('---------------------------------');
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
