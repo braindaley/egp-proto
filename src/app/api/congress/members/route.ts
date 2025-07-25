@@ -6,6 +6,7 @@ import type { Member } from '@/types';
 // Helper function to fetch members for a specific chamber
 async function getMembers(congress: string, chamber: 'senate' | 'house', state: string, apiKey: string): Promise<Member[]> {
     const url = `https://api.congress.gov/v3/member?congress=${congress}&chamber=${chamber}&state=${state}&api_key=${apiKey}&limit=250`;
+    console.log(`Fetching from external API: ${url}`);
     try {
         const res = await fetch(url, { next: { revalidate: 3600 } });
         if (!res.ok) {
