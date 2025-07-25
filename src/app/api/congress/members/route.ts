@@ -23,9 +23,8 @@ export async function GET(req: Request) {
     }
 
     const json = await res.json();
-    console.log('Full API response:', JSON.stringify(json, null, 2));
+    console.log('--- API Raw JSON ---', JSON.stringify(json, null, 2));
     
-    // Correctly access the nested members array
     const allMembers: Member[] = json.members || [];
 
     const senators = allMembers
