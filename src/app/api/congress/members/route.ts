@@ -57,6 +57,7 @@ export async function GET(req: Request) {
     
     // Filter members by state name (not abbreviation)
     const allMembers: Member[] = json.members || [];
+    console.error('🔧 SAMPLE MEMBERS:', allMembers.slice(0, 3).map(m => ({ name: m.name, state: m.state, bioguideId: m.bioguideId, terms: m.terms })));
     
     const stateMembers = allMembers.filter(member => member.state === stateName);
     console.error('🔧 FILTERED MEMBERS:', stateMembers.length, 'for', stateName);
