@@ -35,6 +35,8 @@ async function getCongresses(): Promise<Congress[]> {
     console.log('🔍 Congresses array:', data.congresses);
     
     const result = (data.congresses || []).filter(Boolean).reverse();
+    console.log('🔍 First congress object structure:', result[0]); // Add this line
+    console.log('🔍 Second congress object structure:', result[1]); // Add this line
     console.log('🔍 Final processed result:', result);
     
     return result;
@@ -50,11 +52,15 @@ export function Header() {
   const [congresses, setCongresses] = useState<Congress[]>([]);
 
   useEffect(() => {
-    console.log('🔍 Header useEffect - fetching congresses...');
-    getCongresses().then((result) => {
-      console.log('🔍 Header useEffect - received result:', result);
-      setCongresses(result);
-    });
+    // Test with hardcoded data first
+    // const testCongresses = [
+    //   { name: '119th Congress', number: 119, startYear: '2025', endYear: '2027' },
+    //   { name: '118th Congress', number: 118, startYear: '2023', endYear: '2025' },
+    // ];
+    // setCongresses(testCongresses);
+    
+    // Comment out the real API call for now
+    getCongresses().then(setCongresses);
   }, []);
 
   console.log('🔍 Header render - congresses state:', congresses);
