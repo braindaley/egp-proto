@@ -69,6 +69,7 @@ const getCongressMembersFlow = ai.defineFlow(
 );
 
 export async function getCongressMembers(input: GetCongressMembersInput): Promise<GetCongressMembersOutput> {
+  console.log('--- getCongressMembers flow invoked with:', input); // <-- ADDED THIS LOG
   const result = await getCongressMembersFlow(input);
   // Ensure we always return a valid structure, even on failure.
   return result || { senators: [], representatives: [] };
