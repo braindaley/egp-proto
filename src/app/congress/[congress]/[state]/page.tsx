@@ -45,7 +45,7 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
         <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">Senate</h2>
         {senators.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {senators.map((senator: Member) => (
+            {senators.map((senator) => (
               <MemberCard key={senator.bioguideId} member={senator} />
             ))}
           </div>
@@ -58,7 +58,7 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
         <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">House of Representatives</h2>
         {representatives.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {representatives.map((rep: Member) => (
+            {representatives.map((rep) => (
               <MemberCard key={rep.bioguideId} member={rep} />
             ))}
           </div>
