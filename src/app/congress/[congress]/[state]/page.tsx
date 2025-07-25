@@ -19,8 +19,6 @@ const states: Record<string, string> = {
 
 export default async function StateCongressPage({ params }: { params: { congress: string, state: string } }) {
   const { congress, state } = params;
-  console.log('--- DEBUG: STATE CONGRESS PAGE ---');
-  console.log('Received params:', { congress, state });
 
   const stateName = states[state.toLowerCase()];
 
@@ -29,14 +27,9 @@ export default async function StateCongressPage({ params }: { params: { congress
   }
 
   const memberData = await getCongressMembers({ congress, state });
-  console.log('Fetched member data:', JSON.stringify(memberData, null, 2));
 
   const senators = memberData?.senators || [];
   const representatives = memberData?.representatives || [];
-
-  console.log('Processed Senators:', { count: senators.length, data: senators });
-  console.log('Processed Representatives:', { count: representatives.length, data: representatives });
-  console.log('---------------------------------');
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
@@ -48,13 +41,6 @@ export default async function StateCongressPage({ params }: { params: { congress
            Senators and Representatives for {state.toUpperCase()}
         </p>
       </header>
-
-      <div className="bg-muted p-4 rounded-lg my-8">
-        <h3 className="text-lg font-semibold mb-2">Debug Info:</h3>
-        <pre className="text-xs bg-background p-2 rounded-md overflow-x-auto">
-            {JSON.stringify(memberData, null, 2)}
-        </pre>
-      </div>
       
       <section>
         <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">Senate</h2>
