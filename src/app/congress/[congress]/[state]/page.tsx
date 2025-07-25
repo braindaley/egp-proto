@@ -17,8 +17,8 @@ const states: Record<string, string> = {
   va: 'Virginia', wa: 'Washington', wv: 'West Virginia', wi: 'Wisconsin', wy: 'Wyoming'
 };
 
-export default async function StateCongressPage({ params }: { params: Promise<{ congress: string, state: string }> }) {
-  const { congress, state } = await params;
+export default async function StateCongressPage({ params }: { params: { congress: string, state: string } }) {
+  const { congress, state } = params;
   console.log('--- DEBUG: STATE CONGRESS PAGE ---');
   console.log('Received params:', { congress, state });
 
