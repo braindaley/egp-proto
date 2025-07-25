@@ -26,6 +26,7 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
   }
 
   const memberData = await getCongressMembers({ congress, state });
+  console.log({ congress, state, memberData });
   const senators = memberData?.senators || [];
   const representatives = memberData?.representatives || [];
 
