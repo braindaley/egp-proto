@@ -41,7 +41,7 @@ export async function GET(req: Request) {
   }
 
   // Correct Congress.gov API endpoint
-  const url = `https://api.congress.gov/v3/member?api_key=${API_KEY}&limit=500`;
+  const url = `https://api.congress.gov/v3/congress/${congress}/member?api_key=${API_KEY}&limit=500`;
   console.error('🔧 CALLING URL:', url.replace(API_KEY, 'HIDDEN'));
 
   try {
@@ -53,7 +53,7 @@ export async function GET(req: Request) {
     }
 
     const json = await res.json();
-    console.error('🔧 GOT MEMBERS:', json.members?.length || 0);
+    console.log('--- API Raw JSON ---', JSON.stringify(json, null, 2));
     
     // Filter members by state name (not abbreviation)
     const allMembers: Member[] = json.members || [];
@@ -62,23 +62,17 @@ export async function GET(req: Request) {
     const stateMembers = allMembers.filter(member => member.state === stateName);
     console.error('🔧 FILTERED MEMBERS:', stateMembers.length, 'for', stateName);
 
-    // Get current terms only (members currently serving)
-    const currentMembers = stateMembers.filter(member => {
-      const terms = member.terms?.item || [];
-      return terms.some(term => !term.endYear || term.endYear >= new Date().getFullYear());
-    });
-
-    const senators = currentMembers.filter(member => {
+    const senators = stateMembers.filter(member => {
       const terms = member.terms?.item || [];
       return terms.some(term => 
-        term.chamber === 'Senate' && (!term.endYear || term.endYear >= new Date().getFullYear())
+        term.chamber?.toLowerCase() === 'senate'
       );
     });
 
-    const representatives = currentMembers.filter(member => {
+    const representatives = stateMembers.filter(member => {
       const terms = member.terms?.item || [];
       return terms.some(term => 
-        term.chamber === 'House of Representatives' && (!term.endYear || term.endYear >= new Date().getFullYear())
+        term.chamber?.toLowerCase() === 'house of representatives'
       );
     });
 
@@ -92,7 +86,7 @@ export async function GET(req: Request) {
         stateName,
         totalMembers: allMembers.length,
         stateMembers: stateMembers.length,
-        currentMembers: currentMembers.length,
+        currentMembers: -1, // This filter was removed, so setting to -1
         sampleStates: [...new Set(allMembers.map(m => m.state))].sort()
       }
     });
