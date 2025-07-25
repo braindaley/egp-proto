@@ -4,6 +4,7 @@ import type { Bill } from '@/types';
 import { BillDetailClient } from '@/components/bill-detail-client';
 
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
+  console.log('=== STARTING getBillDetails ===');
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
   const baseUrl = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}`;
   
@@ -13,6 +14,9 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
   ].map(p => `embed=${p}`).join('&');
   
   const fullUrl = `${baseUrl}?${embedParams}&api_key=${API_KEY}`;
+  
+  console.log('Making API request...');
+  console.log('Full URL:', fullUrl);
 
   try {
     const billRes = await fetch(fullUrl, {
