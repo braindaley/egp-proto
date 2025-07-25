@@ -113,7 +113,7 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
             </div>
             <div>
                 <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary text-center md:text-left">
-                    {member.name}
+                    {member.directOrderName}
                 </h1>
                 <p className="text-xl text-muted-foreground mt-1 text-center md:text-left">
                     {currentTerm?.chamber} for {member.state} {currentTerm?.district ? `(District ${currentTerm.district})` : ''}
