@@ -1,5 +1,8 @@
 
 import { notFound } from 'next/navigation';
+import { getCongressMembers, GetCongressMembersOutput } from '@/ai/flows/get-congress-members-flow';
+import { MemberCard } from '@/components/member-card';
+import type { Member } from '@/types';
 
 const states: Record<string, string> = {
   al: 'Alabama', ak: 'Alaska', az: 'Arizona', ar: 'Arkansas', ca: 'California',
@@ -22,6 +25,8 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
     notFound();
   }
 
+  const { senators, representatives } = await getCongressMembers({ state });
+
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
       <header className="text-center mb-12">
@@ -33,14 +38,31 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
         </p>
       </header>
       
-      {/* Placeholder for member list */}
-      <div className="text-center py-10 px-6 bg-card rounded-lg shadow-md">
-        <p className="text-xl font-semibold">Coming Soon</p>
-        <p className="text-muted-foreground mt-2">
-          Member data will be displayed here in the next step.
-        </p>
-      </div>
+      <section>
+        <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">Senators</h2>
+        {senators.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {senators.map((senator: Member) => (
+              <MemberCard key={senator.bioguideId} member={senator} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Could not load senators at this time.</p>
+        )}
+      </section>
 
+      <section className="mt-12">
+        <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">Representatives</h2>
+        {representatives.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {representatives.map((rep: Member) => (
+              <MemberCard key={rep.bioguideId} member={rep} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Could not load representatives at this time.</p>
+        )}
+      </section>
     </div>
   );
 }

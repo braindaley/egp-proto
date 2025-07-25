@@ -1,5 +1,6 @@
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -46,7 +47,7 @@ export interface TextVersion {
     type: string;
     formats: {
         type: string;
-        url: string;
+        url:string;
     }[];
 }
 
@@ -144,4 +145,24 @@ export interface CongressApiResponse {
     contentType: string;
     format: string;
   };
+}
+
+
+export interface Member {
+  bioguideId: string;
+  district?: number;
+  name: string;
+  partyName: string;
+  state: string;
+  terms: {
+    current?: {
+      startYear: string;
+    }
+  };
+  depiction?: {
+    imageUrl: string;
+    attribution: string;
+  };
+  chamber: string;
+  url: string;
 }
