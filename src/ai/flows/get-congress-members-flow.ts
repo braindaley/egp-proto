@@ -33,18 +33,22 @@ async function fetchMembers(
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
     const upperCaseState = state.toUpperCase();
     const url = `${baseUrl}/api/congress/members?congress=${congress}&state=${upperCaseState}`;
-    console.log("Calling internal API:", url);
 
   try {
     const response = await fetch(url, { next: { revalidate: 3600 } });
+    const data = await response.json();
+
+    // Add these lines right after:
+    console.log('🔍 API URL CALLED:', url);
+    console.log('🔍 API RESPONSE STATUS:', response.status);
+    console.log('🔍 API RESPONSE DATA:', JSON.stringify(data, null, 2));
+
 
     if (!response.ok) {
       console.error(`Failed to fetch members from internal API for ${upperCaseState}: ${response.status}`);
       return { senators: [], representatives: [] };
     }
-
-    const data = await response.json();
-    console.log('Internal API returned:', JSON.stringify(data, null, 2));
+    
     // Directly return the data from the API which should already be in the correct format
     return {
         senators: data.senators || [],
