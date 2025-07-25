@@ -10,20 +10,11 @@ import { Button } from './ui/button';
 import { useEffect, useState } from 'react';
 
 async function getCongresses(): Promise<Congress[]> {
-  console.log('🔍 Starting getCongresses...');
-  
   const API_KEY = process.env.NEXT_PUBLIC_CONGRESS_API_KEY || 'DEMO_KEY';
-  console.log('🔍 API Key:', API_KEY === 'DEMO_KEY' ? 'Using DEMO_KEY' : 'Using custom key');
-  
   const url = `https://api.congress.gov/v3/congress?limit=250&api_key=${API_KEY}`;
-  console.log('🔍 Fetch URL:', url);
   
   try {
-    console.log('🔍 Making fetch request...');
     const res = await fetch(url);
-    
-    console.log('🔍 Response status:', res.status);
-    console.log('🔍 Response ok:', res.ok);
     
     if (!res.ok) {
       console.error(`Failed to fetch congresses: ${res.status}`);
@@ -31,8 +22,6 @@ async function getCongresses(): Promise<Congress[]> {
     }
     
     const data = await res.json();
-    console.log('🔍 Raw API response:', data);
-    console.log('🔍 Congresses array:', data.congresses);
     
     const result = (data.congresses || [])
       .filter(Boolean)
@@ -42,11 +31,10 @@ async function getCongresses(): Promise<Congress[]> {
       }))
       .sort((a, b) => b.number - a.number); // Sort descending (119, 118, ...)
       
-    console.log('🔍 First processed congress:', result[0]);
     return result;
 
   } catch (error) {
-    console.error('🔍 Error fetching congresses:', error);
+    console.error('Error fetching congresses:', error);
     return [];
   }
 }
@@ -60,8 +48,6 @@ export function Header() {
     getCongresses().then(setCongresses);
   }, []);
 
-  console.log('🔍 Header render - congresses state:', congresses);
-  
   return (
     <header className="bg-background border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
