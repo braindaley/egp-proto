@@ -42,6 +42,13 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
         </p>
       </header>
       
+      <div className="bg-muted p-4 rounded-lg my-4">
+        <h3 className="font-bold text-lg mb-2">Debug Output:</h3>
+        <pre className="text-xs bg-background p-2 rounded overflow-auto">
+          {JSON.stringify(memberData, null, 2)}
+        </pre>
+      </div>
+
       <section>
         <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">Senators</h2>
         {senators.length > 0 ? (
