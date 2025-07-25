@@ -2,26 +2,43 @@ import { BillCard } from '@/components/bill-card';
 import type { Bill, CongressApiResponse } from '@/types';
 
 async function getBills(): Promise<Bill[]> {
-  // Using the DEMO_KEY provided by the API documentation for demonstration purposes.
-  // For a production application, you should get your own key from https://api.congress.gov/
-  // and store it in an environment variable.
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
-  const url = `https://api.congress.gov/v3/bill?api_key=${API_KEY}&limit=12&sort=updateDate+desc`;
-
+  
   try {
-    const res = await fetch(url, {
-      next: { revalidate: 3600 }, // Revalidate every hour
-    });
-
-    if (!res.ok) {
-      console.error(`API request failed with status: ${res.status}`);
-      const errorText = await res.text();
-      console.error(`Error details: ${errorText}`);
-      throw new Error(`Failed to fetch data: ${res.statusText}`);
+    // 1. Fetch the list of recent bills
+    const listUrl = `https://api.congress.gov/v3/bill?api_key=${API_KEY}&limit=11&sort=updateDate+desc`;
+    const listRes = await fetch(listUrl, { next: { revalidate: 3600 } });
+    if (!listRes.ok) {
+      console.error(`API list request failed: ${listRes.status}`);
+      throw new Error(`Failed to fetch bill list: ${listRes.statusText}`);
     }
+    const listData: CongressApiResponse = await listRes.json();
+    const recentBills = listData.bills;
 
-    const data: CongressApiResponse = await res.json();
-    return data.bills;
+    // 2. Fetch the specific large bill (H.R. 1 from 118th Congress)
+    // Assuming H.R.1 from 118th Congress as a test case.
+    let specialBill: Bill | null = null;
+    try {
+      const specialBillUrl = `https://api.congress.gov/v3/bill/118/hr/1?api_key=${API_KEY}`;
+      const specialBillRes = await fetch(specialBillUrl, { next: { revalidate: 3600 } });
+      if (specialBillRes.ok) {
+        const specialBillData = await specialBillRes.json();
+        specialBill = specialBillData.bill;
+      } else {
+        console.warn(`Could not fetch special bill H.R. 1: ${specialBillRes.status}`);
+      }
+    } catch (error) {
+       console.warn("Error fetching special bill H.R. 1:", error);
+    }
+    
+    // 3. Combine the lists, with the special bill at the beginning
+    const allBills = specialBill ? [specialBill, ...recentBills] : recentBills;
+
+    // Ensure we don't have duplicates if H.R. 1 was already in recent bills
+    const uniqueBills = Array.from(new Map(allBills.map(bill => [`${bill.congress}-${bill.type}-${bill.number}`, bill])).values());
+    
+    return uniqueBills;
+
   } catch (error) {
     console.error("Error fetching bills:", error);
     return []; // Return empty array on error
