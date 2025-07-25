@@ -12,25 +12,27 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
   }
 
-  const url = `https://api.congress.gov/v3/member?congress=${congress}&api_key=${API_KEY}&limit=500`;
+  // Updated URL to filter by state directly in the API call
+  const url = `https://api.congress.gov/v3/member/${state}?congress=${congress}&api_key=${API_KEY}&limit=500`;
 
   try {
     const res = await fetch(url, { next: { revalidate: 3600 } });
 
     if (!res.ok) {
-      console.error(`Failed to fetch members for Congress ${congress}: ${res.status}`);
+      console.error(`Failed to fetch members for Congress ${congress}, State ${state}: ${res.status}`);
       return NextResponse.json({ error: 'Failed to fetch members' }, { status: res.status });
     }
 
     const json = await res.json();
     console.log('--- API Raw JSON ---', JSON.stringify(json, null, 2));
     
+    // The API response for this endpoint directly contains the members array
     const allMembers: Member[] = json.members || [];
 
     const senators = allMembers
-      .filter(m => m.state === state && m.chamber?.toLowerCase() === 'senate');
+      .filter(m => m.chamber?.toLowerCase() === 'senate');
     const representatives = allMembers
-      .filter(m => m.state === state && m.chamber?.toLowerCase() === 'house');
+      .filter(m => m.chamber?.toLowerCase() === 'house');
 
     return NextResponse.json({ senators, representatives });
   } catch (err) {
