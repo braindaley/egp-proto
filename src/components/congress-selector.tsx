@@ -8,22 +8,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import type { Congress } from '@/types';
 
 export function CongressSelector({ congresses }: { congresses: Congress[] }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  
-  // Use the latest congress from the sorted list as the default, or fallback to current param
+  const params = useParams();
+
+  // Use the latest congress from the sorted list as the default
   const defaultCongress = congresses[0]?.number.toString();
-  const currentCongress = searchParams.get('congress') || defaultCongress || '119';
+  // The current congress is derived from the URL params if available
+  const currentCongress = params.congress?.toString() || defaultCongress;
 
   const handleValueChange = (congressNumber: string) => {
-    const params = new URLSearchParams(searchParams);
-    params.set('congress', congressNumber);
-    router.push(`${pathname}?${params.toString()}`);
+    // Navigate to the new congress-specific bill page
+    router.push(`/bill/${congressNumber}`);
   };
 
   if (!Array.isArray(congresses) || congresses.length === 0) {
@@ -36,7 +35,7 @@ export function CongressSelector({ congresses }: { congresses: Congress[] }) {
 
   return (
     <div className="flex items-center gap-2">
-      <Select onValueChange={handleValueChange} defaultValue={currentCongress}>
+      <Select onValueChange={handleValueChange} value={currentCongress} defaultValue={currentCongress}>
         <SelectTrigger className="w-[180px] h-9 text-xs">
           <SelectValue placeholder="Select Congress" />
         </SelectTrigger>
