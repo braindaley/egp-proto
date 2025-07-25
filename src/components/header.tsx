@@ -1,8 +1,13 @@
 
+'use client';
+
 import Link from 'next/link';
-import { Landmark } from 'lucide-react';
+import { Landmark, LogOut, User, Loader2 } from 'lucide-react';
 import { CongressSelector } from './congress-selector';
 import type { Congress } from '@/types';
+import { useAuth } from '@/hooks/use-auth';
+import { Button } from './ui/button';
+import { useEffect, useState } from 'react';
 
 async function getCongresses(): Promise<Congress[]> {
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
@@ -15,7 +20,6 @@ async function getCongresses(): Promise<Congress[]> {
       return [];
     }
     const data = await res.json();
-    // Reverse to show latest first and filter out any bad data
     return (data.congresses || []).filter(Boolean).reverse();
   } catch (error) {
     console.error('Error fetching congresses:', error);
@@ -24,8 +28,13 @@ async function getCongresses(): Promise<Congress[]> {
 }
 
 
-export async function Header() {
-  const congresses = await getCongresses();
+export function Header() {
+  const { user, loading, logout } = useAuth();
+  const [congresses, setCongresses] = useState<Congress[]>([]);
+
+  useEffect(() => {
+    getCongresses().then(setCongresses);
+  }, []);
   
   return (
     <header className="bg-background border-b sticky top-0 z-50">
@@ -36,7 +45,7 @@ export async function Header() {
             <span>Congress Bills Explorer</span>
           </Link>
           <nav>
-            <ul className="flex items-center gap-4 md:gap-6">
+            <ul className="flex items-center gap-2 md:gap-4">
               <li>
                 <CongressSelector congresses={congresses} />
               </li>
@@ -49,6 +58,33 @@ export async function Header() {
                 <Link href="/congress" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                   Congress
                 </Link>
+              </li>
+              <li className="flex items-center gap-2">
+                {loading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                ) : user ? (
+                    <>
+                        <Button variant="ghost" size="sm" asChild>
+                            <Link href="/dashboard">
+                                <User className="mr-2 h-4 w-4" />
+                                Dashboard
+                            </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={logout}>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Logout
+                        </Button>
+                    </>
+                ) : (
+                    <>
+                        <Button variant="ghost" size="sm" asChild>
+                            <Link href="/login">Login</Link>
+                        </Button>
+                        <Button size="sm" asChild>
+                             <Link href="/signup">Sign Up</Link>
+                        </Button>
+                    </>
+                )}
               </li>
             </ul>
           </nav>
