@@ -6,14 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { User, Building, MapPin } from 'lucide-react';
 
-export function MemberCard({ member }: { member: Member }) {
+export function MemberCard({ member, congress }: { member: Member, congress: string }) {
   const partyColor = member.partyName === 'Democrat' 
     ? 'bg-blue-600' 
     : member.partyName === 'Republican' 
     ? 'bg-red-600' 
     : 'bg-gray-500';
 
-  const memberDetailUrl = `/congress/member/${member.bioguideId}`;
+  const memberDetailUrl = `/congress/${congress}/member/${member.bioguideId}`;
 
   return (
     <Card className="flex flex-col overflow-hidden transition-shadow hover:shadow-lg">

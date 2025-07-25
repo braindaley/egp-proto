@@ -47,7 +47,7 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
         {senators.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {senators.map((senator, index) => (
-              <MemberCard key={senator.bioguideId || index} member={senator} />
+              <MemberCard key={senator.bioguideId || index} member={senator} congress={congress} />
             ))}
           </div>
         ) : (
@@ -60,7 +60,7 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
         {representatives.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {representatives.map((rep, index) => (
-              <MemberCard key={rep.bioguideId || index} member={rep} />
+              <MemberCard key={rep.bioguideId || index} member={rep} congress={congress} />
             ))}
           </div>
         ) : (
