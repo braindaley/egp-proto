@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import type { Member } from '@/types';
 
@@ -20,79 +19,73 @@ const STATE_MAPPING: { [key: string]: string } = {
 };
 
 export async function GET(req: Request) {
-  console.log("🚨 SIMPLE TEST LOG");
   const { searchParams } = new URL(req.url);
   const congress = searchParams.get('congress');
   const stateAbbr = searchParams.get('state')?.toUpperCase();
   const API_KEY = process.env.CONGRESS_API_KEY;
 
-  console.error('🔧 API ROUTE CALLED with:', { congress, stateAbbr });
-
   if (!congress || !stateAbbr || !API_KEY) {
-    console.error('🔧 MISSING PARAMS:', { congress: !!congress, stateAbbr: !!stateAbbr, API_KEY: !!API_KEY });
     return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
   }
 
   // Convert state abbreviation to full name
   const stateName = STATE_MAPPING[stateAbbr];
-  console.error('🔧 STATE MAPPING:', stateAbbr, '->', stateName);
   
   if (!stateName) {
     return NextResponse.json({ error: `Invalid state abbreviation: ${stateAbbr}` }, { status: 400 });
   }
 
-  // Correct Congress.gov API endpoint
-  const url = `https://api.congress.gov/v3/congress/${congress}/member?api_key=${API_KEY}&limit=500`;
-  console.error('🔧 CALLING URL:', url.replace(API_KEY, 'HIDDEN'));
+  // Fetch all pages of members for the specified congress
+  let allMembers: any[] = [];
+  let offset = 0;
+  const limit = 250;
+  let hasMore = true;
 
   try {
-    const res = await fetch(url, { next: { revalidate: 3600 } });
+    while (hasMore) {
+      // Correct external API endpoint
+      const url = `https://api.congress.gov/v3/member/congress/${congress}?api_key=${API_KEY}&limit=${limit}&offset=${offset}`;
+      const res = await fetch(url, { next: { revalidate: 3600 } });
 
-    if (!res.ok) {
-      console.error('🔧 FETCH FAILED:', res.status, res.statusText);
-      return NextResponse.json({ error: 'Failed to fetch members' }, { status: res.status });
+      if (!res.ok) {
+        console.error(`External API fetch failed for ${url} with status ${res.status}`);
+        return NextResponse.json({ error: 'Failed to fetch members from external source' }, { status: res.status });
+      }
+
+      const json = await res.json();
+      const members = json.members || [];
+      allMembers = allMembers.concat(members);
+      
+      // Check if there are more pages
+      hasMore = !!json.pagination?.next;
+      offset += limit;
+      
+      // Safety check to avoid infinite loops
+      if (offset > 2000) break;
     }
-
-    const json = await res.json();
-    console.log('--- API Raw JSON ---', JSON.stringify(json, null, 2));
     
-    // Filter members by state name (not abbreviation)
-    const allMembers: Member[] = json.members || [];
-    console.error('🔧 SAMPLE MEMBERS:', allMembers.slice(0, 3).map(m => ({ name: m.name, state: m.state, bioguideId: m.bioguideId, terms: m.terms })));
-    
+    // The external API uses full state names. Filter by the mapped state name.
     const stateMembers = allMembers.filter(member => member.state === stateName);
-    console.error('🔧 FILTERED MEMBERS:', stateMembers.length, 'for', stateName);
 
     const senators = stateMembers.filter(member => {
+      // Check the terms array for a 'Senate' chamber entry.
+      // The API structure seems to be member -> terms -> item[] -> chamber
       const terms = member.terms?.item || [];
-      return terms.some(term => 
-        term.chamber?.toLowerCase() === 'senate'
-      );
+      return terms.some((term: any) => term.chamber?.toLowerCase() === 'senate');
     });
 
     const representatives = stateMembers.filter(member => {
+      // Check the terms array for a 'House of Representatives' chamber entry.
       const terms = member.terms?.item || [];
-      return terms.some(term => 
-        term.chamber?.toLowerCase() === 'house of representatives'
-      );
+      return terms.some((term: any) => term.chamber?.toLowerCase() === 'house of representatives');
     });
-
-    console.error('🔧 FINAL RESULT:', { senators: senators.length, representatives: representatives.length });
 
     return NextResponse.json({ 
       senators, 
-      representatives,
-      debug: {
-        stateAbbr,
-        stateName,
-        totalMembers: allMembers.length,
-        stateMembers: stateMembers.length,
-        currentMembers: -1, // This filter was removed, so setting to -1
-        sampleStates: [...new Set(allMembers.map(m => m.state))].sort()
-      }
+      representatives
     });
   } catch (err) {
-    console.error('🔧 ERROR:', err);
+    console.error('Error in /api/congress/members route:', err);
     return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 });
   }
 }

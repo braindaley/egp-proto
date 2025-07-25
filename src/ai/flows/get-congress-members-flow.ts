@@ -36,6 +36,10 @@ async function fetchMembers(
 
   try {
     const response = await fetch(url, { next: { revalidate: 3600 } });
+
+    console.log('🔍 INTERNAL API URL CALLED:', url);
+    console.log('🔍 INTERNAL API RESPONSE STATUS:', response.status);
+
     if (!response.ok) {
       console.error(`Failed to fetch members from internal API for ${upperCaseState}: ${response.status}`);
       return { senators: [], representatives: [] };
@@ -43,6 +47,8 @@ async function fetchMembers(
     
     // Directly return the data from the API which should already be in the correct format
     const data = await response.json();
+    console.log('🔍 INTERNAL API RESPONSE DATA:', JSON.stringify(data, null, 2));
+    
     return {
         senators: data.senators || [],
         representatives: data.representatives || [],
