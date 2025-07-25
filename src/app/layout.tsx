@@ -6,8 +6,8 @@ import { Header } from '@/components/header';
 import { AuthProvider } from '@/hooks/use-auth';
 
 export const metadata: Metadata = {
-  title: 'Congress Bills Explorer',
-  description: 'Explore bills from the U.S. Congress.',
+  title: 'eGut Prototype',
+  description: 'A prototype for eGut.',
 };
 
 export default function RootLayout({

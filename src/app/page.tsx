@@ -9,7 +9,7 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8 md:py-12 text-center">
         <header className="mb-12">
           <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
-            Welcome to Congress Bills Explorer
+            Welcome to eGut Prototype
           </h1>
           <p className="text-lg text-muted-foreground">
             Your source for discovering and understanding U.S. legislation.
