@@ -40,7 +40,7 @@ async function getCongresses(): Promise<Congress[]> {
         ...congress,
         number: parseInt(congress.name.match(/(\d+)/)?.[1] || '0', 10)
       }))
-      .reverse();
+      .sort((a, b) => b.number - a.number); // Sort descending (119, 118, ...)
       
     console.log('🔍 First processed congress:', result[0]);
     return result;
