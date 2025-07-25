@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import type { Member } from '@/types';
 
@@ -25,9 +26,9 @@ export async function GET(req: Request) {
     const allMembers: Member[] = json.members || [];
 
     const senators = allMembers
-      .filter(m => m.state === state && m.chamber === 'Senate');
+      .filter(m => m.state === state && m.chamber?.toLowerCase() === 'senate');
     const representatives = allMembers
-      .filter(m => m.state === state && m.chamber === 'House');
+      .filter(m => m.state === state && m.chamber?.toLowerCase() === 'house');
 
     return NextResponse.json({ senators, representatives });
   } catch (err) {
