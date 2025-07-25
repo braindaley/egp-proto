@@ -11,7 +11,7 @@ async function getBills(congress: string): Promise<Bill[]> {
     return [];
   }
   
-  const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
+  const API_KEY = process.env.CONGRESS_API_KEY;
   
   try {
     const listUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&limit=20&sort=updateDate+desc`;

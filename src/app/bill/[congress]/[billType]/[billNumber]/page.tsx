@@ -6,7 +6,7 @@ import { BillDetailClient } from '@/components/bill-detail-client';
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
   console.log('=== STARTING getBillDetails ===');
   
-  const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
+  const API_KEY = process.env.CONGRESS_API_KEY;
   const baseUrl = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}`;
 
   try {

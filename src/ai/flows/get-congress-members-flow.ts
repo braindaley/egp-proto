@@ -28,7 +28,7 @@ async function fetchMembersByChamber(
   state: string,
   chamber: 'senate' | 'house'
 ): Promise<Member[]> {
-  const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
+  const API_KEY = process.env.CONGRESS_API_KEY;
   const upperCaseState = state.toUpperCase();
   const url = `https://api.congress.gov/v3/member/${congress}/${chamber}?state=${upperCaseState}&api_key=${API_KEY}`;
 

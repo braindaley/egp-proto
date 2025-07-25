@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import type { Congress } from '@/types';
 
 async function getCongresses(): Promise<Congress[]> {
-  const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
+  const API_KEY = process.env.CONGRESS_API_KEY;
   const url = `https://api.congress.gov/v3/congress?limit=250&api_key=${API_KEY}`;
 
   try {
