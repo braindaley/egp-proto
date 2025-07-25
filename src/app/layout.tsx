@@ -6,8 +6,8 @@ import { Header } from '@/components/header';
 import { AuthProvider } from '@/hooks/use-auth';
 
 export const metadata: Metadata = {
-  title: 'eG Prototype',
-  description: 'A prototype for eG.',
+  title: 'eGp pType',
+  description: 'A prototype for eGp.',
 };
 
 export default function RootLayout({
