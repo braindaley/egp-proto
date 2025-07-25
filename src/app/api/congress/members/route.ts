@@ -24,7 +24,7 @@ export async function GET(req: Request) {
 
     const json = await res.json();
     // Correctly access the nested members array
-    const allMembers: Member[] = json.content?.members || [];
+    const allMembers: Member[] = json.members || [];
 
     const senators = allMembers
       .filter(m => m.state === state && m.chamber?.toLowerCase() === 'senate');
