@@ -1,27 +1,37 @@
 
 'use client';
 
-import type { Member } from '@/types';
+import type { Member, MemberTerm } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Building, Calendar, MapPin, Flag, User, ExternalLink, Phone, Briefcase } from 'lucide-react';
 import { Button } from './ui/button';
 
-function formatDate(dateString: string | undefined) {
+function formatDate(dateString: string | undefined | number) {
     if (!dateString) return 'N/A';
+    // Handle case where year is passed as a number
+    if (typeof dateString === 'number') {
+        return dateString.toString();
+    }
     // Add a dummy time to avoid timezone issues if only date is provided
     const date = new Date(dateString.includes('T') ? dateString : `${dateString}T12:00:00Z`);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 }
 
-function calculateYearsOfService(firstTermStartDate: string | undefined): number | string {
-    if (!firstTermStartDate) return 'N/A';
-    const start = new Date(firstTermStartDate.includes('T') ? firstTermStartDate : `${firstTermStartDate}T12:00:00Z`);
+function calculateYearsOfService(firstTerm: MemberTerm | undefined): number | string {
+    if (!firstTerm?.startYear) return 'N/A';
+    const startYear = firstTerm.startYear;
     const now = new Date();
     // Use UTC years for calculation
-    const years = now.getUTCFullYear() - start.getUTCFullYear();
+    const years = now.getUTCFullYear() - startYear;
     return years > 0 ? years : 1; // Show at least 1 year of service
+}
+
+function isCurrentlyServing(term: MemberTerm | undefined): boolean {
+    if (!term) return false;
+    const currentYear = new Date().getFullYear();
+    return term.startYear <= currentYear && currentYear <= term.endYear;
 }
 
 export function MemberDetailClient({ member }: { member: Member }) {
@@ -35,8 +45,8 @@ export function MemberDetailClient({ member }: { member: Member }) {
   const currentTerm = allTerms[0];
   const firstTerm = allTerms[allTerms.length - 1];
   
-  const yearsOfService = calculateYearsOfService(firstTerm?.startYear.toString());
-  const isCurrentlyServing = !member.deathDate && new Date().getFullYear() <= (currentTerm?.endYear || 0);
+  const yearsOfService = calculateYearsOfService(firstTerm);
+  const serving = isCurrentlyServing(currentTerm);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -61,8 +71,8 @@ export function MemberDetailClient({ member }: { member: Member }) {
                  <div className="mt-4 flex flex-wrap gap-2 justify-center md:justify-start">
                     <Badge className={`text-white text-base px-4 py-1 ${partyColor}`}>{member.partyName}</Badge>
                     {currentTerm?.congress && <Badge variant="secondary" className="text-base px-4 py-1">{currentTerm.congress}th Congress</Badge>}
-                     <Badge variant={isCurrentlyServing ? 'default' : 'destructive'} className="text-base px-4 py-1">
-                        {isCurrentlyServing ? 'Currently Serving' : 'Not Currently Serving'}
+                     <Badge variant={serving ? 'default' : 'destructive'} className="text-base px-4 py-1">
+                        {serving ? 'Currently Serving' : 'Not Currently Serving'}
                     </Badge>
                 </div>
             </div>
@@ -85,7 +95,7 @@ export function MemberDetailClient({ member }: { member: Member }) {
                     <CardTitle className="flex items-center gap-2"><Briefcase /> Service</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                    {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear.toString())}</p>}
+                    {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear)}</p>}
                     <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
                      {member.officialWebsiteUrl && (
                         <Button asChild size="sm" className="w-full mt-2">
