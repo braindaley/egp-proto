@@ -203,28 +203,6 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
                 </CardContent>
             </Card>
 
-             <Card>
-                <CardHeader>
-                    <CardTitle  className="flex items-center gap-2"><History /> All Terms of Service</CardTitle>
-                    <CardDescription>A complete history of the congresses this member has served in.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                     <div className="space-y-4">
-                        {allTerms.map((term, index) => (
-                            <div key={index} className="p-3 bg-secondary/50 rounded-md text-sm">
-                                <p className="font-semibold">{term.congress}th Congress ({term.startYear} - {term.endYear})</p>
-                                <div className="text-muted-foreground grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 mt-2">
-                                    <span><strong className="text-foreground">Chamber:</strong> {term.chamber}</span>
-                                    <span><strong className="text-foreground">Party:</strong> {term.partyName}</span>
-                                    <span><strong className="text-foreground">State:</strong> {term.stateCode}</span>
-                                    {term.district && <span><strong className="text-foreground">District:</strong> {term.district}</span>}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
-
             {member.partyHistory && member.partyHistory.length > 0 && (
                 <Card>
                     <CardHeader>
@@ -246,3 +224,4 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
     </div>
   );
 }
+
