@@ -51,7 +51,7 @@ export default async function BillsPage() {
 
   return (
     <div className="bg-background min-h-screen">
-      <main className="container mx-auto px-4 py-8 md:py-12">
+      <div className="container mx-auto px-4 py-8 md:py-12">
         <header className="text-center mb-12">
           <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
             Recent updates
@@ -72,7 +72,7 @@ export default async function BillsPage() {
             </p>
           </div>
         )}
-      </main>
+      </div>
       <footer className="text-center py-6 text-sm text-muted-foreground">
         <p>Data provided by the <a href="https://www.congress.gov/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">U.S. Congress</a> via <a href="https://api.congress.gov/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">api.congress.gov</a>.</p>
       </footer>

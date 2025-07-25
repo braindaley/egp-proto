@@ -152,5 +152,9 @@ export default async function BillDetailPage({ params }: { params: Promise<{ con
     notFound();
   }
   
-  return <BillDetailClient bill={bill} />;
+  return (
+    <div className="container mx-auto px-4 py-8 md:py-12">
+      <BillDetailClient bill={bill} />
+    </div>
+  );
 }
