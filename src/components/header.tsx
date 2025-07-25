@@ -10,19 +10,36 @@ import { Button } from './ui/button';
 import { useEffect, useState } from 'react';
 
 async function getCongresses(): Promise<Congress[]> {
+  console.log('🔍 Starting getCongresses...');
+  
   const API_KEY = process.env.NEXT_PUBLIC_CONGRESS_API_KEY || 'DEMO_KEY';
+  console.log('🔍 API Key:', API_KEY === 'DEMO_KEY' ? 'Using DEMO_KEY' : 'Using custom key');
+  
   const url = `https://api.congress.gov/v3/congress?limit=250&api_key=${API_KEY}`;
+  console.log('🔍 Fetch URL:', url);
   
   try {
-    const res = await fetch(url, { next: { revalidate: 3600 * 24 } }); // Cache for a day
+    console.log('🔍 Making fetch request...');
+    const res = await fetch(url); // Remove the cache option
+    
+    console.log('🔍 Response status:', res.status);
+    console.log('🔍 Response ok:', res.ok);
+    
     if (!res.ok) {
       console.error(`Failed to fetch congresses: ${res.status}`);
       return [];
     }
+    
     const data = await res.json();
-    return (data.congresses || []).filter(Boolean).reverse();
+    console.log('🔍 Raw API response:', data);
+    console.log('🔍 Congresses array:', data.congresses);
+    
+    const result = (data.congresses || []).filter(Boolean).reverse();
+    console.log('🔍 Final processed result:', result);
+    
+    return result;
   } catch (error) {
-    console.error('Error fetching congresses:', error);
+    console.error('🔍 Error fetching congresses:', error);
     return [];
   }
 }
