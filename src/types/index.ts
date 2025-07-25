@@ -3,6 +3,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -160,6 +161,8 @@ export interface MemberTerm {
     stateCode: string;
     stateName: string;
     district?: number;
+    phone?: string;
+    office?: string;
 }
 
 export interface Member {
