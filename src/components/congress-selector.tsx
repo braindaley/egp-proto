@@ -12,10 +12,6 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import type { Congress } from '@/types';
 
 export function CongressSelector({ congresses }: { congresses: Congress[] }) {
-  console.log('CongressSelector - congresses prop:', congresses);
-  console.log('CongressSelector - is array?', Array.isArray(congresses));
-  console.log('CongressSelector - length:', congresses?.length);
-
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

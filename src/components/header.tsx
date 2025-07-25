@@ -20,7 +20,7 @@ async function getCongresses(): Promise<Congress[]> {
   
   try {
     console.log('🔍 Making fetch request...');
-    const res = await fetch(url); // Remove the cache option
+    const res = await fetch(url);
     
     console.log('🔍 Response status:', res.status);
     console.log('🔍 Response ok:', res.ok);
@@ -34,12 +34,17 @@ async function getCongresses(): Promise<Congress[]> {
     console.log('🔍 Raw API response:', data);
     console.log('🔍 Congresses array:', data.congresses);
     
-    const result = (data.congresses || []).filter(Boolean).reverse();
-    console.log('🔍 First congress object structure:', result[0]); // Add this line
-    console.log('🔍 Second congress object structure:', result[1]); // Add this line
-    console.log('🔍 Final processed result:', result);
-    
+    const result = (data.congresses || [])
+      .filter(Boolean)
+      .map(congress => ({
+        ...congress,
+        number: parseInt(congress.name.match(/(\d+)/)?.[1] || '0', 10)
+      }))
+      .reverse();
+      
+    console.log('🔍 First processed congress:', result[0]);
     return result;
+
   } catch (error) {
     console.error('🔍 Error fetching congresses:', error);
     return [];
@@ -52,14 +57,6 @@ export function Header() {
   const [congresses, setCongresses] = useState<Congress[]>([]);
 
   useEffect(() => {
-    // Test with hardcoded data first
-    // const testCongresses = [
-    //   { name: '119th Congress', number: 119, startYear: '2025', endYear: '2027' },
-    //   { name: '118th Congress', number: 118, startYear: '2023', endYear: '2025' },
-    // ];
-    // setCongresses(testCongresses);
-    
-    // Comment out the real API call for now
     getCongresses().then(setCongresses);
   }, []);
 
