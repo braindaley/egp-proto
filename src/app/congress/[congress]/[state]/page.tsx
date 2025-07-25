@@ -55,7 +55,7 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
       </section>
 
       <section className="mt-12">
-        <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">Representatives</h2>
+        <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">House of Representatives</h2>
         {representatives.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {representatives.map((rep: Member) => (
