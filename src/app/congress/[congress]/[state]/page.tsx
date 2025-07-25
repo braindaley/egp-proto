@@ -42,7 +42,7 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
       </header>
       
       <section>
-        <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">Senators</h2>
+        <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">Senate</h2>
         {senators.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {senators.map((senator: Member) => (
