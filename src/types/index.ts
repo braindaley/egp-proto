@@ -5,6 +5,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -194,6 +195,17 @@ export interface CosponsoredLegislation {
     url: string;
 }
 
+export interface Leadership {
+    type: string;
+    congress: number;
+}
+
+export interface PartyHistory {
+    partyName: string;
+    startYear: number;
+    endYear?: number;
+}
+
 
 export interface Member {
   bioguideId: string;
@@ -219,9 +231,15 @@ export interface Member {
   directOrderName: string;
   birthDate?: string;
   deathDate?: string;
+  birthLocation?: string;
+  education?: string;
+  profession?: string;
+  family?: string;
   officialWebsiteUrl?: string;
   sponsoredLegislation?: SponsoredLegislation[];
   cosponsoredLegislation?: CosponsoredLegislation[];
+  leadership?: Leadership[];
+  partyHistory?: PartyHistory[];
 }
 
 export interface Congress {
