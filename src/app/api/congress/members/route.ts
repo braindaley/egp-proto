@@ -19,6 +19,7 @@ const STATE_MAPPING: { [key: string]: string } = {
 };
 
 export async function GET(req: Request) {
+  console.log("🚨 SIMPLE TEST LOG");
   const { searchParams } = new URL(req.url);
   const congress = searchParams.get('congress');
   const stateAbbr = searchParams.get('state')?.toUpperCase();
