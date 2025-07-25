@@ -30,7 +30,8 @@ async function getBills(congress: string): Promise<Bill[]> {
     if (error.name !== 'NotFoundError') {
         console.error(`Error fetching bills for congress ${congress}:`, error);
     }
-    return []; // Return empty array on error
+    // Return empty array on error to prevent crashes, the UI will show a message.
+    return [];
   }
 }
 
@@ -58,15 +59,23 @@ async function BillList({ congress }: { congress: string }) {
 }
 
 
-export default function BillsByCongressPage({ params }: { params: { congress: string } }) {
-  const { congress } = params;
+export default async function BillsByCongressPage({ params }: { params: Promise<{ congress: string }> }) {
+  const { congress } = await params;
+
+  // Since we are awaiting params, we need to convert the congress number to a string if it's not already.
+  const congressNumber = congress.toString();
+
+  // Basic validation to ensure congress is a number.
+  if (isNaN(parseInt(congressNumber))) {
+    notFound();
+  }
 
   return (
     <div className="bg-background min-h-screen">
       <div className="container mx-auto px-4 py-8 md:py-12">
         <header className="text-center mb-12">
           <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
-            Bills from the {congress}th Congress
+            Bills from the {congressNumber}th Congress
           </h1>
           <p className="text-lg text-muted-foreground">
             Showing the latest updated bills for the selected session.
@@ -78,7 +87,7 @@ export default function BillsByCongressPage({ params }: { params: { congress: st
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
         }>
-          <BillList congress={congress} />
+          <BillList congress={congressNumber} />
         </Suspense>
 
       </div>
