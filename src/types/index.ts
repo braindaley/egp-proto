@@ -166,3 +166,10 @@ export interface Member {
   chamber: string;
   url: string;
 }
+
+export interface Congress {
+  name: string;
+  number: number;
+  startYear: string;
+  endYear: string;
+}
