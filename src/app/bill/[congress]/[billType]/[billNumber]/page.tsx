@@ -9,10 +9,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
   const baseUrl = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}`;
   
-  const embedParams = [
-    'sponsors', 'cosponsors', 'committees', 'actions', 'amendments', 
-    'relatedbills', 'summaries', 'textversions', 'subjects'
-  ].map(p => `embed=${p}`).join('&');
+  const embedParams = ['summaries'].map(p => `embed=${p}`).join('&');
   
   const fullUrl = `${baseUrl}?${embedParams}&api_key=${API_KEY}`;
   console.log('Making API request...');
