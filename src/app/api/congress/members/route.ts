@@ -92,7 +92,7 @@ export async function GET(req: Request) {
         totalMembers: allMembers.length,
         stateMembers: stateMembers.length,
         currentMembers: currentMembers.length,
-        sampleStates: [...new Set(allMembers.slice(0, 10).map(m => m.state))]
+        sampleStates: [...new Set(allMembers.map(m => m.state))].sort()
       }
     });
   } catch (err) {
