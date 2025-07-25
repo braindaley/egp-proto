@@ -27,9 +27,8 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
 
   const memberData = await getCongressMembers({ congress, state });
   
-  // Explicitly filter members based on their chamber for robustness
-  const senators = (memberData?.senators || []).filter(m => m.chamber?.toLowerCase() === 'senate');
-  const representatives = (memberData?.representatives || []).filter(m => m.chamber?.toLowerCase() === 'house');
+  const senators = memberData?.senators || [];
+  const representatives = memberData?.representatives || [];
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
