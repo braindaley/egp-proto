@@ -12,7 +12,7 @@ export default function Home() {
             Welcome to eGp pType
           </h1>
           <p className="text-lg text-muted-foreground">
-            Your source for discovering and understanding U.S. legislation.
+            Advanced Technology Amplifying Voter Intent
           </p>
         </header>
 
