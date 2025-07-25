@@ -41,11 +41,12 @@ function calculateYearsOfService(firstTerm: MemberTerm | undefined): number | st
 }
 
 function isCurrentlyServing(member: Member): boolean {
-    if (member.deathDate) return false;
-    const currentTerm = (member.terms?.item || []).slice().sort((a, b) => b.startYear - a.startYear)[0];
+    const allTerms = member.terms?.item?.slice().sort((a, b) => b.startYear - a.startYear) || [];
+    const currentTerm = allTerms[0];
     if (!currentTerm) return false;
+    
     const currentYear = new Date().getFullYear();
-    return currentYear >= currentTerm.startYear && currentYear <= currentTerm.endYear;
+    return !member.deathDate && (!currentTerm.endYear || currentTerm.endYear >= currentYear);
 }
 
 const LegislationTable = ({ bills, type, congress }: { bills: (SponsoredLegislation | CosponsoredLegislation)[], type: 'sponsored' | 'cosponsored', congress: string }) => {
@@ -130,7 +131,7 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
-                {(member.sponsoredLegislation?.length || member.cosponsoredLegislation?.length) && (
+                {(member.sponsoredLegislation?.length || member.cosponsoredLegislation?.length) ? (
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><Gavel /> Legislative Activity</CardTitle>
@@ -155,7 +156,7 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
                             </Tabs>
                         </CardContent>
                     </Card>
-                )}
+                ) : null}
                  <Card>
                     <CardHeader>
                         <CardTitle>All Terms of Service</CardTitle>
