@@ -91,19 +91,15 @@ const LegislationTable = ({ bills, type, congress }: { bills: (SponsoredLegislat
 
 export function MemberDetailClient({ member, congress }: { member: Member, congress: string }) {
 
-  const allTerms = member.terms?.item?.slice().sort((a, b) => b.startYear - a.startYear) || [];
-  const currentTerm = allTerms.find(term => {
-      const currentYear = new Date().getFullYear();
-      return term.startYear <= currentYear && term.endYear >= currentYear;
-  }) || allTerms[0];
-  
-  const firstTerm = allTerms[allTerms.length - 1];
+  const allTerms = member.terms?.item?.slice().sort((a, b) => a.startYear - b.startYear) || [];
+  const firstTerm = allTerms[0];
+  const currentTerm = [...(member.terms?.item || [])].sort((a,b) => b.startYear - a.startYear)[0];
   
   const yearsOfService = calculateYearsOfService(firstTerm);
   const leadershipHistory = (member.leadership || []).sort((a,b) => b.congress - a.congress);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="space-y-8">
         <header className="mb-8 flex flex-col md:flex-row items-center gap-6">
             <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-primary/20 shrink-0 shadow-lg">
                 <Image
@@ -224,4 +220,3 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
     </div>
   );
 }
-
