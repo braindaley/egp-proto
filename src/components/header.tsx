@@ -50,8 +50,14 @@ export function Header() {
   const [congresses, setCongresses] = useState<Congress[]>([]);
 
   useEffect(() => {
-    getCongresses().then(setCongresses);
+    console.log('🔍 Header useEffect - fetching congresses...');
+    getCongresses().then((result) => {
+      console.log('🔍 Header useEffect - received result:', result);
+      setCongresses(result);
+    });
   }, []);
+
+  console.log('🔍 Header render - congresses state:', congresses);
   
   return (
     <header className="bg-background border-b sticky top-0 z-50">
