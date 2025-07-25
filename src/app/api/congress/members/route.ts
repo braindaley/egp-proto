@@ -1,4 +1,3 @@
-
 // /app/api/congress/members/route.ts
 import { NextResponse } from 'next/server';
 import type { Member } from '@/types';
@@ -13,29 +12,32 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
   }
 
-  const url = `https://api.congress.gov/v3/member?congress=${congress}&state=${state}&api_key=${API_KEY}&limit=250`;
-  
-  try {
+  async function fetchMembers(chamber: 'house' | 'senate'): Promise<Member[]> {
+    const url = `https://api.congress.gov/v3/member/${congress}/${chamber}?state=${state}&api_key=${API_KEY}&limit=250`;
     const res = await fetch(url, { next: { revalidate: 3600 } });
 
     if (!res.ok) {
-      console.error(`Failed to fetch members for ${state}: ${res.status}`);
-      return NextResponse.json({ error: 'Failed to fetch members' }, { status: res.status });
+      console.error(`Failed to fetch ${chamber} for ${state}: ${res.status}`);
+      return [];
     }
 
     const json = await res.json();
+    // The API returns members, but we need to inject the chamber info ourselves for the MemberCard
     const members: Member[] = json.members || [];
+    return members.map(m => ({ ...m, chamber: chamber.charAt(0).toUpperCase() + chamber.slice(1) }));
+  }
 
-    const senators = members.filter(m => m.chamber === 'Senate');
-    const representatives = members.filter(m => m.chamber === 'House');
+  try {
+    const [senators, representatives] = await Promise.all([
+      fetchMembers('senate'),
+      fetchMembers('house'),
+    ]);
+    
+    // Now we need to manually add the chamber to each member object
+    const senatorsWithChamber = senators.map(s => ({...s, chamber: 'Senate' }));
+    const repsWithChamber = representatives.map(r => ({...r, chamber: 'House' }));
 
-    const response = {
-      senators,
-      representatives,
-    };
-
-    return NextResponse.json(response);
-
+    return NextResponse.json({ senators: senatorsWithChamber, representatives: repsWithChamber });
   } catch (err) {
     console.error('Server API Error in member fetch:', err);
     return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 });
