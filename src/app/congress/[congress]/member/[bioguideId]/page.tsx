@@ -1,6 +1,6 @@
 
 import { notFound } from 'next/navigation';
-import type { Member } from '@/types';
+import type { Member, SponsoredLegislation, CosponsoredLegislation } from '@/types';
 import { MemberDetailClient } from '@/components/member-detail-client';
 
 async function getMemberDetails(bioguideId: string): Promise<Member | null> {
@@ -17,7 +17,23 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
       return null;
     }
 
-    return await res.json();
+    const memberData: Member = await res.json();
+
+    // Fetch sponsored and cosponsored legislation
+    const [sponsoredRes, cosponsoredRes] = await Promise.all([
+      fetch(`${baseUrl}/api/congress/member/${bioguideId}/sponsored-legislation`),
+      fetch(`${baseUrl}/api/congress/member/${bioguideId}/cosponsored-legislation`)
+    ]);
+
+    if (sponsoredRes.ok) {
+      memberData.sponsoredLegislation = await sponsoredRes.json();
+    }
+
+    if (cosponsoredRes.ok) {
+      memberData.cosponsoredLegislation = await cosponsoredRes.json();
+    }
+
+    return memberData;
     
   } catch (error) {
     console.error("Error in getMemberDetails:", error);
@@ -26,7 +42,7 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
 }
 
 export default async function MemberDetailPage({ params }: { params: { bioguideId: string, congress: string } }) {
-  const { bioguideId } = await params;
+  const { bioguideId } = params;
   
   const member = await getMemberDetails(bioguideId);
 
@@ -36,7 +52,7 @@ export default async function MemberDetailPage({ params }: { params: { bioguideI
   
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
-      <MemberDetailClient member={member} />
+      <MemberDetailClient member={member} congress={params.congress} />
     </div>
   );
 }
