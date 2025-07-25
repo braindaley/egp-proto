@@ -1,0 +1,34 @@
+
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export async function GET(req: NextRequest, { params }: { params: { congress: string } }) {
+  const { congress } = params;
+  const API_KEY = process.env.CONGRESS_API_KEY;
+
+  if (!API_KEY) {
+    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+  }
+
+  // Validate that congress is a number
+  if (isNaN(Number(congress))) {
+    return NextResponse.json({ error: 'Invalid congress number provided.' }, { status: 400 });
+  }
+
+  try {
+    const listUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&limit=20&sort=updateDate+desc`;
+    const listRes = await fetch(listUrl, { next: { revalidate: 3600 } });
+    
+    if (!listRes.ok) {
+      console.error(`API list request failed: ${listRes.status}`);
+       return NextResponse.json({ error: `Failed to fetch bill list: ${listRes.statusText}` }, { status: listRes.status });
+    }
+    
+    const listData = await listRes.json();
+    return NextResponse.json(listData);
+
+  } catch (error) {
+    console.error(`Error fetching bills for congress ${congress}:`, error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}

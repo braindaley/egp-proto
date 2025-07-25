@@ -6,28 +6,25 @@ import { Loader2 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
 async function getBills(congress: string): Promise<Bill[]> {
-  // Validate that congress is a number
-  if (isNaN(Number(congress))) {
-    return [];
-  }
-  
-  const API_KEY = process.env.CONGRESS_API_KEY;
-  
+  // This assumes the app is running on localhost, which is fine for dev.
+  // In a real deployment, you'd use a relative URL or an env var for the base URL.
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+  const url = `${baseUrl}/api/bills/${congress}`;
+
   try {
-    const listUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&limit=20&sort=updateDate+desc`;
-    const listRes = await fetch(listUrl, { next: { revalidate: 3600 } });
+    const res = await fetch(url, { next: { revalidate: 3600 } });
     
-    if (!listRes.ok) {
-      console.error(`API list request failed: ${listRes.status}`);
+    if (!res.ok) {
+      console.error(`Internal API request for bills failed: ${res.status}`);
       // If the congress doesn't exist, the API returns a 404
-      if (listRes.status === 404) {
+      if (res.status === 404) {
         notFound();
       }
-      throw new Error(`Failed to fetch bill list: ${listRes.statusText}`);
+      throw new Error(`Failed to fetch bill list: ${res.statusText}`);
     }
     
-    const listData: CongressApiResponse = await listRes.json();
-    return listData.bills || [];
+    const data: CongressApiResponse = await res.json();
+    return data.bills || [];
 
   } catch (error) {
     if (error.name !== 'NotFoundError') {
@@ -52,7 +49,7 @@ async function BillList({ congress }: { congress: string }) {
         <div className="text-center py-10 px-6 bg-card rounded-lg shadow-md">
           <p className="text-xl font-semibold text-destructive">Could Not Load Bills</p>
           <p className="text-muted-foreground mt-2">
-            There was an issue fetching data from the Congress API for this session. Please try another session or check back later.
+            There was an issue fetching data for this session. Please try another session or check back later.
           </p>
         </div>
       )}

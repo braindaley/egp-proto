@@ -3,8 +3,10 @@ import { redirect } from 'next/navigation';
 import type { Congress } from '@/types';
 
 async function getCongresses(): Promise<Congress[]> {
-  const API_KEY = process.env.CONGRESS_API_KEY;
-  const url = `https://api.congress.gov/v3/congress?limit=250&api_key=${API_KEY}`;
+  // This assumes the app is running on localhost, which is fine for dev.
+  // In a real deployment, you'd use a relative URL or an env var for the base URL.
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+  const url = `${baseUrl}/api/congresses`;
 
   try {
     const res = await fetch(url, { next: { revalidate: 3600 } });

@@ -23,35 +23,33 @@ const GetCongressMembersOutputSchema = z.object({
 });
 export type GetCongressMembersOutput = z.infer<typeof GetCongressMembersOutputSchema>;
 
+// This function now fetches from the internal API route
 async function fetchMembers(
   congress: string,
   state: string,
-): Promise<Member[]> {
-  const API_KEY = process.env.CONGRESS_API_KEY;
-  const upperCaseState = state.toUpperCase();
-  // Note: The API is inconsistent. A general 'member' endpoint seems more reliable
-  // for state-based queries than chamber-specific ones which 404.
-  const url = `https://api.congress.gov/v3/member?state=${upperCaseState}&api_key=${API_KEY}&limit=250`;
+): Promise<{ senators: Member[], representatives: Member[] }> {
+    // This assumes the app is running on localhost, which is fine for dev.
+    // In a real deployment, you'd use a relative URL or an env var for the base URL.
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+    const url = `${baseUrl}/api/congress/members?congress=${congress}&state=${state}`;
+    console.log("Calling internal API:", url);
 
   try {
     const response = await fetch(url, { next: { revalidate: 3600 } });
 
     if (!response.ok) {
-      console.error(`Failed to fetch members for ${upperCaseState}: ${response.status}`);
-      return [];
+      console.error(`Failed to fetch members from internal API for ${state}: ${response.status}`);
+      return { senators: [], representatives: [] };
     }
 
     const data = await response.json();
-    
-    // Filter by the specific congress since the API gives members from multiple congresses.
-    // The terms object is not always present, so we need to handle that.
-    return (data.members || []).filter((member: Member) => {
-        return member.terms.current && member.terms.current.congress === parseInt(congress);
-    });
-
+    return {
+        senators: data.senators || [],
+        representatives: data.representatives || [],
+    }
   } catch (error) {
-    console.error(`Error fetching members for ${upperCaseState}:`, error);
-    return [];
+    console.error(`Error fetching members for ${state}:`, error);
+    return { senators: [], representatives: [] };
   }
 }
 
@@ -63,21 +61,7 @@ const getCongressMembersFlow = ai.defineFlow(
     outputSchema: GetCongressMembersOutputSchema,
   },
   async ({ congress, state }) => {
-    console.log("Calling Congress API with:", congress, state);
-    
-    const allMembers = await fetchMembers(congress, state);
-
-    if (allMembers.length === 0) {
-        return { senators: [], representatives: [] };
-    }
-    
-    const senators = allMembers.filter(m => m.chamber.toLowerCase() === 'senate');
-    const representatives = allMembers.filter(m => m.chamber.toLowerCase() === 'house');
-
-    return {
-      senators,
-      representatives,
-    };
+    return await fetchMembers(congress, state);
   }
 );
 
