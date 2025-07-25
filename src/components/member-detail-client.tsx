@@ -31,7 +31,7 @@ function calculateYearsOfService(firstTerm: MemberTerm | undefined): number | st
 function isCurrentlyServing(term: MemberTerm | undefined): boolean {
     if (!term) return false;
     const currentYear = new Date().getFullYear();
-    return term.startYear <= currentYear && currentYear <= term.endYear;
+    return currentYear >= term.startYear && currentYear <= term.endYear;
 }
 
 export function MemberDetailClient({ member }: { member: Member }) {
@@ -46,7 +46,7 @@ export function MemberDetailClient({ member }: { member: Member }) {
   const firstTerm = allTerms[allTerms.length - 1];
   
   const yearsOfService = calculateYearsOfService(firstTerm);
-  const serving = isCurrentlyServing(currentTerm);
+  const serving = isCurrentlyServing(currentTerm) && !member.deathDate;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -71,8 +71,8 @@ export function MemberDetailClient({ member }: { member: Member }) {
                  <div className="mt-4 flex flex-wrap gap-2 justify-center md:justify-start">
                     <Badge className={`text-white text-base px-4 py-1 ${partyColor}`}>{member.partyName}</Badge>
                     {currentTerm?.congress && <Badge variant="secondary" className="text-base px-4 py-1">{currentTerm.congress}th Congress</Badge>}
-                     <Badge variant={serving ? 'default' : 'destructive'} className="text-base px-4 py-1">
-                        {serving ? 'Currently Serving' : 'Not Currently Serving'}
+                     <Badge variant={serving ? 'default' : 'secondary'} className="text-base px-4 py-1">
+                        {serving ? 'Currently Serving' : 'Former Member'}
                     </Badge>
                 </div>
             </div>
