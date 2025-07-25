@@ -13,7 +13,7 @@ async function getCongresses(): Promise<Congress[]> {
   console.log('🔍 Starting getCongresses...');
   
   const API_KEY = process.env.NEXT_PUBLIC_CONGRESS_API_KEY || 'DEMO_KEY';
-  console.log('🔍 API Key:', API_KEY === 'DEMO_KEY' ? 'Using DEMO_KEY' : 'Using custom key');
+  console.log('🔍 API Key:', API_KEY === 'DEMO_KEY' ? 'Using custom key' : 'Using DEMO_KEY');
   
   const url = `https://api.congress.gov/v3/congress?limit=250&api_key=${API_KEY}`;
   console.log('🔍 Fetch URL:', url);
@@ -50,11 +50,15 @@ export function Header() {
   const [congresses, setCongresses] = useState<Congress[]>([]);
 
   useEffect(() => {
-    console.log('🔍 Header useEffect - fetching congresses...');
-    getCongresses().then((result) => {
-      console.log('🔍 Header useEffect - received result:', result);
-      setCongresses(result);
-    });
+    // Test with hardcoded data first
+    const testCongresses: Congress[] = [
+      { name: '119th Congress', number: 119, startYear: '2025', endYear: '2027' },
+      { name: '118th Congress', number: 118, startYear: '2023', endYear: '2025' },
+    ];
+    setCongresses(testCongresses);
+    
+    // Comment out the real API call for now
+    // getCongresses().then(setCongresses);
   }, []);
 
   console.log('🔍 Header render - congresses state:', congresses);
