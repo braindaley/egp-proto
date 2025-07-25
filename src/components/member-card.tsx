@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Member } from '@/types';
@@ -20,24 +21,27 @@ function calculateYearsOfService(firstTermStartYear: number): number {
 
 function getCurrentTerm(member: Member) {
   if (!member.terms?.item) return null;
-  // Sort by startYear descending to get the most recent term
-  const sortedTerms = [...member.terms.item].sort((a, b) => b.startYear - a.startYear);
-  return sortedTerms[0];
+  const currentYear = new Date().getFullYear();
+  // Find a term that is currently active.
+  const activeTerm = member.terms.item.find(term => term.startYear <= currentYear && term.endYear >= currentYear);
+  if (activeTerm) return activeTerm;
+  // Fallback to the most recent term if no strictly active one is found
+  return [...member.terms.item].sort((a, b) => b.startYear - a.startYear)[0];
 }
 
 function getFirstTerm(member: Member) {
-  if (!member.terms?.item) return null;
+  if (!member.terms?.item || member.terms.item.length === 0) return null;
   // Sort by startYear ascending to get the earliest term
-  const sortedTerms = [...member.terms.item].sort((a, b) => a.startYear - b.startYear);
-  return sortedTerms[0];
+  return [...member.terms.item].sort((a, b) => a.startYear - b.startYear)[0];
 }
 
 function isCurrentlyServing(member: Member): boolean {
-  const currentTerm = getCurrentTerm(member);
-  if (!currentTerm) return false;
-  
-  const currentYear = new Date().getFullYear();
-  return !member.deathDate && (!currentTerm.endYear || currentTerm.endYear >= currentYear);
+    if (member.deathDate) return false;
+    if (!member.terms?.item) return false;
+    
+    const currentYear = new Date().getFullYear();
+    // Check if any term period includes the current year
+    return member.terms.item.some(term => term.startYear <= currentYear && term.endYear >= currentYear);
 }
 
 function getLeadershipPosition(member: Member): string | null {

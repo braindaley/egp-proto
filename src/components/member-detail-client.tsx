@@ -41,12 +41,12 @@ function calculateYearsOfService(firstTerm: MemberTerm | undefined): number | st
 }
 
 function isCurrentlyServing(member: Member): boolean {
-    const allTerms = member.terms?.item?.slice().sort((a, b) => b.startYear - a.startYear) || [];
-    const currentTerm = allTerms[0];
-    if (!currentTerm) return false;
+    if (member.deathDate) return false;
+    if (!member.terms?.item) return false;
     
     const currentYear = new Date().getFullYear();
-    return !member.deathDate && (!currentTerm.endYear || currentTerm.endYear >= currentYear);
+    // Check if any term period includes the current year
+    return member.terms.item.some(term => term.startYear <= currentYear && term.endYear >= currentYear);
 }
 
 const LegislationTable = ({ bills, type, congress }: { bills: (SponsoredLegislation | CosponsoredLegislation)[], type: 'sponsored' | 'cosponsored', congress: string }) => {
@@ -63,7 +63,8 @@ const LegislationTable = ({ bills, type, congress }: { bills: (SponsoredLegislat
             <TableBody>
                 {bills.map((bill) => {
                     const billTypeSlug = getBillTypeSlug(bill.type);
-                    const detailUrl = `/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
+                    const detailUrl = bill.type ? `/bill/${bill.congress}/${billTypeSlug}/${bill.number}` : '#';
+
                     const date = type === 'sponsored' ? (bill as SponsoredLegislation).introducedDate : (bill as CosponsoredLegislation).cosponsoredDate;
 
                     return (
