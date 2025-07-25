@@ -6,6 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getBillTypeSlug(billType: string): string {
+    if (!billType) {
+        return '';
+    }
     const type = billType.toLowerCase().replace(/\./g, '');
     if (type === 'hr') return 'hr';
     if (type === 's') return 's';
