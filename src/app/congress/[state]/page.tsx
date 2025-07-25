@@ -1,6 +1,6 @@
 
 import { notFound } from 'next/navigation';
-import { getCongressMembers, GetCongressMembersOutput } from '@/ai/flows/get-congress-members-flow';
+import { getCongressMembers } from '@/ai/flows/get-congress-members-flow';
 import { MemberCard } from '@/components/member-card';
 import type { Member } from '@/types';
 
@@ -25,7 +25,10 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
     notFound();
   }
 
-  const { senators, representatives } = await getCongressMembers({ state });
+  const memberData = await getCongressMembers({ state });
+  const senators = memberData?.senators || [];
+  const representatives = memberData?.representatives || [];
+
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
