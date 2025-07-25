@@ -61,6 +61,7 @@ const getCongressMembersFlow = ai.defineFlow(
     outputSchema: GetCongressMembersOutputSchema,
   },
   async ({ congress, state }) => {
+    console.log("Calling Congress API with:", congress, state);
     const allMembers = await fetchAllMembers(congress);
     
     if (!allMembers || allMembers.length === 0) {
