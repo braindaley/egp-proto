@@ -23,6 +23,8 @@ export async function GET(req: Request) {
     }
 
     const json = await res.json();
+    console.log('Raw API JSON:', JSON.stringify(json, null, 2));
+    
     // Correctly access the nested members array
     const allMembers: Member[] = json.members || [];
 
