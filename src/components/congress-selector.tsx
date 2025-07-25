@@ -15,10 +15,9 @@ export function CongressSelector({ congresses }: { congresses: Congress[] }) {
   const router = useRouter();
   const params = useParams();
 
-  // Use the latest congress from the sorted list as the default
-  const defaultCongress = congresses[0]?.number.toString();
-  // The current congress is derived from the URL params if available
-  const currentCongress = params.congress?.toString() || defaultCongress;
+  // The current congress is derived from the URL params if available.
+  // We use the latest congress as a fallback.
+  const currentCongress = params.congress?.toString() || congresses[0]?.number.toString();
 
   const handleValueChange = (congressNumber: string) => {
     // Navigate to the new congress-specific bill page
@@ -35,7 +34,8 @@ export function CongressSelector({ congresses }: { congresses: Congress[] }) {
 
   return (
     <div className="flex items-center gap-2">
-      <Select onValueChange={handleValueChange} value={currentCongress} defaultValue={currentCongress}>
+      {/* The `value` prop makes this a controlled component that reflects the URL */}
+      <Select onValueChange={handleValueChange} value={currentCongress}>
         <SelectTrigger className="w-[180px] h-9 text-xs">
           <SelectValue placeholder="Select Congress" />
         </SelectTrigger>
