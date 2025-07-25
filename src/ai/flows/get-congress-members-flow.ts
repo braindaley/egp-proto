@@ -44,6 +44,7 @@ async function fetchMembers(
     }
 
     const data = await response.json();
+    // Directly return the data from the API which should already be in the correct format
     return {
         senators: data.senators || [],
         representatives: data.representatives || [],
