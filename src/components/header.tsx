@@ -17,6 +17,11 @@ export function Header() {
                   Bills
                 </Link>
               </li>
+              <li>
+                <Link href="/congress" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                  Congress
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>
