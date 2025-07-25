@@ -1,6 +1,6 @@
 
 import { notFound } from 'next/navigation';
-import type { Bill } from '@/types';
+import type { Bill, Subject, PolicyArea } from '@/types';
 import { BillDetailClient } from '@/components/bill-detail-client';
 
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
@@ -99,22 +99,38 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
       }
     }
 
-    // Get subjects using the provided URL
+    // Get subjects using the provided URL and handle pagination
     if (bill.subjects?.url) {
       try {
         console.log('Fetching subjects from:', bill.subjects.url);
-        const subjectsRes = await fetch(`${bill.subjects.url}&api_key=${API_KEY}`, {
-          signal: AbortSignal.timeout(10000)
-        });
-        
-        if (subjectsRes.ok) {
-          const subjectsData = await subjectsRes.json();
-          if (subjectsData.subjects?.legislativeSubjects?.length > 0 || subjectsData.subjects?.policyArea) {
-            const legislativeSubjects = subjectsData.subjects.legislativeSubjects || [];
-            const policyArea = subjectsData.subjects.policyArea ? [subjectsData.subjects.policyArea] : [];
-            bill.subjects.items = [...legislativeSubjects, ...policyArea];
-            console.log(`Got ${bill.subjects.items.length} subjects`);
+        let allSubjects: (Subject | PolicyArea)[] = [];
+        let nextUrl: string | undefined = `${bill.subjects.url}&api_key=${API_KEY}`;
+
+        while (nextUrl) {
+          const subjectsRes = await fetch(nextUrl, {
+            signal: AbortSignal.timeout(10000)
+          });
+
+          if (!subjectsRes.ok) {
+            console.log(`A subjects fetch request failed: ${subjectsRes.status}`);
+            break; // Stop if any page fails
           }
+          
+          const subjectsData = await subjectsRes.json();
+          const legislativeSubjects = subjectsData.subjects?.legislativeSubjects || [];
+          const policyArea = subjectsData.subjects?.policyArea ? [subjectsData.subjects.policyArea] : [];
+          allSubjects.push(...legislativeSubjects, ...policyArea);
+
+          // Check for the next page URL
+          nextUrl = subjectsData.pagination?.next ? `${subjectsData.pagination.next}&api_key=${API_KEY}` : undefined;
+          if (nextUrl) {
+            console.log('Fetching next page of subjects:', nextUrl);
+          }
+        }
+
+        if (allSubjects.length > 0) {
+          bill.subjects.items = allSubjects;
+          console.log(`Got a total of ${bill.subjects.items.length} subjects after pagination`);
         }
       } catch (error) {
         console.log('Subjects fetch failed:', error.message);
