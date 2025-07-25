@@ -10,7 +10,7 @@ import { Button } from './ui/button';
 import { useEffect, useState } from 'react';
 
 async function getCongresses(): Promise<Congress[]> {
-  const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
+  const API_KEY = process.env.NEXT_PUBLIC_CONGRESS_API_KEY || 'DEMO_KEY';
   const url = `https://api.congress.gov/v3/congress?limit=250&api_key=${API_KEY}`;
   
   try {

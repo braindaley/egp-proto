@@ -12,6 +12,10 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import type { Congress } from '@/types';
 
 export function CongressSelector({ congresses }: { congresses: Congress[] }) {
+  console.log('CongressSelector - congresses prop:', congresses);
+  console.log('CongressSelector - is array?', Array.isArray(congresses));
+  console.log('CongressSelector - length:', congresses?.length);
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -23,9 +27,12 @@ export function CongressSelector({ congresses }: { congresses: Congress[] }) {
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  // Ensure congresses is an array before mapping
-  if (!Array.isArray(congresses)) {
-    return null; // or a loading skeleton
+  if (!Array.isArray(congresses) || congresses.length === 0) {
+    return (
+        <div className="w-[180px] h-9 text-xs flex items-center justify-center bg-muted rounded-md">
+            Loading...
+        </div>
+    );
   }
 
   return (
@@ -36,7 +43,7 @@ export function CongressSelector({ congresses }: { congresses: Congress[] }) {
         </SelectTrigger>
         <SelectContent>
           {congresses
-            .filter(congress => congress && congress.number) // Filter out null/undefined congress or those without a number
+            .filter(congress => congress && congress.number)
             .map((congress) => (
               <SelectItem key={congress.number} value={congress.number.toString()}>
                 {congress.name}
