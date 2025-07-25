@@ -41,7 +41,7 @@ export async function GET(req: Request) {
   }
 
   // Correct Congress.gov API endpoint
-  const url = `https://api.congress.gov/v3/member/congress/${congress}?api_key=${API_KEY}&limit=500`;
+  const url = `https://api.congress.gov/v3/member?api_key=${API_KEY}&limit=500`;
   console.error('🔧 CALLING URL:', url.replace(API_KEY, 'HIDDEN'));
 
   try {
@@ -57,10 +57,6 @@ export async function GET(req: Request) {
     
     // Filter members by state name (not abbreviation)
     const allMembers: Member[] = json.members || [];
-    
-    // Show first few states for debugging
-    const sampleStates = allMembers.slice(0, 10).map(m => m.state);
-    console.error('🔧 SAMPLE STATES:', sampleStates);
     
     const stateMembers = allMembers.filter(member => member.state === stateName);
     console.error('🔧 FILTERED MEMBERS:', stateMembers.length, 'for', stateName);
@@ -87,7 +83,18 @@ export async function GET(req: Request) {
 
     console.error('🔧 FINAL RESULT:', { senators: senators.length, representatives: representatives.length });
 
-    return NextResponse.json({ senators, representatives });
+    return NextResponse.json({ 
+      senators, 
+      representatives,
+      debug: {
+        stateAbbr,
+        stateName,
+        totalMembers: allMembers.length,
+        stateMembers: stateMembers.length,
+        currentMembers: currentMembers.length,
+        sampleStates: [...new Set(allMembers.slice(0, 10).map(m => m.state))]
+      }
+    });
   } catch (err) {
     console.error('🔧 ERROR:', err);
     return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 });
