@@ -149,6 +149,24 @@ const SummaryDisplay = ({ summary }: { summary: Summary }) => {
 }
 
 export function BillDetailClient({ bill }: { bill: Bill }) {
+  // Add these debug logs at the very top
+  console.log('=== CLIENT: BillDetailClient received bill ===');
+  console.log('Bill object:', bill);
+  console.log('Bill keys:', Object.keys(bill));
+  
+  // Check each data type
+  console.log('Data availability check:', {
+    sponsors: bill.sponsors,
+    cosponsors: bill.cosponsors,
+    committees: bill.committees,
+    actions: bill.actions,
+    amendments: bill.amendments,
+    relatedBills: bill.relatedBills,
+    subjects: bill.subjects,
+    summaries: bill.summaries,
+    textVersions: bill.textVersions
+  });
+
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
   const hasCosponsors = bill.cosponsors?.items && bill.cosponsors.items.length > 0;
   const hasCommittees = bill.committees?.items && bill.committees.items.length > 0;
@@ -159,6 +177,19 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   const hasAmendments = bill.amendments?.items && bill.amendments.items.length > 0;
   const hasRelatedBills = bill.relatedBills?.items && bill.relatedBills.items.length > 0;
   const hasSubjects = bill.subjects?.items && bill.subjects.items.length > 0;
+
+  console.log('Boolean checks:', {
+    hasSponsors,
+    hasCosponsors, 
+    hasCommittees,
+    hasSummaries,
+    hasAllSummaries,
+    hasTextVersions,
+    hasActions,
+    hasAmendments,
+    hasRelatedBills,
+    hasSubjects
+  });
 
   return (
     <div className="bg-background min-h-screen">
@@ -585,3 +616,5 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
     </div>
   );
 }
+
+    
