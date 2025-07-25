@@ -10,10 +10,9 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
   const baseUrl = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}`;
 
   try {
-    // Step 1: Get basic bill info with just essential embeds
+    // Step 1: Get basic bill info with just sponsors
     console.log('Fetching basic bill data...');
-    const basicEmbeds = ['sponsors', 'summaries'].map(p => `embed=${p}`).join('&');
-    const basicUrl = `${baseUrl}?${basicEmbeds}&api_key=${API_KEY}`;
+    const basicUrl = `${baseUrl}?embed=sponsors&api_key=${API_KEY}`;
     
     const basicRes = await fetch(basicUrl, {
       next: { revalidate: 3600 },
@@ -30,71 +29,97 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     
     // Initialize basic structure
     bill.sponsors = bill.sponsors || [];
-    bill.summaries = bill.summaries || { count: 0, items: [] };
-    bill.allSummaries = bill.summaries.items || [];
 
-    // Step 2: Get additional data if the basic embeds worked
-    console.log('Fetching additional data...');
+    // Step 2: Use the API-provided URLs to get additional data
+    console.log('Fetching additional data using API URLs...');
     
-    try {
-      // Try to get actions separately
-      const actionsUrl = `${baseUrl}?embed=actions&api_key=${API_KEY}`;
-      const actionsRes = await fetch(actionsUrl, {
-        signal: AbortSignal.timeout(10000)
-      });
-      
-      if (actionsRes.ok) {
-        const actionsData = await actionsRes.json();
-        if (actionsData.bill.actions?.items?.length > 0) {
-          bill.actions = actionsData.bill.actions;
-          console.log(`Got ${bill.actions.items.length} actions`);
-        }
-      }
-    } catch (error) {
-      console.log('Actions fetch failed, continuing...');
-    }
-
-    try {
-      // Try to get committees separately  
-      const committeesUrl = `${baseUrl}?embed=committees&api_key=${API_KEY}`;
-      const committeesRes = await fetch(committeesUrl, {
-        signal: AbortSignal.timeout(10000)
-      });
-      
-      if (committeesRes.ok) {
-        const committeesData = await committeesRes.json();
-        if (committeesData.bill.committees?.items?.length > 0) {
-          bill.committees = committeesData.bill.committees;
-          console.log(`Got ${bill.committees.items.length} committees`);
-        }
-      }
-    } catch (error) {
-      console.log('Committees fetch failed, continuing...');
-    }
-
-    try {
-      // Try to get subjects separately
-      const subjectsUrl = `${baseUrl}?embed=subjects&api_key=${API_KEY}`;
-      const subjectsRes = await fetch(subjectsUrl, {
-        signal: AbortSignal.timeout(10000)
-      });
-      
-      if (subjectsRes.ok) {
-        const subjectsData = await subjectsRes.json();
-        if (subjectsData.bill.subjects) {
-          bill.subjects = subjectsData.bill.subjects;
-          
-          // Process subjects structure
-          if (!bill.subjects.items) {
-            const legislativeSubjects = bill.subjects.legislativeSubjects || [];
-            const policyArea = bill.subjects.policyArea ? [bill.subjects.policyArea] : [];
-            bill.subjects.items = [...legislativeSubjects, ...policyArea];
+    // Get summaries using the provided URL
+    if (bill.summaries?.url) {
+      try {
+        console.log('Fetching summaries from:', bill.summaries.url);
+        const summariesRes = await fetch(`${bill.summaries.url}&api_key=${API_KEY}`, {
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (summariesRes.ok) {
+          const summariesData = await summariesRes.json();
+          if (summariesData.summaries?.length > 0) {
+            bill.summaries.items = summariesData.summaries;
+            bill.allSummaries = summariesData.summaries;
+            
+            // Find the latest summary
+            const sortedSummaries = [...bill.allSummaries].sort((a,b) => 
+              new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
+            bill.summaries.summary = sortedSummaries[0];
+            
+            console.log(`Got ${bill.allSummaries.length} summaries`);
           }
-          console.log(`Got ${bill.subjects.items?.length || 0} subjects`);
         }
+      } catch (error) {
+        console.log('Summaries fetch failed:', error.message);
       }
-    } catch (error) {
-      console.log('Subjects fetch failed, continuing...');
+    }
+
+    // Get actions using the provided URL
+    if (bill.actions?.url) {
+      try {
+        console.log('Fetching actions from:', bill.actions.url);
+        const actionsRes = await fetch(`${bill.actions.url}&api_key=${API_KEY}`, {
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (actionsRes.ok) {
+          const actionsData = await actionsRes.json();
+          if (actionsData.actions?.length > 0) {
+            bill.actions.items = actionsData.actions;
+            console.log(`Got ${bill.actions.items.length} actions`);
+          }
+        }
+      } catch (error) {
+        console.log('Actions fetch failed:', error.message);
+      }
+    }
+
+    // Get committees using the provided URL
+    if (bill.committees?.url) {
+      try {
+        console.log('Fetching committees from:', bill.committees.url);
+        const committeesRes = await fetch(`${bill.committees.url}&api_key=${API_KEY}`, {
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (committeesRes.ok) {
+          const committeesData = await committeesRes.json();
+          if (committeesData.committees?.length > 0) {
+            bill.committees.items = committeesData.committees;
+            console.log(`Got ${bill.committees.items.length} committees`);
+          }
+        }
+      } catch (error) {
+        console.log('Committees fetch failed:', error.message);
+      }
+    }
+
+    // Get subjects using the provided URL
+    if (bill.subjects?.url) {
+      try {
+        console.log('Fetching subjects from:', bill.subjects.url);
+        const subjectsRes = await fetch(`${bill.subjects.url}&api_key=${API_KEY}`, {
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (subjectsRes.ok) {
+          const subjectsData = await subjectsRes.json();
+          if (subjectsData.subjects?.legislativeSubjects?.length > 0 || subjectsData.subjects?.policyArea) {
+            const legislativeSubjects = subjectsData.subjects.legislativeSubjects || [];
+            const policyArea = subjectsData.subjects.policyArea ? [subjectsData.subjects.policyArea] : [];
+            bill.subjects.items = [...legislativeSubjects, ...policyArea];
+            console.log(`Got ${bill.subjects.items.length} subjects`);
+          }
+        }
+      } catch (error) {
+        console.log('Subjects fetch failed:', error.message);
+      }
     }
 
     // Initialize any missing data structures
@@ -105,13 +130,8 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.relatedBills = bill.relatedBills || { count: 0, items: [] };
     bill.subjects = bill.subjects || { count: 0, items: [] };
     bill.textVersions = bill.textVersions || { count: 0, items: [] };
-
-    // Find the latest summary
-    if (bill.allSummaries.length > 0) {
-      const sortedSummaries = [...bill.allSummaries].sort((a,b) => 
-        new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
-      bill.summaries.summary = sortedSummaries[0];
-    }
+    bill.summaries = bill.summaries || { count: 0, items: [] };
+    bill.allSummaries = bill.allSummaries || [];
 
     console.log('Final bill data processed');
     return bill;
