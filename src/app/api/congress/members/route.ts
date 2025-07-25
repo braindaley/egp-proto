@@ -3,6 +3,28 @@
 import { NextResponse } from 'next/server';
 import type { Member } from '@/types';
 
+// Helper function to fetch members for a specific chamber
+async function getMembers(congress: string, chamber: 'senate' | 'house', state: string, apiKey: string): Promise<Member[]> {
+    const url = `https://api.congress.gov/v3/member?congress=${congress}&chamber=${chamber}&state=${state}&api_key=${apiKey}`;
+    try {
+        const res = await fetch(url, { next: { revalidate: 3600 } });
+        if (!res.ok) {
+            console.error(`Failed to fetch ${chamber} for ${state}: ${res.status}`);
+            return [];
+        }
+        const json = await res.json();
+        // Log the raw JSON to inspect its structure during debugging
+        // console.log(`🔥 Raw ${chamber} response for ${state}:`, JSON.stringify(json, null, 2));
+        
+        // The API returns members in the `members` key
+        return json.members || [];
+    } catch (error) {
+        console.error(`Error fetching ${chamber} for ${state}:`, error);
+        return [];
+    }
+}
+
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const congress = searchParams.get('congress');
@@ -14,30 +36,21 @@ export async function GET(req: Request) {
   }
 
   try {
-    const fetchPromises = [
-      fetch(`https://api.congress.gov/v3/member?congress=${congress}&chamber=senate&state=${state}&api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
-      fetch(`https://api.congress.gov/v3/member?congress=${congress}&chamber=house&state=${state}&api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
-    ];
+    // Fetch senators and representatives in parallel
+    const [senateData, houseData] = await Promise.all([
+        getMembers(congress, 'senate', state, API_KEY),
+        getMembers(congress, 'house', state, API_KEY)
+    ]);
 
-    const [senateResponse, houseResponse] = await Promise.all(fetchPromises);
+    const response = {
+        senators: senateData,
+        representatives: houseData,
+    };
+    
+    // Log what is being sent to the client
+    // console.log("✅ Returning to client:", JSON.stringify(response, null, 2));
 
-    if (!senateResponse.ok) {
-        console.error(`Failed to fetch senate members for ${state}: ${senateResponse.status}`);
-    }
-     if (!houseResponse.ok) {
-        console.error(`Failed to fetch house members for ${state}: ${houseResponse.status}`);
-    }
-
-    const senateData = senateResponse.ok ? await senateResponse.json() : { members: [] };
-    const houseData = houseResponse.ok ? await houseResponse.json() : { members: [] };
-
-    // console.log("Raw Senate Data:", JSON.stringify(senateData, null, 2));
-    // console.log("Raw House Data:", JSON.stringify(houseData, null, 2));
-
-    return NextResponse.json({
-      senators: senateData.members || [],
-      representatives: houseData.members || [],
-    });
+    return NextResponse.json(response);
 
   } catch (err) {
     console.error('Server API Error in member fetch:', err);
