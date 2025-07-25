@@ -14,8 +14,8 @@ export async function GET(req: Request) {
 
   try {
     const fetchPromises = [
-      fetch(`https://api.congress.gov/v3/member/${congress}/senate?state=${state}&api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
-      fetch(`https://api.congress.gov/v3/member/${congress}/house?state=${state}&api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
+      fetch(`https://api.congress.gov/v3/member?congress=${congress}&chamber=senate&state=${state}&api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
+      fetch(`https://api.congress.gov/v3/member?congress=${congress}&chamber=house&state=${state}&api_key=${API_KEY}`, { next: { revalidate: 3600 } }),
     ];
 
     const [senateResponse, houseResponse] = await Promise.all(fetchPromises);
