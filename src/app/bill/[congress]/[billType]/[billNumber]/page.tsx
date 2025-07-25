@@ -70,7 +70,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
     bill.amendments = bill.amendments || { count: 0, items: [] };
     bill.relatedBills = bill.relatedBills || { count: 0, items: [] };
     bill.subjects = bill.subjects || { count: 0, items: [] };
-    bill.summaries = bill.summaries || { count: 0 };
+    bill.summaries = bill.summaries || { count: 0, items: [] };
     bill.textVersions = bill.textVersions || { count: 0, items: [] };
     bill.allSummaries = bill.summaries.items || [];
 
