@@ -8,113 +8,117 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
   
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
   const baseUrl = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}`;
-  
-  const embedParams = ['summaries'].map(p => `embed=${p}`).join('&');
-  
-  const fullUrl = `${baseUrl}?${embedParams}&api_key=${API_KEY}`;
-  console.log('Making API request...');
-  console.log('Full URL:', fullUrl);
 
   try {
-    // Add timeout and better error handling
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log('Request timeout - aborting...');
-      controller.abort();
-    }, 15000); // 15 second timeout
-
-    console.log('About to call fetch...');
+    // Step 1: Get basic bill info with just essential embeds
+    console.log('Fetching basic bill data...');
+    const basicEmbeds = ['sponsors', 'summaries'].map(p => `embed=${p}`).join('&');
+    const basicUrl = `${baseUrl}?${basicEmbeds}&api_key=${API_KEY}`;
     
-    const billRes = await fetch(fullUrl, {
+    const basicRes = await fetch(basicUrl, {
       next: { revalidate: 3600 },
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Congress-Bill-App/1.0'
-      }
+      signal: AbortSignal.timeout(15000)
     });
 
-    clearTimeout(timeoutId);
-    console.log('Fetch completed! Status:', billRes.status);
-
-    if (billRes.status === 404) {
-      console.log(`Bill not found for URL: ${fullUrl}`);
+    if (!basicRes.ok) {
+      console.error(`Basic API request failed: ${basicRes.status}`);
       return null;
     }
 
-    if (!billRes.ok) {
-      console.error(`API request failed with status: ${billRes.status}`);
-      const errorText = await billRes.text();
-      console.error('Error response:', errorText);
-      return null;
-    }
+    const basicData = await basicRes.json();
+    const bill: Bill = basicData.bill;
     
-    console.log('Reading response...');
-    const billData = await billRes.json();
-    console.log('Response parsed successfully');
-
-    console.log('=== RAW API RESPONSE INSPECTION ===');
-    console.log('Raw bill keys:', Object.keys(billData.bill));
-
-    // Check what embedded data actually came back
-    const rawBill = billData.bill;
-    console.log('Raw embedded data:', {
-      sponsors: rawBill.sponsors?.length || 'undefined',
-      cosponsors: rawBill.cosponsors ? `count: ${rawBill.cosponsors.count}, items: ${rawBill.cosponsors.items?.length || 0}` : 'undefined',
-      committees: rawBill.committees ? `count: ${rawBill.committees.count}, items: ${rawBill.committees.items?.length || 0}` : 'undefined',
-      actions: rawBill.actions ? `count: ${rawBill.actions.count}, items: ${rawBill.actions.items?.length || 0}` : 'undefined',
-      amendments: rawBill.amendments ? `count: ${rawBill.amendments.count}, items: ${rawBill.amendments.items?.length || 0}` : 'undefined',
-      relatedBills: rawBill.relatedBills ? `count: ${rawBill.relatedBills.count}, items: ${rawBill.relatedBills.items?.length || 0}` : 'undefined',
-      subjects: rawBill.subjects ? `count: ${rawBill.subjects.count}, items: ${rawBill.subjects.items?.length || 0}` : 'undefined',
-      summaries: rawBill.summaries ? `count: ${rawBill.summaries.count}, items: ${rawBill.summaries.items?.length || 0}` : 'undefined',
-      textVersions: rawBill.textVersions ? `count: ${rawBill.textVersions.count}, items: ${rawBill.textVersions.items?.length || 0}` : 'undefined'
-    });
-
-    // Check subjects structure specifically
-    if (rawBill.subjects) {
-      console.log('Subjects structure:', {
-        hasItems: !!rawBill.subjects.items,
-        hasLegislativeSubjects: !!rawBill.subjects.legislativeSubjects,
-        hasPolicyArea: !!rawBill.subjects.policyArea,
-        itemsLength: rawBill.subjects.items?.length || 0,
-        legislativeSubjectsLength: rawBill.subjects.legislativeSubjects?.length || 0
-      });
-    }
-    
-    const bill: Bill = billData.bill;
-
-    if (!bill) {
-      console.log('No bill data in response');
-      return null;
-    }
-
-    // Basic data initialization
+    // Initialize basic structure
     bill.sponsors = bill.sponsors || [];
+    bill.summaries = bill.summaries || { count: 0, items: [] };
+    bill.allSummaries = bill.summaries.items || [];
+
+    // Step 2: Get additional data if the basic embeds worked
+    console.log('Fetching additional data...');
+    
+    try {
+      // Try to get actions separately
+      const actionsUrl = `${baseUrl}?embed=actions&api_key=${API_KEY}`;
+      const actionsRes = await fetch(actionsUrl, {
+        signal: AbortSignal.timeout(10000)
+      });
+      
+      if (actionsRes.ok) {
+        const actionsData = await actionsRes.json();
+        if (actionsData.bill.actions?.items?.length > 0) {
+          bill.actions = actionsData.bill.actions;
+          console.log(`Got ${bill.actions.items.length} actions`);
+        }
+      }
+    } catch (error) {
+      console.log('Actions fetch failed, continuing...');
+    }
+
+    try {
+      // Try to get committees separately  
+      const committeesUrl = `${baseUrl}?embed=committees&api_key=${API_KEY}`;
+      const committeesRes = await fetch(committeesUrl, {
+        signal: AbortSignal.timeout(10000)
+      });
+      
+      if (committeesRes.ok) {
+        const committeesData = await committeesRes.json();
+        if (committeesData.bill.committees?.items?.length > 0) {
+          bill.committees = committeesData.bill.committees;
+          console.log(`Got ${bill.committees.items.length} committees`);
+        }
+      }
+    } catch (error) {
+      console.log('Committees fetch failed, continuing...');
+    }
+
+    try {
+      // Try to get subjects separately
+      const subjectsUrl = `${baseUrl}?embed=subjects&api_key=${API_KEY}`;
+      const subjectsRes = await fetch(subjectsUrl, {
+        signal: AbortSignal.timeout(10000)
+      });
+      
+      if (subjectsRes.ok) {
+        const subjectsData = await subjectsRes.json();
+        if (subjectsData.bill.subjects) {
+          bill.subjects = subjectsData.bill.subjects;
+          
+          // Process subjects structure
+          if (!bill.subjects.items) {
+            const legislativeSubjects = bill.subjects.legislativeSubjects || [];
+            const policyArea = bill.subjects.policyArea ? [bill.subjects.policyArea] : [];
+            bill.subjects.items = [...legislativeSubjects, ...policyArea];
+          }
+          console.log(`Got ${bill.subjects.items?.length || 0} subjects`);
+        }
+      }
+    } catch (error) {
+      console.log('Subjects fetch failed, continuing...');
+    }
+
+    // Initialize any missing data structures
     bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
     bill.committees = bill.committees || { count: 0, items: [] };
     bill.actions = bill.actions || { count: 0, items: [] };
     bill.amendments = bill.amendments || { count: 0, items: [] };
     bill.relatedBills = bill.relatedBills || { count: 0, items: [] };
     bill.subjects = bill.subjects || { count: 0, items: [] };
-    bill.summaries = bill.summaries || { count: 0, items: [] };
     bill.textVersions = bill.textVersions || { count: 0, items: [] };
-    bill.allSummaries = bill.summaries.items || [];
 
-    console.log('Data processing complete');
+    // Find the latest summary
+    if (bill.allSummaries.length > 0) {
+      const sortedSummaries = [...bill.allSummaries].sort((a,b) => 
+        new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
+      bill.summaries.summary = sortedSummaries[0];
+    }
+
+    console.log('Final bill data processed');
     return bill;
     
-  } catch (error: any) {
+  } catch (error) {
     console.error("=== ERROR IN getBillDetails ===");
-    
-    if (error.name === 'AbortError') {
-      console.error('Request was aborted (timeout)');
-    } else if (error.name === 'TypeError') {
-      console.error('Network error (possibly CORS or connectivity issue)');
-    } else {
-      console.error('Unexpected error:', error);
-    }
-    
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
+    console.error('Error:', error);
     return null; 
   }
 }
