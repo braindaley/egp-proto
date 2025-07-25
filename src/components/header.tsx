@@ -11,6 +11,7 @@ export function Header() {
   const { user, loading, logout, selectedCongress } = useAuth();
 
   const billsHref = selectedCongress ? `/bill/${selectedCongress}` : '/bills';
+  const congressHref = selectedCongress ? `/congress/${selectedCongress}` : '/congress';
 
   return (
     <header className="bg-background border-b sticky top-0 z-50">
@@ -31,7 +32,7 @@ export function Header() {
                 </Link>
               </li>
               <li>
-                <Link href="/congress" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                <Link href={congressHref} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                   Congress
                 </Link>
               </li>

@@ -1,7 +1,8 @@
+
 'use server';
 /**
- * @fileOverview A flow for fetching members of Congress for a specific state.
- * - getCongressMembers - Fetches senators and representatives for a given state.
+ * @fileOverview A flow for fetching members of Congress for a specific state and congress.
+ * - getCongressMembers - Fetches senators and representatives for a given state and congress.
  * - GetCongressMembersInput - The input type for the getCongressMembers function.
  * - GetCongressMembersOutput - The return type for the getCongressMembers function.
  */
@@ -11,6 +12,7 @@ import { z } from 'zod';
 import type { Member } from '@/types';
 
 const GetCongressMembersInputSchema = z.object({
+  congress: z.string().describe('The congress number (e.g., "118").'),
   state: z.string().length(2).describe('The two-letter state abbreviation.'),
 });
 export type GetCongressMembersInput = z.infer<typeof GetCongressMembersInputSchema>;
@@ -21,10 +23,10 @@ const GetCongressMembersOutputSchema = z.object({
 });
 export type GetCongressMembersOutput = z.infer<typeof GetCongressMembersOutputSchema>;
 
-async function fetchAllMembers(): Promise<Member[]> {
+async function fetchAllMembers(congress: string): Promise<Member[]> {
   const API_KEY = process.env.CONGRESS_API_KEY || 'DEMO_KEY';
-  // The /member endpoint returns all members from all chambers.
-  const url = `https://api.congress.gov/v3/member?limit=500&api_key=${API_KEY}`;
+  // The /member endpoint returns all members from all chambers for a specific congress.
+  const url = `https://api.congress.gov/v3/congress/${congress}/member?limit=500&api_key=${API_KEY}`;
   
   try {
     const response = await fetch(url, { next: { revalidate: 3600 } });
@@ -46,8 +48,8 @@ const getCongressMembersFlow = ai.defineFlow(
     inputSchema: GetCongressMembersInputSchema,
     outputSchema: GetCongressMembersOutputSchema,
   },
-  async ({ state }) => {
-    const allMembers = await fetchAllMembers();
+  async ({ congress, state }) => {
+    const allMembers = await fetchAllMembers(congress);
     
     if (!allMembers || allMembers.length === 0) {
       return { senators: [], representatives: [] };

@@ -17,15 +17,15 @@ const states: Record<string, string> = {
   va: 'Virginia', wa: 'Washington', wv: 'West Virginia', wi: 'Wisconsin', wy: 'Wyoming'
 };
 
-export default async function StateCongressPage({ params }: { params: Promise<{ state: string }> }) {
-  const { state } = await params;
+export default async function StateCongressPage({ params }: { params: Promise<{ congress: string, state: string }> }) {
+  const { congress, state } = await params;
   const stateName = states[state.toLowerCase()];
 
   if (!stateName) {
     notFound();
   }
 
-  const memberData = await getCongressMembers({ state });
+  const memberData = await getCongressMembers({ congress, state });
   const senators = memberData?.senators || [];
   const representatives = memberData?.representatives || [];
 
@@ -34,7 +34,7 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
     <div className="container mx-auto px-4 py-8 md:py-12">
       <header className="text-center mb-12">
         <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
-          Members of Congress for {stateName}
+          {congress}th Congress: {stateName}
         </h1>
         <p className="text-lg text-muted-foreground">
            Senators and Representatives for {state.toUpperCase()}
