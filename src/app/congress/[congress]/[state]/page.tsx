@@ -26,10 +26,10 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
   }
 
   const memberData = await getCongressMembers({ congress, state });
-  console.log("STATE PAGE:", { congress, state, memberData });
-  const senators = memberData?.senators || [];
-  const representatives = memberData?.representatives || [];
-
+  
+  // Explicitly filter members based on their chamber for robustness
+  const senators = (memberData?.senators || []).filter(m => m.chamber?.toLowerCase() === 'senate');
+  const representatives = (memberData?.representatives || []).filter(m => m.chamber?.toLowerCase() === 'house');
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
@@ -42,13 +42,6 @@ export default async function StateCongressPage({ params }: { params: Promise<{ 
         </p>
       </header>
       
-      <div className="bg-muted p-4 rounded-lg my-4">
-        <h3 className="font-bold text-lg mb-2">Debug Output:</h3>
-        <pre className="text-xs bg-background p-2 rounded overflow-auto">
-          {JSON.stringify(memberData, null, 2)}
-        </pre>
-      </div>
-
       <section>
         <h2 className="font-headline text-3xl font-bold text-primary mb-6 border-b pb-3">Senators</h2>
         {senators.length > 0 ? (

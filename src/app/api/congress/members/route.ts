@@ -5,7 +5,7 @@ import type { Member } from '@/types';
 
 // Helper function to fetch members for a specific chamber
 async function getMembers(congress: string, chamber: 'senate' | 'house', state: string, apiKey: string): Promise<Member[]> {
-    const url = `https://api.congress.gov/v3/member?congress=${congress}&chamber=${chamber}&state=${state}&api_key=${apiKey}`;
+    const url = `https://api.congress.gov/v3/member?congress=${congress}&chamber=${chamber}&state=${state}&api_key=${apiKey}&limit=250`;
     try {
         const res = await fetch(url, { next: { revalidate: 3600 } });
         if (!res.ok) {
@@ -13,8 +13,10 @@ async function getMembers(congress: string, chamber: 'senate' | 'house', state: 
             return [];
         }
         const json = await res.json();
-        // The API returns members in the `members` key
-        return json.members || [];
+        return (json.members || []).map((member: any) => ({
+            ...member,
+            chamber: chamber === 'senate' ? 'Senate' : 'House'
+        }));
     } catch (error) {
         console.error(`Error fetching ${chamber} for ${state}:`, error);
         return [];
