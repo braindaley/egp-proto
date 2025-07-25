@@ -2,6 +2,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -149,6 +150,17 @@ export interface CongressApiResponse {
   };
 }
 
+export interface MemberTerm {
+    chamber: string;
+    congress: number;
+    startYear: number;
+    endYear: number;
+    memberType: string;
+    partyName: string;
+    stateCode: string;
+    stateName: string;
+    district?: number;
+}
 
 export interface Member {
   bioguideId: string;
@@ -157,6 +169,7 @@ export interface Member {
   partyName: string;
   state: string;
   terms: {
+    item?: MemberTerm[];
     current?: {
       startYear: string;
       congress?: number;
@@ -168,6 +181,12 @@ export interface Member {
   };
   chamber: string;
   url: string;
+  firstName: string;
+  lastName: string;
+  directOrderName: string;
+  birthDate?: string;
+  deathDate?: string;
+  officialWebsiteUrl?: string;
 }
 
 export interface Congress {
