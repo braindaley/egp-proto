@@ -2,3 +2,4 @@
 // Flows will be imported for their side effects in this file.
 import './flows/summarize-text-flow';
 import './flows/get-congress-members-flow';
+import './flows/get-committee-assignments-flow';

@@ -10,6 +10,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -281,6 +282,7 @@ export interface Member {
   };
   updateDate: string;
   news?: NewsArticle[];
+  committeeAssignments?: string;
 }
 
 export interface Congress {

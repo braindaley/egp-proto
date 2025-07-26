@@ -1,18 +1,26 @@
 
 'use client';
+import { useState, useEffect } from 'react';
 import type { Member, MemberTerm, Leadership, PartyHistory, NewsArticle, SponsoredLegislation, CosponsoredLegislation } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Building, Calendar, MapPin, Briefcase, ExternalLink, Phone, User, Gavel, FileText, Users, Star, History, Info, Newspaper, ChevronsUpDown } from 'lucide-react';
+import { Building, Calendar, MapPin, Briefcase, ExternalLink, Phone, User, Gavel, FileText, Users, Star, History, Info, Newspaper, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { getBillTypeSlug } from '@/lib/utils';
-
+import { getCommitteeAssignments } from '@/ai/flows/get-committee-assignments-flow';
+import { remark } from 'remark';
+import html from 'remark-html';
 
 // Updated types to match Congress API response
 interface CongressApiMember extends Member {}
+
+async function markdownToHtml(markdown: string) {
+  const result = await remark().use(html).process(markdown);
+  return result.toString();
+}
 
 function formatDate(dateString: string | undefined | number) {
     if (!dateString) return 'N/A';
@@ -109,6 +117,56 @@ function getFirstTerm(terms: any): MemberTerm | undefined {
     const sortedTerms = [...termsArray].sort((a, b) => a.startYear - b.startYear);
     return sortedTerms[0];
 }
+
+const CommitteeAssignments = ({ member, congress }: { member: Member, congress: string }) => {
+    const [assignments, setAssignments] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchAssignments = async () => {
+            if (!member.directOrderName || !congress) return;
+            setIsLoading(true);
+            setError('');
+            try {
+                const result = await getCommitteeAssignments({
+                    memberName: member.directOrderName,
+                    congressNumber: congress
+                });
+                const htmlResult = await markdownToHtml(result);
+                setAssignments(htmlResult);
+            } catch (e) {
+                console.error("Error fetching committee assignments:", e);
+                setError('Could not load committee assignments.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchAssignments();
+    }, [member, congress]);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Briefcase /> Committee Assignments</CardTitle>
+            </CardHeader>
+            <CardContent>
+                {isLoading && (
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Generating committee assignment overview...</span>
+                    </div>
+                )}
+                {error && <p className="text-sm text-destructive">{error}</p>}
+                {!isLoading && !error && (
+                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: assignments }} />
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
 
 export function MemberDetailClient({ member, congress }: { member: CongressApiMember, congress: string }) {
   // Handle different terms data structures safely
@@ -288,6 +346,8 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
                     )}
                 </CardContent>
             </Card>
+
+            <CommitteeAssignments member={member} congress={congress} />
 
             {allTerms.length > 0 && (
                 <Card>
