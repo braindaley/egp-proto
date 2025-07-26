@@ -36,13 +36,32 @@ function getFirstTerm(member: Member) {
 }
 
 function isCurrentlyServing(member: Member): boolean {
-    if (member.deathDate) return false; // Deceased members are not currently serving.
-    if (!member.terms?.item) return false;
+    // If member has died, they're not currently serving
+    if (member.deathDate) return false;
+    
+    // Handle different terms data structures
+    let termsArray: any[] = [];
+    if (Array.isArray(member.terms)) {
+        termsArray = member.terms;
+    } else if (member.terms?.item && Array.isArray(member.terms.item)) {
+        termsArray = member.terms.item;
+    } else {
+        return false;
+    }
+    
+    if (termsArray.length === 0) return false;
     
     const currentYear = new Date().getFullYear();
-    // Check if any term period includes the current year.
-    // This is a more reliable way to check for active service.
-    return member.terms.item.some(term => term.startYear <= currentYear && term.endYear >= currentYear);
+    
+    // Check if any term indicates current service
+    return termsArray.some(term => {
+        const hasStarted = term.startYear <= currentYear;
+        const stillServing = !term.endYear || 
+                           term.endYear === null || 
+                           term.endYear === undefined || 
+                           term.endYear >= currentYear;
+        return hasStarted && stillServing;
+    });
 }
 
 function getLeadershipPosition(member: Member): string | null {
