@@ -75,12 +75,12 @@ const TruncatedText = ({ text, limit = 500 }: { text: string; limit?: number }) 
 
 const SummaryDisplay = ({ summary }: { summary: Summary }) => {
   const [aiSummary, setAiSummary] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const generateSummary = async () => {
-      if (!summary.text) {
+      if (!summary || !summary.text) {
           setIsLoading(false);
           setAiSummary('No summary text available to analyze.');
           return;
@@ -98,7 +98,7 @@ const SummaryDisplay = ({ summary }: { summary: Summary }) => {
       }
     };
     generateSummary();
-  }, [summary.text]);
+  }, [summary]);
 
   return (
     <div className="p-3 bg-secondary/50 rounded-md">
@@ -586,5 +586,3 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
     </div>
   );
 }
-
-    

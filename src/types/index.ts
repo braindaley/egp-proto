@@ -6,6 +6,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -125,6 +126,7 @@ export interface Bill {
   committees: ApiCollection<Committee>;
   summaries: {
     count: number;
+    url?: string;
     summary?: Summary;
     items?: Summary[];
   };
@@ -135,7 +137,8 @@ export interface Bill {
   relatedBills: ApiCollection<RelatedBill>;
   subjects: {
     count: number;
-    items: Subject[];
+    items: (Subject | PolicyArea)[];
+    url?: string;
     legislativeSubjects?: Subject[];
     policyArea?: PolicyArea;
   };
@@ -202,6 +205,7 @@ export interface Leadership {
 
 export interface PartyHistory {
     partyName: string;
+    partyAbbreviation: string;
     startYear: number;
     endYear?: number;
 }
@@ -231,6 +235,7 @@ export interface Member {
   directOrderName: string;
   birthDate?: string;
   deathDate?: string;
+  birthYear?: string;
   birthLocation?: string;
   education?: string;
   profession?: string;
@@ -240,6 +245,25 @@ export interface Member {
   cosponsoredLegislation?: CosponsoredLegislation[];
   leadership?: Leadership[];
   partyHistory?: PartyHistory[];
+  currentMember: boolean;
+  addressInformation: {
+      city: string;
+      district: string;
+      officeAddress: string;
+      phoneNumber: string;
+      zipCode: number;
+  },
+  cosponsoredLegislation: {
+      count: number;
+      url: string;
+  };
+  honorificName: string;
+  invertedOrderName: string;
+  sponsoredLegislation: {
+      count: number;
+      url: string;
+  };
+  updateDate: string;
 }
 
 export interface Congress {

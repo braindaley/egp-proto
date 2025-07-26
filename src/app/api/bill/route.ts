@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     bill.relatedBills = bill.relatedBills || { count: 0, items: [] };
     bill.subjects = bill.subjects || { count: 0, items: [] };
     bill.textVersions = bill.textVersions || { count: 0, items: [] };
-    bill.summaries = bill.summaries || { count: 0, items: [], summary: undefined };
+    bill.summaries = { ...bill.summaries, count: 0, items: [] }; // Ensure items is an array
     bill.allSummaries = []; // Start with an empty array
 
     const fetchPromises = [];
@@ -121,8 +121,14 @@ export async function GET(req: NextRequest) {
     await Promise.all(fetchPromises);
     
     // Final check to ensure summaries items is populated from allSummaries
-    bill.summaries.items = bill.allSummaries;
-    bill.summaries.count = bill.allSummaries.length;
+    if (bill.allSummaries && bill.allSummaries.length > 0) {
+        bill.summaries.items = bill.allSummaries;
+        bill.summaries.count = bill.allSummaries.length;
+    } else {
+        bill.summaries.items = [];
+        bill.summaries.count = 0;
+    }
+
 
     return NextResponse.json(bill);
 
