@@ -35,17 +35,12 @@ function calculateYearsOfService(firstTerm: MemberTerm | undefined): number | st
 }
 
 function isCurrentlyServing(member: Member): boolean {
-    // If member has died, they're not currently serving
     if (member.deathDate) return false;
     
-    // Handle different terms data structures
     let termsArray: any[] = [];
-    
     if (Array.isArray(member.terms)) {
-        // Direct array: member.terms = [...]
         termsArray = member.terms;
     } else if (member.terms?.item && Array.isArray(member.terms.item)) {
-        // Object with item property: member.terms = { item: [...] }
         termsArray = member.terms.item;
     } else {
         return false;
@@ -55,17 +50,9 @@ function isCurrentlyServing(member: Member): boolean {
     
     const currentYear = new Date().getFullYear();
     
-    // Check if any term indicates current service
     return termsArray.some(term => {
         const hasStarted = term.startYear <= currentYear;
-        
-        // A member is currently serving if their term has no end date OR the end date is in the future.
-        // If the end year is the current year, they are considered a former member.
-        const stillServing = !term.endYear || 
-                           term.endYear === null || 
-                           term.endYear === undefined || 
-                           term.endYear > currentYear;
-        
+        const stillServing = !term.endYear || term.endYear === null || term.endYear === undefined || term.endYear > currentYear;
         return hasStarted && stillServing;
     });
 }
@@ -151,7 +138,7 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
   const currentlyServing = isCurrentlyServing(member);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-4xl mx-auto">
         <header className="mb-8 flex flex-col items-center gap-6">
             <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-primary/20 shrink-0 shadow-lg">
                 <Image
@@ -250,26 +237,20 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
                     <CardTitle className="flex items-center gap-2"><Gavel /> Legislative Activity</CardTitle>
                     <CardDescription>Summary of bills sponsored and cosponsored by the member.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 bg-secondary/50 rounded-lg">
-                        <h3 className="font-semibold mb-2">Sponsored Bills</h3>
-                        <p className="text-3xl font-bold text-primary">{sponsoredCount}</p>
+                <CardContent className="space-y-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 bg-secondary/50 rounded-lg">
+                            <h3 className="font-semibold mb-2">Sponsored Bills</h3>
+                            <p className="text-3xl font-bold text-primary">{sponsoredCount}</p>
+                        </div>
+                        <div className="p-4 bg-secondary/50 rounded-lg">
+                            <h3 className="font-semibold mb-2">Cosponsored Bills</h3>
+                            <p className="text-3xl font-bold text-primary">{cosponsoredCount}</p>
+                        </div>
                     </div>
-                    <div className="p-4 bg-secondary/50 rounded-lg">
-                        <h3 className="font-semibold mb-2">Cosponsored Bills</h3>
-                        <p className="text-3xl font-bold text-primary">{cosponsoredCount}</p>
-                    </div>
-                </CardContent>
-            </Card>
-            
-            {(sponsoredLegislation.length > 0 || cosponsoredLegislation.length > 0) && (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Recent Legislation</CardTitle>
-                </CardHeader>
-                <CardContent>
+                    
                     {sponsoredLegislation.length > 0 && (
-                        <Collapsible className="mb-4">
+                        <Collapsible>
                             <CollapsibleTrigger asChild>
                                 <Button variant="outline" className="w-full justify-between">
                                     Sponsored Bills ({sponsoredCount})
@@ -286,8 +267,9 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
                             </CollapsibleContent>
                         </Collapsible>
                     )}
+
                     {cosponsoredLegislation.length > 0 && (
-                         <Collapsible>
+                         <Collapsible className="mt-2">
                             <CollapsibleTrigger asChild>
                                 <Button variant="outline" className="w-full justify-between">
                                     Cosponsored Bills ({cosponsoredCount})
@@ -306,7 +288,6 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
                     )}
                 </CardContent>
             </Card>
-            )}
 
             {allTerms.length > 0 && (
                 <Card>
