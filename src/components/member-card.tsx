@@ -64,6 +64,7 @@ export function MemberCard({ member, congress }: MemberCardProps) {
   const yearsOfService = firstTerm ? calculateYearsOfService(firstTerm.startYear) : 0;
   const currentlyServing = isCurrentlyServing(member);
   const leadershipPosition = getLeadershipPosition(member);
+  const detailUrl = `/congress/${congress}/member/${member.bioguideId}`;
   
   const partyColor = member.partyName === 'Democratic' || member.partyName === 'Democrat'
     ? 'bg-blue-600' 
@@ -92,7 +93,7 @@ export function MemberCard({ member, congress }: MemberCardProps) {
           
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-lg text-gray-900 truncate mb-1">
-              <Link href={`/congress/${congress}/member/${member.bioguideId}`} className="hover:underline">
+              <Link href={detailUrl} className="hover:underline">
                 {member.name}
               </Link>
             </h3>
@@ -176,7 +177,7 @@ export function MemberCard({ member, congress }: MemberCardProps) {
 
         {/* Action Button */}
         <Button asChild className="w-full" size="sm">
-          <Link href={`/congress/${congress}/member/${member.bioguideId}`}>
+          <Link href={detailUrl}>
             View Details
           </Link>
         </Button>
