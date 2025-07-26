@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for fetching AI-generated committee assignments for a member of Congress.
@@ -21,7 +22,6 @@ export type GetCommitteeAssignmentsOutput = z.infer<typeof GetCommitteeAssignmen
 const committeeAssignmentsPrompt = ai.definePrompt({
   name: 'committeeAssignmentsPrompt',
   input: { schema: GetCommitteeAssignmentsInputSchema },
-  output: { schema: GetCommitteeAssignmentsOutputSchema },
   prompt: `Provide a complete and accurate list of all current committee assignments, including any chairmanships or ranking member positions, for Senator {{memberName}} in the selected congress # {{congressNumber}} Congress. Also, include any subcommittees they serve on under each main committee. Format the output as markdown.`,
 });
 
