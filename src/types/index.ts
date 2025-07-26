@@ -9,6 +9,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -182,7 +183,7 @@ export interface SponsoredLegislation {
         actionDate: string;
         text: string;
     };
-    cosponsorsCount: number;
+    cosponsorsCount?: number;
     url: string;
 }
 
@@ -268,13 +269,13 @@ export interface Member {
       phoneNumber: string;
       zipCode: number;
   },
-  cosponsoredLegislation: {
+  cosponsoredLegislationSummary?: {
       count: number;
       url: string;
   };
   honorificName: string;
   invertedOrderName: string;
-  sponsoredLegislation: {
+  sponsoredLegislationSummary?: {
       count: number;
       url: string;
   };
@@ -288,3 +289,6 @@ export interface Congress {
   startYear: string;
   endYear: string;
 }
+
+
+    

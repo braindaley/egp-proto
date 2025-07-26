@@ -3,9 +3,12 @@ import type { Member, MemberTerm, Leadership, PartyHistory, NewsArticle, Sponsor
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Building, Calendar, MapPin, Briefcase, ExternalLink, Phone, User, Gavel, FileText, Users, Star, History, Info, Newspaper } from 'lucide-react';
+import { Building, Calendar, MapPin, Briefcase, ExternalLink, Phone, User, Gavel, FileText, Users, Star, History, Info, Newspaper, ChevronsUpDown } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
+import { getBillTypeSlug } from '@/lib/utils';
+
 
 // Updated types to match Congress API response
 interface CongressApiMember extends Member {}
@@ -140,8 +143,10 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
   const yearsOfService = calculateYearsOfService(firstTerm);
   const leadershipHistory = (member.leadership || []).sort((a,b) => b.congress - a.congress);
   const hasNews = member.news && member.news.length > 0;
-  const sponsoredCount = Array.isArray(member.sponsoredLegislation) ? member.sponsoredLegislation.length : 0;
-  const cosponsoredCount = Array.isArray(member.cosponsoredLegislation) ? member.cosponsoredLegislation.length : 0;
+  const sponsoredLegislation = member.sponsoredLegislation || [];
+  const cosponsoredLegislation = member.cosponsoredLegislation || [];
+  const sponsoredCount = sponsoredLegislation.length;
+  const cosponsoredCount = cosponsoredLegislation.length;
   const currentlyServing = isCurrentlyServing(member);
 
   return (
@@ -210,24 +215,26 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
                     <CardContent>
                         <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                             {member.news?.map((article, index) => (
-                                <a href={article.link} target="_blank" rel="noopener noreferrer" key={index} className="flex items-start gap-4 p-3 bg-secondary/50 rounded-md hover:bg-secondary transition-colors">
-                                    {article.imageUrl && (
-                                        <div className="relative w-24 h-16 rounded-md overflow-hidden shrink-0">
-                                            <Image 
-                                                src={article.imageUrl}
-                                                alt={article.title || 'News article thumbnail'}
-                                                fill
-                                                className="object-cover"
-                                                data-ai-hint="news photo"
-                                                sizes="96px"
-                                            />
-                                        </div>
-                                    )}
-                                    <div className="flex-1">
-                                        <p className="font-semibold text-sm leading-tight">{article.title}</p>
-                                        <div className="text-xs text-muted-foreground mt-2 flex justify-between items-center">
-                                            {article.source?._ && <span>{article.source._}</span>}
-                                            <span>{formatDate(article.pubDate)}</span>
+                                <a href={article.link} target="_blank" rel="noopener noreferrer" key={index} className="block p-3 bg-secondary/50 rounded-md hover:bg-secondary transition-colors">
+                                    <div className="flex items-start gap-4">
+                                        {article.imageUrl && (
+                                            <div className="relative w-24 h-16 rounded-md overflow-hidden shrink-0">
+                                                <Image 
+                                                    src={article.imageUrl}
+                                                    alt={article.title || 'News article thumbnail'}
+                                                    fill
+                                                    className="object-cover"
+                                                    data-ai-hint="news photo"
+                                                    sizes="96px"
+                                                />
+                                            </div>
+                                        )}
+                                        <div className="flex-1">
+                                            <p className="font-semibold text-sm leading-tight">{article.title}</p>
+                                            <div className="text-xs text-muted-foreground mt-2 flex justify-between items-center">
+                                                {article.source?._ && <span>{article.source._}</span>}
+                                                <span>{formatDate(article.pubDate)}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </a>
@@ -253,6 +260,52 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
                     </div>
                 </CardContent>
             </Card>
+            
+            {(sponsoredLegislation.length > 0 || cosponsoredLegislation.length > 0) && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Recent Legislation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {sponsoredLegislation.length > 0 && (
+                        <Collapsible className="mb-4">
+                            <CollapsibleTrigger asChild>
+                                <Button variant="outline" className="w-full justify-between">
+                                    Sponsored Bills ({sponsoredCount})
+                                    <ChevronsUpDown className="h-4 w-4" />
+                                </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 space-y-2">
+                                {sponsoredLegislation.map((bill) => (
+                                    <div key={bill.number} className="p-3 bg-secondary/50 rounded-md">
+                                        <Link href={`/bill/${bill.congress}/${getBillTypeSlug(bill.type)}/${bill.number}`} className="font-semibold hover:underline">{bill.type} {bill.number}: {bill.title}</Link>
+                                        <p className="text-xs text-muted-foreground mt-1">Introduced: {formatDate(bill.introducedDate)}</p>
+                                    </div>
+                                ))}
+                            </CollapsibleContent>
+                        </Collapsible>
+                    )}
+                    {cosponsoredLegislation.length > 0 && (
+                         <Collapsible>
+                            <CollapsibleTrigger asChild>
+                                <Button variant="outline" className="w-full justify-between">
+                                    Cosponsored Bills ({cosponsoredCount})
+                                    <ChevronsUpDown className="h-4 w-4" />
+                                </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 space-y-2">
+                                {cosponsoredLegislation.map((bill) => (
+                                     <div key={bill.number} className="p-3 bg-secondary/50 rounded-md">
+                                        <Link href={`/bill/${bill.congress}/${getBillTypeSlug(bill.type)}/${bill.number}`} className="font-semibold hover:underline">{bill.type} {bill.number}: {bill.title}</Link>
+                                        <p className="text-xs text-muted-foreground mt-1">Cosponsored: {formatDate(bill.cosponsoredDate)}</p>
+                                    </div>
+                                ))}
+                            </CollapsibleContent>
+                        </Collapsible>
+                    )}
+                </CardContent>
+            </Card>
+            )}
 
             {allTerms.length > 0 && (
                 <Card>
@@ -317,3 +370,5 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
     </div>
   );
 }
+
+    
