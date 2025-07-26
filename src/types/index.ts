@@ -11,6 +11,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -293,4 +294,17 @@ export interface Congress {
 }
 
 
-    
+export interface CampaignPromise {
+    title: string;
+    description: string;
+    category: 'Healthcare' | 'Economy' | 'Environment' | 'Education' | 'Defense' | 'Infrastructure';
+    priority: 'High' | 'Medium' | 'Low';
+    status: 'In Progress' | 'Completed' | 'Stalled' | 'Not Started';
+}
+
+export interface CampaignPromisesData {
+  memberName: string;
+  congress: string;
+  promises: CampaignPromise[];
+  lastUpdated: string;
+}

@@ -3,3 +3,4 @@
 import './flows/summarize-text-flow';
 import './flows/get-congress-members-flow';
 import './flows/get-committee-assignments-flow';
+import './flows/get-campaign-promises-flow';

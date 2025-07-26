@@ -1,26 +1,19 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import type { Member, MemberTerm, Leadership, PartyHistory, NewsArticle, SponsoredLegislation, CosponsoredLegislation } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Building, Calendar, MapPin, Briefcase, ExternalLink, Phone, User, Gavel, FileText, Users, Star, History, Info, Newspaper, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { Building, Calendar, MapPin, Briefcase, ExternalLink, Phone, User, Gavel, FileText, Users, Star, History, Info, Newspaper, ChevronsUpDown, Loader2, Target, Trophy, Hourglass, CircleSlash } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { getBillTypeSlug } from '@/lib/utils';
-import { getCommitteeAssignments } from '@/ai/flows/get-committee-assignments-flow';
-import { remark } from 'remark';
-import html from 'remark-html';
+import { getCommitteeAssignments, type CommitteeAssignmentsData } from '@/ai/flows/get-committee-assignments-flow';
+import { getCampaignPromises, type CampaignPromisesData, type CampaignPromise } from '@/ai/flows/get-campaign-promises-flow';
 
 // Updated types to match Congress API response
 interface CongressApiMember extends Member {}
-
-async function markdownToHtml(markdown: string) {
-  const result = await remark().use(html).process(markdown);
-  return result.toString();
-}
 
 function formatDate(dateString: string | undefined | number) {
     if (!dateString) return 'N/A';
@@ -58,9 +51,14 @@ function isCurrentlyServing(member: Member): boolean {
     
     const currentYear = new Date().getFullYear();
     
+    // Check if any term indicates current service
     return termsArray.some(term => {
         const hasStarted = term.startYear <= currentYear;
-        const stillServing = !term.endYear || term.endYear === null || term.endYear === undefined || term.endYear > currentYear;
+        // A member is currently serving if their term has no end date OR the end date is strictly in the future.
+        const stillServing = !term.endYear || 
+                           term.endYear === null || 
+                           term.endYear === undefined || 
+                           term.endYear > currentYear;
         return hasStarted && stillServing;
     });
 }
@@ -119,7 +117,7 @@ function getFirstTerm(terms: any): MemberTerm | undefined {
 }
 
 const CommitteeAssignments = ({ member, congress }: { member: Member, congress: string }) => {
-    const [assignments, setAssignments] = useState('');
+    const [assignments, setAssignments] = useState<CommitteeAssignmentsData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -133,8 +131,7 @@ const CommitteeAssignments = ({ member, congress }: { member: Member, congress: 
                     memberName: member.directOrderName,
                     congressNumber: congress
                 });
-                const htmlResult = await markdownToHtml(result);
-                setAssignments(htmlResult);
+                setAssignments(result);
             } catch (e) {
                 console.error("Error fetching committee assignments:", e);
                 setError('Could not load committee assignments.');
@@ -146,22 +143,280 @@ const CommitteeAssignments = ({ member, congress }: { member: Member, congress: 
         fetchAssignments();
     }, [member, congress]);
 
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Briefcase /> Committee Assignments</CardTitle>
-            </CardHeader>
-            <CardContent>
-                {isLoading && (
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Briefcase className="h-5 w-5" />
+                        Committee Assignments
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
                     <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         <span>Generating committee assignment overview...</span>
                     </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (error || !assignments) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Briefcase className="h-5 w-5" />
+                        Committee Assignments
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-destructive">{error || 'No committee assignment information could be generated at this time.'}</p>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Briefcase className="h-5 w-5" />
+                    Committee Assignments
+                </CardTitle>
+                <CardDescription>
+                    {assignments.congress}th Congress • {assignments.chamber}
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                {/* Standing Committees */}
+                {assignments.committees && assignments.committees.length > 0 && (
+                    <div>
+                        <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
+                            🏛️ Standing Committees
+                        </h4>
+                        <div className="space-y-2">
+                            {assignments.committees.map((committee, index) => (
+                                <div 
+                                    key={index} 
+                                    className={`p-3 rounded-md border ${
+                                        committee.isPrimary 
+                                            ? 'bg-primary/10 border-primary/30' 
+                                            : 'bg-secondary/30 border-border'
+                                    }`}
+                                >
+                                    <div className="font-semibold text-foreground mb-1">
+                                        {committee.name}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge 
+                                            variant={committee.isPrimary ? "default" : "secondary"}
+                                            className="text-xs"
+                                        >
+                                            {committee.role}
+                                        </Badge>
+                                        {committee.isPrimary && (
+                                            <span className="text-xs text-muted-foreground">
+                                                Primary assignment
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 )}
-                {error && <p className="text-sm text-destructive">{error}</p>}
-                {!isLoading && !error && (
-                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: assignments }} />
+
+                {/* Subcommittees */}
+                {assignments.subcommittees && assignments.subcommittees.length > 0 && (
+                    <div>
+                        <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
+                            📋 Subcommittee Assignments
+                        </h4>
+                        <div className="space-y-2">
+                            {assignments.subcommittees.map((sub, index) => (
+                                <div 
+                                    key={index} 
+                                    className="p-2 bg-secondary/20 rounded border-l-2 border-border"
+                                >
+                                    <div className="font-medium text-foreground text-sm">
+                                        {sub.name}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                        under {sub.parentCommittee}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 )}
+
+                {/* Caucus Memberships */}
+                {assignments.caucuses && assignments.caucuses.length > 0 && (
+                    <div>
+                        <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
+                            🤝 Caucus Memberships
+                        </h4>
+                        <div className="space-y-1">
+                            {assignments.caucuses.map((caucus, index) => (
+                                <div 
+                                    key={index} 
+                                    className="flex justify-between items-center p-2 bg-secondary/20 rounded"
+                                >
+                                    <span className="font-medium text-foreground text-sm">
+                                        {caucus}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground italic">
+                                        if applicable
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Disclaimer */}
+                <div className="bg-secondary/30 p-4 rounded-lg border border-border">
+                    <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
+                        ℹ️ Important Note
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                        Committee assignments can change during a congressional session. For the most current information, 
+                        please refer to the official {assignments.chamber === 'Senate' ? 'Senate.gov' : 'House.gov'} website.
+                    </p>
+                    <p className="text-xs text-muted-foreground opacity-80 italic">
+                        This information is generated based on typical assignment patterns and may not reflect actual current assignments.
+                    </p>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+const CampaignPromises = ({ member, congress }: { member: Member, congress: string }) => {
+    const [data, setData] = useState<CampaignPromisesData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!member.directOrderName || !congress) return;
+            setIsLoading(true);
+            setError('');
+            try {
+                const result = await getCampaignPromises({
+                    memberName: member.directOrderName,
+                    congressNumber: congress
+                });
+                setData(result);
+            } catch (e) {
+                console.error("Error fetching campaign promises:", e);
+                setError('Could not load campaign promises.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, [member, congress]);
+
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Target className="h-5 w-5" />
+                        Recent Campaign Promises
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Generating content...</span>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (error || !data) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Target className="h-5 w-5" />
+                        Recent Campaign Promises
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-destructive">{error || 'No campaign promise data available.'}</p>
+                </CardContent>
+            </Card>
+        );
+    }
+    
+    const getStatusIcon = (status: CampaignPromise['status']) => {
+        switch (status) {
+            case 'Completed': return <Trophy className="h-4 w-4 text-green-600" />;
+            case 'In Progress': return <Hourglass className="h-4 w-4 text-blue-600" />;
+            case 'Stalled': return <CircleSlash className="h-4 w-4 text-yellow-600" />;
+            case 'Not Started': return <FileText className="h-4 w-4 text-gray-500" />;
+            default: return null;
+        }
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Recent Campaign Promises
+                </CardTitle>
+                <CardDescription>
+                    A generated overview of key promises from recent campaigns.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="space-y-4">
+                    {data.promises.map((promise, index) => (
+                        <div key={index} className="p-4 rounded-lg border bg-secondary/30">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <Badge 
+                                        variant={
+                                            promise.priority === 'High' ? 'default' :
+                                            promise.priority === 'Medium' ? 'secondary' : 'outline'
+                                        }
+                                        className="mb-2"
+                                    >
+                                        {promise.priority} Priority
+                                    </Badge>
+                                    <h4 className="font-bold text-base text-foreground">{promise.title}</h4>
+                                </div>
+                                <Badge variant="outline" className="flex items-center gap-1.5 shrink-0">
+                                    {getStatusIcon(promise.status)}
+                                    {promise.status}
+                                </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-2">{promise.description}</p>
+                            <p className="text-xs text-muted-foreground mt-3 pt-2 border-t border-border">
+                                Category: {promise.category}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="bg-secondary/30 p-4 rounded-lg border border-border">
+                    <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
+                        ℹ️ Important Note
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                        Campaign promises are complex and can evolve over time. For the most accurate and official platform details, please consult the member's official campaign website.
+                    </p>
+                    <p className="text-xs text-muted-foreground opacity-80 italic">
+                        This information is generated based on common political platforms and may not reflect the member's actual campaign promises.
+                    </p>
+                </div>
             </CardContent>
         </Card>
     );
@@ -348,6 +603,8 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
             </Card>
 
             <CommitteeAssignments member={member} congress={congress} />
+
+            <CampaignPromises member={member} congress={congress} />
 
             {allTerms.length > 0 && (
                 <Card>
