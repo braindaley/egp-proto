@@ -47,7 +47,10 @@ export async function GET(req: NextRequest) {
                     const sorted = [...data.summaries].sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
                     bill.summaries.items = sorted;
                     bill.allSummaries = sorted;
-                    bill.summaries.summary = sorted[0];
+                    // Ensure the latest summary is attached directly for easier access
+                    if (sorted.length > 0) {
+                        bill.summaries.summary = sorted[0];
+                    }
                 }
             }).catch(e => console.log('Summaries fetch failed:', e.message))
         );
@@ -115,7 +118,7 @@ export async function GET(req: NextRequest) {
     bill.relatedBills = bill.relatedBills || { count: 0, items: [] };
     bill.subjects = bill.subjects || { count: 0, items: [] };
     bill.textVersions = bill.textVersions || { count: 0, items: [] };
-    bill.summaries = bill.summaries || { count: 0, items: [] };
+    bill.summaries = bill.summaries || { count: 0, items: [], summary: undefined };
     bill.allSummaries = bill.allSummaries || [];
 
     return NextResponse.json(bill);
