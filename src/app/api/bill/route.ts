@@ -33,7 +33,17 @@ export async function GET(req: NextRequest) {
     const basicData = await basicRes.json();
     const bill: Bill = basicData.bill;
     
+    // Initialize all optional structures to prevent client errors
     bill.sponsors = bill.sponsors || [];
+    bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
+    bill.committees = bill.committees || { count: 0, items: [] };
+    bill.actions = bill.actions || { count: 0, items: [] };
+    bill.amendments = bill.amendments || { count: 0, items: [] };
+    bill.relatedBills = bill.relatedBills || { count: 0, items: [] };
+    bill.subjects = bill.subjects || { count: 0, items: [] };
+    bill.textVersions = bill.textVersions || { count: 0, items: [] };
+    bill.summaries = bill.summaries || { count: 0, items: [], summary: undefined };
+    bill.allSummaries = []; // Start with an empty array
 
     const fetchPromises = [];
 
@@ -41,11 +51,11 @@ export async function GET(req: NextRequest) {
     if (bill.summaries?.url) {
         fetchPromises.push(
             fetch(`${bill.summaries.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(10000) })
-            .then(res => res.ok ? res.json() : null)
+            .then(res => res.ok ? res.json() : Promise.resolve(null)) // Gracefully handle failed requests
             .then(data => {
-                if (data?.summaries?.length > 0) {
-                    const sorted = [...data.summaries].sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
-                    bill.summaries.items = sorted;
+                const summaries = data?.summaries;
+                if (summaries && Array.isArray(summaries) && summaries.length > 0) {
+                    const sorted = [...summaries].sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
                     bill.allSummaries = sorted;
                     // Ensure the latest summary is attached directly for easier access
                     if (sorted.length > 0) {
@@ -60,9 +70,9 @@ export async function GET(req: NextRequest) {
      if (bill.actions?.url) {
         fetchPromises.push(
              fetch(`${bill.actions.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(10000) })
-            .then(res => res.ok ? res.json() : null)
+            .then(res => res.ok ? res.json() : Promise.resolve(null))
             .then(data => {
-                if (data?.actions?.length > 0) {
+                if (data?.actions && Array.isArray(data.actions)) {
                     bill.actions.items = data.actions;
                 }
             }).catch(e => console.log('Actions fetch failed:', e.message))
@@ -73,9 +83,9 @@ export async function GET(req: NextRequest) {
      if (bill.committees?.url) {
         fetchPromises.push(
              fetch(`${bill.committees.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(10000) })
-            .then(res => res.ok ? res.json() : null)
+            .then(res => res.ok ? res.json() : Promise.resolve(null))
             .then(data => {
-                if (data?.committees?.length > 0) {
+                if (data?.committees && Array.isArray(data.committees)) {
                     bill.committees.items = data.committees;
                 }
             }).catch(e => console.log('Committees fetch failed:', e.message))
@@ -110,16 +120,9 @@ export async function GET(req: NextRequest) {
 
     await Promise.all(fetchPromises);
     
-    // Initialize any missing data structures to prevent client errors
-    bill.cosponsors = bill.cosponsors || { count: 0, url: '', items: [] };
-    bill.committees = bill.committees || { count: 0, items: [] };
-    bill.actions = bill.actions || { count: 0, items: [] };
-    bill.amendments = bill.amendments || { count: 0, items: [] };
-    bill.relatedBills = bill.relatedBills || { count: 0, items: [] };
-    bill.subjects = bill.subjects || { count: 0, items: [] };
-    bill.textVersions = bill.textVersions || { count: 0, items: [] };
-    bill.summaries = bill.summaries || { count: 0, items: [], summary: undefined };
-    bill.allSummaries = bill.allSummaries || [];
+    // Final check to ensure summaries items is populated from allSummaries
+    bill.summaries.items = bill.allSummaries;
+    bill.summaries.count = bill.allSummaries.length;
 
     return NextResponse.json(bill);
 

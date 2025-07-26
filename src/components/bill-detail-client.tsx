@@ -153,7 +153,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   const hasCosponsors = bill.cosponsors?.items && bill.cosponsors.items.length > 0;
   const hasCommittees = bill.committees?.items && bill.committees.items.length > 0;
   const hasLatestSummary = bill.summaries?.summary?.text;
-  const hasAllSummaries = bill.allSummaries && bill.allSummaries.length > 0;
+  const hasAllSummaries = bill.allSummaries && Array.isArray(bill.allSummaries) && bill.allSummaries.length > 0;
   const hasTextVersions = bill.textVersions?.items && bill.textVersions.items.length > 0;
   const hasActions = bill.actions?.items && bill.actions.items.length > 0;
   const hasAmendments = bill.amendments?.items && bill.amendments.items.length > 0;
