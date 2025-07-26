@@ -1,6 +1,14 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import Parser from 'rss-parser';
+import type { NewsArticle } from '@/types';
+
+// Helper to extract image URL from HTML content
+function extractImageUrl(content: string): string | null {
+    if (!content) return null;
+    const imgTagMatch = content.match(/<img[^>]+src="([^">]+)"/);
+    return imgTagMatch ? imgTagMatch[1] : null;
+}
 
 export async function GET(req: NextRequest, { params }: { params: { bioguideId: string } }) {
   const { bioguideId } = params;
@@ -36,8 +44,14 @@ export async function GET(req: NextRequest, { params }: { params: { bioguideId: 
     const parser = new Parser();
     const feed = await parser.parseURL(rssUrl);
 
-    // 4. Return the items
-    return NextResponse.json(feed.items || []);
+    // 4. Process items to include imageUrl
+    const newsItems: NewsArticle[] = (feed.items || []).map(item => ({
+        ...item,
+        imageUrl: extractImageUrl(item.content || ''),
+    }));
+
+    // 5. Return the items
+    return NextResponse.json(newsItems);
 
   } catch (error) {
     console.error(`Error fetching news for ${bioguideId}:`, error);

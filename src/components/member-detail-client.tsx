@@ -183,11 +183,25 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
                     <CardContent>
                          <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                             {member.news?.map((article, index) => (
-                                <a href={article.link} target="_blank" rel="noopener noreferrer" key={index} className="block p-3 bg-secondary/50 rounded-md hover:bg-secondary transition-colors">
-                                    <p className="font-semibold text-sm">{article.title}</p>
-                                    <div className="text-xs text-muted-foreground mt-2 flex justify-between items-center">
-                                       {article.source?._ && <span>{article.source._}</span>}
-                                       <span>{formatDate(article.pubDate)}</span>
+                                <a href={article.link} target="_blank" rel="noopener noreferrer" key={index} className="flex items-start gap-4 p-3 bg-secondary/50 rounded-md hover:bg-secondary transition-colors">
+                                    {article.imageUrl && (
+                                        <div className="relative w-24 h-16 rounded-md overflow-hidden shrink-0">
+                                            <Image 
+                                                src={article.imageUrl}
+                                                alt={article.title || 'News article thumbnail'}
+                                                fill
+                                                className="object-cover"
+                                                data-ai-hint="news photo"
+                                                sizes="96px"
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-sm leading-tight">{article.title}</p>
+                                        <div className="text-xs text-muted-foreground mt-2 flex justify-between items-center">
+                                        {article.source?._ && <span>{article.source._}</span>}
+                                        <span>{formatDate(article.pubDate)}</span>
+                                        </div>
                                     </div>
                                 </a>
                             ))}

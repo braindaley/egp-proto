@@ -8,6 +8,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -215,12 +216,14 @@ export interface NewsArticle {
     title: string;
     link: string;
     pubDate: string;
-    source: {
+    source?: {
         $: {
             url: string;
         };
         _: string;
     }
+    content?: string;
+    imageUrl?: string | null;
 }
 
 export interface Member {
