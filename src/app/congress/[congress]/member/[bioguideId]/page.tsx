@@ -1,6 +1,6 @@
 
 import { notFound } from 'next/navigation';
-import type { Member, SponsoredLegislation, CosponsoredLegislation } from '@/types';
+import type { Member } from '@/types';
 import { MemberDetailClient } from '@/components/member-detail-client';
 
 async function getMemberDetails(bioguideId: string): Promise<Member | null> {
@@ -19,10 +19,11 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
 
     const memberData: Member = await res.json();
 
-    // Fetch sponsored and cosponsored legislation
-    const [sponsoredRes, cosponsoredRes] = await Promise.all([
+    // Fetch sponsored, cosponsored legislation, and news
+    const [sponsoredRes, cosponsoredRes, newsRes] = await Promise.all([
       fetch(`${baseUrl}/api/congress/member/${bioguideId}/sponsored-legislation`),
-      fetch(`${baseUrl}/api/congress/member/${bioguideId}/cosponsored-legislation`)
+      fetch(`${baseUrl}/api/congress/member/${bioguideId}/cosponsored-legislation`),
+      fetch(`${baseUrl}/api/congress/member/${bioguideId}/news`)
     ]);
 
     if (sponsoredRes.ok) {
@@ -31,6 +32,10 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
 
     if (cosponsoredRes.ok) {
       memberData.cosponsoredLegislation = await cosponsoredRes.json();
+    }
+    
+    if (newsRes.ok) {
+        memberData.news = await newsRes.json();
     }
 
     return memberData;

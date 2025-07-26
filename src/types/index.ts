@@ -7,6 +7,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -210,6 +211,17 @@ export interface PartyHistory {
     endYear?: number;
 }
 
+export interface NewsArticle {
+    title: string;
+    link: string;
+    pubDate: string;
+    source: {
+        $: {
+            url: string;
+        };
+        _: string;
+    }
+}
 
 export interface Member {
   bioguideId: string;
@@ -264,6 +276,7 @@ export interface Member {
       url: string;
   };
   updateDate: string;
+  news?: NewsArticle[];
 }
 
 export interface Congress {
