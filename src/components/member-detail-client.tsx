@@ -67,7 +67,7 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
   const cosponsoredCount = Array.isArray(member.cosponsoredLegislation) ? member.cosponsoredLegislation.length : 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-4xl mx-auto">
         <header className="mb-8 flex flex-col md:flex-row items-center gap-6">
             <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-primary/20 shrink-0 shadow-lg">
                 <Image
@@ -89,144 +89,141 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
             </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-                {hasNews && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Newspaper /> Recent News</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                                {member.news?.map((article, index) => (
-                                    <a href={article.link} target="_blank" rel="noopener noreferrer" key={index} className="flex items-start gap-4 p-3 bg-secondary/50 rounded-md hover:bg-secondary transition-colors">
-                                        {article.imageUrl && (
-                                            <div className="relative w-24 h-16 rounded-md overflow-hidden shrink-0">
-                                                <Image 
-                                                    src={article.imageUrl}
-                                                    alt={article.title || 'News article thumbnail'}
-                                                    fill
-                                                    className="object-cover"
-                                                    data-ai-hint="news photo"
-                                                    sizes="96px"
-                                                />
-                                            </div>
-                                        )}
-                                        <div className="flex-1">
-                                            <p className="font-semibold text-sm leading-tight">{article.title}</p>
-                                            <div className="text-xs text-muted-foreground mt-2 flex justify-between items-center">
-                                            {article.source?._ && <span>{article.source._}</span>}
-                                            <span>{formatDate(article.pubDate)}</span>
-                                            </div>
+        <div className="space-y-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><User /> Basic Info</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    <p><strong>State:</strong> {member.state}</p>
+                    {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear)}</p>}
+                    <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
+                    <p><strong>Currently Serving:</strong> {isCurrentlyServing(member) ? 'Yes' : 'No'}</p>
+                    {member.birthYear && <p><strong>Birth Year:</strong> {member.birthYear}</p>}
+                    <p><strong>Bioguide ID:</strong> {member.bioguideId}</p>
+                    {currentTerm?.office && <p><strong>Office:</strong> {currentTerm.office}</p>}
+                    {currentTerm?.phone && <p><strong>Phone:</strong> {currentTerm.phone}</p>}
+                        {member.officialWebsiteUrl && (
+                        <Button asChild size="sm" className="w-full mt-2">
+                            <a href={member.officialWebsiteUrl} target="_blank" rel="noopener noreferrer">
+                                Official Website <ExternalLink className="ml-2 h-4 w-4" />
+                            </a>
+                        </Button>
+                    )}
+                </CardContent>
+            </Card>
+
+            {hasNews && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Newspaper /> Recent News</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                            {member.news?.map((article, index) => (
+                                <a href={article.link} target="_blank" rel="noopener noreferrer" key={index} className="flex items-start gap-4 p-3 bg-secondary/50 rounded-md hover:bg-secondary transition-colors">
+                                    {article.imageUrl && (
+                                        <div className="relative w-24 h-16 rounded-md overflow-hidden shrink-0">
+                                            <Image 
+                                                src={article.imageUrl}
+                                                alt={article.title || 'News article thumbnail'}
+                                                fill
+                                                className="object-cover"
+                                                data-ai-hint="news photo"
+                                                sizes="96px"
+                                            />
                                         </div>
-                                    </a>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Gavel /> Legislative Activity</CardTitle>
-                        <CardDescription>Summary of bills sponsored and cosponsored by the member.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 bg-secondary/50 rounded-lg">
-                            <h3 className="font-semibold mb-2">Sponsored Bills</h3>
-                            <p className="text-3xl font-bold text-primary">{sponsoredCount}</p>
-                        </div>
-                        <div className="p-4 bg-secondary/50 rounded-lg">
-                             <h3 className="font-semibold mb-2">Cosponsored Bills</h3>
-                            <p className="text-3xl font-bold text-primary">{cosponsoredCount}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                 {allTerms.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><History /> Service History</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2 max-h-60 overflow-y-auto">
-                                {allTerms.map((term, index) => (
-                                    <div key={index} className="text-sm p-2 bg-secondary/50 rounded-md">
-                                        <p className="font-semibold">{term.chamber}</p>
-                                        <p className="text-muted-foreground text-xs">
-                                            {term.congress}th Congress ({term.startYear} - {term.endYear || 'Present'})
-                                            {term.district && ` - District ${term.district}`}
-                                        </p>
+                                    )}
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-sm leading-tight">{article.title}</p>
+                                        <div className="text-xs text-muted-foreground mt-2 flex justify-between items-center">
+                                        {article.source?._ && <span>{article.source._}</span>}
+                                        <span>{formatDate(article.pubDate)}</span>
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
-            <div className="space-y-8">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><User /> Basic Info</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-sm">
-                        <p><strong>State:</strong> {member.state}</p>
-                        {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear)}</p>}
-                        <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
-                        <p><strong>Currently Serving:</strong> {isCurrentlyServing(member) ? 'Yes' : 'No'}</p>
-                        {member.birthYear && <p><strong>Birth Year:</strong> {member.birthYear}</p>}
-                        <p><strong>Bioguide ID:</strong> {member.bioguideId}</p>
-                        {currentTerm?.office && <p><strong>Office:</strong> {currentTerm.office}</p>}
-                        {currentTerm?.phone && <p><strong>Phone:</strong> {currentTerm.phone}</p>}
-                         {member.officialWebsiteUrl && (
-                            <Button asChild size="sm" className="w-full mt-2">
-                                <a href={member.officialWebsiteUrl} target="_blank" rel="noopener noreferrer">
-                                    Official Website <ExternalLink className="ml-2 h-4 w-4" />
                                 </a>
-                            </Button>
-                        )}
+                            ))}
+                        </div>
                     </CardContent>
                 </Card>
-                
-                {leadershipHistory.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Star /> Leadership History</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="space-y-2">
-                                {leadershipHistory.map((leadership, index) => (
-                                    <div key={index} className="text-sm p-2 bg-secondary/50 rounded-md">
-                                        <p className="font-semibold">{leadership.type}</p>
-                                        <p className="text-muted-foreground text-xs">{leadership.congress}th Congress</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
+            )}
 
-                {member.partyHistory && member.partyHistory.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Info /> Party History</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="space-y-2">
-                                {member.partyHistory.map((party, index) => (
-                                    <div key={index} className="text-sm p-2 bg-secondary/50 rounded-md flex items-center gap-2">
-                                        <Badge variant="outline">{party.partyAbbreviation}</Badge>
-                                        <div>
-                                            <p className="font-semibold">{party.partyName}</p>
-                                            <p className="text-muted-foreground text-xs">{party.startYear} - {party.endYear || 'Present'}</p>
-                                        </div>
+                <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Gavel /> Legislative Activity</CardTitle>
+                    <CardDescription>Summary of bills sponsored and cosponsored by the member.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-secondary/50 rounded-lg">
+                        <h3 className="font-semibold mb-2">Sponsored Bills</h3>
+                        <p className="text-3xl font-bold text-primary">{sponsoredCount}</p>
+                    </div>
+                    <div className="p-4 bg-secondary/50 rounded-lg">
+                            <h3 className="font-semibold mb-2">Cosponsored Bills</h3>
+                        <p className="text-3xl font-bold text-primary">{cosponsoredCount}</p>
+                    </div>
+                </CardContent>
+            </Card>
+
+                {allTerms.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><History /> Service History</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {allTerms.map((term, index) => (
+                                <div key={index} className="text-sm p-2 bg-secondary/50 rounded-md">
+                                    <p className="font-semibold">{term.chamber}</p>
+                                    <p className="text-muted-foreground text-xs">
+                                        {term.congress}th Congress ({term.startYear} - {term.endYear || 'Present'})
+                                        {term.district && ` - District ${term.district}`}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+            
+            {leadershipHistory.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Star /> Leadership History</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                            <div className="space-y-2">
+                            {leadershipHistory.map((leadership, index) => (
+                                <div key={index} className="text-sm p-2 bg-secondary/50 rounded-md">
+                                    <p className="font-semibold">{leadership.type}</p>
+                                    <p className="text-muted-foreground text-xs">{leadership.congress}th Congress</p>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {member.partyHistory && member.partyHistory.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Info /> Party History</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                            <div className="space-y-2">
+                            {member.partyHistory.map((party, index) => (
+                                <div key={index} className="text-sm p-2 bg-secondary/50 rounded-md flex items-center gap-2">
+                                    <Badge variant="outline">{party.partyAbbreviation}</Badge>
+                                    <div>
+                                        <p className="font-semibold">{party.partyName}</p>
+                                        <p className="text-muted-foreground text-xs">{party.startYear} - {party.endYear || 'Present'}</p>
                                     </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     </div>
   );
