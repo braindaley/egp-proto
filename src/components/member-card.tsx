@@ -36,11 +36,12 @@ function getFirstTerm(member: Member) {
 }
 
 function isCurrentlyServing(member: Member): boolean {
-    if (member.deathDate) return false;
+    if (member.deathDate) return false; // Deceased members are not currently serving.
     if (!member.terms?.item) return false;
     
     const currentYear = new Date().getFullYear();
-    // Check if any term period includes the current year
+    // Check if any term period includes the current year.
+    // This is a more reliable way to check for active service.
     return member.terms.item.some(term => term.startYear <= currentYear && term.endYear >= currentYear);
 }
 
