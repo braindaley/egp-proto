@@ -2,12 +2,11 @@
 'use client';
 
 import type { Member } from '@/types';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, MapPin, Phone, Building2, User, Clock } from 'lucide-react';
+import { Calendar, MapPin, Phone, Building2, User, Clock, ExternalLink } from 'lucide-react';
 
 interface MemberCardProps {
   member: Member;
@@ -98,8 +97,9 @@ export function MemberCard({ member, congress }: MemberCardProps) {
   const locationDisplay = `${member.state}${member.district ? ` (District ${member.district})` : ''}`;
 
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-200">
-      <CardContent className="p-6">
+    <Link href={detailUrl} className="flex h-full">
+    <Card className="flex flex-col w-full hover:shadow-lg transition-shadow duration-200">
+      <CardContent className="p-6 flex-grow">
         {/* Header with Photo and Basic Info */}
         <div className="flex items-start gap-4 mb-4">
           <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
@@ -115,9 +115,7 @@ export function MemberCard({ member, congress }: MemberCardProps) {
           
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-lg text-gray-900 truncate mb-1">
-              <Link href={detailUrl} className="hover:underline">
                 {member.name}
-              </Link>
             </h3>
             
             <div className="flex items-center gap-2 mb-2">
@@ -178,7 +176,7 @@ export function MemberCard({ member, congress }: MemberCardProps) {
 
         {/* Contact Information */}
         {(currentTerm?.phone || currentTerm?.office) && (
-          <div className="border-t pt-3 mb-4 space-y-1">
+          <div className="border-t pt-3 space-y-1">
             <h4 className="text-sm font-medium text-gray-700 mb-2">Contact</h4>
             
             {currentTerm.office && (
@@ -196,14 +194,16 @@ export function MemberCard({ member, congress }: MemberCardProps) {
             )}
           </div>
         )}
-
-        {/* Action Button */}
-        <Button asChild className="w-full" size="sm">
-          <Link href={detailUrl}>
-            View Details
-          </Link>
-        </Button>
       </CardContent>
+
+       {/* Footer */}
+        <CardFooter className="mt-auto flex justify-end items-center text-xs text-muted-foreground pt-4 border-t">
+            <div className="flex items-center gap-1 font-semibold text-primary">
+                <span>Read More</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+            </div>
+        </CardFooter>
     </Card>
+    </Link>
   );
 }
