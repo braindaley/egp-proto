@@ -19,7 +19,7 @@ function formatDate(dateString: string | undefined | number) {
     }
     // Add a dummy time to avoid timezone issues if only date is provided
     const date = new Date(dateString.includes('T') || dateString.includes('GMT') ? dateString : `${dateString}T12:00:00Z`);
-    return date.toLocaleDate's' day: 'numeric', timeZone: 'UTC' });
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 }
 
 function calculateYearsOfService(firstTerm: MemberTerm | undefined): number | string {
