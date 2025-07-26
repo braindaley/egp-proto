@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Member, MemberTerm, Leadership, PartyHistory, NewsArticle } from '@/types';
@@ -40,14 +41,14 @@ function isCurrentlyServing(member: Member): boolean {
     return member.terms.item.some(term => term.startYear <= currentYear && term.endYear >= currentYear);
 }
 
-function getCurrentTerm(terms: MemberTerm[]): MemberTerm | undefined {
+function getCurrentTerm(terms: MemberTerm[] | undefined): MemberTerm | undefined {
     if (!terms || terms.length === 0) return undefined;
     // Sort by congress number descending to get the most recent term
     const sortedTerms = [...terms].sort((a, b) => (b.congress || 0) - (a.congress || 0));
     return sortedTerms[0];
 }
 
-function getFirstTerm(terms: MemberTerm[]): MemberTerm | undefined {
+function getFirstTerm(terms: MemberTerm[] | undefined): MemberTerm | undefined {
     if (!terms || terms.length === 0) return undefined;
     // Sort by start year ascending to get the earliest term
     const sortedTerms = [...terms].sort((a, b) => a.startYear - b.startYear);
@@ -55,9 +56,9 @@ function getFirstTerm(terms: MemberTerm[]): MemberTerm | undefined {
 }
 
 export function MemberDetailClient({ member, congress }: { member: CongressApiMember, congress: string }) {
-  const allTerms = member.terms?.item?.slice().sort((a, b) => a.startYear - b.startYear) || [];
-  const firstTerm = getFirstTerm(member.terms.item || []);
-  const currentTerm = getCurrentTerm(member.terms.item || []);
+  const allTerms = member.terms?.item?.slice().sort((a, b) => b.startYear - a.startYear) || [];
+  const firstTerm = getFirstTerm(member.terms?.item);
+  const currentTerm = getCurrentTerm(member.terms?.item);
   
   const yearsOfService = calculateYearsOfService(firstTerm);
   const leadershipHistory = (member.leadership || []).sort((a,b) => b.congress - a.congress);
@@ -185,7 +186,7 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
                                 <a href={article.link} target="_blank" rel="noopener noreferrer" key={index} className="block p-3 bg-secondary/50 rounded-md hover:bg-secondary transition-colors">
                                     <p className="font-semibold text-sm">{article.title}</p>
                                     <div className="text-xs text-muted-foreground mt-2 flex justify-between items-center">
-                                       <span>{article.source._}</span>
+                                       {article.source?._ && <span>{article.source._}</span>}
                                        <span>{formatDate(article.pubDate)}</span>
                                     </div>
                                 </a>
