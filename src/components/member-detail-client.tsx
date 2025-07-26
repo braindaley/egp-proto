@@ -1,13 +1,11 @@
-
 'use client';
 
-import type { Member, MemberTerm, SponsoredLegislation, CosponsoredLegislation, Leadership, PartyHistory } from '@/types';
+import type { Member, MemberTerm, Leadership, PartyHistory } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Building, Calendar, MapPin, Briefcase, ExternalLink, Phone, User, Gavel, FileText, Users, Star, History, Info } from 'lucide-react';
 import { Button } from './ui/button';
-import { getBillTypeSlug } from '@/lib/utils';
 import Link from 'next/link';
 import {
   Table,
@@ -19,6 +17,43 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+// Updated types to match Congress API response
+interface CongressApiMember {
+  addressInformation: {
+    city: string;
+    district: string;
+    officeAddress: string;
+    phoneNumber: string;
+    zipCode: number;
+  };
+  bioguideId: string;
+  birthYear: string;
+  cosponsoredLegislation: {
+    count: number;
+    url: string;
+  };
+  currentMember: boolean;
+  depiction: {
+    attribution: string;
+    imageUrl: string;
+  };
+  directOrderName: string;
+  district: number;
+  firstName: string;
+  honorificName: string;
+  invertedOrderName: string;
+  lastName: string;
+  leadership: Leadership[];
+  officialWebsiteUrl: string;
+  partyHistory: PartyHistory[];
+  sponsoredLegislation: {
+    count: number;
+    url: string;
+  };
+  state: string;
+  terms: MemberTerm[];
+  updateDate: string;
+}
 
 function formatDate(dateString: string | undefined | number) {
     if (!dateString) return 'N/A';
@@ -40,60 +75,28 @@ function calculateYearsOfService(firstTerm: MemberTerm | undefined): number | st
     return years > 0 ? years : 1; // Show at least 1 year of service
 }
 
-function isCurrentlyServing(member: Member): boolean {
-    if (member.deathDate) return false;
-    if (!member.terms?.item) return false;
-    
-    const currentYear = new Date().getFullYear();
-    // Check if any term period includes the current year
-    return member.terms.item.some(term => term.startYear <= currentYear && term.endYear >= currentYear);
+function isCurrentlyServing(member: CongressApiMember): boolean {
+    return member.currentMember;
 }
 
-const LegislationTable = ({ bills, type, congress }: { bills: (SponsoredLegislation | CosponsoredLegislation)[], type: 'sponsored' | 'cosponsored', congress: string }) => {
-    if (!bills || bills.length === 0) {
-        return <p className="text-muted-foreground text-sm">No {type} bills found.</p>
-    }
-    return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Bill</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead className="hidden md:table-cell">Date</TableHead>
-                    <TableHead className="hidden md:table-cell">Status</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {bills.map((bill) => {
-                    const billTypeSlug = getBillTypeSlug(bill.type);
-                    const detailUrl = bill.type ? `/bill/${bill.congress}/${billTypeSlug}/${bill.number}` : '#';
+function getCurrentTerm(terms: MemberTerm[]): MemberTerm | undefined {
+    if (!terms || terms.length === 0) return undefined;
+    // Sort by congress number descending to get the most recent term
+    const sortedTerms = [...terms].sort((a, b) => (b.congress || 0) - (a.congress || 0));
+    return sortedTerms[0];
+}
 
-                    const date = type === 'sponsored' ? (bill as SponsoredLegislation).introducedDate : (bill as CosponsoredLegislation).cosponsoredDate;
+function getFirstTerm(terms: MemberTerm[]): MemberTerm | undefined {
+    if (!terms || terms.length === 0) return undefined;
+    // Sort by start year ascending to get the earliest term
+    const sortedTerms = [...terms].sort((a, b) => a.startYear - b.startYear);
+    return sortedTerms[0];
+}
 
-                    return (
-                        <TableRow key={`${bill.type}-${bill.number}`}>
-                             <TableCell className="font-medium">
-                                <Link href={detailUrl} className="hover:underline">
-                                    {bill.type} {bill.number}
-                                </Link>
-                            </TableCell>
-                            <TableCell>{bill.title}</TableCell>
-                            <TableCell className="hidden md:table-cell">{formatDate(date)}</TableCell>
-                             <TableCell className="hidden md:table-cell text-xs">{bill.latestAction?.text || 'N/A'}</TableCell>
-                        </TableRow>
-                    );
-                })}
-            </TableBody>
-        </Table>
-    );
-};
-
-
-export function MemberDetailClient({ member, congress }: { member: Member, congress: string }) {
-
-  const allTerms = member.terms?.item?.slice().sort((a, b) => a.startYear - b.startYear) || [];
-  const firstTerm = allTerms[0];
-  const currentTerm = [...(member.terms?.item || [])].sort((a,b) => b.startYear - a.startYear)[0];
+export function MemberDetailClient({ member, congress }: { member: CongressApiMember, congress: string }) {
+  const allTerms = member.terms?.slice().sort((a, b) => a.startYear - b.startYear) || [];
+  const firstTerm = getFirstTerm(member.terms);
+  const currentTerm = getCurrentTerm(member.terms);
   
   const yearsOfService = calculateYearsOfService(firstTerm);
   const leadershipHistory = (member.leadership || []).sort((a,b) => b.congress - a.congress);
@@ -104,7 +107,7 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
             <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-primary/20 shrink-0 shadow-lg">
                 <Image
                     src={member.depiction?.imageUrl || 'https://placehold.co/300x300.png'}
-                    alt={`Portrait of ${member.name}`}
+                    alt={`Portrait of ${member.directOrderName}`}
                     fill
                     sizes="160px"
                     className="object-cover"
@@ -116,7 +119,7 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
                     {member.directOrderName}
                 </h1>
                 <p className="text-xl text-muted-foreground mt-1 text-center md:text-left">
-                    {currentTerm?.chamber} for {member.state} {currentTerm?.district ? `(District ${currentTerm.district})` : ''}
+                    {currentTerm?.chamber} for {member.state} {member.district ? `(District ${member.district})` : ''}
                 </p>
             </div>
         </header>
@@ -129,11 +132,9 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                     <p><strong>Full Name:</strong> {member.directOrderName}</p>
-                    {member.birthDate && <p><strong>Born:</strong> {formatDate(member.birthDate)} {member.birthLocation && `in ${member.birthLocation}`}</p>}
-                    {member.deathDate && <p><strong>Died:</strong> {formatDate(member.deathDate)}</p>}
-                    {member.profession && <p><strong>Profession:</strong> {member.profession}</p>}
-                    {member.education && <p><strong>Education:</strong> {member.education}</p>}
-                    {member.family && <p><strong>Family:</strong> {member.family}</p>}
+                    <p><strong>Bioguide ID:</strong> {member.bioguideId}</p>
+                    {member.birthYear && <p><strong>Birth Year:</strong> {member.birthYear}</p>}
+                    <p><strong>Currently Serving:</strong> {member.currentMember ? 'Yes' : 'No'}</p>
                 </CardContent>
             </Card>
             
@@ -144,8 +145,8 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
                 <CardContent className="space-y-3 text-sm">
                     {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear)}</p>}
                     <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
-                    {currentTerm?.office && <p><strong>Office:</strong> {currentTerm.office}</p>}
-                    {currentTerm?.phone && <p><strong>Phone:</strong> {currentTerm.phone}</p>}
+                    <p><strong>Current District:</strong> {member.district}</p>
+                    <p><strong>State:</strong> {member.state}</p>
                     {member.officialWebsiteUrl && (
                         <Button asChild size="sm" className="w-full mt-2">
                             <a href={member.officialWebsiteUrl} target="_blank" rel="noopener noreferrer">
@@ -153,6 +154,18 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
                             </a>
                         </Button>
                     )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Building /> Contact Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    <p><strong>Office Address:</strong> {member.addressInformation.officeAddress}</p>
+                    <p><strong>City:</strong> {member.addressInformation.city}, {member.addressInformation.district}</p>
+                    <p><strong>Zip Code:</strong> {member.addressInformation.zipCode}</p>
+                    <p><strong>Phone:</strong> {member.addressInformation.phoneNumber}</p>
                 </CardContent>
             </Card>
 
@@ -177,25 +190,35 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Gavel /> Legislative Activity</CardTitle>
-                    <CardDescription>Recent bills sponsored and cosponsored by the member.</CardDescription>
+                    <CardDescription>Summary of bills sponsored and cosponsored by the member.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                        <Tabs defaultValue="sponsored">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="sponsored">
-                                <FileText className="mr-2" /> Sponsored ({member.sponsoredLegislation?.length || 0})
-                            </TabsTrigger>
-                            <TabsTrigger value="cosponsored">
-                                <Users className="mr-2" /> Cosponsored ({member.cosponsoredLegislation?.length || 0})
-                            </TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="sponsored">
-                            <LegislationTable bills={member.sponsoredLegislation || []} type="sponsored" congress={congress}/>
-                        </TabsContent>
-                        <TabsContent value="cosponsored">
-                            <LegislationTable bills={member.cosponsoredLegislation || []} type="cosponsored" congress={congress}/>
-                        </TabsContent>
-                    </Tabs>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 bg-secondary/50 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                                <FileText className="h-5 w-5" />
+                                <h3 className="font-semibold">Sponsored Bills</h3>
+                            </div>
+                            <p className="text-2xl font-bold text-primary">{member.sponsoredLegislation.count}</p>
+                            <Button asChild size="sm" variant="outline" className="mt-2">
+                                <a href={member.sponsoredLegislation.url} target="_blank" rel="noopener noreferrer">
+                                    View All <ExternalLink className="ml-2 h-4 w-4" />
+                                </a>
+                            </Button>
+                        </div>
+                        <div className="p-4 bg-secondary/50 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Users className="h-5 w-5" />
+                                <h3 className="font-semibold">Cosponsored Bills</h3>
+                            </div>
+                            <p className="text-2xl font-bold text-primary">{member.cosponsoredLegislation.count}</p>
+                            <Button asChild size="sm" variant="outline" className="mt-2">
+                                <a href={member.cosponsoredLegislation.url} target="_blank" rel="noopener noreferrer">
+                                    View All <ExternalLink className="ml-2 h-4 w-4" />
+                                </a>
+                            </Button>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -207,9 +230,33 @@ export function MemberDetailClient({ member, congress }: { member: Member, congr
                     <CardContent>
                          <div className="space-y-2">
                             {member.partyHistory.map((party, index) => (
+                                <div key={index} className="text-sm p-2 bg-secondary/50 rounded-md flex items-center gap-2">
+                                    <Badge variant="outline">{party.partyAbbreviation}</Badge>
+                                    <div>
+                                        <p className="font-semibold">{party.partyName}</p>
+                                        <p className="text-muted-foreground text-xs">{party.startYear} - Present</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {member.terms && member.terms.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><History /> Service History</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {member.terms.map((term, index) => (
                                 <div key={index} className="text-sm p-2 bg-secondary/50 rounded-md">
-                                    <p className="font-semibold">{party.partyName}</p>
-                                    <p className="text-muted-foreground text-xs">{party.startYear} - {party.endYear || 'Present'}</p>
+                                    <p className="font-semibold">{term.chamber}</p>
+                                    <p className="text-muted-foreground text-xs">
+                                        {term.congress}th Congress ({term.startYear} - {term.endYear || 'Present'})
+                                        {term.district && ` - District ${term.district}`}
+                                    </p>
                                 </div>
                             ))}
                         </div>
