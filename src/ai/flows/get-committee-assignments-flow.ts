@@ -33,7 +33,7 @@ const getCommitteeAssignmentsFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await committeeAssignmentsPrompt(input);
-    return output || 'No committee assignment information could be generated at this time.';
+    return output ?? 'No committee assignment information could be generated at this time.';
   }
 );
 
