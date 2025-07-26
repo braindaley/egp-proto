@@ -56,10 +56,12 @@ function isCurrentlyServing(member: Member): boolean {
     // Check if any term indicates current service
     return termsArray.some(term => {
         const hasStarted = term.startYear <= currentYear;
+        // A member is currently serving if their term has no end date OR the end date is in the future.
+        // If the end year is the current year, they are considered a former member.
         const stillServing = !term.endYear || 
                            term.endYear === null || 
                            term.endYear === undefined || 
-                           term.endYear >= currentYear;
+                           term.endYear > currentYear;
         return hasStarted && stillServing;
     });
 }

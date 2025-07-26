@@ -1,3 +1,4 @@
+
 'use client';
 import type { Member, MemberTerm, Leadership, PartyHistory, NewsArticle, SponsoredLegislation, CosponsoredLegislation } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -56,14 +57,14 @@ function isCurrentlyServing(member: Member): boolean {
     
     // Check if any term indicates current service
     return termsArray.some(term => {
-        // Member started serving by current year
         const hasStarted = term.startYear <= currentYear;
         
-        // Member either has no end year (still serving) or end year is current/future
+        // A member is currently serving if their term has no end date OR the end date is in the future.
+        // If the end year is the current year, they are considered a former member.
         const stillServing = !term.endYear || 
                            term.endYear === null || 
                            term.endYear === undefined || 
-                           term.endYear >= currentYear;
+                           term.endYear > currentYear;
         
         return hasStarted && stillServing;
     });
@@ -150,8 +151,8 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
   const currentlyServing = isCurrentlyServing(member);
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-        <header className="mb-8 flex flex-col md:flex-row items-center gap-6">
+    <div className="space-y-8">
+        <header className="mb-8 flex flex-col items-center gap-6">
             <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-primary/20 shrink-0 shadow-lg">
                 <Image
                     src={member.depiction?.imageUrl || 'https://placehold.co/300x300.png'}
@@ -164,13 +165,13 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
                 />
             </div>
             <div>
-                <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary text-center md:text-left">
+                <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary text-center">
                     {member.directOrderName}
                 </h1>
-                <p className="text-xl text-muted-foreground mt-1 text-center md:text-left">
+                <p className="text-xl text-muted-foreground mt-1 text-center">
                     {currentTerm?.chamber} for {member.state} {member.district ? `(District ${member.district})` : ''}
                 </p>
-                <div className="flex justify-center md:justify-start mt-2">
+                <div className="flex justify-center mt-2">
                     <Badge variant={currentlyServing ? "default" : "secondary"}>
                         {currentlyServing ? 'Current Member' : 'Former Member'}
                     </Badge>
@@ -370,5 +371,3 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
     </div>
   );
 }
-
-    
