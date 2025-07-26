@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, CalendarDays } from 'lucide-react';
+import { ArrowRight, Landmark, CalendarDays } from 'lucide-react';
 import { getBillTypeSlug } from '@/lib/utils';
 
 function formatDate(dateString: string) {
@@ -59,8 +59,8 @@ export function BillCard({ bill }: { bill: Bill }) {
                 <span>Updated: {formatDate(bill.updateDate)}</span>
             </div>
              <div className="flex items-center gap-1 font-semibold text-primary">
-                <span>Read More</span>
-                <ExternalLink className="h-3.5 w-3.5" />
+                <span>View Bill</span>
+                <ArrowRight className="h-3.5 w-3.5" />
             </div>
         </CardFooter>
         </Card>
