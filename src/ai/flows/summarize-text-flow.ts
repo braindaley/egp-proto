@@ -9,6 +9,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { convert } from 'html-to-text';
 
 const SummarizeTextInputSchema = z.string();
 export type SummarizeTextInput = z.infer<typeof SummarizeTextInputSchema>;
@@ -53,7 +54,13 @@ const summarizeTextFlow = ai.defineFlow(
     outputSchema: SummarizeTextOutputSchema,
   },
   async (text) => {
-    const { output } = await summaryPrompt(text);
+    // Convert HTML to plain text and truncate to avoid token limits
+    const plainText = convert(text, {
+        wordwrap: false,
+    });
+    const truncatedText = plainText.substring(0, 25000);
+
+    const { output } = await summaryPrompt(truncatedText);
     return output || '';
   }
 );
