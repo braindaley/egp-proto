@@ -12,6 +12,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -307,4 +308,52 @@ export interface CampaignPromisesData {
   congress: string;
   promises: CampaignPromise[];
   lastUpdated: string;
+}
+
+// Types for Voting Records
+export interface Vote {
+    chamber: string;
+    congress: number;
+    date: string;
+    number: number;
+    question: string;
+    session: number;
+    sourceUrl: string;
+    type: string;
+}
+
+export interface MemberVote {
+    member: {
+        bioguideId: string;
+        name: string;
+        party: string;
+        state: string;
+        url: string;
+    };
+    vote: {
+        chamber: string;
+        congress: number;
+        date: string;
+        number: number;
+        question: string;
+        session: number;
+        sourceUrl: string;
+        type: string;
+        position: 'Yes' | 'No' | 'Not Voting' | 'Present';
+    };
+}
+
+export interface ChamberVote {
+    congress: number;
+    chamber: 'House' | 'Senate';
+    session: number;
+    voteNumber: number;
+    date: string;
+    time: string;
+}
+
+export interface ChamberVoteSummary {
+    votes: ChamberVote[];
+    totalVotes: number;
+    averageAttendance: number;
 }
