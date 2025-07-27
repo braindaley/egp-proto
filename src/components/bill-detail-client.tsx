@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { summarizeText, getDemocraticPerspective, getRepublicanPerspective } from '@/ai/flows/summarize-text-flow';
+import { BillTracker } from '@/components/bill-tracker';
 
 
 function formatDate(dateString: string) {
@@ -294,6 +295,8 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                     )}
                 </CardContent>
             </Card>
+
+            {bill.latestAction && <BillTracker latestAction={bill.latestAction} originChamber={bill.originChamber} />}
 
             {hasAllSummaries && (
                 <Card>
@@ -671,3 +674,5 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
     </div>
   );
 }
+
+    
