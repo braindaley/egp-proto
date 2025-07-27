@@ -5,6 +5,8 @@ import type { NextRequest } from 'next/server';
 export async function GET(req: NextRequest, { params }: { params: { congress: string } }) {
   const { congress } = params;
   const API_KEY = process.env.CONGRESS_API_KEY;
+  const { searchParams } = new URL(req.url);
+  const subject = searchParams.get('subject');
 
   if (!API_KEY) {
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
@@ -16,7 +18,12 @@ export async function GET(req: NextRequest, { params }: { params: { congress: st
   }
 
   try {
-    const listUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&limit=20&sort=updateDate+desc`;
+    let listUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&limit=20&sort=updateDate+desc`;
+
+    if (subject) {
+      listUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&limit=50&subject=${encodeURIComponent(subject)}`;
+    }
+    
     const listRes = await fetch(listUrl, { next: { revalidate: 3600 } });
     
     if (!listRes.ok) {

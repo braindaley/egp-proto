@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { summarizeText, getDemocraticPerspective, getRepublicanPerspective } from '@/ai/flows/summarize-text-flow';
 import { BillTracker } from '@/components/bill-tracker';
+import { filterAllowedSubjects } from '@/lib/subjects';
 
 
 function formatDate(dateString: string) {
@@ -251,7 +252,9 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   const hasActions = bill.actions?.items && bill.actions.items.length > 0;
   const hasAmendments = bill.amendments?.items && bill.amendments.items.length > 0;
   const hasRelatedBills = bill.relatedBills?.items && bill.relatedBills.items.length > 0;
-  const hasSubjects = bill.subjects?.items && bill.subjects.items.length > 0;
+  
+  const displaySubjects = filterAllowedSubjects(bill.subjects?.items || []);
+  const hasSubjects = displaySubjects.length > 0;
 
 
   return (
@@ -324,20 +327,10 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                       </CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-wrap gap-2">
-                     {bill.subjects.items.map((subject, index) => (
-                        <div key={index}>
-                            {'url' in subject ? (
-                                <a href={subject.url} target="_blank" rel="noopener noreferrer">
-                                    <Badge variant="secondary" className="text-xs hover:bg-primary/10 transition-colors">
-                                        {subject.name}
-                                    </Badge>
-                                </a>
-                            ) : (
-                                <Badge variant="secondary" className="text-xs">
-                                    {subject.name}
-                                </Badge>
-                            )}
-                        </div>
+                     {displaySubjects.map((subject, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                            {subject}
+                        </Badge>
                      ))}
                   </CardContent>
               </Card>
