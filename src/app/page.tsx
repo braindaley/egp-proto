@@ -1,7 +1,6 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -18,9 +17,8 @@ export default function Home() {
 
         <div className="flex justify-center">
           <Button asChild size="lg">
-            <Link href="/bills">
-              Explore Recent Bills
-              <ArrowRight className="ml-2 h-5 w-5" />
+            <Link href="/signup">
+              Sign Up
             </Link>
           </Button>
         </div>
