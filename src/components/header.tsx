@@ -2,10 +2,16 @@
 'use client';
 
 import Link from 'next/link';
-import { Landmark, LogOut, User, Loader2 } from 'lucide-react';
+import { Landmark, LogOut, User, Loader2, ChevronDown } from 'lucide-react';
 import { CongressSelector } from './congress-selector';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export function Header() {
   const { user, loading, logout, selectedCongress } = useAuth();
@@ -27,9 +33,24 @@ export function Header() {
                 <CongressSelector />
               </li>
               <li>
-                <Link href={billsHref} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                  Bills
-                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                      Bills <ChevronDown className="ml-1 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem asChild>
+                      <Link href={`${billsHref}/recent`}>Recent Updates</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`${billsHref}/popular`}>Popular Bills</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`${billsHref}/issues`}>By Issue</Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </li>
               <li>
                 <Link href={congressHref} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
