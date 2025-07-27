@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Bill, Amendment, RelatedBill, Summary, TextVersion } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2, ChevronsUpDown, FileJson, Tags, BookText, Download, Loader2, History } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FilePlus2, ChevronsUpDown, FileJson, Tags, BookText, Download, Loader2, History, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -414,10 +414,13 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                               </h4>
                               <ul className="space-y-2">
                                   {bill.sponsors.map((sponsor, index) => (
-                                      <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
-                                          <a href={sponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
-                                              {sponsor.fullName} ({sponsor.party}-{sponsor.state}) <ExternalLink className="h-3 w-3" />
-                                          </a>
+                                      <li key={index} className="flex items-center justify-between p-2 bg-secondary/50 rounded-md">
+                                          <span className="font-semibold text-sm">{sponsor.fullName} ({sponsor.party}-{sponsor.state})</span>
+                                           <Button asChild variant="link" size="sm" className="h-auto p-0">
+                                              <Link href={`/congress/${bill.congress}/member/${sponsor.bioguideId}`}>
+                                                  View Member <ArrowRight className="ml-1 h-3 w-3" />
+                                              </Link>
+                                          </Button>
                                       </li>
                                   ))}
                               </ul>
@@ -434,10 +437,13 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                               </h4>
                                 <ul className="space-y-2 max-h-60 overflow-y-auto">
                                   {bill.cosponsors?.items?.map((cosponsor, index) => (
-                                      <li key={index} className="text-xs p-2 bg-secondary/50 rounded-md">
-                                          <a href={cosponsor.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex justify-between items-center">
-                                              {cosponsor.fullName} ({cosponsor.party}-{cosponsor.state}) <ExternalLink className="h-3 w-3" />
-                                          </a>
+                                      <li key={index} className="flex items-center justify-between p-2 bg-secondary/50 rounded-md">
+                                          <span className="font-semibold text-sm">{cosponsor.fullName} ({cosponsor.party}-{cosponsor.state})</span>
+                                          <Button asChild variant="link" size="sm" className="h-auto p-0">
+                                              <Link href={`/congress/${bill.congress}/member/${cosponsor.bioguideId}`}>
+                                                   View Member <ArrowRight className="ml-1 h-3 w-3" />
+                                              </Link>
+                                          </Button>
                                       </li>
                                   ))}
                               </ul>
@@ -675,5 +681,3 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
     </div>
   );
 }
-
-    
