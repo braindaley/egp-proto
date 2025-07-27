@@ -1,6 +1,6 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Bill, Subject, PolicyArea } from '@/types';
+import { filterAllowedSubjects } from '@/lib/subjects'; // ADD THIS LINE
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -110,11 +110,12 @@ export async function GET(req: NextRequest) {
         );
     }
 
-    // Subjects - with pagination
+    // Subjects - with pagination and filtering
     if (bill.subjects?.url) {
         const fetchAllSubjects = async () => {
             let allSubjects: (Subject | PolicyArea)[] = [];
             let nextUrl: string | undefined = `${bill.subjects.url}&api_key=${API_KEY}&limit=250`;
+            
             while (nextUrl) {
                 try {
                     const res = await fetch(nextUrl, { signal: AbortSignal.timeout(10000) });
@@ -133,13 +134,26 @@ export async function GET(req: NextRequest) {
                     break;
                 }
             }
+            
             if (allSubjects.length > 0) {
-                bill.subjects.items = allSubjects;
+                // Extract subject names for filtering
+                const subjectNames = allSubjects.map((subject: any) => subject.name).filter(name => name);
+                
+                // Filter to only show allowed subjects
+                const filteredSubjectNames = filterAllowedSubjects(subjectNames);
+                
+                // Convert back to subject objects format
+                const filteredSubjects = filteredSubjectNames.map(name => ({ name }));
+                
+                // Update bill subjects with filtered results
+                bill.subjects.items = filteredSubjects;
+                bill.subjects.count = filteredSubjects.length;
+                
+                console.log(`✅ Bill ${billType?.toUpperCase()} ${billNumber}: Filtered subjects from ${allSubjects.length} to ${filteredSubjects.length} allowed subjects`);
             }
         };
         fetchPromises.push(fetchAllSubjects());
     }
-
 
     await Promise.all(fetchPromises);
     
@@ -151,7 +165,6 @@ export async function GET(req: NextRequest) {
         bill.summaries.items = [];
         bill.summaries.count = 0;
     }
-
 
     return NextResponse.json(bill);
 

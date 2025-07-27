@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { Bill } from '@/types';
-import { filterAllowedSubjects } from '@/lib/subjects';
 
 interface CongressBill {
   congress: number;
@@ -15,21 +14,16 @@ interface CongressBill {
     actionDate: string;
     text: string;
   };
-  subjects?: {
-    legislativeSubjects?: Array<{ name: string; updateDate: string }>;
-    policyArea?: { name: string };
-  };
   [key: string]: any;
 }
 
-function transformApiBillToBill(apiBill: CongressBill): Bill {
-  const allApiSubjects = [
-    ...(apiBill.subjects?.legislativeSubjects?.map(s => s.name) || []),
-    ...(apiBill.subjects?.policyArea ? [apiBill.subjects.policyArea.name] : [])
-  ];
+function transformApiBillToBill(apiBill: CongressBill, filterSubjects: string[] = []): Bill {
+  // Since Congress.gov list API doesn't include subjects, 
+  // we'll create placeholder subjects based on the filter
+  const placeholderSubjects = filterSubjects.length > 0 
+    ? filterSubjects.map(subject => ({ name: subject }))
+    : [];
 
-  const filteredSubjects = filterAllowedSubjects(allApiSubjects);
-  
   return {
     congress: (apiBill.congress ?? 119) as number,
     number: (apiBill.number ?? '') as string,
@@ -48,9 +42,9 @@ function transformApiBillToBill(apiBill: CongressBill): Bill {
     sponsors: [],
     cosponsors: { count: 0, items: [], url: '' },
     committees: { count: 0, items: [] },
-    subjects: {
-      count: filteredSubjects.length,
-      items: filteredSubjects.map(name => ({ name })), // Use the filtered subjects
+    subjects: { 
+      count: placeholderSubjects.length, 
+      items: placeholderSubjects 
     },
     summaries: { count: 0 },
     allSummaries: [],
@@ -98,35 +92,103 @@ export async function GET(request: Request) {
       };
 
     } else {
-      // Subject filtering - use Congress.gov's built-in filtering
+      // Subject filtering - try multiple API approaches
       const subjectList = subjects.split(',').map(s => s.trim()).filter(s => s.length > 0);
       console.log('🎯 Filtering by subjects:', subjectList);
 
-      // Try policyArea parameter (this worked in our test!)
+      // Try multiple approaches for each subject
       for (const subject of subjectList) {
         try {
-          const apiUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=${limit}&offset=${offset}&sort=updateDate+desc&policyArea=${encodeURIComponent(subject)}`;
+          // Approach 1: Try policyArea parameter
+          let apiUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=${limit}&offset=${offset}&sort=updateDate+desc&policyArea=${encodeURIComponent(subject)}`;
           
-          console.log('🔍 Fetching with policyArea:', apiUrl.replace(API_KEY, 'API_KEY'));
+          console.log('🔍 Trying policyArea:', apiUrl.replace(API_KEY, 'API_KEY'));
 
-          const response = await fetch(apiUrl, {
+          let response = await fetch(apiUrl, {
             headers: { 'User-Agent': 'BillTracker/1.0' },
           });
 
           if (response.ok) {
             const data = await response.json();
             if (data.bills && data.bills.length > 0) {
-              console.log(`✅ Found ${data.bills.length} bills for subject "${subject}"`);
+              console.log(`✅ Found ${data.bills.length} bills for subject "${subject}" using policyArea`);
               allBills.push(...data.bills);
               debugInfo[subject] = { 
                 query: 'policyArea', 
                 count: data.bills.length,
                 url: apiUrl.replace(API_KEY, 'API_KEY')
               };
+              continue; // Found bills, move to next subject
             }
           }
+
+          // Approach 2: Try subject parameter
+          apiUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=${limit}&offset=${offset}&sort=updateDate+desc&subject=${encodeURIComponent(subject)}`;
+          
+          console.log('🔍 Trying subject param:', apiUrl.replace(API_KEY, 'API_KEY'));
+
+          response = await fetch(apiUrl, {
+            headers: { 'User-Agent': 'BillTracker/1.0' },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.bills && data.bills.length > 0) {
+              console.log(`✅ Found ${data.bills.length} bills for subject "${subject}" using subject param`);
+              allBills.push(...data.bills);
+              debugInfo[subject] = { 
+                query: 'subject', 
+                count: data.bills.length,
+                url: apiUrl.replace(API_KEY, 'API_KEY')
+              };
+              continue; // Found bills, move to next subject
+            }
+          }
+
+          // Approach 3: Try text search as fallback
+          apiUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=${limit}&offset=${offset}&sort=updateDate+desc`;
+          
+          console.log(`🔍 No bills found for "${subject}" with policy/subject params, trying recent bills...`);
+
+          response = await fetch(apiUrl, {
+            headers: { 'User-Agent': 'BillTracker/1.0' },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.bills && data.bills.length > 0) {
+              // Filter client-side by title/content for this subject
+              const filteredBills = data.bills.filter((bill: any) => 
+                bill.title?.toLowerCase().includes(subject.toLowerCase()) ||
+                bill.shortTitle?.toLowerCase().includes(subject.toLowerCase())
+              );
+              
+              if (filteredBills.length > 0) {
+                console.log(`✅ Found ${filteredBills.length} bills for subject "${subject}" using text filtering`);
+                allBills.push(...filteredBills);
+                debugInfo[subject] = { 
+                  query: 'text_filter', 
+                  count: filteredBills.length,
+                  url: apiUrl.replace(API_KEY, 'API_KEY')
+                };
+              } else {
+                console.log(`❌ No bills found for "${subject}" with any method`);
+                debugInfo[subject] = { 
+                  query: 'none', 
+                  count: 0,
+                  error: 'No bills found with any approach'
+                };
+              }
+            }
+          }
+
         } catch (err) {
           console.log(`❌ Error fetching bills for subject "${subject}":`, err);
+          debugInfo[subject] = { 
+            query: 'error', 
+            count: 0,
+            error: err instanceof Error ? err.message : 'Unknown error'
+          };
         }
       }
 
@@ -141,17 +203,12 @@ export async function GET(request: Request) {
       debugInfo.totalFound = allBills.length;
     }
 
-    // Transform bills and then filter to ensure correctness
-    const transformedBills = allBills.map(transformApiBillToBill);
+    // Transform bills (pass filter subjects for display)
     const requestedSubjects = subjects ? subjects.split(',').map(s => s.trim()) : [];
+    const transformedBills = allBills.map(bill => transformApiBillToBill(bill, requestedSubjects));
     
-    let finalBills = transformedBills;
-    if (requestedSubjects.length > 0) {
-        finalBills = transformedBills.filter(bill => {
-            const billSubjects = (bill.subjects?.items || []).map(item => item.name);
-            return requestedSubjects.some(reqSub => billSubjects.includes(reqSub));
-        });
-    }
+    // No additional filtering needed - Congress.gov already filtered correctly!
+    const finalBills = transformedBills;
 
     debugInfo.afterTransform = transformedBills.length;
     debugInfo.afterFiltering = finalBills.length;

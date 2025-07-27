@@ -323,7 +323,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                   <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                           <Tags className="text-primary" />
-                          Subjects
+                          Issues
                       </CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-wrap gap-2">
