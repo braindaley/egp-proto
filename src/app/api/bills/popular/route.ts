@@ -73,7 +73,7 @@ export async function GET() {
         const feed = await parser.parseURL(rssUrl);
         // Debug logging to verify RSS pull
         console.log('📡 RSS items count:', feed.items?.length);
-        console.log('📡 First item raw:', feed.items?.[0]?.content?.slice(0, 200));
+        console.log('📡 First item raw snippet:', feed.items?.[0]?.content?.substring(0, 200));
 
         if (!feed.items || feed.items.length === 0) {
             console.log('❌ No RSS items found');
@@ -86,7 +86,7 @@ export async function GET() {
         const popularBills = parseHtmlContent(content);
         // After parsing HTML into bills
         console.log('✅ Parsed bills count:', popularBills.length);
-        console.log('✅ Sample parsed bill:', popularBills[0]);
+        console.log('✅ First parsed bill object:', popularBills[0]);
 
         return NextResponse.json({
             bills: popularBills,
