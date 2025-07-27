@@ -52,7 +52,7 @@ function transformApiBillToBill(apiBill: CongressBill): Bill {
     cosponsors: { count: 0, items: [], url: '' },
     committees: { count: 0, items: [] },
     subjects: { count: filteredSubjects.length, items: filteredSubjects.map(name => ({ name })) },
-    summaries: { count: 0, items: [] },
+    summaries: { count: 0 },
     allSummaries: [],
     actions: { count: 0, items: [] },
     relatedBills: { count: 0, items: [] },
@@ -74,66 +74,154 @@ export async function GET(request: Request) {
   }
 
   try {
-    let apiUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=${limit}&offset=${offset}&sort=updateDate+desc`;
-    
-    // Add subject filter if provided
-    if (subjects) {
-      const subjectList = subjects.split(',').map(s => s.trim()).filter(s => s.length > 0);
-      if (subjectList.length > 0) {
-        // Create OR query for subjects
-        const subjectQuery = subjectList.map(s => `"${s}"`).join(' OR ');
-        apiUrl += `&subject=${encodeURIComponent(subjectQuery)}`;
+    let allBills: CongressBill[] = [];
+    let debugInfo: any = {};
+
+    if (!subjects) {
+      // No subjects filter - get recent bills
+      const apiUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=${limit}&offset=${offset}&sort=updateDate+desc`;
+      
+      console.log('🔍 Fetching recent bills:', apiUrl.replace(API_KEY, 'API_KEY'));
+
+      const response = await fetch(apiUrl, {
+        headers: { 'User-Agent': 'BillTracker/1.0' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Congress API responded with ${response.status}`);
       }
+
+      const data = await response.json();
+      allBills = data.bills || [];
+      debugInfo = { 
+        mode: 'recent', 
+        apiUrl: apiUrl.replace(API_KEY, 'API_KEY'),
+        originalCount: allBills.length 
+      };
+
+    } else {
+      // Subject filtering - try multiple approaches
+      const subjectList = subjects.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      console.log('🎯 Filtering by subjects:', subjectList);
+
+      // Approach 1: Try the subject parameter
+      for (const subject of subjectList) {
+        try {
+          // Try exact subject name
+          let apiUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=${limit}&offset=${offset}&sort=updateDate+desc`;
+          
+          // Try different subject parameter formats
+          const subjectQueries = [
+            `subject=${encodeURIComponent(subject)}`,
+            `subject=${encodeURIComponent(`"${subject}"`)}`,
+            `policyArea=${encodeURIComponent(subject)}`,
+            `legislativeSubject=${encodeURIComponent(subject)}`
+          ];
+
+          for (const subjectQuery of subjectQueries) {
+            const testUrl = `${apiUrl}&${subjectQuery}`;
+            console.log('🧪 Testing API URL:', testUrl.replace(API_KEY, 'API_KEY'));
+
+            const response = await fetch(testUrl, {
+              headers: { 'User-Agent': 'BillTracker/1.0' },
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.bills && data.bills.length > 0) {
+                console.log(`✅ Found ${data.bills.length} bills for subject "${subject}" using ${subjectQuery}`);
+                allBills.push(...data.bills);
+                debugInfo[subject] = { 
+                  query: subjectQuery, 
+                  count: data.bills.length,
+                  url: testUrl.replace(API_KEY, 'API_KEY')
+                };
+                break; // Found bills with this query format
+              }
+            }
+          }
+        } catch (err) {
+          console.log(`❌ Error fetching bills for subject "${subject}":`, err);
+        }
+      }
+
+      // If no bills found with subject parameters, try text search
+      if (allBills.length === 0) {
+        console.log('🔍 No bills found with subject parameters, trying text search...');
+        
+        for (const subject of subjectList.slice(0, 2)) { // Limit to first 2 subjects to avoid too many requests
+          try {
+            // Search in title and summary
+            const searchQuery = encodeURIComponent(subject);
+            const apiUrl = `https://api.congress.gov/v3/bill/${congress}/search?api_key=${API_KEY}&format=json&limit=${limit}&q=${searchQuery}&sort=updateDate+desc`;
+            
+            console.log('🔍 Text search URL:', apiUrl.replace(API_KEY, 'API_KEY'));
+
+            const response = await fetch(apiUrl, {
+              headers: { 'User-Agent': 'BillTracker/1.0' },
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.bills && data.bills.length > 0) {
+                console.log(`✅ Text search found ${data.bills.length} bills for "${subject}"`);
+                allBills.push(...data.bills);
+                debugInfo[`${subject}_text_search`] = { 
+                  count: data.bills.length,
+                  url: apiUrl.replace(API_KEY, 'API_KEY')
+                };
+              }
+            }
+          } catch (err) {
+            console.log(`❌ Text search error for "${subject}":`, err);
+          }
+        }
+      }
+
+      debugInfo.mode = 'filtered';
+      debugInfo.requestedSubjects = subjectList;
+      debugInfo.totalFound = allBills.length;
     }
 
-    console.log('🔍 Fetching bills:', apiUrl.replace(API_KEY, 'API_KEY'));
+    // Remove duplicates (same bill might appear in multiple subject searches)
+    const uniqueBills = allBills.filter((bill, index, arr) => 
+      arr.findIndex(b => b.number === bill.number && b.type === bill.type) === index
+    );
 
-    const response = await fetch(apiUrl, {
-      headers: {
-        'User-Agent': 'BillTracker/1.0',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Congress API responded with ${response.status}`);
-    }
-
-    const data = await response.json();
-    const apiBills: CongressBill[] = data.bills || [];
+    // Transform bills
+    const transformedBills = uniqueBills.map(transformApiBillToBill);
     
-    // Transform and filter bills
-    const transformedBills = apiBills.map(transformApiBillToBill);
-    
-    // If subjects filter was applied, do additional filtering on transformed bills
-    // to ensure they actually contain the requested subjects
-    let filteredBills = transformedBills;
+    // Additional filtering to ensure bills actually match requested subjects
+    let finalBills = transformedBills;
     if (subjects) {
-      const requestedSubjects = subjects.split(',').map(s => s.trim());
-      filteredBills = transformedBills.filter(bill => {
-        const billSubjects = bill.subjects?.items?.map(s => (s as any).name) || [];
+      const requestedSubjects = subjects.split(',').map(s => s.trim().toLowerCase());
+      finalBills = transformedBills.filter(bill => {
+        const billSubjects = bill.subjects?.items?.map(s => s.name?.toLowerCase()) || [];
+        const billTitle = bill.title?.toLowerCase() || '';
+        const billShortTitle = bill.shortTitle?.toLowerCase() || '';
+        
         return requestedSubjects.some(requested => 
           billSubjects.some(billSubject => 
-            billSubject.toLowerCase().includes(requested.toLowerCase()) ||
-            requested.toLowerCase().includes(billSubject.toLowerCase())
-          )
+            billSubject?.includes(requested) || requested.includes(billSubject)
+          ) ||
+          billTitle.includes(requested) ||
+          billShortTitle.includes(requested)
         );
       });
     }
 
+    debugInfo.afterTransform = transformedBills.length;
+    debugInfo.afterFiltering = finalBills.length;
+
     return NextResponse.json({
-      bills: filteredBills,
+      bills: finalBills.slice(0, limit), // Respect limit
       pagination: {
-        count: filteredBills.length,
+        count: finalBills.length,
         offset: offset,
-        hasMore: filteredBills.length === limit,
-        total: data.pagination?.count || null
+        hasMore: finalBills.length > limit,
+        total: null
       },
-      debug: {
-        requestedSubjects: subjects?.split(',') || null,
-        originalCount: apiBills.length,
-        filteredCount: filteredBills.length,
-        apiUrl: apiUrl.replace(API_KEY, 'API_KEY')
-      }
+      debug: debugInfo
     });
 
   } catch (error) {
@@ -143,7 +231,8 @@ export async function GET(request: Request) {
     return NextResponse.json({
       error: errorMessage,
       bills: [],
-      pagination: { count: 0, offset: 0, hasMore: false, total: 0 }
+      pagination: { count: 0, offset: 0, hasMore: false },
+      debug: { error: errorMessage }
     }, { status: 500 });
   }
 }

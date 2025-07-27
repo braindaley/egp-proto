@@ -3,9 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { BillCard } from '@/components/bill-card';
 import { getAllowedSubjectsForFilter } from '@/lib/subjects';
 import type { Bill } from '@/types';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 
 interface BillsResponse {
@@ -69,7 +66,6 @@ export default function IssuesPage({ params }: { params: Promise<{ congress: str
         hasMore: response.pagination.hasMore,
         total: response.pagination.total
       });
-      setInitialLoading(false);
       return;
     }
 
@@ -177,7 +173,7 @@ export default function IssuesPage({ params }: { params: Promise<{ congress: str
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [loading, pagination.hasMore, selectedSubjects, pagination.offset, loadMoreBills]);
+  }, [loading, pagination.hasMore, selectedSubjects, pagination.offset]);
 
   if (initialLoading) {
     return (
@@ -220,14 +216,15 @@ export default function IssuesPage({ params }: { params: Promise<{ congress: str
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {getAllowedSubjectsForFilter().map(subject => (
-            <div key={subject} className="flex items-center space-x-2">
-              <Checkbox
-                id={subject}
+            <label key={subject} className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded">
+              <input
+                type="checkbox"
                 checked={selectedSubjects.includes(subject)}
-                onCheckedChange={() => handleSubjectToggle(subject)}
+                onChange={() => handleSubjectToggle(subject)}
+                className="rounded border-gray-300"
               />
-              <Label htmlFor={subject} className="text-sm font-normal cursor-pointer">{subject}</Label>
-            </div>
+              <span className="text-sm">{subject}</span>
+            </label>
           ))}
         </div>
       </div>
@@ -237,26 +234,25 @@ export default function IssuesPage({ params }: { params: Promise<{ congress: str
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-medium">Filtered by:</h3>
-            <Button
+            <button
               onClick={clearFilters}
-              size="sm"
-              variant="destructive"
+              className="text-sm px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
             >
               Clear All
-            </Button>
+            </button>
           </div>
           <div className="flex flex-wrap gap-2">
             {selectedSubjects.map(subject => (
-              <Badge key={subject} variant="secondary" className="text-base">
+              <span key={subject} className="inline-flex items-center bg-primary/10 text-primary px-3 py-1 rounded-full text-sm">
                 {subject}
                 <button
                   onClick={() => handleSubjectToggle(subject)}
-                  className="ml-2 text-muted-foreground hover:text-foreground"
+                  className="ml-2 text-primary/60 hover:text-primary"
                   aria-label={`Remove ${subject} filter`}
                 >
-                  &times;
+                  ×
                 </button>
-              </Badge>
+              </span>
             ))}
           </div>
         </div>
@@ -267,14 +263,12 @@ export default function IssuesPage({ params }: { params: Promise<{ congress: str
         <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-md">
           <p className="text-destructive font-medium">Error loading bills:</p>
           <p className="text-destructive text-sm">{error}</p>
-          <Button
+          <button
             onClick={() => loadBills(selectedSubjects, 0, true)}
-            className="mt-2"
-            size="sm"
-            variant="destructive"
+            className="mt-2 text-sm px-3 py-1 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90"
           >
             Try Again
-          </Button>
+          </button>
         </div>
       )}
 
@@ -282,12 +276,12 @@ export default function IssuesPage({ params }: { params: Promise<{ congress: str
       {bills.length > 0 && (
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-xl font-semibold">
-            {pagination.total ? `${pagination.total.toLocaleString()} total bills` : `${bills.length.toLocaleString()} bills loaded`}
+            {pagination.total ? `${pagination.total} total bills` : `${bills.length} bills loaded`}
             {selectedSubjects.length > 0 && ` matching selected topics`}
           </h3>
-          {pagination.hasMore && !loading && (
+          {pagination.hasMore && (
             <p className="text-sm text-muted-foreground">
-              Scroll down for more results
+              Scroll down or click "Load More" for additional results
             </p>
           )}
         </div>
@@ -317,10 +311,10 @@ export default function IssuesPage({ params }: { params: Promise<{ congress: str
       {/* Load More Button */}
       {pagination.hasMore && bills.length > 0 && (
         <div className="text-center mt-8">
-          <Button
+          <button
             onClick={loadMoreBills}
             disabled={loading}
-            size="lg"
+            className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <span className="flex items-center">
@@ -330,7 +324,7 @@ export default function IssuesPage({ params }: { params: Promise<{ congress: str
             ) : (
               `Load More Bills`
             )}
-          </Button>
+          </button>
         </div>
       )}
 
