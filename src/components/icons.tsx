@@ -63,7 +63,7 @@ export const LawIcon = (props: SVGProps<SVGSVGElement>) => (
       <polyline points="14 2 14 8 20 8" />
       <path d="M12 18h.01" />
       <path d="M12 15h.01" />
-      <path d'M12 12h.01' />
+      <path d="M12 12h.01" />
     </svg>
 );
 
@@ -85,5 +85,3 @@ export const BillIcon = (props: SVGProps<SVGSVGElement>) => (
         <polyline points="10 9 9 9 8 9" />
     </svg>
 );
-
-    
