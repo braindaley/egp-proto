@@ -47,8 +47,13 @@ export async function GET(request: Request) {
           sampleBills: data.bills?.slice(0, 2).map((bill: any) => ({
             title: bill.title,
             number: `${bill.type} ${bill.number}`,
-            subjects: bill.subjects || 'No subjects field',
-            updateDate: bill.updateDate
+            updateDate: bill.updateDate,
+            // Show the RAW bill object to see actual structure
+            rawBillFields: Object.keys(bill),
+            subjectsField: bill.subjects,
+            policyAreaField: bill.policyArea,
+            // Show full bill object for first sample
+            ...(queryType === 'recent bills sample' && data.bills?.indexOf(bill) === 0 ? { fullBillObject: bill } : {})
           })) || []
         });
       } else {
