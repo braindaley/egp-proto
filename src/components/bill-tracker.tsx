@@ -25,6 +25,14 @@ interface TrackerStep {
   date?: string;
 }
 
+// Helper to format date consistently
+function formatDate(dateString: string) {
+    if (!dateString) return '';
+    // Use UTC to prevent hydration errors from timezone differences
+    return new Date(dateString).toLocaleDateString('en-US', { timeZone: 'UTC' });
+}
+
+
 const getStepStatus = (latestActionText: string, originChamber: string): { currentIndex: number, currentDate?: string } => {
   const lowerCaseAction = latestActionText.toLowerCase();
 
@@ -126,7 +134,7 @@ export function BillTracker({ latestAction, originChamber }: { latestAction: Bil
                 )}>
                     {step.label}
                 </p>
-                {step.date && <p className="text-xs text-muted-foreground">{new Date(step.date).toLocaleDateString()}</p>}
+                {step.date && <p className="text-xs text-muted-foreground">{formatDate(step.date)}</p>}
             </div>
           ))}
         </div>

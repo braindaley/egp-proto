@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -19,7 +20,7 @@ import { BillTracker } from '@/components/bill-tracker';
 
 function formatDate(dateString: string) {
     if (!dateString) return 'N/A';
-    // Use UTC to prevent hydration errors
+    // Use UTC to prevent hydration errors from timezone differences
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
