@@ -7,10 +7,13 @@ import { Loader2 } from 'lucide-react';
 async function getPopularBills(): Promise<Bill[]> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
   const url = `${baseUrl}/api/bills/popular`;
-  console.log('Fetching popular bills from:', url);
+  
+  console.log('🔗 Fetching popular bills from:', url);
 
   try {
     const res = await fetch(url, { next: { revalidate: 3600 } }); // Cache for 1 hour
+
+    console.log('🔗 Response status:', res.status);
 
     if (!res.ok) {
       console.error(`Internal API request for popular bills failed: ${res.status}`);
@@ -18,6 +21,7 @@ async function getPopularBills(): Promise<Bill[]> {
     }
 
     const data: { bills: Bill[] } = await res.json();
+    console.log('🔗 Fetched bills array length:', data.bills?.length);
     return data.bills || [];
 
   } catch (error) {
