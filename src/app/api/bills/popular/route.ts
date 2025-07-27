@@ -86,33 +86,28 @@ export async function GET() {
     const parser = new Parser();
     const rssUrl = 'https://www.congress.gov/rss/most-viewed-bills.xml';
 
+    // Debug logging to verify RSS pull
     try {
-        const feed = await parser.parseURL(rssUrl);
-        
-        console.log('📡 RSS items count:', feed.items?.length);
-        console.log('📡 First item raw:', feed.items?.[0]?.content?.slice(0, 300));
+      const feed = await parser.parseURL(rssUrl);
+      console.log('📡 RSS items count:', feed.items?.length);
+      console.log('📡 First item raw snippet:', feed.items?.[0]?.content?.substring(0, 200));
 
-        if (!feed.items || feed.items.length === 0) {
-            console.log('RSS feed was fetched, but no items were found.');
-            return NextResponse.json({ error: 'No items found in RSS feed' }, { status: 404 });
-        }
-        
-        const content = feed.items[0].content;
-        
-        if (!content) {
-             console.log('RSS feed item found, but it has no content.');
-             return NextResponse.json({ error: 'No content found in RSS feed item' }, { status: 404 });
-        }
-        
-        const popularBills = parseHtmlContent(content);
-        
-        console.log('✅ Parsed bills count:', popularBills.length);
-        console.log('✅ Sample parsed bill:', popularBills[0]);
+      if (!feed.items || feed.items.length === 0) {
+        console.log('❌ No RSS items found');
+        return NextResponse.json({ error: 'No items found' }, { status: 404 });
+      }
 
-        return NextResponse.json({ bills: popularBills });
+      const content = feed.items[0].content || '';
+      console.log('📡 Content length:', content.length);
 
-    } catch (error) {
-        console.error('Failed to fetch or parse RSS feed:', error);
-        return NextResponse.json({ error: 'Failed to fetch or process popular bills feed' }, { status: 500 });
+      // After parsing HTML into bills
+      const popularBills = parseHtmlContent(content);
+      console.log('✅ Parsed bills count:', popularBills.length);
+      console.log('✅ First parsed bill object:', popularBills[0]);
+
+      return NextResponse.json({ bills: popularBills });
+    } catch(err) {
+      console.error('RSS fetch error:', err);
+      return NextResponse.json({ error: 'Fetch failed' }, { status: 500 });
     }
 }
