@@ -15,7 +15,11 @@ interface LoadingState {
 
 // Client component to render the list and handle logging
 function PopularBillList({ bills, debug }: PopularBillResponse) {
-    // Remove duplicate console logs to clean up output
+    useEffect(() => {
+        if (debug) {
+            console.log('Popular Bills API Debug Info:', debug);
+        }
+    }, [debug]);
     
     if (!bills || bills.length === 0) {
         return (
@@ -165,12 +169,10 @@ export default function PopularBillsPage({ params }: PopularBillsPageProps) {
         <div className="bg-background min-h-screen">
             <div className="container mx-auto px-4 py-8 md:py-12">
                 <header className="text-center mb-12">
-                    <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
-                        Most-Viewed Bills This Week
+                    <p className="text-lg text-muted-foreground font-medium mb-1">{congressParam}th Congress</p>
+                    <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary">
+                        Popular Bills
                     </h1>
-                    <p className="text-lg text-muted-foreground">
-                        Based on traffic to Congress.gov • {congressParam}th Congress
-                    </p>
                 </header>
                 
                 {loadingState.isLoading ? (
