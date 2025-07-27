@@ -1,4 +1,4 @@
-
+// pages/bills/[congress]/popular.tsx
 import { BillCard } from '@/components/bill-card';
 import type { Bill } from '@/types';
 import { Suspense } from 'react';
@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 async function getPopularBills(): Promise<Bill[]> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
   const url = `${baseUrl}/api/bills/popular`;
+  console.log('Fetching popular bills from:', url);
 
   try {
     const res = await fetch(url, { next: { revalidate: 3600 } }); // Cache for 1 hour
@@ -41,7 +42,7 @@ async function PopularBillList({ congress }: { congress: string }) {
         <div className="text-center py-10 px-6 bg-card rounded-lg shadow-md">
           <p className="text-xl font-semibold text-destructive">Could Not Load Popular Bills</p>
           <p className="text-muted-foreground mt-2">
-            There was an issue fetching the most-viewed bills. Please try again later.
+            There was an issue fetching the most-viewed bills, or none were found. Please try again later.
           </p>
         </div>
       )}

@@ -1,4 +1,4 @@
-
+// pages/api/bills/popular.ts
 import { NextResponse } from 'next/server';
 import Parser from 'rss-parser';
 import type { Bill } from '@/types';
@@ -90,17 +90,24 @@ export async function GET() {
         const feed = await parser.parseURL(rssUrl);
         
         if (!feed.items || feed.items.length === 0) {
+            console.log('RSS feed was fetched, but no items were found.');
             return NextResponse.json({ error: 'No items found in RSS feed' }, { status: 404 });
         }
+        
+        console.log('RSS items count:', feed.items.length);
         
         // The popular bills are in the 'content' of the first item
         const content = feed.items[0].content;
         
         if (!content) {
+             console.log('RSS feed item found, but it has no content.');
              return NextResponse.json({ error: 'No content found in RSS feed item' }, { status: 404 });
         }
         
+        console.log('First item content:', content);
+        
         const popularBills = parseHtmlContent(content);
+        console.log('Parsed bills:', popularBills);
 
         return NextResponse.json({ bills: popularBills });
 
