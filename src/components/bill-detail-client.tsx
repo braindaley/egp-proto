@@ -328,7 +328,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                   </CardHeader>
                   <CardContent className="flex flex-wrap gap-2">
                      {displaySubjects.map((subject, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
+                        <Badge key={index} variant="secondary" className="text-sm">
                             {subject}
                         </Badge>
                      ))}
@@ -410,7 +410,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                       <li key={index} className="flex items-center justify-between p-2 bg-secondary/50 rounded-md">
                                           <span className="font-semibold text-sm">{sponsor.fullName} ({sponsor.party}-{sponsor.state})</span>
                                            <Button asChild variant="link" size="sm" className="h-auto p-0">
-                                              <Link href={`/congress/${bill.congress}/member/${sponsor.bioguideId}`}>
+                                              <Link href={`/congress/${bill.congress}/${sponsor.state.toLowerCase()}/${sponsor.bioguideId}`}>
                                                   View Member <ArrowRight className="ml-1 h-3 w-3" />
                                               </Link>
                                           </Button>
@@ -433,7 +433,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                       <li key={index} className="flex items-center justify-between p-2 bg-secondary/50 rounded-md">
                                           <span className="font-semibold text-sm">{cosponsor.fullName} ({cosponsor.party}-{cosponsor.state})</span>
                                           <Button asChild variant="link" size="sm" className="h-auto p-0">
-                                              <Link href={`/congress/${bill.congress}/member/${cosponsor.bioguideId}`}>
+                                              <Link href={`/congress/${bill.congress}/${cosponsor.state.toLowerCase()}/${cosponsor.bioguideId}`}>
                                                    View Member <ArrowRight className="ml-1 h-3 w-3" />
                                               </Link>
                                           </Button>

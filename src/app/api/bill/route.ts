@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
                 if (data?.titles && Array.isArray(data.titles)) {
                     // Find a "Short Title" - often more user-friendly
                     const shortTitle = data.titles.find((t: any) => 
-                        t.type.toLowerCase().includes('short title') && t.isForPortion !== 'Y'
+                        t.titleType?.toLowerCase().includes('short') && t.isForPortion !== 'Y'
                     );
                     if (shortTitle) {
                         bill.title = shortTitle.title; // Override the long official title
@@ -110,19 +110,23 @@ export async function GET(req: NextRequest) {
         );
     }
 
-    // Subjects
+    // Subjects - with pagination
     if (bill.subjects?.url) {
         const fetchAllSubjects = async () => {
             let allSubjects: (Subject | PolicyArea)[] = [];
-            let nextUrl: string | undefined = `${bill.subjects.url}&api_key=${API_KEY}`;
+            let nextUrl: string | undefined = `${bill.subjects.url}&api_key=${API_KEY}&limit=250`;
             while (nextUrl) {
                 try {
                     const res = await fetch(nextUrl, { signal: AbortSignal.timeout(10000) });
                     if (!res.ok) break;
                     const data = await res.json();
+                    
                     const legislativeSubjects = data.subjects?.legislativeSubjects || [];
                     const policyArea = data.subjects?.policyArea ? [data.subjects.policyArea] : [];
+                    
                     allSubjects.push(...legislativeSubjects, ...policyArea);
+                    
+                    // Check for pagination.next property
                     nextUrl = data.pagination?.next ? `${data.pagination.next}&api_key=${API_KEY}` : undefined;
                 } catch (e) {
                     console.log('A subject page fetch failed:', e.message);
@@ -135,6 +139,7 @@ export async function GET(req: NextRequest) {
         };
         fetchPromises.push(fetchAllSubjects());
     }
+
 
     await Promise.all(fetchPromises);
     
