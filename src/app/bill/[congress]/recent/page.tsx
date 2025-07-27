@@ -74,12 +74,10 @@ export default async function RecentBillsPage({ params }: { params: Promise<{ co
     <div className="bg-background min-h-screen">
       <div className="container mx-auto px-4 py-8 md:py-12">
         <header className="text-center mb-12">
-          <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
-            Bills with Recent Action from the {congressNumber}th Congress
+          <p className="text-lg text-muted-foreground font-medium mb-1">{congressNumber}th Congress</p>
+          <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary">
+            Recently Updated Bills
           </h1>
-          <p className="text-lg text-muted-foreground">
-            Showing the latest updated bills for the selected session.
-          </p>
         </header>
         
         <Suspense fallback={
