@@ -1,10 +1,21 @@
 
+'use client';
+
 import { BillCard } from '@/components/bill-card';
 import type { Bill } from '@/types';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
-async function getPopularBills(): Promise<Bill[]> {
+interface PopularBillsResponse {
+  bills: Bill[];
+  debug?: {
+    rssItems: number;
+    contentLength: number;
+    parsedCount: number;
+  };
+}
+
+async function getPopularBillsData(): Promise<PopularBillsResponse> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
   const url = `${baseUrl}/api/bills/popular`;
 
@@ -16,24 +27,22 @@ async function getPopularBills(): Promise<Bill[]> {
       throw new Error(`Failed to fetch popular bill list: ${res.statusText}`);
     }
 
-    const data = await res.json();
-    
-    // Log debug info from the API response to the browser console
-    if (data.debug) {
-      console.log('Popular Bills API Debug Info:', data.debug);
-    }
-    
-    return data.bills || [];
+    return await res.json();
 
   } catch (error) {
     console.error(`Error fetching popular bills:`, error);
-    return [];
+    return { bills: [] };
   }
 }
 
+function PopularBillList({ data }: { data: PopularBillsResponse }) {
+  useEffect(() => {
+    if (data.debug) {
+      console.log('Popular Bills API Debug Info:', data.debug);
+    }
+  }, [data.debug]);
 
-async function PopularBillList({ congress }: { congress: string }) {
-  const bills = await getPopularBills();
+  const bills = data.bills || [];
 
   return (
     <>
@@ -56,9 +65,30 @@ async function PopularBillList({ congress }: { congress: string }) {
 }
 
 
-export default async function PopularBillsPage({ params }: { params: Promise<{ congress: string }> }) {
-    const { congress } = await params;
-    
+function PopularBillsPageContent() {
+    const [data, setData] = useState<PopularBillsResponse | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        getPopularBillsData().then(data => {
+            setData(data);
+            setLoading(false);
+        });
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center py-20">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        )
+    }
+
+    return <PopularBillList data={data!} />;
+}
+
+
+export default function PopularBillsPage() {
     return (
         <div className="bg-background min-h-screen">
             <div className="container mx-auto px-4 py-8 md:py-12">
@@ -71,12 +101,12 @@ export default async function PopularBillsPage({ params }: { params: Promise<{ c
                     </p>
                 </header>
                 
-                <Suspense fallback={
+                 <Suspense fallback={
                     <div className="flex justify-center items-center py-20">
                         <Loader2 className="h-12 w-12 animate-spin text-primary" />
                     </div>
                 }>
-                    <PopularBillList congress={congress} />
+                    <PopularBillsPageContent />
                 </Suspense>
 
             </div>
