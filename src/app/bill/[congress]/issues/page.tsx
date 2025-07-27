@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 export default function IssuesPage({ params }: { params: Promise<{ congress: string }> }) {
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
