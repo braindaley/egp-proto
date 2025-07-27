@@ -1,4 +1,4 @@
-// pages/bills/[congress]/popular.tsx
+
 import { BillCard } from '@/components/bill-card';
 import type { Bill } from '@/types';
 import { Suspense } from 'react';
@@ -7,21 +7,22 @@ import { Loader2 } from 'lucide-react';
 async function getPopularBills(): Promise<Bill[]> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
   const url = `${baseUrl}/api/bills/popular`;
-  
-  console.log('🔗 Fetching popular bills from:', url);
 
   try {
-    const res = await fetch(url, { next: { revalidate: 3600 } }); // Cache for 1 hour
-
-    console.log('🔗 Response status:', res.status);
+    const res = await fetch(url, { next: { revalidate: 3600 } });
 
     if (!res.ok) {
       console.error(`Internal API request for popular bills failed: ${res.status}`);
       throw new Error(`Failed to fetch popular bill list: ${res.statusText}`);
     }
 
-    const data: { bills: Bill[] } = await res.json();
-    console.log('🔗 Fetched bills array length:', data.bills?.length);
+    const data = await res.json();
+    
+    // Log debug info from the API response
+    if (data.debug) {
+      console.log('Popular Bills API Debug Info:', data.debug);
+    }
+    
     return data.bills || [];
 
   } catch (error) {
