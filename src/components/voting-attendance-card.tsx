@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import type { MemberVote, ChamberVoteSummary } from '@/types';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface VotingAttendanceCardProps {
@@ -43,61 +42,116 @@ export function VotingAttendanceCard({ bioguideId, congress, chamber }: VotingAt
       const chamberName = chamber.toLowerCase() === 'house of representatives' ? 'house' : 'senate';
 
       try {
+        console.log('Fetching voting data for:', { bioguideId, congress, chamberName });
+
         const [memberRes, chamberRes] = await Promise.all([
           fetch(`/api/congress/member/${bioguideId}/votes?congress=${congress}`),
           fetch(`/api/congress/chamber-votes?congress=${congress}&chamber=${chamberName}`)
         ]);
 
-        if (!memberRes.ok || !chamberRes.ok) {
-          throw new Error('Failed to fetch voting data');
+        console.log('API Response statuses:', {
+          member: memberRes.status,
+          chamber: chamberRes.status
+        });
+
+        if (!memberRes.ok) {
+          const memberError = await memberRes.text();
+          console.error('Member API error:', memberError);
+          throw new Error(`Failed to fetch member votes: ${memberRes.status}`);
         }
 
-        const memberVotes: MemberVote[] = await memberRes.json();
-        const chamberVotes: ChamberVoteSummary = await chamberRes.json();
+        if (!chamberRes.ok) {
+          const chamberError = await chamberRes.text();
+          console.error('Chamber API error:', chamberError);
+          throw new Error(`Failed to fetch chamber votes: ${chamberRes.status}`);
+        }
 
-        if (!chamberVotes.votes || chamberVotes.votes.length === 0) {
-            throw new Error('Chamber vote data is unavailable.');
+        const memberVotes = await memberRes.json();
+        const chamberData = await chamberRes.json();
+
+        console.log('Data received:', {
+          memberVotes: Array.isArray(memberVotes) ? memberVotes.length : 'not array',
+          chamberVotes: chamberData.totalVotes || 0,
+          chamberStructure: Object.keys(chamberData)
+        });
+
+        // Validate data structure
+        if (!Array.isArray(memberVotes)) {
+          throw new Error('Invalid member votes data structure');
+        }
+
+        if (!chamberData.votes || !Array.isArray(chamberData.votes)) {
+          throw new Error('Invalid chamber votes data structure');
+        }
+
+        if (chamberData.totalVotes === 0) {
+          throw new Error('No chamber votes found for this congress');
         }
 
         // Calculate attendance rate
         const totalMemberVotes = memberVotes.length;
-        const totalChamberVotes = chamberVotes.totalVotes;
+        const totalChamberVotes = chamberData.totalVotes;
         const attendanceRate = totalChamberVotes > 0 ? (totalMemberVotes / totalChamberVotes) * 100 : 0;
+        
+        console.log('Attendance calculation:', {
+          totalMemberVotes,
+          totalChamberVotes,
+          attendanceRate
+        });
         
         // Calculate recent activity (last 90 days)
         const ninetyDaysAgo = new Date();
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
         
-        const recentMemberVotes = memberVotes.filter(v => new Date(v.vote.date) > ninetyDaysAgo);
-        const recentChamberVotes = chamberVotes.votes.filter(v => new Date(v.date) > ninetyDaysAgo);
+        const recentMemberVotes = memberVotes.filter(v => {
+          const voteDate = new Date(v.vote?.date || v.date);
+          return voteDate > ninetyDaysAgo;
+        });
+        
+        const recentChamberVotes = chamberData.votes.filter(v => {
+          const voteDate = new Date(v.date);
+          return voteDate > ninetyDaysAgo;
+        });
         
         const recentAttendanceRate = recentChamberVotes.length > 0 ? (recentMemberVotes.length / recentChamberVotes.length) * 100 : 0;
         
         // Calculate trend
         let trend: 'up' | 'down' | 'same' = 'same';
-        if (recentAttendanceRate > attendanceRate) trend = 'up';
-        if (recentAttendanceRate < attendanceRate) trend = 'down';
+        const difference = Math.abs(recentAttendanceRate - attendanceRate);
+        if (difference > 1) { // Only show trend if difference is significant
+          if (recentAttendanceRate > attendanceRate) trend = 'up';
+          if (recentAttendanceRate < attendanceRate) trend = 'down';
+        }
 
-        setStats({
+        // Get last vote date
+        const lastVoteDate = memberVotes.length > 0 ? 
+          (memberVotes[0].vote?.date || memberVotes[0].date) : 'N/A';
+
+        const finalStats = {
           attendanceRate,
           recentAttendanceRate,
-          chamberAverage: chamberVotes.averageAttendance * 100,
+          chamberAverage: (chamberData.averageAttendance || 0.92) * 100, // Default to 92% if not provided
           totalMemberVotes,
           totalChamberVotes,
-          lastVoteDate: memberVotes.length > 0 ? memberVotes[0].vote.date : 'N/A',
-          isAboveAverage: attendanceRate > (chamberVotes.averageAttendance * 100),
+          lastVoteDate,
+          isAboveAverage: attendanceRate > ((chamberData.averageAttendance || 0.92) * 100),
           trend,
-        });
+        };
+
+        console.log('Final stats:', finalStats);
+        setStats(finalStats);
 
       } catch (e) {
-        console.error(e);
-        setError('Data unavailable');
+        console.error('Voting data fetch error:', e);
+        setError(e instanceof Error ? e.message : 'Failed to load voting data');
       } finally {
         setLoading(false);
       }
     }
 
-    fetchVotingData();
+    if (bioguideId && congress && chamber) {
+      fetchVotingData();
+    }
   }, [bioguideId, congress, chamber]);
 
   if (loading) {
@@ -131,7 +185,17 @@ export function VotingAttendanceCard({ bioguideId, congress, chamber }: VotingAt
           <CardTitle>Floor Vote Attendance</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">{error}</p>
+          <div className="text-center py-4">
+            <p className="text-muted-foreground mb-2">
+              {error || 'Unable to load voting data'}
+            </p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Try again
+            </button>
+          </div>
         </CardContent>
       </Card>
     );

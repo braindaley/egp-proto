@@ -6,7 +6,7 @@ import { Header } from '@/components/header';
 import { AuthProvider } from '@/hooks/use-auth';
 
 export const metadata: Metadata = {
-  title: 'eGp pType',
+  title: 'eGp Prototype',
   description: 'A prototype for eGp.',
 };
 

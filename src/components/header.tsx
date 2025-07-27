@@ -19,7 +19,7 @@ export function Header() {
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
             <Landmark className="h-6 w-6" />
-            <span>eGp pType</span>
+            <span>eGp Prototype</span>
           </Link>
           <nav>
             <ul className="flex items-center gap-2 md:gap-4">
