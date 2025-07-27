@@ -18,7 +18,7 @@ async function getPopularBills(): Promise<Bill[]> {
 
     const data = await res.json();
     
-    // Log debug info from the API response
+    // Log debug info from the API response to the browser console
     if (data.debug) {
       console.log('Popular Bills API Debug Info:', data.debug);
     }
