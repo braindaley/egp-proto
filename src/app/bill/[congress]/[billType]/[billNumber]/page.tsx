@@ -28,9 +28,9 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
   }
 }
 
-export default async function BillDetailPage({ params }: { params: Promise<{ congress: string; billType: string; billNumber: string }> }) {
+export default async function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
   // Await the params before using them in Next.js 15+
-  const { congress, billType, billNumber } = await params;
+  const { congress, billType, billNumber } = params;
   
   const bill = await getBillDetails(congress, billType, billNumber);
 

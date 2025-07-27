@@ -126,7 +126,7 @@ async function getPopularBills(): Promise<PopularBillResponse> {
 }
 
 interface PopularBillsPageProps {
-    params: Promise<{ congress: string }>;
+    params: { congress: string };
 }
 
 export default function PopularBillsPage({ params }: PopularBillsPageProps) {
@@ -139,10 +139,8 @@ export default function PopularBillsPage({ params }: PopularBillsPageProps) {
 
     useEffect(() => {
         // Unwrap the params Promise
-        params.then(unwrappedParams => {
-            setCongressParam(unwrappedParams.congress);
-            console.log('🔗 Component mounted, congress param:', unwrappedParams.congress);
-        });
+        setCongressParam(params.congress);
+        console.log('🔗 Component mounted, congress param:', params.congress);
     }, [params]);
 
     useEffect(() => {

@@ -20,7 +20,7 @@ interface BillsResponse {
 const billsCache = new Map<string, { data: BillsResponse; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-export default function IssuesPage({ params }: { params: Promise<{ congress: string }> }) {
+export default function IssuesPage({ params }: { params: { congress: string } }) {
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,9 +34,7 @@ export default function IssuesPage({ params }: { params: Promise<{ congress: str
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    params.then(unwrappedParams => {
-      setCongressParam(unwrappedParams.congress);
-    });
+      setCongressParam(params.congress);
   }, [params]);
 
   // Load bills with caching
@@ -173,7 +171,7 @@ export default function IssuesPage({ params }: { params: Promise<{ congress: str
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [loading, pagination.hasMore, selectedSubjects, pagination.offset]);
+  }, [loading, pagination.hasMore, selectedSubjects, pagination.offset, loadMoreBills]);
 
   if (initialLoading) {
     return (
@@ -243,7 +241,7 @@ export default function IssuesPage({ params }: { params: Promise<{ congress: str
           </div>
           <div className="flex flex-wrap gap-2">
             {selectedSubjects.map(subject => (
-              <span key={subject} className="inline-flex items-center bg-primary/10 text-primary px-3 py-1 rounded-full text-sm">
+              <Badge key={subject} variant="secondary" className="text-base">
                 {subject}
                 <button
                   onClick={() => handleSubjectToggle(subject)}
@@ -252,7 +250,7 @@ export default function IssuesPage({ params }: { params: Promise<{ congress: str
                 >
                   ×
                 </button>
-              </span>
+              </Badge>
             ))}
           </div>
         </div>

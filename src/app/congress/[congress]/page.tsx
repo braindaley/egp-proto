@@ -29,8 +29,8 @@ const states = [
   { name: 'Wisconsin', abbr: 'WI' }, { name: 'Wyoming', abbr: 'WY' }
 ];
 
-export default async function CongressByStateListPage({ params }: { params: Promise<{ congress: string }> }) {
-    const { congress } = await params;
+export default async function CongressByStateListPage({ params }: { params: { congress: string } }) {
+    const { congress } = params;
     return (
     <div className="container mx-auto px-4 py-8 md:py-12">
       <header className="text-center mb-12">

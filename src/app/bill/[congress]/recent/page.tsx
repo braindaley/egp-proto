@@ -59,8 +59,8 @@ async function BillList({ congress }: { congress: string }) {
 }
 
 
-export default async function RecentBillsPage({ params }: { params: Promise<{ congress: string }> }) {
-  const { congress } = await params;
+export default async function RecentBillsPage({ params }: { params: { congress: string } }) {
+  const { congress } = params;
 
   // Since we are awaiting params, we need to convert the congress number to a string if it's not already.
   const congressNumber = congress.toString();

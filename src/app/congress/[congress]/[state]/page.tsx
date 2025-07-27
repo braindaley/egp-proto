@@ -26,8 +26,8 @@ function getYearsOfService(member: Member): number {
   return Math.max(1, currentYear - firstTerm.startYear);
 }
 
-export default async function StateCongressPage({ params }: { params: Promise<{ congress: string, state: string }> }) {
-  const { congress, state } = await params;
+export default async function StateCongressPage({ params }: { params: { congress: string, state: string } }) {
+  const { congress, state } = params;
 
   const stateName = states[state.toLowerCase()];
 
