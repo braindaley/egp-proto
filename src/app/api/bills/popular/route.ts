@@ -71,8 +71,22 @@ export async function GET() {
 
     try {
         const feed = await parser.parseURL(rssUrl);
-        const content = feed.items?.[0]?.content || '';
+        // Debug logging to verify RSS pull
+        console.log('📡 RSS items count:', feed.items?.length);
+        console.log('📡 First item raw:', feed.items?.[0]?.content?.slice(0, 200));
+
+        if (!feed.items || feed.items.length === 0) {
+            console.log('❌ No RSS items found');
+            return NextResponse.json({ bills: [], debug: { rssItems: 0, contentLength: 0, parsedCount: 0, error: 'No RSS items found' } }, { status: 404 });
+        }
+
+        const content = feed.items[0].content || '';
+        console.log('📡 Content length:', content.length);
+
         const popularBills = parseHtmlContent(content);
+        // After parsing HTML into bills
+        console.log('✅ Parsed bills count:', popularBills.length);
+        console.log('✅ Sample parsed bill:', popularBills[0]);
 
         return NextResponse.json({
             bills: popularBills,
@@ -84,10 +98,11 @@ export async function GET() {
         });
     } catch(err) {
         console.error('RSS fetch error:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Unknown fetch error';
         return NextResponse.json({
             bills: [],
             debug: {
-                error: err instanceof Error ? err.message : 'Unknown fetch error',
+                error: errorMessage,
                 rssItems: 0,
                 contentLength: 0,
                 parsedCount: 0,
