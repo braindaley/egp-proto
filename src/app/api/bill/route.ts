@@ -47,6 +47,24 @@ export async function GET(req: NextRequest) {
 
     const fetchPromises = [];
 
+    // Fetch all titles and find the best short title
+    const titlesUrl = `${baseUrl}/titles?api_key=${API_KEY}`;
+    fetchPromises.push(
+        fetch(titlesUrl, { signal: AbortSignal.timeout(10000) })
+            .then(res => res.ok ? res.json() : Promise.resolve(null))
+            .then(data => {
+                if (data?.titles && Array.isArray(data.titles)) {
+                    // Find a "Short Title" - often more user-friendly
+                    const shortTitle = data.titles.find((t: any) => 
+                        t.type.toLowerCase().includes('short title') && t.isForPortion !== 'Y'
+                    );
+                    if (shortTitle) {
+                        bill.title = shortTitle.title; // Override the long official title
+                    }
+                }
+            }).catch(e => console.log('Titles fetch failed:', e.message))
+    );
+
     // Summaries
     if (bill.summaries?.url) {
         fetchPromises.push(
