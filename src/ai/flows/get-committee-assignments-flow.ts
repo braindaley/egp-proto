@@ -101,62 +101,44 @@ function processMemberAssignments(
     const memberSubcommittees: SubcommitteeAssignment[] = [];
     let memberChamber: 'Senate' | 'House' = 'House';
 
-    const allMemberAssignments = Object.entries(memberships)
-        .filter(([_, members]) => (members as any[]).some(m => m.bioguide === bioguideId));
+    const committeeMap = new Map(committees.map(c => [c.thomas_id, c]));
 
-    for (const [thomasId, members] of allMemberAssignments) {
-        const memberInfo = (members as any[]).find(m => m.bioguide === bioguideId);
-        if (!memberInfo) continue;
+    for (const thomasId in memberships) {
+        const members = memberships[thomasId];
+        const memberInfo = members.find((m: any) => m.bioguide === bioguideId);
 
-        const committeeInfo = committees.find(c => c.thomas_id === thomasId);
-        if (!committeeInfo) continue;
-        
-        let role: 'Member' | 'Ranking Member' | 'Chair' | 'Vice Chair' = 'Member';
-        if (memberInfo.rank === 1) role = 'Chair';
-        if (memberInfo.rank === 2) role = 'Ranking Member';
+        if (memberInfo) {
+            const committeeInfo = committeeMap.get(thomasId);
+            if (!committeeInfo) continue; // Skip if committee info not found
 
-        if(committeeInfo.type === 'joint') {
-            // Skip joint committees for now
-            continue;
-        }
-
-        if (committeeInfo.chamber === 'senate') memberChamber = 'Senate';
-        
-        if (committeeInfo.subcommittees && committeeInfo.subcommittees.length > 0) {
-            // It's a main committee, add to committees list
-             memberCommittees.push({
-                name: committeeInfo.name,
-                role,
-                isPrimary: false, // Cannot determine this from data
-                thomasId: committeeInfo.thomas_id,
-                chamber: committeeInfo.chamber,
-                url: committeeInfo.url
-            });
-        }
-    }
-     // Now find subcommittees by iterating through all committees
-    for (const mainCommittee of committees) {
-        if (!mainCommittee.subcommittees) continue;
-
-        for (const subcommittee of mainCommittee.subcommittees) {
-            const subThomasId = subcommittee.thomas_id;
-            const subMembership = memberships[subThomasId];
+            let role: 'Member' | 'Ranking Member' | 'Chair' | 'Vice Chair' = 'Member';
+            if (memberInfo.rank === 1) role = 'Chair';
+            if (memberInfo.rank === 2) role = 'Ranking Member';
             
-            if (subMembership && Array.isArray(subMembership)) {
-                const memberInSub = subMembership.find(m => m.bioguide === bioguideId);
-                if (memberInSub) {
-                    let subRole: 'Member' | 'Ranking Member' | 'Chair' | 'Vice Chair' = 'Member';
-                    if (memberInSub.rank === 1) subRole = 'Chair';
-                    if (memberInSub.rank === 2) subRole = 'Ranking Member';
+            if (committeeInfo.type === 'joint') continue; // Skip joint committees
 
-                    memberSubcommittees.push({
-                        name: subcommittee.name,
-                        thomasId: subThomasId,
-                        parentCommittee: mainCommittee.name,
-                        role: subRole,
-                        url: subcommittee.url
-                    });
-                }
+            if (committeeInfo.chamber === 'senate') memberChamber = 'Senate';
+            
+            // It's a main committee if it doesn't have a `parent_committee_id`
+            if (!committeeInfo.parent_committee_id) {
+                memberCommittees.push({
+                    name: committeeInfo.name,
+                    role: role,
+                    isPrimary: false,
+                    thomasId: committeeInfo.thomas_id,
+                    chamber: committeeInfo.chamber,
+                    url: committeeInfo.url
+                });
+            } else {
+                // It's a subcommittee
+                const parentCommittee = committeeMap.get(committeeInfo.parent_committee_id);
+                memberSubcommittees.push({
+                    name: committeeInfo.name,
+                    thomasId: committeeInfo.thomas_id,
+                    parentCommittee: parentCommittee ? parentCommittee.name : 'Unknown Committee',
+                    role: role,
+                    url: committeeInfo.url
+                });
             }
         }
     }
