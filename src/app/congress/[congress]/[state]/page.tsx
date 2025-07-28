@@ -43,11 +43,12 @@ export default async function StateCongressPage({ params }: { params: { congress
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
       <header className="text-center mb-12">
+        <p className="text-lg text-muted-foreground font-medium mb-1">{congress}th Congress</p>
         <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
-          {congress}th Congress: {stateName}
+          {stateName}
         </h1>
         <p className="text-lg text-muted-foreground">
-           Senators and Representatives for {state.toUpperCase()}
+           Your Senators and Representatives
         </p>
       </header>
       
