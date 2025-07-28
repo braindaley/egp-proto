@@ -3,18 +3,21 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type { CommitteeInfo } from '@/types';
 
 async function fetchChamberCommittees(congress: string, chamber: 'House' | 'Senate', apiKey: string): Promise<CommitteeInfo[]> {
-    const url = `https://api.congress.gov/v3/committee/${chamber}/${congress}?limit=250&api_key=${apiKey}`;
+    // The correct endpoint is /committee/{congress}, not /committee/{chamber}/{congress}
+    const url = `https://api.congress.gov/v3/committee/${congress}?limit=250&api_key=${apiKey}`;
     try {
         const res = await fetch(url, { next: { revalidate: 3600 } });
         if (!res.ok) {
-            console.error(`Failed to fetch ${chamber} committees for congress ${congress}: ${res.status}`);
+            console.error(`Failed to fetch committees for congress ${congress}: ${res.status}`);
             return [];
         }
         const data = await res.json();
-        // The congress.gov API doesn't have a simple subcommittee flag.
-        // We filter by name, as subcommittees are typically named "Subcommittee on...".
-        // This is a common pattern for this API.
-        return (data.committees || []).filter((c: any) => !c.name.toLowerCase().startsWith('subcommittee on'));
+
+        // Filter by chamber and ensure it's not a subcommittee
+        return (data.committees || []).filter((c: any) => 
+            c.chamber === chamber && !c.name.toLowerCase().includes('subcommittee')
+        );
+
     } catch (error) {
         console.error(`Error fetching ${chamber} committees:`, error);
         return [];

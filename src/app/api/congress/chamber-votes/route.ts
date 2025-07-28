@@ -63,45 +63,53 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const congress = searchParams.get('congress');
     const chamber = searchParams.get('chamber')?.toLowerCase();
+    const API_KEY = process.env.CONGRESS_API_KEY;
 
-    if (!congress || !chamber || chamber !== 'house') {
+    if (!congress || !chamber || (chamber !== 'house' && chamber !== 'senate') || !API_KEY) {
         return NextResponse.json({ 
-            error: 'Only House chamber votes are supported. Senate vote data is not available in the Congress API.',
-            received: { congress, chamber }
+            error: 'Valid congress, chamber (house/senate), and API key are required.',
+            received: { congress, chamber, hasApiKey: !!API_KEY }
         }, { status: 400 });
     }
 
     try {
-        // Congress API doesn't require API key
         const baseUrl = `https://api.congress.gov/v3/vote/${congress}/${chamber}?format=json&limit=250`;
         
         console.log('Fetching chamber votes from:', baseUrl);
         
-        const allVotes = await fetchAllChamberVotes(baseUrl);
+        const allVotes = await fetchAllChamberVotes(baseUrl, API_KEY);
         
         console.log('Total votes fetched:', allVotes.length);
+
+        // Calculate statistics based on fetched votes
+        let totalVotes = allVotes.length;
+        let averageAttendance = 0; // Default to 0
+        const chamberTotalMembers = chamber === 'house' ? 435 : 100;
         
-        if (allVotes.length === 0) {
-            // Try alternative URL format
+        if (totalVotes > 0) {
+            const totalVoters = allVotes.reduce((sum, vote) => {
+                const yes = parseInt(vote.voteTotals?.find((v:any) => v.voteType === 'Yea')?.count || '0');
+                const no = parseInt(vote.voteTotals?.find((v:any) => v.voteType === 'Nay')?.count || '0');
+                const present = parseInt(vote.voteTotals?.find((v:any) => v.voteType === 'Present')?.count || '0');
+                return sum + yes + no + present;
+            }, 0);
+            averageAttendance = totalVoters / (totalVotes * chamberTotalMembers);
+        } else {
+             // Fallback to trying an alternative URL if the first fails
             const altUrl = `https://api.congress.gov/v3/vote?congress=${congress}&chamber=${chamber}&format=json&limit=250`;
             console.log('Trying alternative URL:', altUrl);
-            
-            const altVotes = await fetchAllChamberVotes(altUrl);
-            
-            if (altVotes.length === 0) {
-                return NextResponse.json({
+            const altVotes = await fetchAllChamberVotes(altUrl, API_KEY);
+            allVotes.push(...altVotes);
+            totalVotes = allVotes.length;
+            if (totalVotes === 0) {
+                 return NextResponse.json({
                     votes: [],
                     totalVotes: 0,
                     averageAttendance: 0,
                     message: 'No votes found for this congress/chamber'
                 });
             }
-            
-            allVotes.push(...altVotes);
         }
-
-        // House average attendance estimate (based on historical data)
-        const houseAverageAttendance = 0.938; // 93.8% historical House average
 
         // Sort votes by date (most recent first) - use startDate field
         const sortedVotes = allVotes.sort((a, b) => 
@@ -111,7 +119,7 @@ export async function GET(req: NextRequest) {
         const response = {
             votes: sortedVotes,
             totalVotes: sortedVotes.length,
-            averageAttendance: houseAverageAttendance,
+            averageAttendance: parseFloat(averageAttendance.toFixed(4)), // Format to 4 decimal places
         };
 
         return NextResponse.json(response);
