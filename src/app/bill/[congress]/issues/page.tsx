@@ -21,12 +21,11 @@ interface BillsResponse {
 const billsCache = new Map<string, { data: BillsResponse; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-export default function IssuesPage({ params }: { params: { congress: string } }) {
+function IssuesClient({ congress }: { congress: string }) {
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [congressParam, setCongressParam] = useState<string>(params.congress);
   const [pagination, setPagination] = useState({
     offset: 0,
     hasMore: true,
@@ -40,9 +39,9 @@ export default function IssuesPage({ params }: { params: { congress: string } })
     offset: number = 0, 
     replace: boolean = true
   ): Promise<void> => {
-    if (!congressParam) return;
+    if (!congress) return;
 
-    const cacheKey = `${congressParam}-${subjects.sort().join(',')}-${offset}`;
+    const cacheKey = `${congress}-${subjects.sort().join(',')}-${offset}`;
     const cached = billsCache.get(cacheKey);
     
     // Return cached data if fresh
@@ -69,7 +68,7 @@ export default function IssuesPage({ params }: { params: { congress: string } })
 
     try {
       const params = new URLSearchParams({
-        congress: congressParam,
+        congress: congress,
         limit: '20',
         offset: offset.toString()
       });
@@ -116,14 +115,14 @@ export default function IssuesPage({ params }: { params: { congress: string } })
       setLoading(false);
       setInitialLoading(false);
     }
-  }, [congressParam]);
+  }, [congress]);
 
   // Initial load: 20 most recent bills
   useEffect(() => {
-    if (congressParam) {
+    if (congress) {
       loadBills([], 0, true);
     }
-  }, [congressParam, loadBills]);
+  }, [congress, loadBills]);
 
   // Handle subject selection
   const handleSubjectToggle = (subject: string) => {
@@ -189,8 +188,8 @@ export default function IssuesPage({ params }: { params: { congress: string } })
         </h1>
         <p className="text-lg text-muted-foreground">
           {selectedSubjects.length === 0 
-            ? `Showing most recent bills • ${congressParam}th Congress`
-            : `Select one or more topics to find relevant bills • ${congressParam}th Congress`
+            ? `Showing most recent bills • ${congress}th Congress`
+            : `Select one or more topics to find relevant bills • ${congress}th Congress`
           }
         </p>
       </header>
@@ -333,3 +332,10 @@ export default function IssuesPage({ params }: { params: { congress: string } })
     </div>
   );
 }
+
+export default async function IssuesPage({ params }: { params: { congress: string } }) {
+  const { congress } = await params;
+  return <IssuesClient congress={congress} />;
+}
+
+    
