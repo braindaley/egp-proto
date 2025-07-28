@@ -1,87 +1,116 @@
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const subject = searchParams.get('subject') || 'Health';
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
   const congress = searchParams.get('congress') || '119';
-
+  const stateParam = searchParams.get('state') || 'AR';
   const API_KEY = process.env.CONGRESS_API_KEY;
+
+  const stateAbbr = stateParam?.trim().toUpperCase();
+  
+  const debugInfo = {
+    timestamp: new Date().toISOString(),
+    parameters: { congress, stateParam, stateAbbr },
+    environment: {
+      hasApiKey: !!API_KEY,
+      apiKeyLength: API_KEY?.length || 0,
+      nodeEnv: process.env.NODE_ENV
+    },
+    tests: []
+  };
+
   if (!API_KEY) {
-    return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
+    debugInfo.error = 'No API key found';
+    return NextResponse.json(debugInfo);
   }
 
-  const testQueries = [
-    // Different ways to query by subject
-    `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=5&subject=${encodeURIComponent(subject)}`,
-    `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=5&subject=${encodeURIComponent(`"${subject}"`)}`,
-    `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=5&policyArea=${encodeURIComponent(subject)}`,
-    `https://api.congress.gov/v3/bill/${congress}/search?api_key=${API_KEY}&format=json&limit=5&q=${encodeURIComponent(subject)}`,
+  try {
+    // Test 1: Simple Senate call for current congress
+    const senateUrl = `https://api.congress.gov/v3/member/Senate/${stateAbbr}/${congress}?api_key=${API_KEY}&limit=2`;
+    debugInfo.tests.push({ name: 'Senate URL', url: senateUrl });
     
-    // Just get recent bills to see subject structure
-    `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=3&sort=updateDate+desc`,
-  ];
+    const senateRes = await fetch(senateUrl);
+    const senateData = await senateRes.json();
+    
+    debugInfo.tests.push({
+      name: 'Senate Response',
+      status: senateRes.status,
+      ok: senateRes.ok,
+      dataKeys: Object.keys(senateData),
+      members: senateData.members?.length || 0,
+      error: senateData.error || null,
+      fullResponse: senateData
+    });
 
-  const results = [];
+    // Test 2: Try previous congress (118th) 
+    const senate118Url = `https://api.congress.gov/v3/member/Senate/${stateAbbr}/118?api_key=${API_KEY}&limit=2`;
+    debugInfo.tests.push({ name: 'Senate 118th URL', url: senate118Url });
+    
+    const senate118Res = await fetch(senate118Url);
+    const senate118Data = await senate118Res.json();
+    
+    debugInfo.tests.push({
+      name: 'Senate 118th Response',
+      status: senate118Res.status,
+      ok: senate118Res.ok,
+      members: senate118Data.members?.length || 0,
+      error: senate118Data.error || null
+    });
 
-  for (let i = 0; i < testQueries.length; i++) {
-    const url = testQueries[i];
-    const queryType = i === 0 ? 'subject param' : 
-                     i === 1 ? 'quoted subject' :
-                     i === 2 ? 'policyArea param' :
-                     i === 3 ? 'text search' : 'recent bills sample';
+    // Test 3: Small House call for current congress
+    const houseUrl = `https://api.congress.gov/v3/member/House/${congress}?api_key=${API_KEY}&limit=10`;
+    debugInfo.tests.push({ name: 'House URL', url: houseUrl });
+    
+    const houseRes = await fetch(houseUrl);
+    const houseData = await houseRes.json();
+    
+    debugInfo.tests.push({
+      name: 'House Response',
+      status: houseRes.status,
+      ok: houseRes.ok,
+      dataKeys: Object.keys(houseData),
+      members: houseData.members?.length || 0,
+      error: houseData.error || null,
+      sampleMember: houseData.members?.[0] || null
+    });
 
-    try {
-      console.log(`Testing ${queryType}:`, url.replace(API_KEY, 'API_KEY'));
-      
-      const response = await fetch(url, {
-        headers: { 'User-Agent': 'BillTracker/1.0' }
+    // Test 4: House for 118th congress
+    const house118Url = `https://api.congress.gov/v3/member/House/118?api_key=${API_KEY}&limit=10`;
+    debugInfo.tests.push({ name: 'House 118th URL', url: house118Url });
+    
+    const house118Res = await fetch(house118Url);
+    const house118Data = await house118Res.json();
+    
+    debugInfo.tests.push({
+      name: 'House 118th Response',
+      status: house118Res.status,
+      ok: house118Res.ok,
+      members: house118Data.members?.length || 0,
+      error: house118Data.error || null,
+      sampleMember: house118Data.members?.[0] || null
+    });
+
+    // Test 5: Filter sample if we have data
+    if (house118Data.members?.length > 0) {
+      const stateMembers = house118Data.members.filter(member => {
+        const memberState = member.state?.trim().toUpperCase();
+        return memberState === stateAbbr;
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        results.push({
-          queryType,
-          success: true,
-          billsFound: data.bills?.length || 0,
-          url: url.replace(API_KEY, 'API_KEY'),
-          sampleBills: data.bills?.slice(0, 2).map((bill: any) => ({
-            title: bill.title,
-            number: `${bill.type} ${bill.number}`,
-            updateDate: bill.updateDate,
-            // Show the RAW bill object to see actual structure
-            rawBillFields: Object.keys(bill),
-            subjectsField: bill.subjects,
-            policyAreaField: bill.policyArea,
-            // Show full bill object for first sample
-            ...(queryType === 'recent bills sample' && data.bills?.indexOf(bill) === 0 ? { fullBillObject: bill } : {})
-          })) || []
-        });
-      } else {
-        results.push({
-          queryType,
-          success: false,
-          error: `HTTP ${response.status}`,
-          url: url.replace(API_KEY, 'API_KEY')
-        });
-      }
-    } catch (error) {
-      results.push({
-        queryType,
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        url: url.replace(API_KEY, 'API_KEY')
+      
+      debugInfo.tests.push({
+        name: 'State Filtering Test (118th House)',
+        targetState: stateAbbr,
+        totalMembers: house118Data.members.length,
+        stateMatches: stateMembers.length,
+        allStates: [...new Set(house118Data.members.map(m => m.state))].sort(),
+        sampleMemberStates: house118Data.members.slice(0, 10).map(m => ({ name: m.name, state: m.state }))
       });
     }
+
+  } catch (error) {
+    debugInfo.error = error.message;
+    debugInfo.stack = error.stack;
   }
 
-  return NextResponse.json({
-    testedSubject: subject,
-    congress: congress,
-    results: results,
-    summary: {
-      totalQueries: testQueries.length,
-      successfulQueries: results.filter(r => r.success).length,
-      queriesWithBills: results.filter(r => r.success && r.billsFound > 0).length
-    }
-  });
+  return NextResponse.json(debugInfo);
 }
