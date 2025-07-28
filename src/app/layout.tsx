@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Header } from '@/components/header';
 import { AuthProvider } from '@/hooks/use-auth';
 import { Footer } from '@/components/footer';
+import { Breadcrumbs } from '@/components/breadcrumbs';
 
 export const metadata: Metadata = {
   title: 'eGp Prototype',
@@ -29,6 +30,7 @@ export default function RootLayout({
           <div className="relative flex min-h-screen flex-col">
             <Header />
             <main className="flex-1">
+              <Breadcrumbs />
               {children}
             </main>
             <Footer />
