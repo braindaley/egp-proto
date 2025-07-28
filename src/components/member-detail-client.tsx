@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import type { Member, MemberTerm, Leadership, PartyHistory, NewsArticle, SponsoredLegislation, CosponsoredLegislation } from '@/types';
@@ -129,9 +128,12 @@ const CommitteeAssignments = ({ member, congress }: { member: Member, congress: 
             setIsLoading(true);
             setError('');
             try {
+                const currentTerm = getCurrentTerm(member.terms);
+                const relevantCongress = currentTerm?.congress?.toString() || congress;
+                
                 const result = await getCommitteeAssignments({
                     memberName: member.directOrderName,
-                    congressNumber: congress,
+                    congressNumber: relevantCongress,
                     bioguideId: member.bioguideId
                 });
                 setAssignments(result);

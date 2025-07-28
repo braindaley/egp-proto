@@ -55,11 +55,10 @@ async function getCommitteeDataFromSource(): Promise<CommitteeCache> {
   }
 
   console.log('Fetching fresh committee data...');
-  // Use jsDelivr CDN to ensure valid JSON
   const committeesUrl =
-    'https://cdn.jsdelivr.net/gh/unitedstates/congress-legislators@gh-pages/committees-current.json';
+    'https://unitedstates.github.io/congress-legislators/committees-current.json';
   const membershipsUrl =
-    'https://cdn.jsdelivr.net/gh/unitedstates/congress-legislators@gh-pages/committee-membership-current.json';
+    'https://unitedstates.github.io/congress-legislators/committee-membership-current.json';
 
   try {
     const [committeesRes, membershipsRes] = await Promise.all([
@@ -102,7 +101,6 @@ function processMemberAssignments(
   const memberSubcommittees: SubcommitteeAssignment[] = [];
   let memberChamber: 'Senate' | 'House' = 'House';
 
-  // Build quick lookup for committees
   const committeeMap = new Map(committees.map((c) => [c.thomas_id, c]));
 
   for (const thomasId in memberships) {
@@ -113,54 +111,71 @@ function processMemberAssignments(
     const committeeInfo = committeeMap.get(thomasId);
     if (!committeeInfo) continue;
 
-    // Skip joint if you don't want them
     if (committeeInfo.type === 'joint') continue;
 
     let role: 'Member' | 'Ranking Member' | 'Chair' | 'Vice Chair' = 'Member';
     if (memberInfo.rank === 1) role = 'Chair';
     if (memberInfo.rank === 2) role = 'Ranking Member';
 
-    // Determine chamber from committee metadata
     if (committeeInfo.chamber?.toLowerCase() === 'senate') {
       memberChamber = 'Senate';
     } else if (committeeInfo.chamber?.toLowerCase() === 'house') {
       memberChamber = 'House';
     }
 
-    // Subcommittee vs main
-    if (committeeInfo.parent_committee_id) {
-      const parent = committeeMap.get(committeeInfo.parent_committee_id);
-      memberSubcommittees.push({
-        name: committeeInfo.name,
-        thomasId: committeeInfo.thomas_id,
-        parentCommittee: parent ? parent.name : 'Unknown',
-        role,
-        url: committeeInfo.url,
-      });
-    } else {
-      memberCommittees.push({
-        name: committeeInfo.name,
-        role,
-        isPrimary: false,
-        thomasId: committeeInfo.thomas_id,
-        chamber: committeeInfo.chamber,
-        url: committeeInfo.url,
-      });
+    if (committeeInfo.subcommittees && committeeInfo.subcommittees.length > 0) {
+        // This is a parent committee, check subcommittees for the member
+        for(const subInfo of committeeInfo.subcommittees) {
+            const subThomasId = subInfo.thomas_id;
+            const subMembers = memberships[subThomasId];
+            if(!subMembers) continue;
+
+            const subMemberInfo = subMembers.find((m: any) => m.bioguide === bioguideId);
+            if(!subMemberInfo) continue;
+
+            let subRole: 'Member' | 'Ranking Member' | 'Chair' | 'Vice Chair' = 'Member';
+            if (subMemberInfo.rank === 1) subRole = 'Chair';
+            if (subMemberInfo.rank === 2) subRole = 'Ranking Member';
+            
+            memberSubcommittees.push({
+                name: subInfo.name,
+                thomasId: subThomasId,
+                parentCommittee: committeeInfo.name,
+                role: subRole,
+                url: `https://www.congress.gov/committee/${committeeInfo.chamber.toLowerCase()}-committee/${committeeInfo.thomas_id}/subcommittee/${subInfo.thomas_id}`,
+            });
+        }
+    } 
+
+    // Add main committee assignment only if it's not a subcommittee's parent
+    if (!committeeInfo.parent_committee_id) {
+        memberCommittees.push({
+            name: committeeInfo.name,
+            role,
+            isPrimary: false, 
+            thomasId: committeeInfo.thomas_id,
+            chamber: committeeInfo.chamber,
+            url: committeeInfo.url,
+        });
     }
   }
 
-  console.log(`Member ${bioguideId} has ${memberCommittees.length} committees and ${memberSubcommittees.length} subcommittees`);
+  // Remove duplicate subcommittees that might be added if the structure is complex
+  const uniqueSubcommittees = Array.from(new Map(memberSubcommittees.map(item => [item.name, item])).values());
+
+  console.log(`Member ${bioguideId} has ${memberCommittees.length} main committees and ${uniqueSubcommittees.length} subcommittees`);
 
   return {
     memberName,
     congress,
     chamber: memberChamber,
     committees: memberCommittees,
-    subcommittees: memberSubcommittees,
+    subcommittees: uniqueSubcommittees,
     lastUpdated: new Date(cache.timestamp).toISOString(),
     source: 'https://unitedstates.github.io/congress-legislators/',
   };
 }
+
 
 export async function getCommitteeAssignments(
   input: GetCommitteeAssignmentsInput
