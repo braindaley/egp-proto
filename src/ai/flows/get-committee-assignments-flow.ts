@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -12,7 +13,7 @@ export type GetCommitteeAssignmentsInput = z.infer<typeof GetCommitteeAssignment
 export interface CommitteeAssignment {
   name: string;
   role: 'Member' | 'Ranking Member' | 'Chair' | 'Vice Chair';
-  isPrimary: boolean; // This will be hard to determine, so we can default it
+  isPrimary: boolean; 
   thomasId: string;
   chamber: 'House' | 'Senate' | 'Joint';
   url?: string;
@@ -55,8 +56,8 @@ async function getCommitteeDataFromSource(): Promise<CommitteeCache> {
     }
 
     console.log('Fetching fresh committee data...');
-    const committeesUrl = 'https://theunitedstates.io/congress-legislators/committees-current.json';
-    const membershipsUrl = 'https://theunitedstates.io/congress-legislators/committee-membership-current.json';
+    const committeesUrl = 'https://unitedstates.github.io/congress-legislators/committees-current.json';
+    const membershipsUrl = 'https://unitedstates.github.io/congress-legislators/committee-membership-current.json';
 
     try {
         const [committeesRes, membershipsRes] = await Promise.all([
@@ -99,7 +100,7 @@ function processMemberAssignments(
     const { committees, memberships } = cache;
     const memberCommittees: CommitteeAssignment[] = [];
     const memberSubcommittees: SubcommitteeAssignment[] = [];
-    let memberChamber: 'Senate' | 'House' = 'House';
+    let memberChamber: 'Senate' | 'House' = 'House'; // Default to House
 
     const committeeMap = new Map(committees.map(c => [c.thomas_id, c]));
 
@@ -109,34 +110,40 @@ function processMemberAssignments(
 
         if (memberInfo) {
             const committeeInfo = committeeMap.get(thomasId);
-            if (!committeeInfo) continue; // Skip if committee info not found
+            if (!committeeInfo) continue; 
+
+            // Skip joint committees as they are not typically displayed this way
+            if (committeeInfo.type === 'joint') continue;
 
             let role: 'Member' | 'Ranking Member' | 'Chair' | 'Vice Chair' = 'Member';
             if (memberInfo.rank === 1) role = 'Chair';
             if (memberInfo.rank === 2) role = 'Ranking Member';
             
-            if (committeeInfo.type === 'joint') continue; // Skip joint committees
-
-            if (committeeInfo.chamber === 'senate') memberChamber = 'Senate';
+            // Determine chamber from the committee itself, which is more reliable
+            if (committeeInfo.chamber && committeeInfo.chamber.toLowerCase() === 'senate') {
+                memberChamber = 'Senate';
+            } else if (committeeInfo.chamber && committeeInfo.chamber.toLowerCase() === 'house') {
+                memberChamber = 'House';
+            }
             
-            // It's a main committee if it doesn't have a `parent_committee_id`
-            if (!committeeInfo.parent_committee_id) {
-                memberCommittees.push({
-                    name: committeeInfo.name,
-                    role: role,
-                    isPrimary: false,
-                    thomasId: committeeInfo.thomas_id,
-                    chamber: committeeInfo.chamber,
-                    url: committeeInfo.url
-                });
-            } else {
-                // It's a subcommittee
+            // Check if it's a subcommittee by seeing if it has a parent
+            if (committeeInfo.parent_committee_id) {
                 const parentCommittee = committeeMap.get(committeeInfo.parent_committee_id);
                 memberSubcommittees.push({
                     name: committeeInfo.name,
                     thomasId: committeeInfo.thomas_id,
                     parentCommittee: parentCommittee ? parentCommittee.name : 'Unknown Committee',
                     role: role,
+                    url: committeeInfo.url
+                });
+            } else {
+                 // It's a main committee
+                memberCommittees.push({
+                    name: committeeInfo.name,
+                    role: role,
+                    isPrimary: false, // This is hard to determine, so default
+                    thomasId: committeeInfo.thomas_id,
+                    chamber: committeeInfo.chamber,
                     url: committeeInfo.url
                 });
             }
