@@ -27,7 +27,7 @@ function getYearsOfService(member: Member): number {
 }
 
 export default async function StateCongressPage({ params }: { params: { congress: string, state: string } }) {
-  const { congress, state } = params;
+  const { congress, state } = await params;
 
   const stateName = states[state.toLowerCase()];
 
