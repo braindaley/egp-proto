@@ -135,16 +135,11 @@ export default function PopularBillsPage({ params }: PopularBillsPageProps) {
         isLoading: true,
         error: null
     });
-    const [congressParam, setCongressParam] = useState<string>('');
+    
+    const { congress } = params;
 
     useEffect(() => {
-        // Unwrap the params Promise
-        setCongressParam(params.congress);
-        console.log('🔗 Component mounted, congress param:', params.congress);
-    }, [params]);
-
-    useEffect(() => {
-        if (!congressParam) return; // Wait for params to be resolved
+        if (!congress) return; // Wait for params to be available
         
         const fetchData = async () => {
             try {
@@ -161,13 +156,13 @@ export default function PopularBillsPage({ params }: PopularBillsPageProps) {
         };
 
         fetchData();
-    }, [congressParam]);
+    }, [congress]);
 
     return (
         <div className="bg-background min-h-screen">
             <div className="container mx-auto px-4 py-8 md:py-12">
                 <header className="text-center mb-12">
-                    <p className="text-lg text-muted-foreground font-medium mb-1">{congressParam}th Congress</p>
+                    <p className="text-lg text-muted-foreground font-medium mb-1">{congress}th Congress</p>
                     <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary">
                         Popular Bills
                     </h1>
