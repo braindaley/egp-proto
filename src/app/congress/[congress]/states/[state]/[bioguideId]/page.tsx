@@ -9,14 +9,14 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
   
   try {
     const res = await fetch(url, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 3600 }, // Cache for 1 hour
     });
 
     if (!res.ok) {
       console.error(`Failed to fetch member from internal API: ${res.status}`);
       return null;
     }
-    
+
     // Only fetch basic data initially. The rest will be loaded client-side.
     const memberData: Member = await res.json();
     return memberData;
@@ -27,9 +27,8 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
   }
 }
 
-export default async function MemberDetailPage({ params: paramsPromise }: { params: Promise<{ bioguideId: string, congress: string }> }) {
-  const params = await paramsPromise;
-  const { bioguideId } = params;
+export default async function MemberDetailPage({ params }: { params: { bioguideId: string, congress: string, state: string } }) {
+  const { bioguideId, congress } = params;
   
   const member = await getMemberDetails(bioguideId);
 
@@ -39,7 +38,8 @@ export default async function MemberDetailPage({ params: paramsPromise }: { para
   
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
-      <MemberDetailClient initialMember={member} congress={params.congress} />
+      {/* Pass minimal data to the client, which will fetch the rest */}
+      <MemberDetailClient initialMember={member} congress={congress} />
     </div>
   );
 }

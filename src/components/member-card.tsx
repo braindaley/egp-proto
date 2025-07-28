@@ -84,7 +84,7 @@ export function MemberCard({ member, congress }: MemberCardProps) {
   const yearsOfService = firstTerm ? calculateYearsOfService(firstTerm.startYear) : 0;
   const currentlyServing = isCurrentlyServing(member);
   const leadershipPosition = getLeadershipPosition(member);
-  const detailUrl = `/congress/${congress}/member/${member.bioguideId}`;
+  const detailUrl = `/congress/${congress}/states/${member.state.toLowerCase()}/${member.bioguideId}`;
   
   const partyColor = member.partyName === 'Democratic' || member.partyName === 'Democrat'
     ? 'bg-blue-600' 
