@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { BillCard } from '@/components/bill-card';
@@ -25,17 +26,13 @@ export default function IssuesPage({ params }: { params: { congress: string } })
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [congressParam, setCongressParam] = useState<string>('');
+  const [congressParam, setCongressParam] = useState<string>(params.congress);
   const [pagination, setPagination] = useState({
     offset: 0,
     hasMore: true,
     total: null as number | null
   });
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-      setCongressParam(params.congress);
-  }, [params]);
 
   // Load bills with caching
   const loadBills = useCallback(async (
