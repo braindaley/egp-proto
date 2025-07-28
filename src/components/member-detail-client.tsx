@@ -12,7 +12,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collap
 import { getBillTypeSlug } from '@/lib/utils';
 import { getCommitteeAssignments, type CommitteeAssignmentsData } from '@/ai/flows/get-committee-assignments-flow';
 import { getCampaignPromises, type CampaignPromisesData, type CampaignPromise } from '@/ai/flows/get-campaign-promises-flow';
-import { VotingAttendanceCard } from '@/components/voting-attendance-card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Updated types to match Congress API response
@@ -472,12 +471,6 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                     )}
                 </CardContent>
             </Card>
-
-            <VotingAttendanceCard 
-                bioguideId={member.bioguideId} 
-                congress={congress} 
-                chamber={currentTerm?.chamber || 'senate'} 
-            />
 
             {isLoading ? (
                  <Card>
