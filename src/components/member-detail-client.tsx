@@ -12,6 +12,7 @@ import { getBillTypeSlug } from '@/lib/utils';
 import { getCommitteeAssignments, type CommitteeAssignmentsData } from '@/ai/flows/get-committee-assignments-flow';
 import { getCampaignPromises, type CampaignPromisesData, type CampaignPromise } from '@/ai/flows/get-campaign-promises-flow';
 import { VotingAttendanceCard } from '@/components/voting-attendance-card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Updated types to match Congress API response
 interface CongressApiMember extends Member {}
@@ -149,35 +150,18 @@ const CommitteeAssignments = ({ member, congress }: { member: Member, congress: 
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Briefcase className="h-5 w-5" />
-                        Committee Assignments
-                    </CardTitle>
+                    <Skeleton className="h-6 w-3/5" />
                 </CardHeader>
-                <CardContent>
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Loading live committee assignment data...</span>
-                    </div>
+                <CardContent className="space-y-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
                 </CardContent>
             </Card>
         );
     }
 
     if (error || !assignments || (assignments.committees.length === 0 && assignments.subcommittees.length === 0)) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Briefcase className="h-5 w-5" />
-                        Committee Assignments
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">{error || 'No current committee assignments found for this member.'}</p>
-                </CardContent>
-            </Card>
-        );
+        return null; // Don't render the card if no assignments or an error occurred
     }
 
     return (
@@ -276,37 +260,21 @@ const CampaignPromises = ({ member, congress }: { member: Member, congress: stri
 
     if (isLoading) {
         return (
-            <Card>
+             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Target className="h-5 w-5" />
-                        Recent Campaign Promises
-                    </CardTitle>
+                    <Skeleton className="h-6 w-3/5" />
+                    <Skeleton className="h-4 w-4/5 mt-2" />
                 </CardHeader>
-                <CardContent>
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Generating content...</span>
-                    </div>
+                <CardContent className="space-y-4">
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
                 </CardContent>
             </Card>
         );
     }
 
     if (error || !data) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Target className="h-5 w-5" />
-                        Recent Campaign Promises
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-destructive">{error || 'No campaign promise data available.'}</p>
-                </CardContent>
-            </Card>
-        );
+        return null;
     }
     
     const getStatusIcon = (status: CampaignPromise['status']) => {
@@ -376,8 +344,50 @@ const CampaignPromises = ({ member, congress }: { member: Member, congress: stri
     );
 };
 
+interface ExtraData {
+    news: NewsArticle[];
+    sponsoredLegislation: SponsoredLegislation[];
+    cosponsoredLegislation: CosponsoredLegislation[];
+}
 
-export function MemberDetailClient({ member, congress }: { member: CongressApiMember, congress: string }) {
+
+export function MemberDetailClient({ initialMember, congress }: { initialMember: CongressApiMember, congress: string }) {
+  
+  const [member, setMember] = useState<Member>(initialMember);
+  const [extraData, setExtraData] = useState<ExtraData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchExtraData() {
+        setIsLoading(true);
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+        const bioguideId = initialMember.bioguideId;
+
+        try {
+            const [sponsoredRes, cosponsoredRes, newsRes] = await Promise.allSettled([
+                fetch(`${baseUrl}/api/congress/member/${bioguideId}/sponsored-legislation`),
+                fetch(`${baseUrl}/api/congress/member/${bioguideId}/cosponsored-legislation`),
+                fetch(`${baseUrl}/api/congress/member/${bioguideId}/news`)
+            ]);
+
+            const sponsoredLegislation = sponsoredRes.status === 'fulfilled' && sponsoredRes.value.ok ? await sponsoredRes.value.json() : [];
+            const cosponsoredLegislation = cosponsoredRes.status === 'fulfilled' && cosponsoredRes.value.ok ? await cosponsoredRes.value.json() : [];
+            const news = newsRes.status === 'fulfilled' && newsRes.value.ok ? await newsRes.value.json() : [];
+            
+            setExtraData({
+                sponsoredLegislation,
+                cosponsoredLegislation,
+                news
+            });
+        } catch (error) {
+            console.error("Failed to fetch extra member data", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    fetchExtraData();
+  }, [initialMember.bioguideId]);
+
   // Handle different terms data structures safely
   let termsData: MemberTerm[] = [];
   try {
@@ -397,9 +407,9 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
   
   const yearsOfService = calculateYearsOfService(firstTerm);
   const leadershipHistory = (member.leadership || []).sort((a,b) => b.congress - a.congress);
-  const hasNews = member.news && member.news.length > 0;
-  const sponsoredLegislation = member.sponsoredLegislation || [];
-  const cosponsoredLegislation = member.cosponsoredLegislation || [];
+  const hasNews = extraData?.news && extraData.news.length > 0;
+  const sponsoredLegislation = extraData?.sponsoredLegislation || [];
+  const cosponsoredLegislation = extraData?.cosponsoredLegislation || [];
   const sponsoredCount = sponsoredLegislation.length;
   const cosponsoredCount = cosponsoredLegislation.length;
   const currentlyServing = isCurrentlyServing(member);
@@ -468,14 +478,25 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
                 chamber={currentTerm?.chamber || 'senate'} 
             />
 
-            {hasNews && (
+            {isLoading ? (
+                 <Card>
+                    <CardHeader>
+                        <Skeleton className="h-6 w-2/5" />
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                    </CardContent>
+                </Card>
+            ) : hasNews && extraData && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Newspaper /> Recent News</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                            {member.news?.map((article, index) => (
+                            {extraData.news.map((article, index) => (
                                 <a href={article.link} target="_blank" rel="noopener noreferrer" key={index} className="block p-3 bg-secondary/50 rounded-md hover:bg-secondary transition-colors">
                                     <div className="flex items-start gap-4">
                                         {article.imageUrl && (
@@ -510,56 +531,65 @@ export function MemberDetailClient({ member, congress }: { member: CongressApiMe
                     <CardTitle className="flex items-center gap-2"><Gavel /> Legislative Activity</CardTitle>
                     <CardDescription>Summary of bills sponsored and cosponsored by the member.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 bg-secondary/50 rounded-lg">
-                            <h3 className="font-semibold mb-2">Sponsored Bills</h3>
-                            <p className="text-3xl font-bold text-primary">{sponsoredCount}</p>
+                 {isLoading ? (
+                    <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Skeleton className="h-20 w-full" />
+                            <Skeleton className="h-20 w-full" />
                         </div>
-                        <div className="p-4 bg-secondary/50 rounded-lg">
-                            <h3 className="font-semibold mb-2">Cosponsored Bills</h3>
-                            <p className="text-3xl font-bold text-primary">{cosponsoredCount}</p>
+                    </CardContent>
+                 ) : extraData && (
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="p-4 bg-secondary/50 rounded-lg">
+                                <h3 className="font-semibold mb-2">Sponsored Bills</h3>
+                                <p className="text-3xl font-bold text-primary">{sponsoredCount}</p>
+                            </div>
+                            <div className="p-4 bg-secondary/50 rounded-lg">
+                                <h3 className="font-semibold mb-2">Cosponsored Bills</h3>
+                                <p className="text-3xl font-bold text-primary">{cosponsoredCount}</p>
+                            </div>
                         </div>
-                    </div>
-                    
-                    {sponsoredLegislation.length > 0 && (
-                        <Collapsible>
-                            <CollapsibleTrigger asChild>
-                                <Button variant="outline" className="w-full justify-between">
-                                    Sponsored Bills ({sponsoredCount})
-                                    <ChevronsUpDown className="h-4 w-4" />
-                                </Button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="mt-2 space-y-2">
-                                {sponsoredLegislation.map((bill) => (
-                                    <div key={bill.number} className="p-3 bg-secondary/50 rounded-md">
-                                        <Link href={`/bill/${bill.congress}/${getBillTypeSlug(bill.type)}/${bill.number}`} className="font-semibold hover:underline">{bill.type} {bill.number}: {bill.title}</Link>
-                                        <p className="text-xs text-muted-foreground mt-1">Introduced: {formatDate(bill.introducedDate)}</p>
-                                    </div>
-                                ))}
-                            </CollapsibleContent>
-                        </Collapsible>
-                    )}
+                        
+                        {sponsoredLegislation.length > 0 && (
+                            <Collapsible>
+                                <CollapsibleTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-between">
+                                        Sponsored Bills ({sponsoredCount})
+                                        <ChevronsUpDown className="h-4 w-4" />
+                                    </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="mt-2 space-y-2 max-h-60 overflow-y-auto">
+                                    {sponsoredLegislation.map((bill) => (
+                                        <div key={bill.number} className="p-3 bg-secondary/50 rounded-md">
+                                            <Link href={`/bill/${bill.congress}/${getBillTypeSlug(bill.type)}/${bill.number}`} className="font-semibold hover:underline">{bill.type} {bill.number}: {bill.title}</Link>
+                                            <p className="text-xs text-muted-foreground mt-1">Introduced: {formatDate(bill.introducedDate)}</p>
+                                        </div>
+                                    ))}
+                                </CollapsibleContent>
+                            </Collapsible>
+                        )}
 
-                    {cosponsoredLegislation.length > 0 && (
-                         <Collapsible className="mt-2">
-                            <CollapsibleTrigger asChild>
-                                <Button variant="outline" className="w-full justify-between">
-                                    Cosponsored Bills ({cosponsoredCount})
-                                    <ChevronsUpDown className="h-4 w-4" />
-                                </Button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="mt-2 space-y-2">
-                                {cosponsoredLegislation.map((bill) => (
-                                     <div key={bill.number} className="p-3 bg-secondary/50 rounded-md">
-                                        <Link href={`/bill/${bill.congress}/${getBillTypeSlug(bill.type)}/${bill.number}`} className="font-semibold hover:underline">{bill.type} {bill.number}: {bill.title}</Link>
-                                        <p className="text-xs text-muted-foreground mt-1">Cosponsored: {formatDate(bill.cosponsoredDate)}</p>
-                                    </div>
-                                ))}
-                            </CollapsibleContent>
-                        </Collapsible>
-                    )}
-                </CardContent>
+                        {cosponsoredLegislation.length > 0 && (
+                            <Collapsible className="mt-2">
+                                <CollapsibleTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-between">
+                                        Cosponsored Bills ({cosponsoredCount})
+                                        <ChevronsUpDown className="h-4 w-4" />
+                                    </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="mt-2 space-y-2 max-h-60 overflow-y-auto">
+                                    {cosponsoredLegislation.map((bill) => (
+                                        <div key={bill.number} className="p-3 bg-secondary/50 rounded-md">
+                                            <Link href={`/bill/${bill.congress}/${getBillTypeSlug(bill.type)}/${bill.number}`} className="font-semibold hover:underline">{bill.type} {bill.number}: {bill.title}</Link>
+                                            <p className="text-xs text-muted-foreground mt-1">Cosponsored: {formatDate(bill.cosponsoredDate)}</p>
+                                        </div>
+                                    ))}
+                                </CollapsibleContent>
+                            </Collapsible>
+                        )}
+                    </CardContent>
+                 )}
             </Card>
 
             <CommitteeAssignments member={member} congress={congress} />

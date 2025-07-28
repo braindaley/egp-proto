@@ -9,7 +9,7 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
   
   try {
     const res = await fetch(url, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 3600 }, // Cache for 1 hour
     });
 
     if (!res.ok) {
@@ -17,27 +17,8 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
       return null;
     }
 
+    // Only fetch basic data initially. The rest will be loaded client-side.
     const memberData: Member = await res.json();
-
-    // Fetch sponsored, cosponsored legislation, and news
-    const [sponsoredRes, cosponsoredRes, newsRes] = await Promise.all([
-      fetch(`${baseUrl}/api/congress/member/${bioguideId}/sponsored-legislation`),
-      fetch(`${baseUrl}/api/congress/member/${bioguideId}/cosponsored-legislation`),
-      fetch(`${baseUrl}/api/congress/member/${bioguideId}/news`)
-    ]);
-
-    if (sponsoredRes.ok) {
-      memberData.sponsoredLegislation = await sponsoredRes.json();
-    }
-
-    if (cosponsoredRes.ok) {
-      memberData.cosponsoredLegislation = await cosponsoredRes.json();
-    }
-    
-    if (newsRes.ok) {
-        memberData.news = await newsRes.json();
-    }
-
     return memberData;
     
   } catch (error) {
@@ -46,7 +27,8 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
   }
 }
 
-export default async function MemberDetailPage({ params }: { params: { bioguideId: string, congress: string } }) {
+export default async function MemberDetailPage({ params: paramsPromise }: { params: Promise<{ bioguideId: string, congress: string }> }) {
+  const params = await paramsPromise;
   const { bioguideId } = params;
   
   const member = await getMemberDetails(bioguideId);
@@ -57,7 +39,8 @@ export default async function MemberDetailPage({ params }: { params: { bioguideI
   
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
-      <MemberDetailClient member={member} congress={params.congress} />
+      {/* Pass minimal data to the client, which will fetch the rest */}
+      <MemberDetailClient initialMember={member} congress={params.congress} />
     </div>
   );
 }
