@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import type { Member, MemberTerm, Leadership, PartyHistory, NewsArticle, SponsoredLegislation, CosponsoredLegislation } from '@/types';
@@ -188,9 +189,9 @@ const CommitteeAssignments = ({ member, congress }: { member: Member, congress: 
                                         <p className="font-semibold text-foreground pr-4">
                                            {committee.url ? <a href={committee.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{committee.name}</a> : committee.name}
                                         </p>
-                                        <Badge variant={committee.role === 'Chair' || committee.role === 'Ranking Member' ? 'default' : 'secondary'} className="text-xs shrink-0">
+                                        <div className="text-xs shrink-0">
                                             {committee.role}
-                                        </Badge>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -215,9 +216,9 @@ const CommitteeAssignments = ({ member, congress }: { member: Member, congress: 
                                                 under {sub.parentCommittee}
                                             </p>
                                         </div>
-                                        <Badge variant={sub.role === 'Chair' || sub.role === 'Ranking Member' ? 'outline' : 'secondary'} className="text-xs shrink-0">
+                                        <div className="text-xs shrink-0">
                                             {sub.role}
-                                        </Badge>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
