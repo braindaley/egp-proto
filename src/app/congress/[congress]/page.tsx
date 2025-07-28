@@ -1,7 +1,7 @@
 
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Landmark } from 'lucide-react';
+import { Users, Landmark, Library } from 'lucide-react';
 
 export default async function CongressOverviewPage({ params }: { params: { congress: string } }) {
   const { congress } = params;
@@ -13,21 +13,20 @@ export default async function CongressOverviewPage({ params }: { params: { congr
       href: `/congress/${congress}/states`,
       icon: <Users className="h-8 w-8 text-primary" />,
     },
-    // Future features could be added here
-    // {
-    //   title: 'Voting Records',
-    //   description: 'Analyze voting patterns for this session.',
-    //   href: `/congress/${congress}/voting`,
-    //   icon: <Landmark className="h-8 w-8 text-primary" />,
-    // },
+    {
+      title: 'Committees',
+      description: 'Explore the committees for this congressional session.',
+      href: `/congress/${congress}/committees`,
+      icon: <Library className="h-8 w-8 text-primary" />,
+    },
   ];
 
   return (
     <div className="bg-background min-h-screen">
       <div className="container mx-auto px-4 py-8 md:py-12">
         <header className="text-center mb-12">
-          <p className="text-lg text-muted-foreground font-medium mb-1">{congress}th Congress</p>
-          <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
+           <p className="text-lg text-muted-foreground font-medium mb-1">{congress}th Congress</p>
+           <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
             Congress
           </h1>
         </header>
