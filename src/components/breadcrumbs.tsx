@@ -1,16 +1,25 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Fragment } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { HomeIcon } from '@/components/icons';
+import { useAuth } from '@/hooks/use-auth';
 
 // A list of path segments to exclude from the breadcrumbs
 const HIDDEN_SEGMENTS = ['bill'];
 
 export function Breadcrumbs() {
   const pathname = usePathname();
+  const { selectedCongress, isInitialLoadComplete } = useAuth();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   if (pathname === '/') {
     return null;
   }
@@ -19,14 +28,28 @@ export function Breadcrumbs() {
 
   const breadcrumbs = originalSegments
     .map((segment, index) => {
-      const href = '/' + originalSegments.slice(0, index + 1).join('/');
-      const isLast = index === originalSegments.length - 1;
+      // Check if the current segment is a number (like a congress number)
+      const isNumericSegment = !isNaN(Number(segment));
+      
+      // If it's a numeric segment, check if the previous segment was 'congress'
+      if (isNumericSegment && originalSegments[index - 1] === 'congress') {
+          return null; // Don't render this segment
+      }
 
+      const isLast = index === originalSegments.length - 1;
+      
       // Capitalize the first letter and replace dashes with spaces for display
       const title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
 
-      // Skip rendering for hidden segments or numeric segments
-      if (HIDDEN_SEGMENTS.includes(segment.toLowerCase()) || !isNaN(Number(segment))) {
+      // Determine the href
+      let href = '/' + originalSegments.slice(0, index + 1).join('/');
+      // If the segment is 'congress', use the selectedCongress for the URL if available
+      if (segment === 'congress' && selectedCongress) {
+          href = `/congress/${selectedCongress}`;
+      }
+      
+      // Skip rendering for explicitly hidden segments
+      if (HIDDEN_SEGMENTS.includes(segment.toLowerCase())) {
           return null;
       }
 
@@ -41,6 +64,17 @@ export function Breadcrumbs() {
   // Return null if no breadcrumbs are generated after filtering
   if (breadcrumbs.length === 0) {
     return null;
+  }
+
+  // Only render on the client after mount to prevent hydration errors
+  if (!isClient || !isInitialLoadComplete) {
+    return (
+        <nav className="container mx-auto px-4 pt-4">
+            <ol className="flex items-center space-x-2 bg-secondary/50 p-2 rounded-md h-[36px]">
+                {/* Render a placeholder or nothing on server and initial client render */}
+            </ol>
+        </nav>
+    );
   }
 
   return (

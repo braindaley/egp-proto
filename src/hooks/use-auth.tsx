@@ -81,6 +81,7 @@ type AuthContextType = {
   selectedCongress: string;
   setSelectedCongress: (congress: string) => void;
   congresses: Congress[];
+  isInitialLoadComplete: boolean;
 };
 
 export const AuthContext = createContext<AuthContextType>({
@@ -93,6 +94,7 @@ export const AuthContext = createContext<AuthContextType>({
   selectedCongress: '',
   setSelectedCongress: () => {},
   congresses: [],
+  isInitialLoadComplete: false,
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -100,6 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [selectedCongress, setSelectedCongress] = useState('');
   const [congresses, setCongresses] = useState<Congress[]>([]);
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -113,6 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (data.length > 0 && !selectedCongress) {
             setSelectedCongress(data[0].number.toString());
         }
+        setIsInitialLoadComplete(true);
     });
 
     return () => unsubscribe();
@@ -137,7 +141,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, sendPasswordReset, selectedCongress, setSelectedCongress, congresses }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, sendPasswordReset, selectedCongress, setSelectedCongress, congresses, isInitialLoadComplete }}>
       {children}
     </AuthContext.Provider>
   );
