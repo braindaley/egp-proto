@@ -124,13 +124,14 @@ const CommitteeAssignments = ({ member, congress }: { member: Member, congress: 
 
     useEffect(() => {
         const fetchAssignments = async () => {
-            if (!member.directOrderName || !congress) return;
+            if (!member.directOrderName || !congress || !member.bioguideId) return;
             setIsLoading(true);
             setError('');
             try {
                 const result = await getCommitteeAssignments({
                     memberName: member.directOrderName,
-                    congressNumber: congress
+                    congressNumber: congress,
+                    bioguideId: member.bioguideId
                 });
                 setAssignments(result);
             } catch (e) {
@@ -156,14 +157,14 @@ const CommitteeAssignments = ({ member, congress }: { member: Member, congress: 
                 <CardContent>
                     <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Generating committee assignment overview...</span>
+                        <span>Loading live committee assignment data...</span>
                     </div>
                 </CardContent>
             </Card>
         );
     }
 
-    if (error || !assignments) {
+    if (error || !assignments || (assignments.committees.length === 0 && assignments.subcommittees.length === 0)) {
         return (
             <Card>
                 <CardHeader>
@@ -173,7 +174,7 @@ const CommitteeAssignments = ({ member, congress }: { member: Member, congress: 
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-sm text-destructive">{error || 'No committee assignment information could be generated at this time.'}</p>
+                    <p className="text-sm text-muted-foreground">{error || 'No current committee assignments found for this member.'}</p>
                 </CardContent>
             </Card>
         );
@@ -187,41 +188,25 @@ const CommitteeAssignments = ({ member, congress }: { member: Member, congress: 
                     Committee Assignments
                 </CardTitle>
                 <CardDescription>
-                    {assignments.congress}th Congress • {assignments.chamber}
+                    {assignments.congress}th Congress &bull; {assignments.chamber} &bull; Last updated: {formatDate(assignments.lastUpdated)}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                {/* Standing Committees */}
                 {assignments.committees && assignments.committees.length > 0 && (
                     <div>
                         <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
-                            🏛️ Standing Committees
+                            🏛️ Full Committees
                         </h4>
                         <div className="space-y-2">
                             {assignments.committees.map((committee, index) => (
-                                <div 
-                                    key={index} 
-                                    className={`p-3 rounded-md border ${
-                                        committee.isPrimary 
-                                            ? 'bg-primary/10 border-primary/30' 
-                                            : 'bg-secondary/30 border-border'
-                                    }`}
-                                >
-                                    <div className="font-semibold text-foreground mb-1">
-                                        {committee.name}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Badge 
-                                            variant={committee.isPrimary ? "default" : "secondary"}
-                                            className="text-xs"
-                                        >
+                                <div key={index} className="p-3 rounded-md border bg-secondary/30">
+                                    <div className="flex justify-between items-start">
+                                        <p className="font-semibold text-foreground pr-4">
+                                           {committee.url ? <a href={committee.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{committee.name}</a> : committee.name}
+                                        </p>
+                                        <Badge variant={committee.role === 'Chair' || committee.role === 'Ranking Member' ? 'default' : 'secondary'} className="text-xs shrink-0">
                                             {committee.role}
                                         </Badge>
-                                        {committee.isPrimary && (
-                                            <span className="text-xs text-muted-foreground">
-                                                Primary assignment
-                                            </span>
-                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -229,7 +214,6 @@ const CommitteeAssignments = ({ member, congress }: { member: Member, congress: 
                     </div>
                 )}
 
-                {/* Subcommittees */}
                 {assignments.subcommittees && assignments.subcommittees.length > 0 && (
                     <div>
                         <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
@@ -237,58 +221,27 @@ const CommitteeAssignments = ({ member, congress }: { member: Member, congress: 
                         </h4>
                         <div className="space-y-2">
                             {assignments.subcommittees.map((sub, index) => (
-                                <div 
-                                    key={index} 
-                                    className="p-2 bg-secondary/20 rounded border-l-2 border-border"
-                                >
-                                    <div className="font-medium text-foreground text-sm">
-                                        {sub.name}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                        under {sub.parentCommittee}
+                                <div key={index} className="p-3 bg-secondary/20 rounded border-l-2 border-border">
+                                     <div className="flex justify-between items-start">
+                                        <div className="pr-4">
+                                            <p className="font-medium text-foreground text-sm">
+                                                {sub.url ? <a href={sub.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{sub.name}</a> : sub.name}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                under {sub.parentCommittee}
+                                            </p>
+                                        </div>
+                                        <Badge variant={sub.role === 'Chair' || sub.role === 'Ranking Member' ? 'outline' : 'secondary'} className="text-xs shrink-0">
+                                            {sub.role}
+                                        </Badge>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
-
-                {/* Caucus Memberships */}
-                {assignments.caucuses && assignments.caucuses.length > 0 && (
-                    <div>
-                        <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
-                            🤝 Caucus Memberships
-                        </h4>
-                        <div className="space-y-1">
-                            {assignments.caucuses.map((caucus, index) => (
-                                <div 
-                                    key={index} 
-                                    className="flex justify-between items-center p-2 bg-secondary/20 rounded"
-                                >
-                                    <span className="font-medium text-foreground text-sm">
-                                        {caucus}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground italic">
-                                        if applicable
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Disclaimer */}
-                <div className="bg-secondary/30 p-4 rounded-lg border border-border">
-                    <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
-                        ℹ️ Important Note
-                    </h4>
-                    <p className="text-sm text-muted-foreground mb-2">
-                        Committee assignments can change during a congressional session. For the most current information, 
-                        please refer to the official {assignments.chamber === 'Senate' ? 'Senate.gov' : 'House.gov'} website.
-                    </p>
-                    <p className="text-xs text-muted-foreground opacity-80 italic">
-                        This information is generated based on typical assignment patterns and may not reflect actual current assignments.
-                    </p>
+                 <div className="text-xs text-muted-foreground pt-2">
+                   Data provided by <a href={assignments.source} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">{assignments.source}</a>.
                 </div>
             </CardContent>
         </Card>
