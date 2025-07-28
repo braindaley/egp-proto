@@ -17,7 +17,6 @@ export async function GET(req: NextRequest) {
   const baseUrl = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}`;
 
   try {
-    console.log('Fetching basic bill data from server API...');
     const basicUrl = `${baseUrl}?embed=sponsors&api_key=${API_KEY}`;
     
     const basicRes = await fetch(basicUrl, {
@@ -32,16 +31,6 @@ export async function GET(req: NextRequest) {
 
     const basicData = await basicRes.json();
     const bill: Bill = basicData.bill;
-    
-    // Initialize debug object to track what happens
-    const debugInfo = {
-      billId: `${billType?.toUpperCase()} ${billNumber}`,
-      steps: [] as string[],
-      rawSubjects: [] as any[],
-      mappedSubjects: [] as string[],
-      finalSubjects: [] as string[],
-      errors: [] as string[]
-    };
     
     // Initialize all optional structures to prevent client errors
     bill.sponsors = bill.sponsors || [];
@@ -120,50 +109,34 @@ export async function GET(req: NextRequest) {
         );
     }
 
-    // Subjects - with pagination, mapping, and filtering + DEBUG
+    // Subjects - with pagination, mapping, and filtering
     if (bill.subjects?.url) {
-        debugInfo.steps.push('Starting subjects fetch');
-        
         const fetchAllSubjects = async () => {
             let allSubjects: (Subject | PolicyArea)[] = [];
             let nextUrl: string | undefined = `${bill.subjects.url}&api_key=${API_KEY}&limit=250`;
             
-            debugInfo.steps.push(`Initial subjects URL: ${nextUrl}`);
-            
             while (nextUrl) {
                 try {
                     const res = await fetch(nextUrl, { signal: AbortSignal.timeout(10000) });
-                    if (!res.ok) {
-                        debugInfo.errors.push(`Subjects API failed: ${res.status}`);
-                        break;
-                    }
+                    if (!res.ok) break;
                     const data = await res.json();
                     
                     const legislativeSubjects = data.subjects?.legislativeSubjects || [];
                     const policyArea = data.subjects?.policyArea ? [data.subjects.policyArea] : [];
                     
                     allSubjects.push(...legislativeSubjects, ...policyArea);
-                    debugInfo.steps.push(`Found ${legislativeSubjects.length} legislative subjects, ${policyArea.length} policy areas`);
                     
                     // Check for pagination.next property
                     nextUrl = data.pagination?.next ? `${data.pagination.next}&api_key=${API_KEY}` : undefined;
-                    if (nextUrl) {
-                        debugInfo.steps.push(`Next page URL: ${nextUrl}`);
-                    }
                 } catch (e) {
-                    debugInfo.errors.push(`Subject page fetch failed: ${e.message}`);
+                    console.log('A subject page fetch failed:', e.message);
                     break;
                 }
             }
             
-            debugInfo.rawSubjects = allSubjects;
-            debugInfo.steps.push(`Total raw subjects collected: ${allSubjects.length}`);
-            
             if (allSubjects.length > 0) {
                 // Extract subject names
                 const subjectNames = allSubjects.map((subject: any) => subject.name).filter(name => name);
-                
-                debugInfo.steps.push(`Extracted ${subjectNames.length} subject names: ${JSON.stringify(subjectNames)}`);
                 
                 // Map Congress.gov subjects to standardized names and filter
                 const mappedAndFilteredNames: string[] = [];
@@ -173,19 +146,11 @@ export async function GET(req: NextRequest) {
                     const mappedSubject = mapApiSubjectToAllowed(subjectName);
                     if (mappedSubject) {
                         mappedAndFilteredNames.push(mappedSubject);
-                        debugInfo.steps.push(`Mapped "${subjectName}" → "${mappedSubject}"`);
-                    } else {
-                        debugInfo.steps.push(`No mapping found for "${subjectName}"`);
                     }
                 }
                 
-                debugInfo.mappedSubjects = mappedAndFilteredNames;
-                
                 // Remove duplicates and sort
                 const finalSubjects = [...new Set(mappedAndFilteredNames)].sort();
-                
-                debugInfo.finalSubjects = finalSubjects;
-                debugInfo.steps.push(`Final subjects after deduplication: ${JSON.stringify(finalSubjects)}`);
                 
                 // Convert back to subject objects format
                 const filteredSubjects = finalSubjects.map(name => ({ name }));
@@ -193,15 +158,9 @@ export async function GET(req: NextRequest) {
                 // Update bill subjects with filtered results
                 bill.subjects.items = filteredSubjects;
                 bill.subjects.count = filteredSubjects.length;
-                
-                debugInfo.steps.push(`✅ Bill ${billType?.toUpperCase()} ${billNumber}: Mapped and filtered subjects from ${allSubjects.length} to ${filteredSubjects.length} allowed subjects`);
-            } else {
-                debugInfo.steps.push('No subjects found in API response');
             }
         };
         fetchPromises.push(fetchAllSubjects());
-    } else {
-        debugInfo.steps.push('No subjects URL found in bill data');
     }
 
     await Promise.all(fetchPromises);
@@ -214,9 +173,6 @@ export async function GET(req: NextRequest) {
         bill.summaries.items = [];
         bill.summaries.count = 0;
     }
-
-    // Add debug info to the response
-    (bill as any).__debug = debugInfo;
 
     return NextResponse.json(bill);
 

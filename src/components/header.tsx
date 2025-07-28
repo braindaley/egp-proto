@@ -57,6 +57,11 @@ export function Header() {
                   Congress
                 </Link>
               </li>
+               <li>
+                <Link href="/support-us" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                  Support Us
+                </Link>
+              </li>
               <li className="flex items-center gap-2">
                 {loading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
