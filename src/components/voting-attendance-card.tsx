@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
 
 interface VotingAttendanceCardProps {
   bioguideId: string;
@@ -85,7 +85,10 @@ export function VotingAttendanceCard({ bioguideId, congress, chamber }: VotingAt
         }
 
         if (chamberData.totalVotes === 0) {
-          throw new Error('No chamber votes found for this congress');
+          // Handle gracefully instead of throwing an error
+          setError("No voting activity yet for this session.");
+          setLoading(false);
+          return;
         }
 
         // Calculate attendance rate
@@ -185,16 +188,11 @@ export function VotingAttendanceCard({ bioguideId, congress, chamber }: VotingAt
           <CardTitle>Floor Vote Attendance</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-4">
-            <p className="text-muted-foreground mb-2">
-              {error || 'Unable to load voting data'}
+          <div className="text-center py-4 flex flex-col items-center justify-center">
+            <Info className="h-8 w-8 text-muted-foreground mb-2" />
+            <p className="text-muted-foreground">
+              {error || 'Unable to load voting data at this time.'}
             </p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Try again
-            </button>
           </div>
         </CardContent>
       </Card>
