@@ -13,6 +13,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -356,4 +357,11 @@ export interface ChamberVoteSummary {
     votes: ChamberVote[];
     totalVotes: number;
     averageAttendance: number;
+}
+
+export interface CommitteeInfo {
+    systemCode: string;
+    chamber: string;
+    name: string;
+    url: string;
 }
