@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -16,10 +15,15 @@ export function Breadcrumbs() {
     return null;
   }
 
-  const segments = pathname.split('/').filter(Boolean);
+  // Filter out any segment that is purely numeric (like a congress number)
+  const segments = pathname.split('/').filter(segment => segment && isNaN(Number(segment)));
 
   const breadcrumbs = segments.map((segment, index) => {
-    const href = '/' + segments.slice(0, index + 1).join('/');
+    // We need to reconstruct the href carefully from the original, unfiltered path
+    const originalSegments = pathname.split('/').filter(Boolean);
+    const originalSegmentIndex = originalSegments.indexOf(segment);
+    const href = '/' + originalSegments.slice(0, originalSegmentIndex + 1).join('/');
+    
     const isLast = index === segments.length - 1;
     
     // Capitalize the first letter and replace dashes with spaces for display
