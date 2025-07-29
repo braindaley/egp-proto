@@ -15,7 +15,7 @@ async function fetchChamberCommittees(congress: string, chamber: 'House' | 'Sena
         // Filter by chamber, type 'Standing', and ensure it's not a subcommittee by checking for parentCommittee
         return (data.committees || []).filter((c: any) => 
             c.chamber === chamber &&
-            c.type === 'Standing' && 
+            c.committeeTypeCode === 'Standing' && 
             !c.parentCommittee // Only main committees lack a parentCommittee object
         );
 
