@@ -14,6 +14,7 @@
 
 
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -271,8 +272,8 @@ export interface Member {
       district: string;
       officeAddress: string;
       phoneNumber: string;
-      zipCode: number;
-  },
+      zipCode: string;
+  };
   cosponsoredLegislationSummary?: {
       count: number;
       url: string;

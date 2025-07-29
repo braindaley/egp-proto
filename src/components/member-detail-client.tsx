@@ -406,16 +406,16 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
 
   const allTerms = termsData.slice().sort((a, b) => b.startYear - a.startYear) || [];
   const firstTerm = getFirstTerm(member.terms);
-  const currentTerm = getCurrentTerm(member.terms);
   
   const yearsOfService = calculateYearsOfService(firstTerm);
   const leadershipHistory = (member.leadership || []).sort((a,b) => b.congress - a.congress);
   const hasNews = extraData?.news && extraData.news.length > 0;
   const sponsoredLegislation = extraData?.sponsoredLegislation || [];
   const cosponsoredLegislation = extraData?.cosponsoredLegislation || [];
-  const sponsoredCount = sponsoredLegislation.length;
-  const cosponsoredCount = cosponsoredLegislation.length;
+  const sponsoredCount = member.sponsoredLegislationSummary?.count || sponsoredLegislation.length;
+  const cosponsoredCount = member.cosponsoredLegislationSummary?.count || cosponsoredLegislation.length;
   const currentlyServing = isCurrentlyServing(member);
+  const currentTerm = member.addressInformation;
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -436,7 +436,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                     {member.directOrderName}
                 </h1>
                 <p className="text-xl text-muted-foreground mt-1 text-center">
-                    {currentTerm?.chamber} for {member.state} {member.district ? `(District ${member.district})` : ''}
+                    {member.honorificName} for {member.state} {member.district ? `(District ${member.district})` : ''}
                 </p>
                 <div className="flex justify-center mt-2">
                     <Badge variant={currentlyServing ? "default" : "secondary"}>
@@ -456,8 +456,8 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                     <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
                     {member.birthYear && <p><strong>Birth Year:</strong> {member.birthYear}</p>}
                     <p><strong>Bioguide ID:</strong> {member.bioguideId}</p>
-                    {currentTerm?.office && <p><strong>Office:</strong> {currentTerm.office}</p>}
-                    {currentTerm?.phone && <p><strong>Phone:</strong> {currentTerm.phone}</p>}
+                    {currentTerm?.officeAddress && <p><strong>Office:</strong> {currentTerm.officeAddress}</p>}
+                    {currentTerm?.phoneNumber && <p><strong>Phone:</strong> {currentTerm.phoneNumber}</p>}
                     {member.officialWebsiteUrl && (
                         <Button asChild size="sm" className="w-full mt-2">
                             <a href={member.officialWebsiteUrl} target="_blank" rel="noopener noreferrer">
@@ -521,14 +521,14 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                     <CardTitle className="flex items-center gap-2"><Gavel /> Legislative Activity</CardTitle>
                     <CardDescription>Summary of bills sponsored and cosponsored by the member.</CardDescription>
                 </CardHeader>
-                 {isLoading ? (
+                 {isLoading && !extraData ? (
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Skeleton className="h-20 w-full" />
                             <Skeleton className="h-20 w-full" />
                         </div>
                     </CardContent>
-                 ) : extraData && (
+                 ) : (
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="p-4 bg-secondary/50 rounded-lg">
@@ -545,7 +545,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                             <Collapsible>
                                 <CollapsibleTrigger asChild>
                                     <Button variant="outline" className="w-full justify-between">
-                                        Sponsored Bills ({sponsoredCount})
+                                        View Recent Sponsored Bills ({sponsoredLegislation.length})
                                         <ChevronsUpDown className="h-4 w-4" />
                                     </Button>
                                 </CollapsibleTrigger>
@@ -564,7 +564,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                             <Collapsible className="mt-2">
                                 <CollapsibleTrigger asChild>
                                     <Button variant="outline" className="w-full justify-between">
-                                        Cosponsored Bills ({cosponsoredCount})
+                                        View Recent Cosponsored Bills ({cosponsoredLegislation.length})
                                         <ChevronsUpDown className="h-4 w-4" />
                                     </Button>
                                 </CollapsibleTrigger>
