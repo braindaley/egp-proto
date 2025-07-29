@@ -465,17 +465,20 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                         </TableHeader>
                         <TableBody>
                             {bill.committees.items.flatMap((committee, committeeIndex) =>
-                                committee.activities.map((activity, activityIndex) => (
-                                    <TableRow key={`${committeeIndex}-${activityIndex}`}>
-                                        <TableCell className="font-medium">
-                                            <a href={committee.url} target="_blank" rel="noopener noreferrer" className="hover:underline flex items-center gap-1">
-                                                {committee.name} <ExternalLink className="h-3 w-3" />
-                                            </a>
-                                        </TableCell>
-                                        <TableCell>{formatDate(activity.date || '')}</TableCell>
-                                        <TableCell>{activity.name}</TableCell>
-                                    </TableRow>
-                                ))
+                                committee.activities.map((activity, activityIndex) => {
+                                    const committeeLink = `/congress/${bill.congress}/committees/${committee.systemCode.toLowerCase()}`;
+                                    return (
+                                        <TableRow key={`${committeeIndex}-${activityIndex}`}>
+                                            <TableCell className="font-medium">
+                                                <Link href={committeeLink} className="hover:underline flex items-center gap-1">
+                                                    {committee.name}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell>{formatDate(activity.date || '')}</TableCell>
+                                            <TableCell>{activity.name}</TableCell>
+                                        </TableRow>
+                                    )
+                                })
                             )}
                         </TableBody>
                     </Table>
