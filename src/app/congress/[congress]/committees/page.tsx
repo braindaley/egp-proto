@@ -46,15 +46,13 @@ export default async function CommitteesPage({ params }: { params: { congress: s
         {houseCommittees.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {houseCommittees.map((committee) => (
-              <a
-                href={committee.url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href={`/congress/${congress}/committees/${committee.systemCode.toLowerCase()}`}
                 key={committee.systemCode}
                 className="text-center p-4 rounded-lg bg-card text-card-foreground shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors duration-200 ease-in-out"
               >
                 <span className="font-medium">{committee.name}</span>
-              </a>
+              </Link>
             ))}
           </div>
         ) : (
@@ -67,15 +65,13 @@ export default async function CommitteesPage({ params }: { params: { congress: s
         {senateCommittees.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {senateCommittees.map((committee) => (
-              <a
-                href={committee.url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href={`/congress/${congress}/committees/${committee.systemCode.toLowerCase()}`}
                 key={committee.systemCode}
                 className="text-center p-4 rounded-lg bg-card text-card-foreground shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors duration-200 ease-in-out"
               >
                 <span className="font-medium">{committee.name}</span>
-              </a>
+              </Link>
             ))}
           </div>
         ) : (
