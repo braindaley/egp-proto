@@ -412,8 +412,8 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
   const hasNews = extraData?.news && extraData.news.length > 0;
   const sponsoredLegislation = extraData?.sponsoredLegislation || [];
   const cosponsoredLegislation = extraData?.cosponsoredLegislation || [];
-  const sponsoredCount = member.sponsoredLegislationSummary?.count || sponsoredLegislation.length;
-  const cosponsoredCount = member.cosponsoredLegislationSummary?.count || cosponsoredLegislation.length;
+  const sponsoredCount = member.sponsoredLegislationSummary?.count || 0;
+  const cosponsoredCount = member.cosponsoredLegislationSummary?.count || 0;
   const currentlyServing = isCurrentlyServing(member);
   const currentTerm = member.addressInformation;
 
