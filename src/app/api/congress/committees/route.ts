@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type { CommitteeInfo } from '@/types';
 
 async function fetchChamberCommittees(congress: string, chamber: 'House' | 'Senate', apiKey: string): Promise<CommitteeInfo[]> {
-    const url = `https://api.congress.gov/v3/committee/${congress}?limit=250&api_key=${apiKey}`;
+    // Add format=json to get JSON instead of XML
+    const url = `https://api.congress.gov/v3/committee/${congress}?limit=250&format=json&api_key=${apiKey}`;
     try {
         const res = await fetch(url, { next: { revalidate: 3600 } });
         if (!res.ok) {
@@ -16,7 +17,7 @@ async function fetchChamberCommittees(congress: string, chamber: 'House' | 'Sena
         return (data.committees || []).filter((c: any) => 
             c.chamber === chamber &&
             c.committeeTypeCode === 'Standing' && 
-            !c.parentCommittee // Only main committees lack a parentCommittee object
+            !c.parentCommittee
         );
 
     } catch (error) {
