@@ -551,7 +551,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                                 </CollapsibleTrigger>
                                 <CollapsibleContent className="mt-2 space-y-2 max-h-60 overflow-y-auto">
                                     {sponsoredLegislation.map((bill) => (
-                                        <div key={bill.number} className="p-3 bg-secondary/50 rounded-md">
+                                        <div key={`${bill.congress}-${bill.type}-${bill.number}`} className="p-3 bg-secondary/50 rounded-md">
                                             <Link href={`/bill/${bill.congress}/${getBillTypeSlug(bill.type)}/${bill.number}`} className="font-semibold hover:underline">{bill.type} {bill.number}: {bill.title}</Link>
                                             <p className="text-xs text-muted-foreground mt-1">Introduced: {formatDate(bill.introducedDate)}</p>
                                         </div>
@@ -570,7 +570,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                                 </CollapsibleTrigger>
                                 <CollapsibleContent className="mt-2 space-y-2 max-h-60 overflow-y-auto">
                                     {cosponsoredLegislation.map((bill) => (
-                                        <div key={bill.number} className="p-3 bg-secondary/50 rounded-md">
+                                        <div key={`${bill.congress}-${bill.type}-${bill.number}`} className="p-3 bg-secondary/50 rounded-md">
                                             <Link href={`/bill/${bill.congress}/${getBillTypeSlug(bill.type)}/${bill.number}`} className="font-semibold hover:underline">{bill.type} {bill.number}: {bill.title}</Link>
                                             <p className="text-xs text-muted-foreground mt-1">Cosponsored: {formatDate(bill.cosponsoredDate)}</p>
                                         </div>
