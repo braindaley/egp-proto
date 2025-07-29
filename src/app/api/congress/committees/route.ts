@@ -12,11 +12,11 @@ async function fetchChamberCommittees(congress: string, chamber: 'House' | 'Sena
         }
         const data = await res.json();
 
-        // Filter by chamber, type 'Standing', and ensure it's not a subcommittee
+        // Filter by chamber, type 'Standing', and ensure it's not a subcommittee by checking for parent_committee_id
         return (data.committees || []).filter((c: any) => 
             c.chamber === chamber &&
             c.type === 'Standing' && 
-            !c.name.toLowerCase().includes('subcommittee')
+            !c.parent_committee_id // Only main committees lack a parent_committee_id
         );
 
     } catch (error) {
