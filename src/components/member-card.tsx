@@ -159,18 +159,6 @@ export function MemberCard({ member, congress }: MemberCardProps) {
               <span>{yearsOfService} year{yearsOfService !== 1 ? 's' : ''}</span>
             </div>
           )}
-          
-          {/* Service Status */}
-          <div className="flex items-center gap-1 text-sm">
-            <User className="w-3 h-3" />
-            <span className="font-medium">Status:</span>
-            <Badge 
-              variant={currentlyServing ? "default" : "secondary"} 
-              className="text-xs"
-            >
-              {currentlyServing ? 'Currently Serving' : 'Former Member'}
-            </Badge>
-          </div>
         </div>
 
         {/* Contact Information */}
