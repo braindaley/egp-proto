@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import type { Member, MemberTerm, Leadership, PartyHistory, NewsArticle, SponsoredLegislation, CosponsoredLegislation } from '@/types';
@@ -412,10 +411,19 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
   const hasNews = extraData?.news && extraData.news.length > 0;
   const sponsoredLegislation = extraData?.sponsoredLegislation || [];
   const cosponsoredLegislation = extraData?.cosponsoredLegislation || [];
-  const sponsoredCount = member.sponsoredLegislationSummary?.count || 0;
-  const cosponsoredCount = member.cosponsoredLegislationSummary?.count || 0;
+  
+  // FIXED: Changed from sponsoredLegislationSummary/cosponsoredLegislationSummary to the correct property names
+  const sponsoredCount = member.sponsoredLegislation?.count || 0;
+  const cosponsoredCount = member.cosponsoredLegislation?.count || 0;
+  
   const currentlyServing = isCurrentlyServing(member);
   const currentTerm = member.addressInformation;
+
+  // Debug logging to verify the data structure
+  console.log('Member sponsored legislation:', member.sponsoredLegislation);
+  console.log('Member cosponsored legislation:', member.cosponsoredLegislation);
+  console.log('Sponsored count:', sponsoredCount);
+  console.log('Cosponsored count:', cosponsoredCount);
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">

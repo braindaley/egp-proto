@@ -1,20 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 export interface Amendment {
     congress: number;
     number: number;
@@ -262,8 +245,6 @@ export interface Member {
   profession?: string;
   family?: string;
   officialWebsiteUrl?: string;
-  sponsoredLegislation?: SponsoredLegislation[];
-  cosponsoredLegislation?: CosponsoredLegislation[];
   leadership?: Leadership[];
   partyHistory?: PartyHistory[];
   currentMember: boolean;
@@ -274,16 +255,17 @@ export interface Member {
       phoneNumber: string;
       zipCode: string;
   };
-  cosponsoredLegislationSummary?: {
+  // UPDATED: Use the correct Congress API structure that matches the API response
+  sponsoredLegislation?: {
+      count: number;
+      url: string;
+  };
+  cosponsoredLegislation?: {
       count: number;
       url: string;
   };
   honorificName: string;
   invertedOrderName: string;
-  sponsoredLegislationSummary?: {
-      count: number;
-      url: string;
-  };
   updateDate: string;
   news?: NewsArticle[];
   committeeAssignments?: string;
@@ -295,7 +277,6 @@ export interface Congress {
   startYear: string;
   endYear: string;
 }
-
 
 export interface CampaignPromise {
     title: string;
