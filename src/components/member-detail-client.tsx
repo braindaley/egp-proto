@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import type { Member, MemberTerm, Leadership, PartyHistory, NewsArticle, SponsoredLegislation, CosponsoredLegislation } from '@/types';
@@ -13,6 +14,7 @@ import { getCommitteeAssignments, type CommitteeAssignmentsData } from '@/ai/flo
 import { getCampaignPromises, type CampaignPromisesData, type CampaignPromise } from '@/ai/flows/get-campaign-promises-flow';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SocialMediaLinks } from './social-media-links';
+import { DistrictOffices } from './district-offices';
 
 // Updated types to match Congress API response
 interface CongressApiMember extends Member {}
@@ -353,7 +355,6 @@ interface ExtraData {
     cosponsoredLegislation: CosponsoredLegislation[];
 }
 
-
 export function MemberDetailClient({ initialMember, congress }: { initialMember: CongressApiMember, congress: string }) {
   
   const [member, setMember] = useState<Member>(initialMember);
@@ -413,8 +414,8 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
   const sponsoredLegislation = extraData?.sponsoredLegislation || [];
   const cosponsoredLegislation = extraData?.cosponsoredLegislation || [];
   
-  const sponsoredCount = member.sponsoredLegislation?.count || 0;
-  const cosponsoredCount = member.cosponsoredLegislation?.count || 0;
+  const sponsoredCount = initialMember.sponsoredLegislationSummary?.count || 0;
+  const cosponsoredCount = initialMember.cosponsoredLegislationSummary?.count || 0;
   
   const currentlyServing = isCurrentlyServing(member);
   const currentTerm = member.addressInformation;
@@ -460,7 +461,15 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                     <p><strong>Bioguide ID:</strong> {member.bioguideId}</p>
                     {currentTerm?.officeAddress && <p><strong>Office:</strong> {currentTerm.officeAddress}</p>}
                     {currentTerm?.phoneNumber && <p><strong>Phone:</strong> {currentTerm.phoneNumber}</p>}
-                    <SocialMediaLinks bioguideId={member.bioguideId} />
+                    
+                    {member.bioguideId && (
+                        <SocialMediaLinks bioguideId={member.bioguideId} />
+                    )}
+
+                    {member.bioguideId && (
+                        <DistrictOffices bioguideId={member.bioguideId} />
+                    )}
+                    
                     {member.officialWebsiteUrl && (
                         <Button asChild size="sm" className="w-full mt-2">
                             <a href={member.officialWebsiteUrl} target="_blank" rel="noopener noreferrer">

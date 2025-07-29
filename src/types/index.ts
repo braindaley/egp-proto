@@ -1,3 +1,4 @@
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -248,19 +249,18 @@ export interface Member {
   leadership?: Leadership[];
   partyHistory?: PartyHistory[];
   currentMember: boolean;
-  addressInformation: {
+  addressInformation?: {
       city: string;
       district: string;
       officeAddress: string;
       phoneNumber: string;
       zipCode: string;
   };
-  // UPDATED: Use the correct Congress API structure that matches the API response
-  sponsoredLegislation?: {
+  sponsoredLegislationSummary?: {
       count: number;
       url: string;
   };
-  cosponsoredLegislation?: {
+  cosponsoredLegislationSummary?: {
       count: number;
       url: string;
   };
@@ -354,4 +354,27 @@ export interface SocialMedia {
   facebook?: string;
   youtube?: string;
   instagram?: string;
+}
+
+export interface DistrictOffice {
+  id: string;
+  address: string;
+  suite?: string;
+  building?: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone?: string;
+  fax?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface DistrictOfficesRecord {
+  id: {
+    bioguide: string;
+    govtrack?: number;
+    thomas?: string;
+  };
+  offices: DistrictOffice[];
 }
