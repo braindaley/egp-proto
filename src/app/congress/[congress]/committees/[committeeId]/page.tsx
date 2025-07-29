@@ -1,10 +1,9 @@
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ExternalLink, Building, Globe, Phone, Users, Calendar, FileText, Crown, Award } from 'lucide-react';
+import { ExternalLink, Building, Globe, Phone, Users, Calendar, FileText, Crown, Award, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 
 interface CommitteeMember {
   bioguideId: string;
@@ -101,7 +100,7 @@ function MemberCard({ member, showTitle = true, congress }: { member: CommitteeM
 
   // Generate internal member link
   const memberLink = congress && member.bioguideId && member.state ? 
-    `/congress/${congress}/states/${member.state.toLowerCase()}/${member.bioguideId}` : 
+    `/congress/${congress}/states/${member.state}/${member.bioguideId}` : 
     null;
 
   return (
@@ -231,7 +230,7 @@ export default async function CommitteeDetailPage({ params }: { params: { congre
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="space-y-8 max-w-4xl mx-auto">
           {/* About Section */}
           <Card>
             <CardHeader>
@@ -315,13 +314,25 @@ export default async function CommitteeDetailPage({ params }: { params: { congre
                           </p>
                         )}
 
-                        {/* Link to subcommittee page */}
-                        <Link 
-                          href={`/congress/${congress}/committees/${committeeId}/${subcommittee.systemCode.toLowerCase()}`} 
-                          className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
-                        >
-                          View Subcommittee <ExternalLink className="h-3 w-3" />
-                        </Link>
+                        {/* Link to subcommittee if available */}
+                        <div className="flex gap-2 mt-2">
+                          <a 
+                            href={`/congress/${congress}/committees/${committee.systemCode}/subcommittees/${subcommittee.systemCode}`}
+                            className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                          >
+                            View Subcommittee <ChevronRight className="h-3 w-3" />
+                          </a>
+                          {subcommittee.url && (
+                            <a 
+                              href={subcommittee.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline"
+                            >
+                              Official Page <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}

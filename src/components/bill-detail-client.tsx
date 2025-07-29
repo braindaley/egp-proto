@@ -274,15 +274,15 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm">
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Introduced</span>
-                        <span className="font-medium">{formatDate(bill.introducedDate)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Chamber</span>
                          <Badge variant="outline" className="flex items-center gap-1.5">
                             <Landmark className="h-3 w-3" />
                             {bill.originChamber}
                         </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Introduced</span>
+                        <span className="font-medium">{formatDate(bill.introducedDate)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Last Update</span>
