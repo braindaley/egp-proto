@@ -147,13 +147,13 @@ export default async function CommitteeDetailPage({ params }: { params: { congre
   const website = committee.url ? new URL(committee.url).origin : null;
 
   // Organize members by party
-  const majorityMembers = committee.members?.filter(m => 
+  const majorityMembers = (committee.members || []).filter(m => 
     chamber.toLowerCase() === 'house' ? m.party === 'Republican' : m.party === 'Republican'
-  ).sort((a, b) => (a.rank || 999) - (b.rank || 999)) || [];
+  ).sort((a, b) => (a.rank || 999) - (b.rank || 999));
   
-  const minorityMembers = committee.members?.filter(m => 
+  const minorityMembers = (committee.members || []).filter(m => 
     chamber.toLowerCase() === 'house' ? m.party === 'Democratic' : m.party === 'Democratic'
-  ).sort((a, b) => (a.rank || 999) - (b.rank || 999)) || [];
+  ).sort((a, b) => (a.rank || 999) - (b.rank || 999));
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
@@ -165,10 +165,12 @@ export default async function CommitteeDetailPage({ params }: { params: { congre
         <div className="flex flex-wrap gap-2 mt-4">
           <Badge variant="secondary">{chamber}</Badge>
           <Badge variant="outline">{committee.committeeType} Committee</Badge>
-          <Badge variant="outline" className="flex items-center gap-1">
-            <Users className="h-3 w-3" />
-            {committee.membershipStats.totalMembers} Members
-          </Badge>
+          {committee.membershipStats && (
+            <Badge variant="outline" className="flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              {committee.membershipStats.totalMembers} Members
+            </Badge>
+          )}
         </div>
       </header>
 
@@ -364,7 +366,7 @@ export default async function CommitteeDetailPage({ params }: { params: { congre
           </Card>
 
           {/* Membership Overview */}
-          {committee.members && committee.members.length > 0 && (
+          {committee.members && committee.members.length > 0 && committee.membershipStats && (
             <Card>
               <CardHeader>
                 <CardTitle>Membership Overview</CardTitle>
