@@ -4,6 +4,7 @@ import { ExternalLink, Building, Globe, Phone, Users, Calendar, FileText, Crown,
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 interface CommitteeMember {
   bioguideId: string;
@@ -100,7 +101,7 @@ function MemberCard({ member, showTitle = true, congress }: { member: CommitteeM
 
   // Generate internal member link
   const memberLink = congress && member.bioguideId && member.state ? 
-    `/congress/${congress}/states/${member.state}/${member.bioguideId}` : 
+    `/congress/${congress}/states/${member.state.toLowerCase()}/${member.bioguideId}` : 
     null;
 
   return (
@@ -230,7 +231,7 @@ export default async function CommitteeDetailPage({ params }: { params: { congre
         </div>
       </header>
 
-      <div className="space-y-8 max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto space-y-8">
           {/* About Section */}
           <Card>
             <CardHeader>
@@ -314,17 +315,13 @@ export default async function CommitteeDetailPage({ params }: { params: { congre
                           </p>
                         )}
 
-                        {/* Link to subcommittee if available */}
-                        {subcommittee.url && (
-                          <a 
-                            href={subcommittee.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
-                          >
-                            View Subcommittee <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
+                        {/* Link to subcommittee page */}
+                        <Link 
+                          href={`/congress/${congress}/committees/${committeeId}/${subcommittee.systemCode.toLowerCase()}`} 
+                          className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
+                        >
+                          View Subcommittee <ExternalLink className="h-3 w-3" />
+                        </Link>
                       </div>
                     </div>
                   ))}
