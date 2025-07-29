@@ -455,12 +455,6 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                     <p><strong>State:</strong> {member.state}</p>
                     {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear)}</p>}
                     <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
-                    <div className="flex items-center gap-2">
-                        <strong>Status:</strong>
-                        <Badge variant={currentlyServing ? "default" : "secondary"}>
-                            {currentlyServing ? 'Current Member' : 'Former Member'}
-                        </Badge>
-                    </div>
                     {member.birthYear && <p><strong>Birth Year:</strong> {member.birthYear}</p>}
                     <p><strong>Bioguide ID:</strong> {member.bioguideId}</p>
                     {currentTerm?.office && <p><strong>Office:</strong> {currentTerm.office}</p>}
