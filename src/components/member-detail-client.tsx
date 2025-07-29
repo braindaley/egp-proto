@@ -12,6 +12,7 @@ import { getBillTypeSlug } from '@/lib/utils';
 import { getCommitteeAssignments, type CommitteeAssignmentsData } from '@/ai/flows/get-committee-assignments-flow';
 import { getCampaignPromises, type CampaignPromisesData, type CampaignPromise } from '@/ai/flows/get-campaign-promises-flow';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SocialMediaLinks } from './social-media-links';
 
 // Updated types to match Congress API response
 interface CongressApiMember extends Member {}
@@ -412,18 +413,11 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
   const sponsoredLegislation = extraData?.sponsoredLegislation || [];
   const cosponsoredLegislation = extraData?.cosponsoredLegislation || [];
   
-  // FIXED: Changed from sponsoredLegislationSummary/cosponsoredLegislationSummary to the correct property names
   const sponsoredCount = member.sponsoredLegislation?.count || 0;
   const cosponsoredCount = member.cosponsoredLegislation?.count || 0;
   
   const currentlyServing = isCurrentlyServing(member);
   const currentTerm = member.addressInformation;
-
-  // Debug logging to verify the data structure
-  console.log('Member sponsored legislation:', member.sponsoredLegislation);
-  console.log('Member cosponsored legislation:', member.cosponsoredLegislation);
-  console.log('Sponsored count:', sponsoredCount);
-  console.log('Cosponsored count:', cosponsoredCount);
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -466,6 +460,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                     <p><strong>Bioguide ID:</strong> {member.bioguideId}</p>
                     {currentTerm?.officeAddress && <p><strong>Office:</strong> {currentTerm.officeAddress}</p>}
                     {currentTerm?.phoneNumber && <p><strong>Phone:</strong> {currentTerm.phoneNumber}</p>}
+                    <SocialMediaLinks bioguideId={member.bioguideId} />
                     {member.officialWebsiteUrl && (
                         <Button asChild size="sm" className="w-full mt-2">
                             <a href={member.officialWebsiteUrl} target="_blank" rel="noopener noreferrer">

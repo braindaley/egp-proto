@@ -347,3 +347,11 @@ export interface CommitteeInfo {
     name: string;
     url: string;
 }
+
+export interface SocialMedia {
+  bioguide: string;
+  twitter?: string;
+  facebook?: string;
+  youtube?: string;
+  instagram?: string;
+}
