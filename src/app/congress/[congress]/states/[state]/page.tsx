@@ -31,7 +31,7 @@ export default async function StateCongressPage({
 }: { 
   params: { congress: string, state: string } 
 }) {
-  const { congress, state } = params;
+  const { congress, state } = await params;
 
   // Validate early
   if (!congress || !state) {

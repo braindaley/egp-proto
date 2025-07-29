@@ -26,7 +26,7 @@ async function getCommittees(congress: string): Promise<CommitteesResponse> {
 
 
 export default async function CommitteesPage({ params }: { params: { congress: string } }) {
-  const { congress } = params;
+  const { congress } = await params;
   const { houseCommittees, senateCommittees } = await getCommittees(congress);
 
   return (

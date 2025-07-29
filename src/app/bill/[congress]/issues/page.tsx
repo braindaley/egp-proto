@@ -337,5 +337,3 @@ export default async function IssuesPage({ params }: { params: { congress: strin
   const { congress } = await params;
   return <IssuesClient congress={congress} />;
 }
-
-    
