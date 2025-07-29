@@ -245,11 +245,61 @@ function getSampleCommitteeData(committeeName: string, systemCode: string): Part
     };
   }
   
-  // Default sample data for other committees
+  // Add more known committee websites
+  if (name.includes('judiciary') || code.includes('hsju')) {
+    return {
+      websiteUrl: "https://judiciary.house.gov",
+      members: [], subcommittees: [], recentMeetings: [], recentReports: []
+    };
+  }
+  
+  if (name.includes('appropriations') || code.includes('hsap')) {
+    return {
+      websiteUrl: "https://appropriations.house.gov", 
+      members: [], subcommittees: [], recentMeetings: [], recentReports: []
+    };
+  }
+  
+  if (name.includes('armed services') || code.includes('hsas')) {
+    return {
+      websiteUrl: "https://armedservices.house.gov",
+      members: [], subcommittees: [], recentMeetings: [], recentReports: []
+    };
+  }
+  
+  if (name.includes('foreign affairs') || code.includes('hsfa')) {
+    return {
+      websiteUrl: "https://foreignaffairs.house.gov",
+      members: [], subcommittees: [], recentMeetings: [], recentReports: []
+    };
+  }
+  
+  if (name.includes('education') || name.includes('workforce') || code.includes('hsed')) {
+    return {
+      websiteUrl: "https://edworkforce.house.gov",
+      members: [], subcommittees: [], recentMeetings: [], recentReports: []
+    };
+  }
+  
+  if (name.includes('agriculture') || code.includes('hsag')) {
+    return {
+      websiteUrl: "https://agriculture.house.gov",
+      members: [], subcommittees: [], recentMeetings: [], recentReports: []
+    };
+  }
+  
+  if (name.includes('financial services') || code.includes('hsba')) {
+    return {
+      websiteUrl: "https://financialservices.house.gov",
+      members: [], subcommittees: [], recentMeetings: [], recentReports: []
+    };
+  }
+  
+  // Default fallback - use Congress.gov committee page
   return {
     phone: "(202) 225-4000",
-    office: "Committee Office Address Available on Official Website",
-    websiteUrl: "https://house.gov",
+    office: "Committee Office Address Available on Official Website", 
+    websiteUrl: `https://www.congress.gov/committees/house/${code.replace('hs', '')}/${congress}`,
     members: [
       {
         bioguideId: "SAMPLE001",
@@ -364,20 +414,9 @@ export async function GET(req: NextRequest, { params }: { params: { committeeId:
     const chamber = foundCommittee.chamber?.toLowerCase() || 'house';
     const systemCode = foundCommittee.systemCode?.toLowerCase();
 
-    // Try to get detailed committee info
-    let detailedCommittee = foundCommittee;
-    try {
-      const detailUrl = `https://api.congress.gov/v3/committee/${congress}/${chamber}/${systemCode}?format=json&api_key=${API_KEY}`;
-      console.log(`Fetching detailed info from: ${detailUrl}`);
-      const detailRes = await fetchWithRetry(detailUrl);
-      if (detailRes.ok) {
-        const detailData = await detailRes.json();
-        detailedCommittee = detailData.committee || foundCommittee;
-        console.log('Got detailed committee info');
-      }
-    } catch (error) {
-      console.warn('Failed to fetch detailed committee info, using list data:', error);
-    }
+    // Use the foundCommittee data since detailed endpoint doesn't exist
+    const detailedCommittee = foundCommittee;
+    console.log('Using committee list data (detailed endpoint not available)');
 
     // Get sample/enhanced data
     console.log(`Looking for sample data for: "${detailedCommittee.name}" with code: "${systemCode}"`);
