@@ -3,7 +3,6 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type { CommitteeInfo } from '@/types';
 
 async function fetchChamberCommittees(congress: string, chamber: 'House' | 'Senate', apiKey: string): Promise<CommitteeInfo[]> {
-    // The correct endpoint is /committee/{congress}, not /committee/{chamber}/{congress}
     const url = `https://api.congress.gov/v3/committee/${congress}?limit=250&api_key=${apiKey}`;
     try {
         const res = await fetch(url, { next: { revalidate: 3600 } });
@@ -13,9 +12,11 @@ async function fetchChamberCommittees(congress: string, chamber: 'House' | 'Sena
         }
         const data = await res.json();
 
-        // Filter by chamber and ensure it's not a subcommittee
+        // Filter by chamber, type 'Standing', and ensure it's not a subcommittee
         return (data.committees || []).filter((c: any) => 
-            c.chamber === chamber && !c.name.toLowerCase().includes('subcommittee')
+            c.chamber === chamber &&
+            c.type === 'Standing' && 
+            !c.name.toLowerCase().includes('subcommittee')
         );
 
     } catch (error) {
