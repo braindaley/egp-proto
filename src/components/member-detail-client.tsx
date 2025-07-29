@@ -452,7 +452,6 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                     <CardTitle className="flex items-center gap-2"><User /> Basic Info</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                    <p><strong>State:</strong> {member.state}</p>
                     {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear)}</p>}
                     <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
                     {member.birthYear && <p><strong>Birth Year:</strong> {member.birthYear}</p>}
