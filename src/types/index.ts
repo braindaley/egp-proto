@@ -215,8 +215,47 @@ export interface NewsArticle {
     imageUrl?: string | null;
 }
 
+// NEW: Extended Member IDs interfaces
+export interface ExtendedMemberIds {
+  bioguide: string;
+  thomas?: string;
+  govtrack?: number;
+  opensecrets?: string;
+  votesmart?: number;
+  icpsr?: number;
+  fec?: string[];
+  family?: {
+    name: string;
+    relation: string;
+  }[];
+  cspan?: number;
+  wikipedia?: string;
+  house_history?: number;
+  ballotpedia?: string;
+  maplight?: number;
+  wikidata?: string;
+  google_entity_id?: string;
+  pictorial?: number;
+}
+
+export interface LegislatorData {
+  id: ExtendedMemberIds;
+  name: {
+    first: string;
+    last: string;
+    middle?: string;
+    suffix?: string;
+  };
+  bio: {
+    birthday?: string;
+    gender?: string;
+  };
+  terms: any[];
+}
+
 export interface Member {
   bioguideId: string;
+  extendedIds?: ExtendedMemberIds; // NEW: Added extended IDs
   district?: number;
   name: string;
   partyName: string;
@@ -248,14 +287,14 @@ export interface Member {
   leadership?: Leadership[];
   partyHistory?: PartyHistory[];
   currentMember: boolean;
-  addressInformation: {
+  addressInformation?: {
       city: string;
       district: string;
       officeAddress: string;
       phoneNumber: string;
       zipCode: string;
   };
-  // UPDATED: Use the correct Congress API structure that matches the API response
+  // FIXED: Use the correct property names that match the Congress API response
   sponsoredLegislation?: {
       count: number;
       url: string;
@@ -346,4 +385,35 @@ export interface CommitteeInfo {
     chamber: string;
     name: string;
     url: string;
+}
+
+export interface SocialMedia {
+  bioguide: string;
+  twitter?: string;
+  facebook?: string;
+  youtube?: string;
+  instagram?: string;
+}
+
+export interface DistrictOffice {
+  id: string;
+  address: string;
+  suite?: string;
+  building?: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone?: string;
+  fax?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface DistrictOfficesRecord {
+  id: {
+    bioguide: string;
+    govtrack?: number;
+    thomas?: string;
+  };
+  offices: DistrictOffice[];
 }

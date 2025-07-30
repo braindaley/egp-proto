@@ -12,6 +12,8 @@ import { getBillTypeSlug } from '@/lib/utils';
 import { getCommitteeAssignments, type CommitteeAssignmentsData } from '@/ai/flows/get-committee-assignments-flow';
 import { getCampaignPromises, type CampaignPromisesData, type CampaignPromise } from '@/ai/flows/get-campaign-promises-flow';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SocialMediaLinks } from './social-media-links';
+import { DistrictOffices } from './district-offices';
 
 // Updated types to match Congress API response
 interface CongressApiMember extends Member {}
@@ -352,7 +354,6 @@ interface ExtraData {
     cosponsoredLegislation: CosponsoredLegislation[];
 }
 
-
 export function MemberDetailClient({ initialMember, congress }: { initialMember: CongressApiMember, congress: string }) {
   
   const [member, setMember] = useState<Member>(initialMember);
@@ -412,18 +413,16 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
   const sponsoredLegislation = extraData?.sponsoredLegislation || [];
   const cosponsoredLegislation = extraData?.cosponsoredLegislation || [];
   
-  // FIXED: Changed from sponsoredLegislationSummary/cosponsoredLegislationSummary to the correct property names
-  const sponsoredCount = member.sponsoredLegislation?.count || 0;
-  const cosponsoredCount = member.cosponsoredLegislation?.count || 0;
+  // FIXED: Use the correct property names that match the Congress API response
+  const sponsoredCount = initialMember.sponsoredLegislation?.count || 0;
+  const cosponsoredCount = initialMember.cosponsoredLegislation?.count || 0;
   
   const currentlyServing = isCurrentlyServing(member);
   const currentTerm = member.addressInformation;
 
   // Debug logging to verify the data structure
-  console.log('Member sponsored legislation:', member.sponsoredLegislation);
-  console.log('Member cosponsored legislation:', member.cosponsoredLegislation);
-  console.log('Sponsored count:', sponsoredCount);
-  console.log('Cosponsored count:', cosponsoredCount);
+  console.log('Initial member data:', initialMember);
+  console.log('Extended IDs:', initialMember.extendedIds);
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -459,13 +458,183 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><User /> Basic Info</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                    {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear)}</p>}
-                    <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
-                    {member.birthYear && <p><strong>Birth Year:</strong> {member.birthYear}</p>}
-                    <p><strong>Bioguide ID:</strong> {member.bioguideId}</p>
-                    {currentTerm?.officeAddress && <p><strong>Office:</strong> {currentTerm.officeAddress}</p>}
-                    {currentTerm?.phoneNumber && <p><strong>Phone:</strong> {currentTerm.phoneNumber}</p>}
+                <CardContent className="space-y-4 text-sm">
+                    {/* Core Information */}
+                    <div className="space-y-3">
+                        {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear)}</p>}
+                        <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
+                        {member.birthYear && <p><strong>Birth Year:</strong> {member.birthYear}</p>}
+                        <p><strong>Bioguide ID:</strong> {member.bioguideId}</p>
+                        {currentTerm?.officeAddress && <p><strong>Office:</strong> {currentTerm.officeAddress}</p>}
+                        {currentTerm?.phoneNumber && <p><strong>Phone:</strong> {currentTerm.phoneNumber}</p>}
+                    </div>
+
+                    {/* Extended IDs Section */}
+                    {member.extendedIds && (
+                        <div className="border-t pt-4">
+                            <h4 className="font-semibold text-base mb-3 text-foreground">External Identifiers</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                {member.extendedIds.thomas && (
+                                    <div className="p-2 bg-secondary/30 rounded-md">
+                                        <p className="text-muted-foreground">Thomas Library</p>
+                                        <p className="font-mono font-medium">{member.extendedIds.thomas}</p>
+                                    </div>
+                                )}
+                                {member.extendedIds.govtrack && (
+                                    <div className="p-2 bg-secondary/30 rounded-md">
+                                        <p className="text-muted-foreground">GovTrack</p>
+                                        <a href={`https://www.govtrack.us/congress/members/${member.extendedIds.govtrack}`} 
+                                           target="_blank" rel="noopener noreferrer" 
+                                           className="font-mono font-medium text-primary hover:underline">
+                                            {member.extendedIds.govtrack}
+                                        </a>
+                                    </div>
+                                )}
+                                {member.extendedIds.opensecrets && (
+                                    <div className="p-2 bg-secondary/30 rounded-md">
+                                        <p className="text-muted-foreground">OpenSecrets</p>
+                                        <a href={`https://www.opensecrets.org/members-of-congress/summary?cid=${member.extendedIds.opensecrets}`}
+                                           target="_blank" rel="noopener noreferrer"
+                                           className="font-mono font-medium text-primary hover:underline">
+                                            {member.extendedIds.opensecrets}
+                                        </a>
+                                    </div>
+                                )}
+                                {member.extendedIds.votesmart && (
+                                    <div className="p-2 bg-secondary/30 rounded-md">
+                                        <p className="text-muted-foreground">Vote Smart</p>
+                                        <p className="font-mono font-medium">{member.extendedIds.votesmart}</p>
+                                    </div>
+                                )}
+                                {member.extendedIds.cspan && (
+                                    <div className="p-2 bg-secondary/30 rounded-md">
+                                        <p className="text-muted-foreground">C-SPAN</p>
+                                        <p className="font-mono font-medium">{member.extendedIds.cspan}</p>
+                                    </div>
+                                )}
+                                {member.extendedIds.icpsr && (
+                                    <div className="p-2 bg-secondary/30 rounded-md">
+                                        <p className="text-muted-foreground">ICPSR</p>
+                                        <p className="font-mono font-medium">{member.extendedIds.icpsr}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* External Profiles Row */}
+                            {(member.extendedIds.wikipedia || member.extendedIds.ballotpedia) && (
+                                <div className="mt-3">
+                                    <h5 className="font-medium text-sm mb-2 text-foreground">External Profiles</h5>
+                                    <div className="flex flex-wrap gap-2">
+                                        {member.extendedIds.wikipedia && (
+                                            <Button asChild size="sm" variant="outline">
+                                                <a href={`https://en.wikipedia.org/wiki/${member.extendedIds.wikipedia}`} 
+                                                   target="_blank" rel="noopener noreferrer" className="text-xs">
+                                                    Wikipedia <ExternalLink className="ml-1 h-3 w-3" />
+                                                </a>
+                                            </Button>
+                                        )}
+                                        {member.extendedIds.ballotpedia && (
+                                            <Button asChild size="sm" variant="outline">
+                                                <a href={`https://ballotpedia.org/${member.extendedIds.ballotpedia}`}
+                                                   target="_blank" rel="noopener noreferrer" className="text-xs">
+                                                    Ballotpedia <ExternalLink className="ml-1 h-3 w-3" />
+                                                </a>
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* FEC IDs */}
+                            {member.extendedIds.fec && member.extendedIds.fec.length > 0 && (
+                                <div className="mt-3">
+                                    <h5 className="font-medium text-sm mb-2 text-foreground">FEC Committee IDs</h5>
+                                    <div className="flex flex-wrap gap-1">
+                                        {member.extendedIds.fec.map((fecId, index) => (
+                                            <Badge key={index} variant="secondary" className="text-xs font-mono">
+                                                {fecId}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Family Information */}
+                            {member.extendedIds.family && member.extendedIds.family.length > 0 && (
+                                <div className="mt-3">
+                                    <h5 className="font-medium text-sm mb-2 text-foreground">Family</h5>
+                                    <div className="space-y-1">
+                                        {member.extendedIds.family.map((relative, index) => (
+                                            <p key={index} className="text-xs text-muted-foreground">
+                                                <span className="font-medium text-foreground">{relative.name}</span> ({relative.relation})
+                                            </p>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Research & Data IDs - Collapsible */}
+                            {(member.extendedIds.maplight || member.extendedIds.wikidata || member.extendedIds.google_entity_id || member.extendedIds.pictorial || member.extendedIds.house_history) && (
+                                <Collapsible className="mt-3">
+                                    <CollapsibleTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="w-full justify-between p-2 h-auto">
+                                            <span className="font-medium text-sm">Research & Data IDs</span>
+                                            <ChevronsUpDown className="h-3 w-3" />
+                                        </Button>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="mt-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                            {member.extendedIds.house_history && (
+                                                <div className="p-2 bg-secondary/20 rounded-md">
+                                                    <p className="text-muted-foreground">House History</p>
+                                                    <p className="font-mono font-medium">{member.extendedIds.house_history}</p>
+                                                </div>
+                                            )}
+                                            {member.extendedIds.maplight && (
+                                                <div className="p-2 bg-secondary/20 rounded-md">
+                                                    <p className="text-muted-foreground">MapLight</p>
+                                                    <p className="font-mono font-medium">{member.extendedIds.maplight}</p>
+                                                </div>
+                                            )}
+                                            {member.extendedIds.wikidata && (
+                                                <div className="p-2 bg-secondary/20 rounded-md">
+                                                    <p className="text-muted-foreground">Wikidata</p>
+                                                    <a href={`https://www.wikidata.org/wiki/${member.extendedIds.wikidata}`}
+                                                       target="_blank" rel="noopener noreferrer"
+                                                       className="font-mono font-medium text-primary hover:underline">
+                                                        {member.extendedIds.wikidata}
+                                                    </a>
+                                                </div>
+                                            )}
+                                            {member.extendedIds.google_entity_id && (
+                                                <div className="p-2 bg-secondary/20 rounded-md">
+                                                    <p className="text-muted-foreground">Google Entity</p>
+                                                    <p className="font-mono font-medium text-xs">{member.extendedIds.google_entity_id}</p>
+                                                </div>
+                                            )}
+                                            {member.extendedIds.pictorial && (
+                                                <div className="p-2 bg-secondary/20 rounded-md">
+                                                    <p className="text-muted-foreground">Pictorial Directory</p>
+                                                    <p className="font-mono font-medium">{member.extendedIds.pictorial}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Social Media and District Offices (existing components) */}
+                    {member.bioguideId && (
+                        <SocialMediaLinks bioguideId={member.bioguideId} />
+                    )}
+
+                    {member.bioguideId && (
+                        <DistrictOffices bioguideId={member.bioguideId} />
+                    )}
+                    
+                    {/* Official Website Button */}
                     {member.officialWebsiteUrl && (
                         <Button asChild size="sm" className="w-full mt-2">
                             <a href={member.officialWebsiteUrl} target="_blank" rel="noopener noreferrer">
