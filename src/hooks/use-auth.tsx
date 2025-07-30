@@ -22,6 +22,7 @@ import type { Congress } from '@/types';
 // Add this outside your component
 let congressCache: Congress[] | null = null;
 let cacheExpiry: number = 0;
+const CONGRESS_API_KEY = "your_congress_api_key_here"; // IMPORTANT: Replace with your actual key
 
 function getFallbackCongresses(): Congress[] {
   console.warn('Using fallback congress data.');
@@ -40,32 +41,43 @@ async function getCongresses(): Promise<Congress[]> {
         return congressCache;
     }
 
-    try {
-        const res = await fetch('/api/congresses');
+    if (!CONGRESS_API_KEY || CONGRESS_API_KEY === "your_congress_api_key_here") {
+        console.error("CONGRESS_API_KEY is not configured. Using fallback data.");
+        return getFallbackCongresses();
+    }
 
-        if (res.status === 429) {
-          if (congressCache) {
-            console.warn('Rate limit exceeded, using cached data.');
-            return congressCache;
-          }
-          return getFallbackCongresses();
-        }
+    const url = `https://api.congress.gov/v3/congress?limit=250&api_key=${CONGRESS_API_KEY}`;
+    
+    try {
+        const res = await fetch(url);
 
         if (!res.ok) {
-            console.error(`Failed to fetch congresses from local API: ${res.status}`);
+            console.error(`Failed to fetch congresses directly from API: ${res.status}`);
+            // If the cache is available, use it, otherwise use fallback
+            if (congressCache) {
+              console.warn("Using stale cache due to API error.");
+              return congressCache;
+            }
             return getFallbackCongresses();
         }
+
         const data = await res.json();
-        const result = data.congresses || [];
+        const congresses = (data.congresses || [])
+          .filter(Boolean)
+          .map((congress: any) => ({
+            ...congress,
+            number: parseInt(congress.name.match(/(\d+)/)?.[1] || '0', 10)
+          }))
+          .sort((a: any, b: any) => b.number - a.number);
         
-        if (result.length > 0) {
-            congressCache = result;
+        if (congresses.length > 0) {
+            congressCache = congresses;
             cacheExpiry = now + (60 * 60 * 1000); // Cache for 1 hour
         }
         
-        return result.length > 0 ? result : getFallbackCongresses();
+        return congresses.length > 0 ? congresses : getFallbackCongresses();
     } catch (error) {
-        console.error('Error fetching congresses from local API:', error);
+        console.error('Error fetching congresses directly from API:', error);
         return getFallbackCongresses();
     }
 }
