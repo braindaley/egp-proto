@@ -1,3 +1,4 @@
+
 'use client';
 import { BillCard } from '@/components/bill-card';
 import type { Bill } from '@/types';
@@ -125,19 +126,13 @@ async function getPopularBills(): Promise<PopularBillResponse> {
     }
 }
 
-interface PopularBillsPageProps {
-    params: { congress: string };
-}
-
-export default function PopularBillsPage({ params }: PopularBillsPageProps) {
+function PopularBillsPageClient({ congress }: { congress: string }) {
     const [data, setData] = useState<PopularBillResponse | null>(null);
     const [loadingState, setLoadingState] = useState<LoadingState>({
         isLoading: true,
         error: null
     });
     
-    const { congress } = params;
-
     useEffect(() => {
         if (!congress) return; // Wait for params to be available
         
@@ -219,4 +214,9 @@ export default function PopularBillsPage({ params }: PopularBillsPageProps) {
             </footer>
         </div>
     );
+}
+
+export default async function PopularBillsPage({ params }: { params: { congress: string } }) {
+    const { congress } = await params;
+    return <PopularBillsPageClient congress={congress} />;
 }
