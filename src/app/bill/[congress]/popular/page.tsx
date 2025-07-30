@@ -60,6 +60,15 @@ function PopularBillList({ bills, debug }: PopularBillResponse) {
                             </pre>
                         </details>
                     )}
+                    
+                    {/* Additional backend debugging info */}
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-left">
+                        <p className="text-sm font-medium text-blue-800 mb-2">Backend Issue Detected:</p>
+                        <p className="text-xs text-blue-700">
+                            RSS feed is being fetched ({debug?.rssItems || 0} items) but parsing is failing (parsedCount: {debug?.parsedCount || 0}).
+                            Check your backend RSS parsing logic.
+                        </p>
+                    </div>
                 </div>
             </div>
         );
@@ -94,7 +103,7 @@ function PopularBillList({ bills, debug }: PopularBillResponse) {
 
 export default function PopularBillsPage() {
     const params = useParams();
-    const congress = params?.congress as string;
+    const congress = params?.congress as string || '119'; // Default to 119th congress
     
     const [data, setData] = useState<PopularBillResponse | null>(null);
     const [loadingState, setLoadingState] = useState<LoadingState>({
@@ -138,6 +147,17 @@ export default function PopularBillsPage() {
             console.log('🔗 Fetched bills array length:', data.bills?.length);
             console.log('🔗 API debug info:', data.debug);
             
+            // Enhanced debugging for RSS parsing issues
+            if (data.bills?.length === 0 && data.debug?.rssItems > 0) {
+                console.warn('🚨 RSS PARSING ISSUE: RSS items found but no bills parsed!');
+                console.log('🔍 Debug info:', {
+                    rssItems: data.debug.rssItems,
+                    parsedCount: data.debug.parsedCount,
+                    lastUpdated: data.debug.lastUpdated,
+                    rawDebug: data.debug
+                });
+            }
+            
             return data;
 
         } catch (error) {
@@ -151,7 +171,7 @@ export default function PopularBillsPage() {
     }, []);
     
     useEffect(() => {
-        if (!congress || fetchingRef.current) return;
+        if (fetchingRef.current) return;
         
         const fetchData = async () => {
             fetchingRef.current = true;
@@ -193,7 +213,7 @@ export default function PopularBillsPage() {
             }
             fetchingRef.current = false;
         };
-    }, [congress, getPopularBills]);
+    }, [getPopularBills]); // Removed congress dependency since it's not used in the API call
 
     return (
         <div className="bg-background min-h-screen">

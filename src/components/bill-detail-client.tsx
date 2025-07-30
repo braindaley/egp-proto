@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -256,6 +257,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   ).filter(name => name && typeof name === 'string') || [];
   
   const hasSubjects = subjectNames.length > 0;
+  const displayTitle = bill.shortTitle || bill.title;
 
   return (
     <div className="bg-background min-h-screen">
@@ -264,7 +266,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
           <header>
             <p className="text-lg text-muted-foreground font-medium mb-1">{bill.type} {bill.number} &bull; {bill.congress}th Congress</p>
             <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary">
-              {bill.title}
+              {displayTitle}
             </h1>
           </header>
 
