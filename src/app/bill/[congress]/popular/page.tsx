@@ -1,7 +1,8 @@
+
 'use client';
 import { BillCard } from '@/components/bill-card';
 import type { Bill } from '@/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 
 interface PopularBillResponse {
     bills: Bill[];
@@ -126,32 +127,36 @@ async function getPopularBills(): Promise<PopularBillResponse> {
 }
 
 interface PopularBillsPageProps {
-    params: { congress: string };
+    params: Promise<{ congress: string }>;
 }
 
 export default function PopularBillsPage({ params }: PopularBillsPageProps) {
+    // In Next.js 15, params are a promise, which can be unwrapped with `use()`
+    // This must be done at the top of the component.
+    const { congress } = use(params);
+
     const [data, setData] = useState<PopularBillResponse | null>(null);
     const [loadingState, setLoadingState] = useState<LoadingState>({
         isLoading: true,
         error: null
     });
-    
-    const { congress } = params;
 
     useEffect(() => {
-        if (!congress) return; // Wait for params to be available
+        // Now that `congress` is unwrapped, we can use it in the useEffect
+        if (!congress) return;
         
         const fetchData = async () => {
             try {
                 setLoadingState({ isLoading: true, error: null });
                 const result = await getPopularBills();
                 setData(result);
-                setLoadingState({ isLoading: false, error: null });
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
                 console.error('🔗 Failed to fetch popular bills:', errorMessage);
                 setLoadingState({ isLoading: false, error: errorMessage });
                 setData({ bills: [], debug: { error: errorMessage } });
+            } finally {
+                setLoadingState(prevState => ({ ...prevState, isLoading: false }));
             }
         };
 
@@ -175,7 +180,7 @@ export default function PopularBillsPage({ params }: PopularBillsPageProps) {
                             <p className="text-muted-foreground">Loading popular bills...</p>
                         </div>
                     </div>
-                ) : loadingState.error && !data ? (
+                ) : loadingState.error && !data?.bills.length ? (
                     <div className="text-center py-10 px-6 bg-card rounded-lg shadow-md max-w-md mx-auto">
                         <h2 className="text-xl font-semibold text-destructive mb-2">
                             Failed to Load
