@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -257,7 +256,14 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   ).filter(name => name && typeof name === 'string') || [];
   
   const hasSubjects = subjectNames.length > 0;
-  const displayTitle = bill.shortTitle || bill.title;
+  
+  // Improved title logic - prioritize title over shortTitle for main heading
+  // and show shortTitle as subtitle if it exists and is different
+  const displayTitle = bill.title || bill.shortTitle || 'Untitled Bill';
+  const hasDistinctShortTitle = bill.shortTitle && 
+                                bill.title && 
+                                bill.shortTitle !== bill.title && 
+                                bill.shortTitle.trim().length > 0;
 
   return (
     <div className="bg-background min-h-screen">
@@ -268,6 +274,11 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
             <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary">
               {displayTitle}
             </h1>
+            {hasDistinctShortTitle && (
+              <p className="text-xl text-muted-foreground mt-2 font-medium">
+                {bill.shortTitle}
+              </p>
+            )}
           </header>
 
             <Card>
@@ -464,7 +475,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                 <TableHead>Date</TableHead>
                                 <TableHead>Activity</TableHead>
                             </TableRow>
-                        </TableHeader>
+                        </TableHeader>  
                         <TableBody>
                             {bill.committees.items.flatMap((committee, committeeIndex) =>
                                 committee.activities.map((activity, activityIndex) => {
