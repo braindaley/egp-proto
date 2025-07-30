@@ -22,7 +22,7 @@ import type { Congress } from '@/types';
 // Add this outside your component
 let congressCache: Congress[] | null = null;
 let cacheExpiry: number = 0;
-const CONGRESS_API_KEY = "your_congress_api_key_here"; // IMPORTANT: Replace with your actual key
+const CONGRESS_API_KEY = "xGz9PSy1R8O61g5LhAStO12g4F22aJ3B7VmycpJ1"; 
 
 function getFallbackCongresses(): Congress[] {
   console.warn('Using fallback congress data.');
