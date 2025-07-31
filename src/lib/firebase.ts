@@ -5,7 +5,7 @@ import { getAuth, Auth } from 'firebase/auth';
 // IMPORTANT: Replace the placeholder values with your actual Firebase project configuration.
 // You can find this in your project's settings in the Firebase console.
 const firebaseConfig = {
-  apiKey: "AIzaSyAw8a8-pP4g8IAnSgD-p145q_a5J1y_ClE",
+  apiKey: "AIzaSyDPb7_j3h2eR_2wBn9a-5rBmxE-P0bVf7s",
   authDomain: "egp-prototype.firebaseapp.com",
   projectId: "egp-prototype",
   storageBucket: "egp-prototype.appspot.com",
