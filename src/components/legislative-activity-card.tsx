@@ -28,6 +28,10 @@ export const LegislativeActivityCard = ({ member }: { member: Member }) => {
 
     useEffect(() => {
         async function fetchExtraData() {
+            if (!member.bioguideId) {
+                setIsLoading(false);
+                return;
+            }
             setIsLoading(true);
             const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
             const bioguideId = member.bioguideId;
@@ -59,7 +63,7 @@ export const LegislativeActivityCard = ({ member }: { member: Member }) => {
     const sponsoredCount = member.sponsoredLegislation?.count || 0;
     const cosponsoredCount = member.cosponsoredLegislation?.count || 0;
 
-    if (isLoading && !extraData) {
+    if (isLoading) {
         return (
             <Card>
                 <CardHeader>
