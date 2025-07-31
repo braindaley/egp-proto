@@ -30,7 +30,7 @@ const states = [
 ];
 
 export default async function CongressByStateListPage({ params }: { params: { congress: string } }) {
-    const { congress } = params;
+    const { congress } = await params;
     return (
     <div className="container mx-auto px-4 py-8 md:py-12">
       <header className="text-center mb-12">

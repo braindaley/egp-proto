@@ -1,3 +1,4 @@
+
 'use client';
 import { BillCard } from '@/components/bill-card';
 import type { Bill } from '@/types';
@@ -232,7 +233,7 @@ export default function PopularBillsPage() {
                             <p className="text-muted-foreground">Loading popular bills...</p>
                         </div>
                     </div>
-                ) : loadingState.error && !data ? (
+                ) : loadingState.error && !data?.bills.length ? (
                     <div className="text-center py-10 px-6 bg-card rounded-lg shadow-md max-w-md mx-auto">
                         <h2 className="text-xl font-semibold text-destructive mb-2">
                             Failed to Load

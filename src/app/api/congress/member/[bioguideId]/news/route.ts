@@ -34,27 +34,40 @@ export async function GET(req: NextRequest, { params }: { params: { bioguideId: 
     const memberName = memberData?.member?.directOrderName;
 
     if (!memberName) {
-        return NextResponse.json({ error: 'Could not determine member name for news feed' }, { status: 404 });
+        return NextResponse.json({ articles: [], error: 'Could not determine member name for news feed' }, { status: 404 });
     }
 
     // 2. Construct Google News RSS URL
     const rssUrl = `https://news.google.com/rss/search?q="${encodeURIComponent(memberName)}"&hl=en-US&gl=US&ceid=US:en`;
     
     // 3. Fetch and parse the RSS feed
-    const parser = new Parser();
+    const parser = new Parser({
+        customFields: {
+          item: ['source'],
+        },
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36'
+        }
+    });
+
     const feed = await parser.parseURL(rssUrl);
 
     // 4. Process items to include imageUrl
-    const newsItems: NewsArticle[] = (feed.items || []).map(item => ({
-        ...item,
+    const newsItems: NewsArticle[] = (feed.items || []).slice(0, 10).map(item => ({
+        title: item.title!,
+        link: item.link!,
+        pubDate: item.pubDate!,
+        source: item.source,
+        content: item.content,
         imageUrl: extractImageUrl(item.content || ''),
     }));
 
     // 5. Return the items
-    return NextResponse.json(newsItems);
+    return NextResponse.json({ articles: newsItems });
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching news';
     console.error(`Error fetching news for ${bioguideId}:`, error);
-    return NextResponse.json({ error: 'Failed to fetch or parse news feed' }, { status: 500 });
+    return NextResponse.json({ articles: [], error: errorMessage }, { status: 500 });
   }
 }

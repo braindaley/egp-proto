@@ -40,32 +40,40 @@ async function getCongresses(): Promise<Congress[]> {
         return congressCache;
     }
 
+    // This function now calls the internal API route instead of the external one.
+    // This is more secure and avoids client-side fetch issues.
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:9002');
+    const url = `${baseUrl}/api/congresses`;
+    
     try {
-        const res = await fetch('/api/congresses');
-
-        if (res.status === 429) {
-          if (congressCache) {
-            console.warn('Rate limit exceeded, using cached data.');
-            return congressCache;
-          }
-          return getFallbackCongresses();
-        }
+        const res = await fetch(url);
 
         if (!res.ok) {
-            console.error(`Failed to fetch congresses from local API: ${res.status}`);
+            console.error(`Failed to fetch congresses from internal API: ${res.status}`);
+            if (congressCache) {
+              console.warn("Using stale cache due to API error.");
+              return congressCache;
+            }
             return getFallbackCongresses();
         }
+
         const data = await res.json();
-        const result = data.congresses || [];
+        const congresses = (data.congresses || [])
+          .filter(Boolean)
+          .map((congress: any) => ({
+            ...congress,
+            number: parseInt(congress.name.match(/(\d+)/)?.[1] || '0', 10)
+          }))
+          .sort((a: any, b: any) => b.number - a.number);
         
-        if (result.length > 0) {
-            congressCache = result;
+        if (congresses.length > 0) {
+            congressCache = congresses;
             cacheExpiry = now + (60 * 60 * 1000); // Cache for 1 hour
         }
         
-        return result.length > 0 ? result : getFallbackCongresses();
+        return congresses.length > 0 ? congresses : getFallbackCongresses();
     } catch (error) {
-        console.error('Error fetching congresses from local API:', error);
+        console.error('Error fetching congresses from internal API:', error);
         return getFallbackCongresses();
     }
 }
