@@ -1,828 +1,228 @@
 'use client';
+
 import { useState, useEffect } from 'react';
-import type { Member, MemberTerm, Leadership, PartyHistory, NewsArticle, SponsoredLegislation, CosponsoredLegislation } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import Image from 'next/image';
-import { Building, Calendar, MapPin, Briefcase, ExternalLink, Phone, User, Gavel, FileText, Users, Star, History, Info, Newspaper, ChevronsUpDown, Loader2, Target, Trophy, Hourglass, CircleSlash } from 'lucide-react';
-import { Button } from './ui/button';
 import Link from 'next/link';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
-import { getBillTypeSlug } from '@/lib/utils';
-import { getCommitteeAssignments, type CommitteeAssignmentsData } from '@/ai/flows/get-committee-assignments-flow';
-import { getCampaignPromises, type CampaignPromisesData, type CampaignPromise } from '@/ai/flows/get-campaign-promises-flow';
-import { Skeleton } from '@/components/ui/skeleton';
-import { SocialMediaLinks } from './social-media-links';
-import { DistrictOffices } from './district-offices';
+import type { Member, Amendment, Bill } from '@/types';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Building,
+  ExternalLink,
+  FilePlus2,
+  Globe,
+  Loader2,
+  Phone,
+} from 'lucide-react';
 
-// Updated types to match Congress API response
-interface CongressApiMember extends Member {}
-
-function formatDate(dateString: string | undefined | number) {
-    if (!dateString) return 'N/A';
-    // Handle case where year is passed as a number
-    if (typeof dateString === 'number') {
-        return dateString.toString();
-    }
-    // Add a dummy time to avoid timezone issues if only date is provided
-    const date = new Date(dateString.includes('T') || dateString.includes('GMT') ? dateString : `${dateString}T12:00:00Z`);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+// This would be a more specific type for amendments sponsored by a member
+interface MemberAmendment extends Amendment {
+  bill: Pick<Bill, 'number' | 'type' | 'congress' | 'title'>;
 }
 
-function calculateYearsOfService(firstTerm: MemberTerm | undefined): number | string {
-    if (!firstTerm?.startYear) return 'N/A';
-    const startYear = firstTerm.startYear;
-    const now = new Date();
-    // Use UTC years for calculation
-    const years = now.getUTCFullYear() - startYear;
-    return years > 0 ? years : 1; // Show at least 1 year of service
+function formatDate(dateString?: string) {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
 }
 
-function isCurrentlyServing(member: Member): boolean {
-    if (member.deathDate) return false;
-    
-    let termsArray: any[] = [];
-    if (Array.isArray(member.terms)) {
-        termsArray = member.terms;
-    } else if (member.terms?.item && Array.isArray(member.terms.item)) {
-        termsArray = member.terms.item;
-    } else {
-        return false;
-    }
-    
-    if (termsArray.length === 0) return false;
-    
-    const currentYear = new Date().getFullYear();
-    
-    // Check if any term indicates current service
-    return termsArray.some(term => {
-        const hasStarted = term.startYear <= currentYear;
-        // A member is currently serving if their term has no end date OR the end date is strictly in the future.
-        const stillServing = !term.endYear || 
-                           term.endYear === null || 
-                           term.endYear === undefined || 
-                           term.endYear > currentYear;
-        return hasStarted && stillServing;
-    });
-}
-
-function getCurrentTerm(terms: any): MemberTerm | undefined {
-    // Handle different terms data structures
-    let termsArray: MemberTerm[] = [];
-    
-    if (Array.isArray(terms)) {
-        // Direct array: terms = [...]
-        termsArray = terms;
-    } else if (terms && typeof terms === 'object' && Array.isArray(terms.item)) {
-        // Object with item property: terms = { item: [...] }
-        termsArray = terms.item;
-    } else {
-        return undefined;
-    }
-    
-    if (termsArray.length === 0) return undefined;
-    
-    const currentYear = new Date().getFullYear();
-    
-    // First, try to find a term that's currently active
-    const activeTerm = termsArray.find(term => {
-        if (!term.endYear || term.endYear === null || term.endYear === undefined) {
-            return term.startYear <= currentYear;
-        }
-        return term.startYear <= currentYear && term.endYear >= currentYear;
-    });
-    
-    if (activeTerm) return activeTerm;
-    
-    // If no active term found, return the most recent term
-    const sortedTerms = [...termsArray].sort((a, b) => (b.congress || 0) - (a.congress || 0));
-    return sortedTerms[0];
-}
-
-function getFirstTerm(terms: any): MemberTerm | undefined {
-    // Handle different terms data structures
-    let termsArray: MemberTerm[] = [];
-    
-    if (Array.isArray(terms)) {
-        // Direct array: terms = [...]
-        termsArray = terms;
-    } else if (terms && typeof terms === 'object' && Array.isArray(terms.item)) {
-        // Object with item property: terms = { item: [...] }
-        termsArray = terms.item;
-    } else {
-        return undefined;
-    }
-    
-    if (termsArray.length === 0) return undefined;
-    // Sort by start year ascending to get the earliest term
-    const sortedTerms = [...termsArray].sort((a, b) => a.startYear - b.startYear);
-    return sortedTerms[0];
-}
-
-const CommitteeAssignments = ({ member, congress }: { member: Member, congress: string }) => {
-    const [assignments, setAssignments] = useState<CommitteeAssignmentsData | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
-
-    useEffect(() => {
-        const fetchAssignments = async () => {
-            if (!member.directOrderName || !congress || !member.bioguideId) return;
-            setIsLoading(true);
-            setError('');
-            try {
-                const currentTerm = getCurrentTerm(member.terms);
-                const relevantCongress = currentTerm?.congress?.toString() || congress;
-                
-                const result = await getCommitteeAssignments({
-                    memberName: member.directOrderName,
-                    congressNumber: relevantCongress,
-                    bioguideId: member.bioguideId
-                });
-                setAssignments(result);
-            } catch (e) {
-                console.error("Error fetching committee assignments:", e);
-                setError('Could not load committee assignments.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchAssignments();
-    }, [member, congress]);
-
-    if (isLoading) {
-        return (
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-6 w-3/5" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                </CardContent>
-            </Card>
-        );
-    }
-
-    if (error || !assignments || (assignments.committees.length === 0 && assignments.subcommittees.length === 0)) {
-        return null; // Don't render the card if no assignments or an error occurred
-    }
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Briefcase className="h-5 w-5" />
-                    Committee Assignments
-                </CardTitle>
-                <CardDescription>
-                    {assignments.congress}th Congress &bull; {assignments.chamber} &bull; Last updated: {formatDate(assignments.lastUpdated)}
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                {assignments.committees && assignments.committees.length > 0 && (
-                    <div>
-                        <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
-                            🏛️ Full Committees
-                        </h4>
-                        <div className="space-y-2">
-                            {assignments.committees.map((committee, index) => (
-                                <div key={index} className="p-3 rounded-md border bg-secondary/30">
-                                    <div className="flex justify-between items-start">
-                                        <p className="font-semibold text-foreground pr-4">
-                                           {committee.url ? <a href={committee.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{committee.name}</a> : committee.name}
-                                        </p>
-                                        <div className="text-xs shrink-0">
-                                            {committee.role}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {assignments.subcommittees && assignments.subcommittees.length > 0 && (
-                    <div>
-                        <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
-                            📋 Subcommittee Assignments
-                        </h4>
-                        <div className="space-y-2">
-                            {assignments.subcommittees.map((sub, index) => (
-                                <div key={index} className="p-3 bg-secondary/20 rounded border-l-2 border-border">
-                                     <div className="flex justify-between items-start">
-                                        <div className="pr-4">
-                                            <p className="font-medium text-foreground text-sm">
-                                                {sub.url ? <a href={sub.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{sub.name}</a> : sub.name}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                under {sub.parentCommittee}
-                                            </p>
-                                        </div>
-                                        <div className="text-xs shrink-0">
-                                            {sub.role}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                 <div className="text-xs text-muted-foreground pt-2">
-                   Data provided by <a href={assignments.source} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">{assignments.source}</a>.
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
-
-const CampaignPromises = ({ member, congress }: { member: Member, congress: string }) => {
-    const [data, setData] = useState<CampaignPromisesData | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
-
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!member.directOrderName || !congress) return;
-            setIsLoading(true);
-            setError('');
-            try {
-                const result = await getCampaignPromises({
-                    memberName: member.directOrderName,
-                    congressNumber: congress
-                });
-                setData(result);
-            } catch (e) {
-                console.error("Error fetching campaign promises:", e);
-                setError('Could not load campaign promises.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchData();
-    }, [member, congress]);
-
-    if (isLoading) {
-        return (
-             <Card>
-                <CardHeader>
-                    <Skeleton className="h-6 w-3/5" />
-                    <Skeleton className="h-4 w-4/5 mt-2" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
-                </CardContent>
-            </Card>
-        );
-    }
-
-    if (error || !data) {
-        return null;
-    }
-    
-    const getStatusIcon = (status: CampaignPromise['status']) => {
-        switch (status) {
-            case 'Completed': return <Trophy className="h-4 w-4 text-green-600" />;
-            case 'In Progress': return <Hourglass className="h-4 w-4 text-blue-600" />;
-            case 'Stalled': return <CircleSlash className="h-4 w-4 text-yellow-600" />;
-            case 'Not Started': return <FileText className="h-4 w-4 text-gray-500" />;
-            default: return null;
-        }
-    };
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5" />
-                    Recent Campaign Promises
-                </CardTitle>
-                <CardDescription>
-                    A generated overview of key promises from recent campaigns.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="space-y-4">
-                    {data.promises.map((promise, index) => (
-                        <div key={index} className="p-4 rounded-lg border bg-secondary/30">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <Badge 
-                                        variant={
-                                            promise.priority === 'High' ? 'default' :
-                                            promise.priority === 'Medium' ? 'secondary' : 'outline'
-                                        }
-                                        className="mb-2"
-                                    >
-                                        {promise.priority} Priority
-                                    </Badge>
-                                    <h4 className="font-bold text-base text-foreground">{promise.title}</h4>
-                                </div>
-                                <Badge variant="outline" className="flex items-center gap-1.5 shrink-0">
-                                    {getStatusIcon(promise.status)}
-                                    {promise.status}
-                                </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground mt-2">{promise.description}</p>
-                            <p className="text-xs text-muted-foreground mt-3 pt-2 border-t border-border">
-                                Category: {promise.category}
-                            </p>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="bg-secondary/30 p-4 rounded-lg border border-border">
-                    <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
-                        ℹ️ Important Note
-                    </h4>
-                    <p className="text-sm text-muted-foreground mb-2">
-                        Campaign promises are complex and can evolve over time. For the most accurate and official platform details, please consult the member's official campaign website.
-                    </p>
-                    <p className="text-xs text-muted-foreground opacity-80 italic">
-                        This information is generated based on common political platforms and may not reflect the member's actual campaign promises.
-                    </p>
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
-
-interface ExtraData {
-    news: NewsArticle[];
-    sponsoredLegislation: SponsoredLegislation[];
-    cosponsoredLegislation: CosponsoredLegislation[];
-}
-
-export function MemberDetailClient({ initialMember, congress }: { initialMember: CongressApiMember, congress: string }) {
-  
-  const [member, setMember] = useState<Member>(initialMember);
-  const [extraData, setExtraData] = useState<ExtraData | null>(null);
+// New component to fetch and display amendments
+function MemberAmendments({
+  bioguideId,
+  congress,
+}: {
+  bioguideId: string;
+  congress: string;
+}) {
+  const [amendments, setAmendments] = useState<MemberAmendment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchExtraData() {
-        setIsLoading(true);
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        const bioguideId = initialMember.bioguideId;
-
-        try {
-            const [sponsoredRes, cosponsoredRes, newsRes] = await Promise.allSettled([
-                fetch(`${baseUrl}/api/congress/member/${bioguideId}/sponsored-legislation`),
-                fetch(`${baseUrl}/api/congress/member/${bioguideId}/cosponsored-legislation`),
-                fetch(`${baseUrl}/api/congress/member/${bioguideId}/news`)
-            ]);
-
-            const sponsoredLegislation = sponsoredRes.status === 'fulfilled' && sponsoredRes.value.ok ? await sponsoredRes.value.json() : [];
-            const cosponsoredLegislation = cosponsoredRes.status === 'fulfilled' && cosponsoredRes.value.ok ? await cosponsoredRes.value.json() : [];
-            const news = newsRes.status === 'fulfilled' && newsRes.value.ok ? await newsRes.value.json() : [];
-            
-            setExtraData({
-                sponsoredLegislation,
-                cosponsoredLegislation,
-                news
-            });
-        } catch (error) {
-            console.error("Failed to fetch extra member data", error);
-        } finally {
-            setIsLoading(false);
+    async function loadAmendments() {
+      try {
+        const res = await fetch(
+          `/api/congress/member/${bioguideId}/amendments?congress=${congress}`,
+        );
+        if (!res.ok) {
+          throw new Error('Failed to fetch amendments');
         }
+        const data = await res.json();
+        setAmendments(data.amendments || []);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'An unknown error occurred');
+      } finally {
+        setIsLoading(false);
+      }
     }
-    fetchExtraData();
-  }, [initialMember.bioguideId]);
+    loadAmendments();
+  }, [bioguideId, congress]);
 
-  // Handle different terms data structures safely
-  let termsData: MemberTerm[] = [];
-  try {
-    if (Array.isArray(member.terms)) {
-      termsData = member.terms;
-    } else if (member.terms?.item && Array.isArray(member.terms.item)) {
-      termsData = member.terms.item;
-    }
-  } catch (error) {
-    console.error('Error processing terms data:', error);
-    termsData = [];
+  if (isLoading) {
+    return (
+      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Loading amendments...</span>
+      </div>
+    );
   }
 
-  const allTerms = termsData.slice().sort((a, b) => b.startYear - a.startYear) || [];
-  const firstTerm = getFirstTerm(member.terms);
-  
-  const yearsOfService = calculateYearsOfService(firstTerm);
-  const leadershipHistory = (member.leadership || []).sort((a,b) => b.congress - a.congress);
-  const hasNews = extraData?.news && extraData.news.length > 0;
-  const sponsoredLegislation = extraData?.sponsoredLegislation || [];
-  const cosponsoredLegislation = extraData?.cosponsoredLegislation || [];
-  
-  // FIXED: Use the correct property names that match the Congress API response
-  const sponsoredCount = initialMember.sponsoredLegislation?.count || 0;
-  const cosponsoredCount = initialMember.cosponsoredLegislation?.count || 0;
-  
-  const currentlyServing = isCurrentlyServing(member);
-  const currentTerm = member.addressInformation;
+  if (error) {
+    return <p className="text-sm text-destructive">{error}</p>;
+  }
 
-  // Debug logging to verify the data structure
-  console.log('Initial member data:', initialMember);
-  console.log('Extended IDs:', initialMember.extendedIds);
+  if (amendments.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        This member has not sponsored any amendments in this congress.
+      </p>
+    );
+  }
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-        <header className="mb-8 flex flex-col items-center gap-6">
-            <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-primary/20 shrink-0 shadow-lg">
-                <Image
-                    src={member.depiction?.imageUrl || 'https://placehold.co/300x300.png'}
-                    alt={`Portrait of ${member.directOrderName}`}
-                    fill
-                    sizes="160px"
-                    className="object-cover"
-                    data-ai-hint="portrait person"
-                    priority={true}
-                />
-            </div>
+    <div className="space-y-4">
+      {amendments.map((amendment, index) => (
+        <div key={index} className="p-4 bg-secondary/50 rounded-md">
+          <div className="flex justify-between items-start">
             <div>
-                <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary text-center">
-                    {member.directOrderName}
-                </h1>
-                <p className="text-xl text-muted-foreground mt-1 text-center">
-                    {member.honorificName} for {member.state} {member.district ? `(District ${member.district})` : ''}
-                </p>
-                <div className="flex justify-center mt-2">
-                    <Badge variant={currentlyServing ? "default" : "secondary"}>
-                        {currentlyServing ? 'Current Member' : 'Former Member'}
-                    </Badge>
-                </div>
+              <Link
+                href={amendment.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold hover:underline"
+              >
+                {amendment.type} {amendment.number}
+              </Link>
+              <p className="text-sm text-muted-foreground mt-1">
+                Amending:{' '}
+                <Link
+                  href={`/bill/${amendment.bill.congress}/${amendment.bill.type.toLowerCase().replace(/\./g, '')}/${amendment.bill.number}`}
+                  className="text-primary hover:underline"
+                >
+                  {amendment.bill.type} {amendment.bill.number} -{' '}
+                  {amendment.bill.title}
+                </Link>
+              </p>
             </div>
-        </header>
-
-        <div className="space-y-8">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><User /> Basic Info</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm">
-                    {/* Core Information */}
-                    <div className="space-y-3">
-                        {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear)}</p>}
-                        <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
-                        {member.birthYear && <p><strong>Birth Year:</strong> {member.birthYear}</p>}
-                        <p><strong>Bioguide ID:</strong> {member.bioguideId}</p>
-                        {currentTerm?.officeAddress && <p><strong>Office:</strong> {currentTerm.officeAddress}</p>}
-                        {currentTerm?.phoneNumber && <p><strong>Phone:</strong> {currentTerm.phoneNumber}</p>}
-                    </div>
-
-                    {/* Extended IDs Section */}
-                    {member.extendedIds && (
-                        <div className="border-t pt-4">
-                            <h4 className="font-semibold text-base mb-3 text-foreground">External Identifiers</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                                {member.extendedIds.thomas && (
-                                    <div className="p-2 bg-secondary/30 rounded-md">
-                                        <p className="text-muted-foreground">Thomas Library</p>
-                                        <p className="font-mono font-medium">{member.extendedIds.thomas}</p>
-                                    </div>
-                                )}
-                                {member.extendedIds.govtrack && (
-                                    <div className="p-2 bg-secondary/30 rounded-md">
-                                        <p className="text-muted-foreground">GovTrack</p>
-                                        <a href={`https://www.govtrack.us/congress/members/${member.extendedIds.govtrack}`} 
-                                           target="_blank" rel="noopener noreferrer" 
-                                           className="font-mono font-medium text-primary hover:underline">
-                                            {member.extendedIds.govtrack}
-                                        </a>
-                                    </div>
-                                )}
-                                {member.extendedIds.opensecrets && (
-                                    <div className="p-2 bg-secondary/30 rounded-md">
-                                        <p className="text-muted-foreground">OpenSecrets</p>
-                                        <a href={`https://www.opensecrets.org/members-of-congress/summary?cid=${member.extendedIds.opensecrets}`}
-                                           target="_blank" rel="noopener noreferrer"
-                                           className="font-mono font-medium text-primary hover:underline">
-                                            {member.extendedIds.opensecrets}
-                                        </a>
-                                    </div>
-                                )}
-                                {member.extendedIds.votesmart && (
-                                    <div className="p-2 bg-secondary/30 rounded-md">
-                                        <p className="text-muted-foreground">Vote Smart</p>
-                                        <p className="font-mono font-medium">{member.extendedIds.votesmart}</p>
-                                    </div>
-                                )}
-                                {member.extendedIds.cspan && (
-                                    <div className="p-2 bg-secondary/30 rounded-md">
-                                        <p className="text-muted-foreground">C-SPAN</p>
-                                        <p className="font-mono font-medium">{member.extendedIds.cspan}</p>
-                                    </div>
-                                )}
-                                {member.extendedIds.icpsr && (
-                                    <div className="p-2 bg-secondary/30 rounded-md">
-                                        <p className="text-muted-foreground">ICPSR</p>
-                                        <p className="font-mono font-medium">{member.extendedIds.icpsr}</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* External Profiles Row */}
-                            {(member.extendedIds.wikipedia || member.extendedIds.ballotpedia) && (
-                                <div className="mt-3">
-                                    <h5 className="font-medium text-sm mb-2 text-foreground">External Profiles</h5>
-                                    <div className="flex flex-wrap gap-2">
-                                        {member.extendedIds.wikipedia && (
-                                            <Button asChild size="sm" variant="outline">
-                                                <a href={`https://en.wikipedia.org/wiki/${member.extendedIds.wikipedia}`} 
-                                                   target="_blank" rel="noopener noreferrer" className="text-xs">
-                                                    Wikipedia <ExternalLink className="ml-1 h-3 w-3" />
-                                                </a>
-                                            </Button>
-                                        )}
-                                        {member.extendedIds.ballotpedia && (
-                                            <Button asChild size="sm" variant="outline">
-                                                <a href={`https://ballotpedia.org/${member.extendedIds.ballotpedia}`}
-                                                   target="_blank" rel="noopener noreferrer" className="text-xs">
-                                                    Ballotpedia <ExternalLink className="ml-1 h-3 w-3" />
-                                                </a>
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* FEC IDs */}
-                            {member.extendedIds.fec && member.extendedIds.fec.length > 0 && (
-                                <div className="mt-3">
-                                    <h5 className="font-medium text-sm mb-2 text-foreground">FEC Committee IDs</h5>
-                                    <div className="flex flex-wrap gap-1">
-                                        {member.extendedIds.fec.map((fecId, index) => (
-                                            <Badge key={index} variant="secondary" className="text-xs font-mono">
-                                                {fecId}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Family Information */}
-                            {member.extendedIds.family && member.extendedIds.family.length > 0 && (
-                                <div className="mt-3">
-                                    <h5 className="font-medium text-sm mb-2 text-foreground">Family</h5>
-                                    <div className="space-y-1">
-                                        {member.extendedIds.family.map((relative, index) => (
-                                            <p key={index} className="text-xs text-muted-foreground">
-                                                <span className="font-medium text-foreground">{relative.name}</span> ({relative.relation})
-                                            </p>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Research & Data IDs - Collapsible */}
-                            {(member.extendedIds.maplight || member.extendedIds.wikidata || member.extendedIds.google_entity_id || member.extendedIds.pictorial || member.extendedIds.house_history) && (
-                                <Collapsible className="mt-3">
-                                    <CollapsibleTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="w-full justify-between p-2 h-auto">
-                                            <span className="font-medium text-sm">Research & Data IDs</span>
-                                            <ChevronsUpDown className="h-3 w-3" />
-                                        </Button>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent className="mt-2">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                                            {member.extendedIds.house_history && (
-                                                <div className="p-2 bg-secondary/20 rounded-md">
-                                                    <p className="text-muted-foreground">House History</p>
-                                                    <p className="font-mono font-medium">{member.extendedIds.house_history}</p>
-                                                </div>
-                                            )}
-                                            {member.extendedIds.maplight && (
-                                                <div className="p-2 bg-secondary/20 rounded-md">
-                                                    <p className="text-muted-foreground">MapLight</p>
-                                                    <p className="font-mono font-medium">{member.extendedIds.maplight}</p>
-                                                </div>
-                                            )}
-                                            {member.extendedIds.wikidata && (
-                                                <div className="p-2 bg-secondary/20 rounded-md">
-                                                    <p className="text-muted-foreground">Wikidata</p>
-                                                    <a href={`https://www.wikidata.org/wiki/${member.extendedIds.wikidata}`}
-                                                       target="_blank" rel="noopener noreferrer"
-                                                       className="font-mono font-medium text-primary hover:underline">
-                                                        {member.extendedIds.wikidata}
-                                                    </a>
-                                                </div>
-                                            )}
-                                            {member.extendedIds.google_entity_id && (
-                                                <div className="p-2 bg-secondary/20 rounded-md">
-                                                    <p className="text-muted-foreground">Google Entity</p>
-                                                    <p className="font-mono font-medium text-xs">{member.extendedIds.google_entity_id}</p>
-                                                </div>
-                                            )}
-                                            {member.extendedIds.pictorial && (
-                                                <div className="p-2 bg-secondary/20 rounded-md">
-                                                    <p className="text-muted-foreground">Pictorial Directory</p>
-                                                    <p className="font-mono font-medium">{member.extendedIds.pictorial}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </CollapsibleContent>
-                                </Collapsible>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Social Media and District Offices (existing components) */}
-                    {member.bioguideId && (
-                        <SocialMediaLinks bioguideId={member.bioguideId} />
-                    )}
-
-                    {member.bioguideId && (
-                        <DistrictOffices bioguideId={member.bioguideId} />
-                    )}
-                    
-                    {/* Official Website Button */}
-                    {member.officialWebsiteUrl && (
-                        <Button asChild size="sm" className="w-full mt-2">
-                            <a href={member.officialWebsiteUrl} target="_blank" rel="noopener noreferrer">
-                                Official Website <ExternalLink className="ml-2 h-4 w-4" />
-                            </a>
-                        </Button>
-                    )}
-                </CardContent>
-            </Card>
-
-            {isLoading ? (
-                 <Card>
-                    <CardHeader>
-                        <Skeleton className="h-6 w-2/5" />
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                    </CardContent>
-                </Card>
-            ) : hasNews && extraData && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Newspaper /> Recent News</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                            {extraData.news.map((article, index) => (
-                                <a href={article.link} target="_blank" rel="noopener noreferrer" key={index} className="block p-3 bg-secondary/50 rounded-md hover:bg-secondary transition-colors">
-                                    <div className="flex items-start gap-4">
-                                        {article.imageUrl && (
-                                            <div className="relative w-24 h-16 rounded-md overflow-hidden shrink-0">
-                                                <Image 
-                                                    src={article.imageUrl}
-                                                    alt={article.title || 'News article thumbnail'}
-                                                    fill
-                                                    className="object-cover"
-                                                    data-ai-hint="news photo"
-                                                    sizes="96px"
-                                                />
-                                            </div>
-                                        )}
-                                        <div className="flex-1">
-                                            <p className="font-semibold text-sm leading-tight">{article.title}</p>
-                                            <div className="text-xs text-muted-foreground mt-2 flex justify-between items-center">
-                                                {article.source?._ && <span>{article.source._}</span>}
-                                                <span>{formatDate(article.pubDate)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Gavel /> Legislative Activity</CardTitle>
-                    <CardDescription>Summary of bills sponsored and cosponsored by the member.</CardDescription>
-                </CardHeader>
-                 {isLoading && !extraData ? (
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Skeleton className="h-20 w-full" />
-                            <Skeleton className="h-20 w-full" />
-                        </div>
-                    </CardContent>
-                 ) : (
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="p-4 bg-secondary/50 rounded-lg">
-                                <h3 className="font-semibold mb-2">Sponsored Bills</h3>
-                                <p className="text-3xl font-bold text-primary">{sponsoredCount}</p>
-                            </div>
-                            <div className="p-4 bg-secondary/50 rounded-lg">
-                                <h3 className="font-semibold mb-2">Cosponsored Bills</h3>
-                                <p className="text-3xl font-bold text-primary">{cosponsoredCount}</p>
-                            </div>
-                        </div>
-                        
-                        {sponsoredLegislation.length > 0 && (
-                            <Collapsible>
-                                <CollapsibleTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-between">
-                                        View Recent Sponsored Bills ({sponsoredLegislation.length})
-                                        <ChevronsUpDown className="h-4 w-4" />
-                                    </Button>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent className="mt-2 space-y-2 max-h-60 overflow-y-auto">
-                                    {sponsoredLegislation.map((bill) => (
-                                        <div key={`${bill.congress}-${bill.type}-${bill.number}`} className="p-3 bg-secondary/50 rounded-md">
-                                            <Link href={`/bill/${bill.congress}/${getBillTypeSlug(bill.type)}/${bill.number}`} className="font-semibold hover:underline">{bill.type} {bill.number}: {bill.title}</Link>
-                                            <p className="text-xs text-muted-foreground mt-1">Introduced: {formatDate(bill.introducedDate)}</p>
-                                        </div>
-                                    ))}
-                                </CollapsibleContent>
-                            </Collapsible>
-                        )}
-
-                        {cosponsoredLegislation.length > 0 && (
-                            <Collapsible className="mt-2">
-                                <CollapsibleTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-between">
-                                        View Recent Cosponsored Bills ({cosponsoredLegislation.length})
-                                        <ChevronsUpDown className="h-4 w-4" />
-                                    </Button>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent className="mt-2 space-y-2 max-h-60 overflow-y-auto">
-                                    {cosponsoredLegislation.map((bill) => (
-                                        <div key={`${bill.congress}-${bill.type}-${bill.number}`} className="p-3 bg-secondary/50 rounded-md">
-                                            <Link href={`/bill/${bill.congress}/${getBillTypeSlug(bill.type)}/${bill.number}`} className="font-semibold hover:underline">{bill.type} {bill.number}: {bill.title}</Link>
-                                            <p className="text-xs text-muted-foreground mt-1">Cosponsored: {formatDate(bill.cosponsoredDate)}</p>
-                                        </div>
-                                    ))}
-                                </CollapsibleContent>
-                            </Collapsible>
-                        )}
-                    </CardContent>
-                 )}
-            </Card>
-
-            <CommitteeAssignments member={member} congress={congress} />
-
-            <CampaignPromises member={member} congress={congress} />
-
-            {allTerms.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><History /> Service History</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {allTerms.map((term, index) => (
-                                <div key={index} className="text-sm p-2 bg-secondary/50 rounded-md">
-                                    <p className="font-semibold">{term.chamber}</p>
-                                    <p className="text-muted-foreground text-xs">
-                                        {term.congress}th Congress ({term.startYear} - {term.endYear || 'Present'})
-                                        {term.district && ` - District ${term.district}`}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-            
-            {leadershipHistory.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Star /> Leadership History</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                            {leadershipHistory.map((leadership, index) => (
-                                <div key={index} className="text-sm p-2 bg-secondary/50 rounded-md">
-                                    <p className="font-semibold">{leadership.type}</p>
-                                    <p className="text-muted-foreground text-xs">{leadership.congress}th Congress</p>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            {member.partyHistory && member.partyHistory.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Info /> Party History</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                            {member.partyHistory.map((party, index) => (
-                                <div key={index} className="text-sm p-2 bg-secondary/50 rounded-md flex items-center gap-2">
-                                    <Badge variant="outline">{party.partyAbbreviation}</Badge>
-                                    <div>
-                                        <p className="font-semibold">{party.partyName}</p>
-                                        <p className="text-muted-foreground text-xs">{party.startYear} - {party.endYear || 'Present'}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+            <Button asChild variant="ghost" size="sm">
+              <a href={amendment.url} target="_blank" rel="noopener noreferrer">
+                View <ExternalLink className="ml-2 h-4 w-4" />
+              </a>
+            </Button>
+          </div>
+          {amendment.description && (
+            <p className="text-sm text-muted-foreground mt-2 pt-2 border-t border-secondary">
+              {amendment.description}
+            </p>
+          )}
+          {amendment.latestAction && (
+            <p className="text-xs text-muted-foreground mt-2">
+              <strong>Latest Action:</strong>{' '}
+              {formatDate(amendment.latestAction.actionDate)} -{' '}
+              {amendment.latestAction.text}
+            </p>
+          )}
         </div>
+      ))}
     </div>
   );
 }
+
+export function MemberDetailClient({
+  initialMember,
+  congress,
+}: {
+  initialMember: Member;
+  congress: string;
+}) {
+  const { bioguideId, name, party, state, district, terms, imageUrl, officialUrl, office, phone } = initialMember;
+
+  const currentTerm = terms.find((term) => term.congress === parseInt(congress));
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8">
+      <header className="flex flex-col md:flex-row items-start gap-8">
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt={`Portrait of ${name}`}
+            className="w-48 h-auto rounded-lg shadow-md"
+          />
+        )}
+        <div className="flex-1">
+          <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary">
+            {name}
+          </h1>
+          <p className="text-xl text-muted-foreground mt-1">
+            {currentTerm?.chamber === 'House' ? 'Representative' : 'Senator'} for{' '}
+            {state}
+            {district ? `, District ${district}` : ''}
+          </p>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Badge variant={party === 'R' ? 'destructive' : 'default'}>
+              {party === 'R' ? 'Republican' : 'Democrat'}
+            </Badge>
+            <Badge variant="secondary">{congress}th Congress</Badge>
+          </div>
+        </div>
+      </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Contact Information</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          {officialUrl && (
+            <a
+              href={officialUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 hover:text-primary"
+            >
+              <Globe className="h-4 w-4" /> Official Website
+            </a>
+          )}
+          {phone && (
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4" /> {phone}
+            </div>
+          )}
+          {office && (
+            <div className="flex items-center gap-2">
+              <Building className="h-4 w-4" /> {office}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* New Amendments Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FilePlus2 />
+            Amendments
+          </CardTitle>
+          <CardDescription>
+            Amendments sponsored by this member in the {congress}th Congress.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MemberAmendments bioguideId={bioguideId} congress={congress} />
+        </CardContent>
+      </Card>
+
+      {/* Other sections like Sponsored Legislation, Committees etc. would go here */}
+    </div>
+  );
+}
+
