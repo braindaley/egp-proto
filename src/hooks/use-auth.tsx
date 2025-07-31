@@ -22,7 +22,6 @@ import type { Congress } from '@/types';
 // Add this outside your component
 let congressCache: Congress[] | null = null;
 let cacheExpiry: number = 0;
-const CONGRESS_API_KEY = "xGz9PSy1R8O61g5LhAStO12g4F22aJ3B7VmycpJ1"; 
 
 function getFallbackCongresses(): Congress[] {
   console.warn('Using fallback congress data.');
@@ -41,19 +40,16 @@ async function getCongresses(): Promise<Congress[]> {
         return congressCache;
     }
 
-    if (!CONGRESS_API_KEY || CONGRESS_API_KEY === "your_congress_api_key_here") {
-        console.error("CONGRESS_API_KEY is not configured. Using fallback data.");
-        return getFallbackCongresses();
-    }
-
-    const url = `https://api.congress.gov/v3/congress?limit=250&api_key=${CONGRESS_API_KEY}`;
+    // This function now calls the internal API route instead of the external one.
+    // This is more secure and avoids client-side fetch issues.
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:9002');
+    const url = `${baseUrl}/api/congresses`;
     
     try {
         const res = await fetch(url);
 
         if (!res.ok) {
-            console.error(`Failed to fetch congresses directly from API: ${res.status}`);
-            // If the cache is available, use it, otherwise use fallback
+            console.error(`Failed to fetch congresses from internal API: ${res.status}`);
             if (congressCache) {
               console.warn("Using stale cache due to API error.");
               return congressCache;
@@ -77,7 +73,7 @@ async function getCongresses(): Promise<Congress[]> {
         
         return congresses.length > 0 ? congresses : getFallbackCongresses();
     } catch (error) {
-        console.error('Error fetching congresses directly from API:', error);
+        console.error('Error fetching congresses from internal API:', error);
         return getFallbackCongresses();
     }
 }
