@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import type { Member, MemberTerm, Leadership, PartyHistory } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,27 +15,19 @@ import { CampaignPromisesCard } from './campaign-promises-card';
 import { LegislativeActivityCard } from './legislative-activity-card';
 import { NewsCard } from './news-card';
 
-// Updated types to match Congress API response
-interface CongressApiMember extends Member {}
-
-function formatDate(dateString: string | undefined | number) {
-    if (!dateString) return 'N/A';
-    // Handle case where year is passed as a number
-    if (typeof dateString === 'number') {
-        return dateString.toString();
-    }
-    // Add a dummy time to avoid timezone issues if only date is provided
-    const date = new Date(dateString.includes('T') || dateString.includes('GMT') ? dateString : `${dateString}T12:00:00Z`);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+// This would be a more specific type for amendments sponsored by a member
+interface MemberAmendment extends Amendment {
+  bill: Pick<Bill, 'number' | 'type' | 'congress' | 'title'>;
 }
 
-function calculateYearsOfService(firstTerm: MemberTerm | undefined): number | string {
-    if (!firstTerm?.startYear) return 'N/A';
-    const startYear = firstTerm.startYear;
-    const now = new Date();
-    // Use UTC years for calculation
-    const years = now.getUTCFullYear() - startYear;
-    return years > 0 ? years : 1; // Show at least 1 year of service
+function formatDate(dateString?: string) {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
 }
 
 function isCurrentlyServing(member: Member): boolean {
@@ -89,17 +82,13 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
   
   const [member] = useState<Member>(initialMember);
 
-  // Handle different terms data structures safely
-  let termsData: MemberTerm[] = [];
-  try {
-    if (Array.isArray(member.terms)) {
-      termsData = member.terms;
-    } else if (member.terms?.item && Array.isArray(member.terms.item)) {
-      termsData = member.terms.item;
-    }
-  } catch (error) {
-    console.error('Error processing terms data:', error);
-    termsData = [];
+  if (isLoading) {
+    return (
+      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Loading amendments...</span>
+      </div>
+    );
   }
 
   const allTerms = termsData.slice().sort((a, b) => b.startYear - a.startYear) || [];
@@ -112,31 +101,29 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
   const currentTerm = member.addressInformation;
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-        <header className="mb-8 flex flex-col items-center gap-6">
-            <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-primary/20 shrink-0 shadow-lg">
-                <Image
-                    src={member.depiction?.imageUrl || 'https://placehold.co/300x300.png'}
-                    alt={`Portrait of ${member.directOrderName}`}
-                    fill
-                    sizes="160px"
-                    className="object-cover"
-                    data-ai-hint="portrait person"
-                    priority={true}
-                />
-            </div>
+    <div className="space-y-4">
+      {amendments.map((amendment, index) => (
+        <div key={index} className="p-4 bg-secondary/50 rounded-md">
+          <div className="flex justify-between items-start">
             <div>
-                <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary text-center">
-                    {member.directOrderName}
-                </h1>
-                <p className="text-xl text-muted-foreground mt-1 text-center">
-                    {member.honorificName} for {member.state} {member.district ? `(District ${member.district})` : ''}
-                </p>
-                <div className="flex justify-center mt-2">
-                    <Badge variant={currentlyServing ? "default" : "secondary"}>
-                        {currentlyServing ? 'Current Member' : 'Former Member'}
-                    </Badge>
-                </div>
+              <Link
+                href={amendment.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold hover:underline"
+              >
+                {amendment.type} {amendment.number}
+              </Link>
+              <p className="text-sm text-muted-foreground mt-1">
+                Amending:{' '}
+                <Link
+                  href={`/bill/${amendment.bill.congress}/${amendment.bill.type.toLowerCase().replace(/\./g, '')}/${amendment.bill.number}`}
+                  className="text-primary hover:underline"
+                >
+                  {amendment.bill.type} {amendment.bill.number} -{' '}
+                  {amendment.bill.title}
+                </Link>
+              </p>
             </div>
         </header>
 
@@ -400,6 +387,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                 </Card>
             )}
         </div>
+      ))}
     </div>
   );
 }
