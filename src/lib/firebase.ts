@@ -5,12 +5,13 @@ import { getAuth, Auth } from 'firebase/auth';
 // IMPORTANT: Replace the placeholder values with your actual Firebase project configuration.
 // You can find this in your project's settings in the Firebase console.
 const firebaseConfig = {
-  apiKey: "AIzaSyDPb7_j3h2eR_2wBn9a-5rBmxE-P0bVf7s",
-  authDomain: "egp-prototype.firebaseapp.com",
-  projectId: "egp-prototype",
-  storageBucket: "egp-prototype.appspot.com",
-  messagingSenderId: "1098592683074",
-  appId: "1:1098592683074:web:e576594d6b63529324e941",
+  "projectId": "egut-with-api",
+  "appId": "1:891405266254:web:c03357060ea337cb1e421f",
+  "storageBucket": "egut-with-api.firebasestorage.app",
+  "apiKey": "AIzaSyDpn3QKPct12ZUwFwbLEQolbd4aGD-eyto",
+  "authDomain": "egut-with-api.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "891405266254"
 };
 
 let app: FirebaseApp;
