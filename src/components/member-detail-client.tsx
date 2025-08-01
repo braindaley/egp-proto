@@ -120,8 +120,38 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
 
   return (
     <>
-      <header>
-        {/* Header content would go here */}
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row items-start gap-6">
+            <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-lg overflow-hidden border-2 border-gray-200 flex-shrink-0">
+                <Image
+                src={member.depiction?.imageUrl || 'https://placehold.co/300x300.png'}
+                alt={`Official photo of ${member.name}`}
+                fill
+                sizes="(max-width: 768px) 128px, 160px"
+                className="object-cover"
+                data-ai-hint="portrait person"
+                />
+            </div>
+            <div className="flex-1">
+                <p className="text-lg text-muted-foreground font-medium mb-1">{member.honorificName}</p>
+                <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary">
+                    {member.directOrderName}
+                </h1>
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                    <Badge variant={member.partyName === 'Republican' ? 'destructive' : member.partyName === 'Democratic' ? 'default' : 'secondary'} className="text-base">
+                        {member.partyName}
+                    </Badge>
+                    <Badge variant="outline" className="text-base">{member.state} {member.district ? ` - District ${member.district}` : ''}</Badge>
+                    {currentlyServing ? (
+                        <Badge variant="outline" className="text-base bg-green-100 text-green-800 border-green-200">Currently Serving</Badge>
+                    ) : member.deathDate ? (
+                        <Badge variant="outline" className="text-base bg-gray-100 text-gray-800 border-gray-200">Deceased {formatDate(member.deathDate)}</Badge>
+                    ) : (
+                        <Badge variant="outline" className="text-base bg-yellow-100 text-yellow-800 border-yellow-200">Not Currently Serving</Badge>
+                    )}
+                </div>
+            </div>
+        </div>
       </header>
 
       <div className="space-y-8">
