@@ -142,53 +142,6 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
             {/* Extended IDs Section */}
             {member.extendedIds && (
               <div className="border-t pt-4">
-                <h4 className="font-semibold text-base mb-3 text-foreground">External Identifiers</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                  {member.extendedIds.thomas && (
-                    <div className="p-2 bg-secondary/30 rounded-md">
-                      <p className="text-muted-foreground">Thomas Library</p>
-                      <p className="font-mono font-medium">{member.extendedIds.thomas}</p>
-                    </div>
-                  )}
-                  {member.extendedIds.govtrack && (
-                    <div className="p-2 bg-secondary/30 rounded-md">
-                      <p className="text-muted-foreground">GovTrack</p>
-                      <a href={`https://www.govtrack.us/congress/members/${member.extendedIds.govtrack}`} 
-                         target="_blank" rel="noopener noreferrer" 
-                         className="font-mono font-medium text-primary hover:underline">
-                          {member.extendedIds.govtrack}
-                      </a>
-                    </div>
-                  )}
-                  {member.extendedIds.opensecrets && (
-                    <div className="p-2 bg-secondary/30 rounded-md">
-                      <p className="text-muted-foreground">OpenSecrets</p>
-                      <a href={`https://www.opensecrets.org/members-of-congress/summary?cid=${member.extendedIds.opensecrets}`}
-                         target="_blank" rel="noopener noreferrer"
-                         className="font-mono font-medium text-primary hover:underline">
-                          {member.extendedIds.opensecrets}
-                      </a>
-                    </div>
-                  )}
-                  {member.extendedIds.votesmart && (
-                    <div className="p-2 bg-secondary/30 rounded-md">
-                      <p className="text-muted-foreground">Vote Smart</p>
-                      <p className="font-mono font-medium">{member.extendedIds.votesmart}</p>
-                    </div>
-                  )}
-                  {member.extendedIds.cspan && (
-                    <div className="p-2 bg-secondary/30 rounded-md">
-                      <p className="text-muted-foreground">C-SPAN</p>
-                      <p className="font-mono font-medium">{member.extendedIds.cspan}</p>
-                    </div>
-                  )}
-                  {member.extendedIds.icpsr && (
-                    <div className="p-2 bg-secondary/30 rounded-md">
-                      <p className="text-muted-foreground">ICPSR</p>
-                      <p className="font-mono font-medium">{member.extendedIds.icpsr}</p>
-                    </div>
-                  )}
-                </div>
 
                 {/* External Profiles Row */}
                 {(member.extendedIds.wikipedia || member.extendedIds.ballotpedia) && (
@@ -244,8 +197,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                 )}
 
                 {/* Research & Data IDs - Collapsible */}
-                {(member.extendedIds.maplight || member.extendedIds.wikidata || member.extendedIds.google_entity_id || member.extendedIds.pictorial || member.extendedIds.house_history) && (
-                  <Collapsible className="mt-3">
+                <Collapsible className="mt-3">
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" size="sm" className="w-full justify-between p-2 h-auto">
                         <span className="font-medium text-sm">Research & Data IDs</span>
@@ -253,45 +205,88 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                       </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="mt-2">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                        {member.extendedIds.house_history && (
-                          <div className="p-2 bg-secondary/20 rounded-md">
-                            <p className="text-muted-foreground">House History</p>
-                            <p className="font-mono font-medium">{member.extendedIds.house_history}</p>
-                          </div>
-                        )}
-                        {member.extendedIds.maplight && (
-                          <div className="p-2 bg-secondary/20 rounded-md">
-                            <p className="text-muted-foreground">MapLight</p>
-                            <p className="font-mono font-medium">{member.extendedIds.maplight}</p>
-                          </div>
-                        )}
-                        {member.extendedIds.wikidata && (
-                          <div className="p-2 bg-secondary/20 rounded-md">
-                            <p className="text-muted-foreground">Wikidata</p>
-                            <a href={`https://www.wikidata.org/wiki/${member.extendedIds.wikidata}`}
-                               target="_blank" rel="noopener noreferrer"
-                               className="font-mono font-medium text-primary hover:underline">
-                                {member.extendedIds.wikidata}
-                            </a>
-                          </div>
-                        )}
-                        {member.extendedIds.google_entity_id && (
-                          <div className="p-2 bg-secondary/20 rounded-md">
-                            <p className="text-muted-foreground">Google Entity</p>
-                            <p className="font-mono font-medium text-xs">{member.extendedIds.google_entity_id}</p>
-                          </div>
-                        )}
-                        {member.extendedIds.pictorial && (
-                          <div className="p-2 bg-secondary/20 rounded-md">
-                            <p className="text-muted-foreground">Pictorial Directory</p>
-                            <p className="font-mono font-medium">{member.extendedIds.pictorial}</p>
-                          </div>
-                        )}
-                      </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                            {member.extendedIds.thomas && (
+                                <div className="p-2 bg-secondary/30 rounded-md">
+                                <p className="text-muted-foreground">Thomas Library</p>
+                                <p className="font-mono font-medium">{member.extendedIds.thomas}</p>
+                                </div>
+                            )}
+                            {member.extendedIds.govtrack && (
+                                <div className="p-2 bg-secondary/30 rounded-md">
+                                <p className="text-muted-foreground">GovTrack</p>
+                                <a href={`https://www.govtrack.us/congress/members/${member.extendedIds.govtrack}`} 
+                                    target="_blank" rel="noopener noreferrer" 
+                                    className="font-mono font-medium text-primary hover:underline">
+                                    {member.extendedIds.govtrack}
+                                </a>
+                                </div>
+                            )}
+                            {member.extendedIds.opensecrets && (
+                                <div className="p-2 bg-secondary/30 rounded-md">
+                                <p className="text-muted-foreground">OpenSecrets</p>
+                                <a href={`https://www.opensecrets.org/members-of-congress/summary?cid=${member.extendedIds.opensecrets}`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    className="font-mono font-medium text-primary hover:underline">
+                                    {member.extendedIds.opensecrets}
+                                </a>
+                                </div>
+                            )}
+                            {member.extendedIds.votesmart && (
+                                <div className="p-2 bg-secondary/30 rounded-md">
+                                <p className="text-muted-foreground">Vote Smart</p>
+                                <p className="font-mono font-medium">{member.extendedIds.votesmart}</p>
+                                </div>
+                            )}
+                            {member.extendedIds.cspan && (
+                                <div className="p-2 bg-secondary/30 rounded-md">
+                                <p className="text-muted-foreground">C-SPAN</p>
+                                <p className="font-mono font-medium">{member.extendedIds.cspan}</p>
+                                </div>
+                            )}
+                            {member.extendedIds.icpsr && (
+                                <div className="p-2 bg-secondary/30 rounded-md">
+                                <p className="text-muted-foreground">ICPSR</p>
+                                <p className="font-mono font-medium">{member.extendedIds.icpsr}</p>
+                                </div>
+                            )}
+                            {member.extendedIds.house_history && (
+                                <div className="p-2 bg-secondary/20 rounded-md">
+                                    <p className="text-muted-foreground">House History</p>
+                                    <p className="font-mono font-medium">{member.extendedIds.house_history}</p>
+                                </div>
+                            )}
+                            {member.extendedIds.maplight && (
+                                <div className="p-2 bg-secondary/20 rounded-md">
+                                    <p className="text-muted-foreground">MapLight</p>
+                                    <p className="font-mono font-medium">{member.extendedIds.maplight}</p>
+                                </div>
+                            )}
+                            {member.extendedIds.wikidata && (
+                                <div className="p-2 bg-secondary/20 rounded-md">
+                                    <p className="text-muted-foreground">Wikidata</p>
+                                    <a href={`https://www.wikidata.org/wiki/${member.extendedIds.wikidata}`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    className="font-mono font-medium text-primary hover:underline">
+                                        {member.extendedIds.wikidata}
+                                    </a>
+                                </div>
+                            )}
+                            {member.extendedIds.google_entity_id && (
+                                <div className="p-2 bg-secondary/20 rounded-md">
+                                    <p className="text-muted-foreground">Google Entity</p>
+                                    <p className="font-mono font-medium text-xs">{member.extendedIds.google_entity_id}</p>
+                                </div>
+                            )}
+                            {member.extendedIds.pictorial && (
+                                <div className="p-2 bg-secondary/20 rounded-md">
+                                    <p className="text-muted-foreground">Pictorial Directory</p>
+                                    <p className="font-mono font-medium">{member.extendedIds.pictorial}</p>
+                                </div>
+                            )}
+                        </div>
                     </CollapsibleContent>
                   </Collapsible>
-                )}
               </div>
             )}
 
