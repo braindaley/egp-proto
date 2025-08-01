@@ -15,6 +15,7 @@ import { CommitteeAssignmentsCard } from './committee-assignments-card';
 import { CampaignPromisesCard } from './campaign-promises-card';
 import { LegislativeActivityCard } from './legislative-activity-card';
 import { NewsCard } from './news-card';
+import { CampaignFinanceCard } from './campaign-finance-card';
 
 // This would be a more specific type for amendments sponsored by a member
 interface MemberAmendment {
@@ -313,6 +314,13 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
             )}
           </CardContent>
         </Card>
+
+        <CampaignFinanceCard 
+            member={member} 
+            congress={congress} 
+            state={member.state.toLowerCase()} 
+            bioguideId={member.bioguideId}
+        />
 
         <NewsCard bioguideId={member.bioguideId} />
         
