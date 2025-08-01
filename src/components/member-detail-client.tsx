@@ -117,6 +117,9 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
   
   const currentlyServing = isCurrentlyServing(member);
   const currentTerm = member.addressInformation;
+  const currentTermInfo = allTerms[0];
+  const chamberName = currentTermInfo?.chamber === 'House of Representatives' ? 'House' : currentTermInfo?.chamber;
+
 
   return (
     <>
@@ -141,6 +144,9 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                     <Badge variant={member.partyName === 'Republican' ? 'destructive' : member.partyName === 'Democratic' ? 'default' : 'secondary'} className="text-base">
                         {member.partyName}
                     </Badge>
+                    {chamberName && (
+                        <Badge variant="outline" className="text-base">{chamberName}</Badge>
+                    )}
                     <Badge variant="outline" className="text-base">{member.state} {member.district ? ` - District ${member.district}` : ''}</Badge>
                     {currentlyServing ? (
                         <Badge variant="outline" className="text-base bg-green-100 text-green-800 border-green-200">Currently Serving</Badge>
