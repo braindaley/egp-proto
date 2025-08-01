@@ -21,6 +21,9 @@ interface CampaignFinanceData {
 }
 
 function formatCurrency(amount: number): string {
+  if (typeof amount !== 'number') {
+    return '$0';
+  }
   if (Math.abs(amount) >= 1_000_000) {
     return `$${(amount / 1_000_000).toFixed(1)}M`;
   }
