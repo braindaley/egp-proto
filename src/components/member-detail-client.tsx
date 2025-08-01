@@ -17,8 +17,16 @@ import { LegislativeActivityCard } from './legislative-activity-card';
 import { NewsCard } from './news-card';
 
 // This would be a more specific type for amendments sponsored by a member
-interface MemberAmendment extends Amendment {
-  bill: Pick<Bill, 'number' | 'type' | 'congress' | 'title'>;
+interface MemberAmendment {
+  type: string;
+  number: string;
+  url: string;
+  bill: {
+    number: string;
+    type: string;
+    congress: string;
+    title: string;
+  };
 }
 
 function formatDate(dateString?: string) {
@@ -85,7 +93,7 @@ function getFirstTerm(terms: any): MemberTerm | undefined {
     return sortedTerms[0];
 }
 
-export function MemberDetailClient({ initialMember, congress }: { initialMember: CongressApiMember, congress: string }) {
+export function MemberDetailClient({ initialMember, congress }: { initialMember: Member, congress: string }) {
   
   const [member] = useState<Member>(initialMember);
 
@@ -122,7 +130,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
           <CardContent className="space-y-4 text-sm">
             {/* Core Information */}
             <div className="space-y-3">
-              {firstTerm && <p><strong>First Took Office:</strong> {formatDate(firstTerm.startYear)}</p>}
+              {firstTerm && <p><strong>First Took Office:</strong> {firstTerm.startYear}</p>}
               <p><strong>Years of Service:</strong> ~{yearsOfService} years</p>
               {member.birthYear && <p><strong>Birth Year:</strong> {member.birthYear}</p>}
               <p><strong>Bioguide ID:</strong> {member.bioguideId}</p>
