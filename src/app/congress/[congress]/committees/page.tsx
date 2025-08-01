@@ -9,7 +9,7 @@ interface CommitteesResponse {
 }
 
 async function getCommittees(congress: string): Promise<CommitteesResponse> {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const url = `${baseUrl}/api/congress/committees?congress=${congress}`;
     try {
         const res = await fetch(url, { next: { revalidate: 3600 } });
@@ -28,6 +28,10 @@ async function getCommittees(congress: string): Promise<CommitteesResponse> {
 export default async function CommitteesPage({ params }: { params: { congress: string } }) {
   const { congress } = await params;
   const { houseCommittees, senateCommittees } = await getCommittees(congress);
+
+  // Sort committees alphabetically by name
+  houseCommittees.sort((a, b) => a.name.localeCompare(b.name));
+  senateCommittees.sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
