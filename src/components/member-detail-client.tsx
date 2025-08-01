@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ExternalLink, User, Star, History, Info, ChevronsUpDown, Loader2, Landmark, ArrowRight, Vote, DollarSign } from 'lucide-react';
+import { ExternalLink, User, Star, History, Info, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { SocialMediaLinks } from './social-media-links';
@@ -117,8 +117,6 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
   
   const currentlyServing = isCurrentlyServing(member);
   const currentTerm = member.addressInformation;
-
-  const basePath = `/congress/${congress}/states/${member.state.toLowerCase()}/${member.bioguideId}`;
 
   return (
     <>
@@ -308,36 +306,6 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                 </a>
               </Button>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Landmark className="h-5 w-5" /> Member Sections
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Link href={`${basePath}/voting-record`} passHref>
-              <Button variant="outline" className="w-full justify-start text-base py-6">
-                <Vote className="mr-3 h-5 w-5" />
-                <div className="text-left">
-                  <p className="font-semibold">Voting Record</p>
-                  <p className="text-xs text-muted-foreground">View recent votes</p>
-                </div>
-                <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground" />
-              </Button>
-            </Link>
-            <Link href={`${basePath}/finance`} passHref>
-              <Button variant="outline" className="w-full justify-start text-base py-6">
-                <DollarSign className="mr-3 h-5 w-5" />
-                 <div className="text-left">
-                  <p className="font-semibold">Financial Summary</p>
-                  <p className="text-xs text-muted-foreground">See campaign funding</p>
-                </div>
-                <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground" />
-              </Button>
-            </Link>
           </CardContent>
         </Card>
 
