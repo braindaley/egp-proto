@@ -168,20 +168,6 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                   </div>
                 )}
 
-                {/* FEC IDs */}
-                {member.extendedIds.fec && member.extendedIds.fec.length > 0 && (
-                  <div className="mt-3">
-                    <h5 className="font-medium text-sm mb-2 text-foreground">FEC Committee IDs</h5>
-                    <div className="flex flex-wrap gap-1">
-                      {member.extendedIds.fec.map((fecId, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs font-mono">
-                          {fecId}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* Family Information */}
                 {member.extendedIds.family && member.extendedIds.family.length > 0 && (
                   <div className="mt-3">
@@ -200,12 +186,24 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                 <Collapsible className="mt-3">
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" size="sm" className="w-full justify-between p-2 h-auto">
-                        <span className="font-medium text-sm">Research & Data IDs</span>
+                        <span className="font-medium text-sm">Research &amp; Data IDs</span>
                         <ChevronsUpDown className="h-3 w-3" />
                       </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="mt-2">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                            {member.extendedIds.fec && member.extendedIds.fec.length > 0 && (
+                                <div className="p-2 bg-secondary/30 rounded-md md:col-span-2">
+                                  <p className="text-muted-foreground">FEC Committee IDs</p>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {member.extendedIds.fec.map((fecId, index) => (
+                                        <Badge key={index} variant="secondary" className="text-xs font-mono">
+                                        {fecId}
+                                        </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                            )}
                             {member.extendedIds.thomas && (
                                 <div className="p-2 bg-secondary/30 rounded-md">
                                 <p className="text-muted-foreground">Thomas Library</p>
