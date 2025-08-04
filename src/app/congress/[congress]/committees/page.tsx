@@ -9,7 +9,7 @@ interface CommitteesResponse {
 }
 
 async function getCommittees(congress: string): Promise<CommitteesResponse> {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
     const url = `${baseUrl}/api/congress/committees?congress=${congress}`;
     try {
         const res = await fetch(url, { next: { revalidate: 3600 } });
