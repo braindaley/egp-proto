@@ -237,13 +237,6 @@ function getSampleCommitteeData(committeeName: string, systemCode: string): Part
         }
       ],
       recentReports: [
-        {
-          citation: "H. Rept. 119-1",
-          title: "Federal IT Security and Privacy Improvements",
-          type: "Committee Report",
-          url: "https://www.congress.gov/congressional-report/119th-congress/house-report/1",
-          date: "2024-01-15"
-        }
       ]
     };
   }

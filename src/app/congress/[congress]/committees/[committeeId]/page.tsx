@@ -1,10 +1,11 @@
 
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ExternalLink, Building, Globe, Phone, Users, Calendar, FileText, Crown, Award, ChevronRight } from 'lucide-react';
+import { ExternalLink, Building, Globe, Phone, Users, Calendar, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { CommitteeReports } from '@/components/committee-reports';
 
 interface CommitteeMember {
   bioguideId: string;
@@ -121,13 +122,6 @@ function MemberCard({ member, showTitle = true, congress }: { member: CommitteeM
             <p className="text-sm text-muted-foreground">
               {member.state.charAt(0).toUpperCase() + member.state.slice(1).replace('-', ' ')}{member.district ? `-${member.district}` : ''}
             </p>
-            {showTitle && member.title && (
-              <div className="flex items-center gap-1 mt-1">
-                {member.title.toLowerCase().includes('chair') && !member.title.toLowerCase().includes('ranking') && <Crown className="h-3 w-3 text-yellow-600" />}
-                {member.title.toLowerCase().includes('ranking') && <Award className="h-3 w-3 text-gray-600" />}
-                <span className="text-xs font-medium text-primary">{member.title}</span>
-              </div>
-            )}
           </div>
           <Badge variant="outline" className={partyColor}>
             {member.party === 'Republican' || member.party === 'R' ? 'R' : 
@@ -343,7 +337,7 @@ export default async function CommitteeDetailPage({ params }: { params: { congre
           )}
 
           {/* Recent Activity */}
-          {((committee.recentMeetings && committee.recentMeetings.length > 0) || (committee.recentReports && committee.recentReports.length > 0)) && (
+          {committee.recentMeetings && committee.recentMeetings.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Recent Activity</CardTitle>
@@ -380,36 +374,9 @@ export default async function CommitteeDetailPage({ params }: { params: { congre
                     </div>
                   </div>
                 )}
-
-                {/* Recent Reports */}
-                {committee.recentReports && committee.recentReports.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Recent Reports
-                    </h4>
-                    <div className="space-y-3">
-                      {committee.recentReports.slice(0, 3).map((report, index) => (
-                        <div key={report.citation || index} className="border-l-2 border-primary/20 pl-4 space-y-1">
-                          <h5 className="font-medium text-sm">
-                            {report.url ? (
-                              <a href={report.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                {report.title}
-                              </a>
-                            ) : (
-                              report.title
-                            )}
-                          </h5>
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                            {report.citation && <span>{report.citation}</span>}
-                            {report.date && <span>{formatDate(report.date)}</span>}
-                            {report.type && <Badge variant="outline" className="text-xs">{report.type}</Badge>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <Separator />
+                {/* Live Committee Reports */}
+                <CommitteeReports committeeId={committeeId} chamber={chamber} />
               </CardContent>
             </Card>
           )}
