@@ -1,12 +1,15 @@
 
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { getBillTypeSlug, formatDate } from '@/lib/utils';
 import { Check, Dot, Users, Library, ArrowRight, ThumbsUp, ThumbsDown, Eye, Flame, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface FeedBill {
   shortTitle: string;
@@ -66,12 +69,35 @@ const PrognosisBadge = ({ status }: { status: string }) => {
 };
 
 export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }) {
+    const [supportStatus, setSupportStatus] = useState<'none' | 'supported' | 'opposed'>('none');
+    const [isWatched, setIsWatched] = useState(false);
+
     const billTypeSlug = getBillTypeSlug(bill.type);
     const detailUrl = `/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
 
     const partyColor = bill.sponsorParty === 'R' ? 'bg-red-100 text-red-800' 
                      : bill.sponsorParty === 'D' ? 'bg-blue-100 text-blue-800'
                      : 'bg-gray-100 text-gray-800';
+
+    const handleInteractionClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+    
+    const handleSupport = (e: React.MouseEvent) => {
+        handleInteractionClick(e);
+        setSupportStatus(prev => prev === 'supported' ? 'none' : 'supported');
+    };
+
+    const handleOppose = (e: React.MouseEvent) => {
+        handleInteractionClick(e);
+        setSupportStatus(prev => prev === 'opposed' ? 'none' : 'opposed');
+    };
+    
+    const handleWatch = (e: React.MouseEvent) => {
+        handleInteractionClick(e);
+        setIsWatched(prev => !prev);
+    };
 
     return (
       <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out">
@@ -112,9 +138,33 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
         </CardContent>
         <CardFooter className="flex justify-between items-center pt-4 border-t">
             <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="flex items-center gap-1.5"><ThumbsUp className="h-4 w-4"/>Support</Button>
-                <Button variant="outline" size="sm" className="flex items-center gap-1.5"><ThumbsDown className="h-4 w-4"/>Oppose</Button>
-                <Button variant="ghost" size="sm" className="flex items-center gap-1.5 text-muted-foreground"><Eye className="h-4 w-4"/>Watch</Button>
+                <Button 
+                    variant={supportStatus === 'supported' ? 'secondary' : 'outline'}
+                    size="sm"
+                    onClick={handleSupport}
+                    className="flex items-center gap-1.5"
+                >
+                    <ThumbsUp className={cn("h-4 w-4", supportStatus === 'supported' && "text-green-600")} />
+                    Support
+                </Button>
+                <Button 
+                    variant={supportStatus === 'opposed' ? 'secondary' : 'outline'}
+                    size="sm"
+                    onClick={handleOppose}
+                    className="flex items-center gap-1.5"
+                >
+                    <ThumbsDown className={cn("h-4 w-4", supportStatus === 'opposed' && "text-red-600")} />
+                    Oppose
+                </Button>
+                <Button 
+                    variant={isWatched ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={handleWatch}
+                    className="flex items-center gap-1.5 text-muted-foreground"
+                >
+                    <Eye className={cn("h-4 w-4", isWatched && "text-blue-600")} />
+                    {isWatched ? 'Watching' : 'Watch'}
+                </Button>
             </div>
             <PrognosisBadge status={bill.status} />
         </CardFooter>
