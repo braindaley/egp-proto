@@ -1,7 +1,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Bill, CongressApiResponse, FeedBill, Sponsor } from '@/types';
-import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, where } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, doc } from 'firebase/firestore';
 import { app } from '@/lib/firebase'; // Import your Firebase app instance
 
 // This function determines a simplified status of the bill
@@ -49,7 +49,7 @@ function calculateImportanceScore(detailedBill: Bill, latestActionText: string):
   if (title.includes('bipartisan')) score += 15;
   
   // SUPPORT: Use cosponsors if available from detailed API call
-  const cosponsorCount = detailedBill.cosponsors?.items?.length || 0;
+  const cosponsorCount = detailedBill.cosponsors?.count || 0;
   if (cosponsorCount > 50) score += 12;
   else if (cosponsorCount > 20) score += 8;
   else if (cosponsorCount > 10) score += 5;
@@ -78,16 +78,14 @@ export async function GET(req: NextRequest) {
 
   try {
     // 1. Check for fresh cache
-    const q = query(cacheCollection, where('cachedAt', '>', sixtyMinutesAgo), orderBy('cachedAt', 'desc'), limit(1));
+    const q = query(cacheCollection, where('cachedAt', '>', sixtyMinutesAgo), orderBy('cachedAt', 'desc'), limit(100));
     const cacheSnapshot = await getDocs(q);
     
     if (!cacheSnapshot.empty) {
-        const cachedDoc = cacheSnapshot.docs[0];
-        const cachedData = cachedDoc.data();
-        if (cachedData.bills && cachedData.bills.length > 0) {
-            console.log('Serving bills from fresh Firestore cache.');
-            // Sort by importance score before returning
-            const sortedBills = cachedData.bills.sort((a: FeedBill, b: FeedBill) => b.importanceScore - a.importanceScore);
+        const bills = cacheSnapshot.docs.map(doc => doc.data().billData as FeedBill);
+        if (bills.length > 0) {
+            console.log(`Serving ${bills.length} bills from fresh Firestore cache.`);
+            const sortedBills = bills.sort((a, b) => b.importanceScore - a.importanceScore);
             return NextResponse.json({ bills: sortedBills });
         }
     }
@@ -148,15 +146,19 @@ export async function GET(req: NextRequest) {
     // 5. Cache the results in Firestore
     if (feedBills.length > 0) {
         const batch = writeBatch(db);
-        const newCacheDocRef = collection(db, "cached_bills").doc(); // Create a new doc
-        const cachePayload = {
-            cachedAt: Timestamp.now(),
-            source: 'congress_api',
-            bills: feedBills // Store the entire array in one document
-        };
-        batch.set(newCacheDocRef, cachePayload);
+        feedBills.forEach(bill => {
+            const billId = `${bill.congress}-${bill.type}-${bill.number}`;
+            const docRef = doc(cacheCollection, billId);
+            batch.set(docRef, {
+                billId: billId,
+                billData: bill,
+                importanceScore: bill.importanceScore,
+                cachedAt: Timestamp.now(),
+                source: 'congress_api'
+            });
+        });
         await batch.commit();
-        console.log(`Cached ${feedBills.length} bills successfully in a single document.`);
+        console.log(`Cached ${feedBills.length} bills successfully.`);
     }
 
     // 6. Return sorted results
