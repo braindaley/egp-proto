@@ -1,3 +1,4 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Bill, CongressApiResponse, FeedBill } from '@/types';
 
@@ -88,7 +89,7 @@ export async function GET(req: NextRequest) {
         
         const shortTitle = detailedBill.title?.split(';').find((t: string) => !t.toLowerCase().includes('official title')) || detailedBill.title || 'No title';
 
-        const processedBill = {
+        const processedBill: FeedBill = {
           shortTitle: shortTitle.trim(),
           billNumber: `${billListItem.type} ${billListItem.number}`,
           congress: billListItem.congress,
@@ -107,7 +108,7 @@ export async function GET(req: NextRequest) {
 
         return processedBill;
       })
-      .filter(Boolean);
+      .filter((bill): bill is FeedBill => bill !== null);
 
     console.log(`Returning ${feedBills.length} processed bills`);
     return NextResponse.json({ bills: feedBills });
