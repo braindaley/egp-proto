@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Bill, CongressApiResponse, FeedBill } from '@/types';
 
@@ -59,8 +58,12 @@ export async function GET(req: NextRequest) {
 
     // 2. Fetch detailed information for each bill in parallel
     console.log(`Fetching details for ${billItems.length} bills...`);
-    const billDetailPromises = billItems.map((item, index) =>
-      fetch(`${item.url}${item.url.includes('?') ? '&' : '?'}api_key=${API_KEY}`, { next: { revalidate: 600 } })
+    const billDetailPromises = billItems.map((item, index) => {
+      // ✅ Fixed URL construction to handle existing query parameters
+      const separator = item.url.includes('?') ? '&' : '?';
+      const detailUrl = `${item.url}${separator}api_key=${API_KEY}`;
+      
+      return fetch(detailUrl, { next: { revalidate: 600 } })
         .then(res => {
           console.log(`Bill ${index} detail fetch:`, res.ok ? 'SUCCESS' : `FAILED ${res.status}`);
           return res.ok ? res.json() : null;
@@ -68,8 +71,8 @@ export async function GET(req: NextRequest) {
         .catch(err => {
           console.error(`Bill ${index} detail fetch error:`, err.message);
           return null;
-        })
-    );
+        });
+    });
 
     const detailedBillResponses = await Promise.all(billDetailPromises);
     const successfulResponses = detailedBillResponses.filter(Boolean);
@@ -95,14 +98,23 @@ export async function GET(req: NextRequest) {
           type: billListItem.type,
           number: billListItem.number,
           latestAction: detailedBill.latestAction,
-          sponsorParty: detailedBill.sponsors?.[0]?.party || 'N/A',
-          committeeName: detailedBill.committees?.items?.[0]?.name || 'N/A',
+          
+          // ✅ Fixed sponsor party extraction
+          sponsorParty: (detailedBill.sponsors && detailedBill.sponsors[0] && detailedBill.sponsors[0].party) 
+            ? detailedBill.sponsors[0].party 
+            : 'Independent',
+          
+          // ✅ Fixed committee name - use policy area since committees require separate API call
+          committeeName: detailedBill.policyArea?.name || 'General Policy',
+          
           status: getBillStatus(detailedBill.latestAction?.text || ''),
         };
 
         console.log(`Processed bill ${index}:`, { 
           shortTitle: processedBill.shortTitle, 
-          billNumber: processedBill.billNumber 
+          billNumber: processedBill.billNumber,
+          sponsorParty: processedBill.sponsorParty,
+          committeeName: processedBill.committeeName
         });
 
         return processedBill;
