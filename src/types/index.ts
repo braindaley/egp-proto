@@ -434,7 +434,7 @@ export interface FeedBill {
   };
   sponsorParty: string;
   sponsorFullName: string;
-  sponsorImageUrl?: string;
+  sponsorImageUrl: string | null;
   committeeName: string;
   status: string;
   importanceScore: number;
