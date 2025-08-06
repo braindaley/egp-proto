@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -18,16 +17,24 @@ export default function BillsFeed() {
       setLoading(true);
       setError(null);
       
+      console.log('Fetching bills...'); // Debug log
+      
       const response = await fetch('/api/feed/bills');
       
+      console.log('Response status:', response.status); // Debug log
+      
       if (!response.ok) {
-        throw new Error(`Failed to fetch bills: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText); // Debug log
+        throw new Error(`Failed to fetch bills: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
+      console.log('Received data:', data); // Debug log
+      
       setBills(data.bills || []);
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Error fetching bills:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch bills');
     } finally {
       setLoading(false);
@@ -56,8 +63,13 @@ export default function BillsFeed() {
       <div className="space-y-4">
         <FeedNavigation activeTab={activeTab} onTabChange={setActiveTab} />
         <div className="text-center py-8">
-          <div className="text-red-600">Could Not Load Bill Feed</div>
-           <p className="text-sm text-muted-foreground mt-2">There was an issue fetching the latest bills. Please try again later.</p>
+          <div className="text-red-600 font-semibold">Could Not Load Bill Feed</div>
+          <p className="text-sm text-muted-foreground mt-2">
+            There was an issue fetching the latest bills. Please try again later.
+          </p>
+          <div className="text-xs text-red-500 mt-2 max-w-md mx-auto">
+            Error: {error}
+          </div>
           <button 
             onClick={fetchBills}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -81,7 +93,11 @@ export default function BillsFeed() {
       ) : (
         <div className="space-y-4">
           {bills.map((bill, index) => (
-            <BillFeedCard key={`${bill.billNumber}-${index}`} bill={bill} />
+            <BillFeedCard 
+              key={`${bill.congress}-${bill.type}-${bill.number}`} 
+              bill={bill} 
+              index={index}
+            />
           ))}
         </div>
       )}
