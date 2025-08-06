@@ -4,8 +4,6 @@ import type { Bill } from '@/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
-    if (type === 'sconres') return 'sconres';
-    return type.replace(/\s/g, '');
 }
 
 export function getBillTypeSlug(billType: string): string {

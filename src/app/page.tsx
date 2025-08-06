@@ -1,7 +1,6 @@
-
 'use client';
 
-import { BillsFeed } from '@/components/BillsFeed';
+import BillsFeed from '@/components/BillsFeed';
 
 export default function Home() {
   return (
