@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Bill, CongressApiResponse, FeedBill, Sponsor } from '@/types';
 import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, doc, where } from 'firebase/firestore';
@@ -135,7 +134,7 @@ export async function GET(req: NextRequest) {
           latestAction: detailedBill.latestAction,
           sponsorParty: sponsor?.party || 'N/A',
           sponsorFullName: sponsor?.fullName || 'N/A',
-          sponsorImageUrl: sponsor?.depiction?.imageUrl,
+          sponsorImageUrl: sponsor?.depiction?.imageUrl || null, // ✅ FIX: Use null instead of undefined
           committeeName: detailedBill.policyArea?.name || 'General Policy',
           status: getBillStatus(detailedBill.latestAction?.text || ''),
           importanceScore, // Add the score here
