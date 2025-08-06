@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from './ui/separator';
 
 export function Header() {
@@ -68,6 +68,9 @@ export function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent>
+                <SheetHeader>
+                  <SheetTitle className="sr-only">Main Navigation</SheetTitle>
+                </SheetHeader>
                 <div className="p-4">
                   <h3 className="text-lg font-semibold mb-4">Navigation</h3>
                   <div className="space-y-4">
