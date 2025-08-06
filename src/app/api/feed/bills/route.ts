@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Determine the latest congress dynamically
-    const latestCongress = await getLatestCongress(API_KEY);
+    const latestCongress = '119';
 
     // 1. Check for fresh cache for the latest congress
     const q = query(

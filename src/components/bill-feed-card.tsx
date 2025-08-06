@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -107,13 +108,9 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
         handleInteractionClick(e);
         setIsWatched(prev => !prev);
     };
-    
-    const cardBorderColor = bill.importanceScore >= 30 ? 'border-primary/50' 
-                           : bill.importanceScore >= 15 ? 'border-primary/20' 
-                           : 'border-card';
 
     return (
-      <Card className={cn("hover:shadow-lg transition-shadow duration-300 ease-in-out border-2", cardBorderColor)}>
+      <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out">
         <CardHeader>
           <div className="flex justify-between items-start gap-4">
             <CardTitle className="font-headline text-lg leading-snug">
