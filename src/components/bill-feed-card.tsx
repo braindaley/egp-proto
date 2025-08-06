@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -10,21 +11,7 @@ import { getBillTypeSlug, formatDate } from '@/lib/utils';
 import { Check, Dot, Users, Library, ArrowRight, ThumbsUp, ThumbsDown, Eye, Flame, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-interface FeedBill {
-  shortTitle: string;
-  billNumber: string;
-  congress: number;
-  type: string;
-  number: string;
-  latestAction: {
-    actionDate: string;
-    text: string;
-  };
-  sponsorParty: string;
-  committeeName: string;
-  status: string;
-}
+import type { FeedBill } from '@/types';
 
 const BillStatusIndicator = ({ status }: { status: string }) => {
     const steps: string[] = ['Introduced', 'In Committee', 'Passed House', 'Passed Senate', 'To President', 'Became Law'];
@@ -116,10 +103,21 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
             </div>
           </div>
           <CardDescription className="flex items-center gap-4 text-xs pt-2">
-            <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full ${partyColor}`}>
-                <Users className="h-3 w-3" />
-                Sponsor Party: {bill.sponsorParty}
-            </span>
+            <div className="flex items-center gap-2">
+                {bill.sponsorImageUrl && (
+                    <Image 
+                        src={bill.sponsorImageUrl} 
+                        alt={bill.sponsorFullName}
+                        width={24}
+                        height={24}
+                        className="rounded-full"
+                    />
+                )}
+                <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full ${partyColor}`}>
+                    <Users className="h-3 w-3" />
+                    {bill.sponsorFullName} ({bill.sponsorParty})
+                </span>
+            </div>
             <span className="flex items-center gap-1.5 text-muted-foreground">
                 <Library className="h-3 w-3" />
                 {bill.committeeName}
@@ -171,3 +169,4 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
       </Card>
     );
 }
+

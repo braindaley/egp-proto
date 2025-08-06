@@ -58,6 +58,9 @@ export interface Sponsor {
     party: string;
     state: string;
     url: string;
+    depiction?: {
+        imageUrl?: string;
+    };
 }
 
 export interface Cosponsor {
@@ -430,6 +433,9 @@ export interface FeedBill {
     text: string;
   };
   sponsorParty: string;
+  sponsorFullName: string;
+  sponsorImageUrl?: string;
   committeeName: string;
   status: string;
+  importanceScore: number;
 }
