@@ -1,4 +1,5 @@
 
+
 import { NextResponse, type NextRequest } from 'next/server';
 
 interface CommitteeMember {
@@ -989,8 +990,44 @@ function getSampleCommitteeData(committeeName: string, systemCode: string): Part
   if (name.includes('appropriations') || code.includes('hsap')) {
     console.log('✅ Matched Appropriations committee');
     return {
-      websiteUrl: "https://appropriations.house.gov", 
-      members: [], subcommittees: [], recentMeetings: [], recentReports: []
+      phone: "(202) 225-2771",
+      office: "H-307, The Capitol",
+      websiteUrl: "https://appropriations.house.gov",
+      chair: {
+        bioguideId: "C001053",
+        name: "Tom Cole",
+        party: "Republican",
+        state: "oklahoma",
+        district: "4",
+        title: "Chairman",
+        url: "https://api.congress.gov/v3/member/C001053"
+      },
+      rankingMember: {
+        bioguideId: "D000216",
+        name: "Rosa DeLauro",
+        party: "Democratic",
+        state: "connecticut",
+        district: "3",
+        title: "Ranking Member",
+        url: "https://api.congress.gov/v3/member/D000216"
+      },
+      members: [],
+      subcommittees: [
+         { name: "Agriculture, Rural Development, Food and Drug Administration, and Related Agencies", systemCode: "hsap01", url: "", members: []},
+         { name: "Commerce, Justice, Science, and Related Agencies", systemCode: "hsap19", url: "", members: []},
+         { name: "Defense", systemCode: "hsap02", url: "", members: []},
+         { name: "Energy and Water Development, and Related Agencies", systemCode: "hsap10", url: "", members: []},
+         { name: "Financial Services and General Government", systemCode: "hsap23", url: "", members: []},
+         { name: "Homeland Security", systemCode: "hsap15", url: "", members: []},
+         { name: "Interior, Environment, and Related Agencies", systemCode: "hsap06", url: "", members: []},
+         { name: "Labor, Health and Human Services, Education, and Related Agencies", systemCode: "hsap07", url: "", members: []},
+         { name: "Legislative Branch", systemCode: "hsap24", url: "", members: []},
+         { name: "Military Construction, Veterans Affairs, and Related Agencies", systemCode: "hsap18", url: "", members: []},
+         { name: "State, Foreign Operations, and Related Programs", systemCode: "hsap04", url: "", members: []},
+         { name: "Transportation, and Housing and Urban Development, and Related Agencies", systemCode: "hsap20", url: "", members: []}
+      ],
+      recentMeetings: [],
+      recentReports: []
     };
   }
   
