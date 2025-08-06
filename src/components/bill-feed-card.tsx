@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -8,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { getBillTypeSlug, formatDate } from '@/lib/utils';
-import { Check, Dot, Users, Library, ArrowRight, ThumbsUp, ThumbsDown, Eye, Flame, TrendingUp } from 'lucide-react';
+import { Check, Dot, Users, Library, ArrowRight, ThumbsUp, ThumbsDown, Eye, Flame, TrendingUp, Award, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
@@ -37,23 +36,46 @@ const BillStatusIndicator = ({ status }: { status: string }) => {
     );
 };
 
-const PrognosisBadge = ({ status }: { status: string }) => {
-    const prognoses: { [key: string]: { value: number, text: string, color: string } } = {
-        'Introduced': { value: 10, text: '10% Chance', color: 'bg-gray-100 text-gray-800' },
-        'In Committee': { value: 10, text: '10% Chance', color: 'bg-gray-100 text-gray-800' },
-        'Passed House': { value: 33, text: '33% Chance', color: 'bg-blue-100 text-blue-800' },
-        'Passed Senate': { value: 60, text: '60% Chance', color: 'bg-blue-100 text-blue-800' },
-        'To President': { value: 75, text: '75% Chance', color: 'bg-yellow-100 text-yellow-800' },
-        'Became Law': { value: 100, text: '100% Enacted', color: 'bg-green-100 text-green-800' }
-    };
-    const prognosis = prognoses[status] || prognoses['Introduced'];
+const ImportanceBadge = ({ score }: { score: number }) => {
+    let text = "📝 Introduced";
+    let color = "bg-gray-100 text-gray-800";
+    let icon = <ClipboardCheck className="h-3 w-3" />;
+
+    if (score >= 40) {
+        text = "🏛️ Presidential Action";
+        color = "bg-purple-100 text-purple-800";
+    } else if (score >= 30) {
+        text = "🗳️ Floor Vote";
+        color = "bg-red-100 text-red-800";
+    } else if (score >= 25) {
+        text = "✅ Passed Chamber";
+        color = "bg-green-100 text-green-800";
+    } else if (score >= 15) {
+        text = "📨 Committee Reported";
+        color = "bg-blue-100 text-blue-800";
+    } else if (score >= 8) {
+        text = "📋 Committee Active";
+        color = "bg-yellow-100 text-yellow-800";
+    } else if (score < 2) {
+        return null;
+    }
+    
     return (
-        <Badge variant="outline" className={`flex items-center gap-1.5 ${prognosis.color}`}>
-            <TrendingUp className="h-3 w-3" />
-            {prognosis.text}
+        <Badge variant="outline" className={`flex items-center gap-1.5 ${color}`}>
+            {icon} {text}
         </Badge>
     );
 };
+
+const getScoreColor = (score: number) => {
+    if (score >= 40) return 'text-purple-600';
+    if (score >= 30) return 'text-red-600';
+    if (score >= 25) return 'text-green-600';
+    if (score >= 15) return 'text-blue-600';
+    if (score >= 8) return 'text-yellow-600';
+    return 'text-gray-500';
+};
+
 
 export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }) {
     const [supportStatus, setSupportStatus] = useState<'none' | 'supported' | 'opposed'>('none');
@@ -85,9 +107,13 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
         handleInteractionClick(e);
         setIsWatched(prev => !prev);
     };
+    
+    const cardBorderColor = bill.importanceScore >= 30 ? 'border-primary/50' 
+                           : bill.importanceScore >= 15 ? 'border-primary/20' 
+                           : 'border-card';
 
     return (
-      <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out">
+      <Card className={cn("hover:shadow-lg transition-shadow duration-300 ease-in-out border-2", cardBorderColor)}>
         <CardHeader>
           <div className="flex justify-between items-start gap-4">
             <CardTitle className="font-headline text-lg leading-snug">
@@ -95,11 +121,11 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                     {bill.shortTitle}
                 </Link>
             </CardTitle>
-            <div className="flex items-center gap-2">
-                {index !== undefined && index < 10 && (
-                    <Flame className="h-4 w-4 text-orange-500" title="Popular Bill"/>
-                )}
+            <div className="flex flex-col items-end gap-2">
                 <Badge variant="outline" className="shrink-0">{bill.billNumber}</Badge>
+                <span className={cn("text-xs font-bold", getScoreColor(bill.importanceScore))}>
+                  Score: {bill.importanceScore}
+                </span>
             </div>
           </div>
           <CardDescription className="flex items-center gap-4 text-xs pt-2">
@@ -164,9 +190,8 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                     {isWatched ? 'Watching' : 'Watch'}
                 </Button>
             </div>
-            <PrognosisBadge status={bill.status} />
+            <ImportanceBadge score={bill.importanceScore} />
         </CardFooter>
       </Card>
     );
 }
-
