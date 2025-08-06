@@ -37,7 +37,7 @@ export function BillCard({ bill }: { bill: Bill }) {
         </CardHeader>
         <CardContent className="flex-grow space-y-4">
             <div className="flex gap-2">
-                <Badge variant="secondary" className="font-semibold">{bill.type}</Badge>
+                
                 <Badge variant="outline" className="flex items-center gap-1.5">
                     <Landmark className="h-3 w-3" />
                     {bill.originChamber}
