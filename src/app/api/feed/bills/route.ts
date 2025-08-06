@@ -1,7 +1,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Bill, CongressApiResponse, FeedBill, Sponsor } from '@/types';
-import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, doc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, doc, where } from 'firebase/firestore';
 import { app } from '@/lib/firebase'; // Import your Firebase app instance
 
 // This function determines a simplified status of the bill
