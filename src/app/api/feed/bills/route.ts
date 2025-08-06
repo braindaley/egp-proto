@@ -27,9 +27,9 @@ function getBillStatus(latestActionText: string): string {
 export async function GET(req: NextRequest) {
   const API_KEY = process.env.CONGRESS_API_KEY;
 
-  if (!API_KEY) {
+  if (!API_KEY || API_KEY === 'your_congress_api_key_here') {
     console.error('Missing CONGRESS_API_KEY environment variable');
-    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+    return NextResponse.json({ error: 'Server configuration error: Congress API key is missing or not set.' }, { status: 500 });
   }
 
   try {

@@ -8,8 +8,8 @@ export async function GET(req: NextRequest, { params }: { params: { congress: st
   const { searchParams } = new URL(req.url);
   const subject = searchParams.get('subject');
 
-  if (!API_KEY) {
-    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+  if (!API_KEY || API_KEY === 'your_congress_api_key_here') {
+    return NextResponse.json({ error: 'Server configuration error: Congress API key is missing or not set.' }, { status: 500 });
   }
 
   // Validate that congress is a number
