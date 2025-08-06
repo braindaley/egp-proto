@@ -1,4 +1,3 @@
-
 export interface Amendment {
     congress: number;
     number: number;
@@ -138,11 +137,11 @@ export interface Bill {
 
 export interface CongressApiResponse {
   bills: Bill[];
-  pagination?: {
+  pagination: {
     count: number;
     next: string;
   };
-  request?: {
+  request: {
     contentType: string;
     format: string;
   };

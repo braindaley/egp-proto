@@ -1,95 +1,15 @@
 
-'use client';
-
-import { BillFeedCard } from '@/components/bill-feed-card';
-import type { Bill, CongressApiResponse } from '@/types';
-import { Suspense, useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
-
-function BillFeed() {
-  const { selectedCongress, isInitialLoadComplete } = useAuth();
-  const [bills, setBills] = useState<Bill[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function getBills(congress: string): Promise<Bill[]> {
-        if (!congress) return [];
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-        const url = `${baseUrl}/api/bills/${congress}`;
-
-        try {
-            const res = await fetch(url, { next: { revalidate: 3600 } });
-            if (!res.ok) {
-                console.error(`Internal API request for bills failed: ${res.status}`);
-                return [];
-            }
-            const data: CongressApiResponse = await res.json();
-            return data.bills || [];
-        } catch (error) {
-            console.error(`Error fetching bills for congress ${congress}:`, error);
-            return [];
-        }
-    }
-
-    if (isInitialLoadComplete && selectedCongress) {
-      setLoading(true);
-      getBills(selectedCongress).then(data => {
-        setBills(data);
-        setLoading(false);
-      });
-    }
-  }, [selectedCongress, isInitialLoadComplete]);
-  
-  if (loading || !isInitialLoadComplete) {
-    return (
-        <div className="flex justify-center items-center py-20">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {bills.length > 0 ? (
-        bills.map((bill) => (
-          <BillFeedCard key={`${bill.type}-${bill.number}`} bill={bill} />
-        ))
-      ) : (
-        <div className="text-center py-10 px-6 bg-card rounded-lg shadow-md">
-          <p className="text-xl font-semibold text-destructive">Could Not Load Bill Feed</p>
-          <p className="text-muted-foreground mt-2">
-            There was an issue fetching the latest bills. Please try again later.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Library, Landmark, ArrowRight } from 'lucide-react';
 
 export default function Home() {
   return (
-    <div className="bg-background min-h-screen">
-      <main className="container mx-auto px-4 py-8 md:py-12">
-        <div className="max-w-2xl mx-auto">
-            <header className="text-center mb-12">
-                <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary">
-                    Legislative Feed
-                </h1>
-                <p className="text-lg text-muted-foreground mt-2">
-                    The latest updates from the U.S. Congress
-                </p>
-            </header>
-            <Suspense fallback={
-              <div className="flex justify-center items-center py-20">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              </div>
-            }>
-              <BillFeed />
-            </Suspense>
-        </div>
-      </main>
+    <div className="bg-background flex flex-col items-center justify-center pt-16 pb-8">
+      <div className="container mx-auto px-4 py-8 md:py-12 text-center">
+        
+      </div>
     </div>
   );
 }
