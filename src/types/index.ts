@@ -1,3 +1,4 @@
+
 export interface Amendment {
     congress: number;
     number: number;
