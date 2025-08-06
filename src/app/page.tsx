@@ -1,35 +1,53 @@
 
+'use client';
+
 import { BillFeedCard } from '@/components/bill-feed-card';
 import type { Bill, CongressApiResponse } from '@/types';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
-async function getBills(congress: string): Promise<Bill[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
-  const url = `${baseUrl}/api/bills/${congress}`;
+function BillFeed() {
+  const { selectedCongress, isInitialLoadComplete } = useAuth();
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  try {
-    const res = await fetch(url, { next: { revalidate: 3600 } });
-    
-    if (!res.ok) {
-      console.error(`Internal API request for bills failed: ${res.status}`);
-      throw new Error(`Failed to fetch bill list: ${res.statusText}`);
+  useEffect(() => {
+    async function getBills(congress: string): Promise<Bill[]> {
+        if (!congress) return [];
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        const url = `${baseUrl}/api/bills/${congress}`;
+
+        try {
+            const res = await fetch(url, { next: { revalidate: 3600 } });
+            if (!res.ok) {
+                console.error(`Internal API request for bills failed: ${res.status}`);
+                return [];
+            }
+            const data: CongressApiResponse = await res.json();
+            return data.bills || [];
+        } catch (error) {
+            console.error(`Error fetching bills for congress ${congress}:`, error);
+            return [];
+        }
     }
-    
-    const data: CongressApiResponse = await res.json();
-    return data.bills || [];
 
-  } catch (error) {
-    console.error(`Error fetching bills for congress ${congress}:`, error);
-    return [];
+    if (isInitialLoadComplete && selectedCongress) {
+      setLoading(true);
+      getBills(selectedCongress).then(data => {
+        setBills(data);
+        setLoading(false);
+      });
+    }
+  }, [selectedCongress, isInitialLoadComplete]);
+  
+  if (loading || !isInitialLoadComplete) {
+    return (
+        <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
   }
-}
-
-
-async function BillFeed() {
-  // We'll get the latest congress from the auth hook context eventually, for now let's hardcode
-  const bills = await getBills('118');
 
   return (
     <div className="space-y-6">
@@ -75,4 +93,3 @@ export default function Home() {
     </div>
   );
 }
-
