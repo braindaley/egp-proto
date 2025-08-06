@@ -1,3 +1,4 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Bill, Subject, PolicyArea } from '@/types';
 import { filterAllowedSubjects, mapApiSubjectToAllowed } from '@/lib/subjects';
@@ -108,7 +109,7 @@ export async function GET(req: NextRequest) {
                 if (data?.titles && Array.isArray(data.titles)) {
                     // Find a "Short Title" - often more user-friendly
                     const shortTitle = data.titles.find((t) => 
-                        t.titleType?.toLowerCase().includes('short') && t.isForPortion !== 'Y'
+                        t.titleType?.toLowerCase().includes('short title(s) as introduced')
                     );
                     if (shortTitle) {
                         // Keep both titles - don't override the original
