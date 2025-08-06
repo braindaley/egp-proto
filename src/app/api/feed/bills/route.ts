@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Bill, CongressApiResponse, FeedBill } from '@/types';
 
@@ -23,7 +22,6 @@ function getBillStatus(latestActionText: string): string {
     }
     return 'Introduced';
 }
-
 
 export async function GET(req: NextRequest) {
   const API_KEY = process.env.CONGRESS_API_KEY;
@@ -61,7 +59,7 @@ export async function GET(req: NextRequest) {
     // 2. Fetch detailed information for each bill in parallel
     console.log(`Fetching details for ${billItems.length} bills...`);
     const billDetailPromises = billItems.map((item, index) =>
-      fetch(`${item.url}?api_key=${API_KEY}`, { next: { revalidate: 600 } })
+      fetch(`${item.url}${item.url.includes('?') ? '&' : '?'}api_key=${API_KEY}`, { next: { revalidate: 600 } })
         .then(res => {
           console.log(`Bill ${index} detail fetch:`, res.ok ? 'SUCCESS' : `FAILED ${res.status}`);
           return res.ok ? res.json() : null;
