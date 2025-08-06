@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import type { Bill, CongressApiResponse, FeedBill, Sponsor, Congress } from '@/types';
+import type { Bill, CongressApiResponse, FeedBill, Sponsor } from '@/types';
 import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, doc, where } from 'firebase/firestore';
-import { app } from '@/lib/firebase'; // Import your Firebase app instance
+import { app } from '@/lib/firebase';
 
 // This function determines a simplified status of the bill
 function getBillStatus(latestActionText: string): string {
@@ -63,18 +63,53 @@ function calculateImportanceScore(detailedBill: Bill, latestActionText: string):
   return Math.max(0, score);
 }
 
-// Function to get the latest congress number
-async function getLatestCongress(apiKey: string): Promise<string> {
+// NEW: Function to fetch short title for a bill
+async function fetchShortTitle(congress: number, billType: string, billNumber: string, apiKey: string): Promise<string | null> {
   try {
-    const url = `https://api.congress.gov/v3/congress?limit=1&api_key=${apiKey}`;
-    const res = await fetch(url, { next: { revalidate: 86400 } }); // Cache for a day
-    if (!res.ok) return '118'; // Fallback
-    const data = await res.json();
-    const congressNumber = data.congresses?.[0]?.number;
-    return congressNumber ? String(congressNumber) : '118';
+    const titlesUrl = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}/titles?api_key=${apiKey}`;
+    const titlesRes = await fetch(titlesUrl, { 
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(5000) 
+    });
+    
+    if (!titlesRes.ok) {
+      console.log(`Titles fetch failed for ${congress}/${billType}/${billNumber}: ${titlesRes.status}`);
+      return null;
+    }
+    
+    const titlesData = await titlesRes.json();
+    
+    if (titlesData?.titles && Array.isArray(titlesData.titles)) {
+      // Method 1: Look for titleTypeCode 101 (most reliable)
+      let shortTitle = titlesData.titles.find((t: any) => 
+        t.titleTypeCode === '101' || t.titleTypeCode === 101
+      );
+      
+      // Method 2: Fallback to titleType text matching
+      if (!shortTitle) {
+        shortTitle = titlesData.titles.find((t: any) => 
+          t.titleType?.toLowerCase().includes('short title') && 
+          t.titleType?.toLowerCase().includes('introduced')
+        );
+      }
+      
+      // Method 3: Fallback to any short title
+      if (!shortTitle) {
+        shortTitle = titlesData.titles.find((t: any) => 
+          t.titleType?.toLowerCase().includes('short title')
+        );
+      }
+      
+      if (shortTitle && shortTitle.title) {
+        console.log(`✅ Found short title for ${billType}${billNumber}: "${shortTitle.title}"`);
+        return shortTitle.title;
+      }
+    }
+    
+    return null;
   } catch (error) {
-    console.error('Failed to fetch latest congress, using fallback:', error);
-    return '118'; // Fallback
+    console.log(`Short title fetch failed for ${congress}/${billType}/${billNumber}:`, error);
+    return null;
   }
 }
 
@@ -91,13 +126,13 @@ export async function GET(req: NextRequest) {
   const sixtyMinutesAgo = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
 
   try {
-    // Determine the latest congress dynamically
+    // Use current congress (119) - hardcoded for prototype
     const latestCongress = '119';
 
-    // 1. Check for fresh cache for the latest congress
+    // 1. Check for fresh cache for congress 119
     const q = query(
       cacheCollection, 
-      where('billData.congress', '==', parseInt(latestCongress)),
+      where('billData.congress', '==', 119),
       where('cachedAt', '>', sixtyMinutesAgo), 
       orderBy('cachedAt', 'desc'), 
       limit(500)
@@ -115,7 +150,7 @@ export async function GET(req: NextRequest) {
 
     console.log(`Cache is stale or empty for Congress ${latestCongress}. Fetching new data from Congress API.`);
 
-    // 2. Fetch new data from Congress API for the latest congress
+    // 2. Fetch new data from Congress API for congress 119
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const updatedSince = thirtyDaysAgo.toISOString().split('T')[0];
@@ -137,34 +172,48 @@ export async function GET(req: NextRequest) {
     const detailedBillResponses = await Promise.all(billDetailPromises);
 
     // 4. Process and score bills
-    const feedBills: FeedBill[] = detailedBillResponses
-      .map((response, index) => {
-        if (!response || !response.bill) return null;
-        
-        const billListItem = billItems[index];
-        const detailedBill: Bill = response.bill;
-        
-        const shortTitle = detailedBill.title?.split(';').find((t: string) => !t.toLowerCase().includes('official title')) || detailedBill.title || 'No title';
-        const sponsor: Sponsor | undefined = detailedBill.sponsors?.[0];
+    const processBillPromises = detailedBillResponses.map(async (response, index) => {
+      if (!response || !response.bill) return null;
+      
+      const billListItem = billItems[index];
+      const detailedBill: Bill = response.bill;
+      
+      // NEW: Fetch short title for this bill
+      const shortTitle = await fetchShortTitle(
+        billListItem.congress, 
+        billListItem.type.toLowerCase(), 
+        billListItem.number, 
+        API_KEY
+      );
+      
+      // Use short title if found, otherwise fall back to processing the long title
+      const displayTitle = shortTitle || 
+        detailedBill.title?.split(';').find((t: string) => !t.toLowerCase().includes('official title')) || 
+        detailedBill.title || 
+        'No title';
+      
+      const sponsor: Sponsor | undefined = detailedBill.sponsors?.[0];
+      const importanceScore = calculateImportanceScore(detailedBill, detailedBill.latestAction?.text);
 
-        const importanceScore = calculateImportanceScore(detailedBill, detailedBill.latestAction?.text);
+      return {
+        shortTitle: displayTitle.trim(),
+        billNumber: `${billListItem.type} ${billListItem.number}`,
+        congress: billListItem.congress,
+        type: billListItem.type,
+        number: billListItem.number,
+        latestAction: detailedBill.latestAction,
+        sponsorParty: sponsor?.party || 'N/A',
+        sponsorFullName: sponsor?.fullName || 'N/A',
+        sponsorImageUrl: sponsor?.depiction?.imageUrl || null,
+        committeeName: detailedBill.policyArea?.name || 'General Policy',
+        status: getBillStatus(detailedBill.latestAction?.text || ''),
+        importanceScore,
+      };
+    });
 
-        return {
-          shortTitle: shortTitle.trim(),
-          billNumber: `${billListItem.type} ${billListItem.number}`,
-          congress: billListItem.congress,
-          type: billListItem.type,
-          number: billListItem.number,
-          latestAction: detailedBill.latestAction,
-          sponsorParty: sponsor?.party || 'N/A',
-          sponsorFullName: sponsor?.fullName || 'N/A',
-          sponsorImageUrl: sponsor?.depiction?.imageUrl || null,
-          committeeName: detailedBill.policyArea?.name || 'General Policy',
-          status: getBillStatus(detailedBill.latestAction?.text || ''),
-          importanceScore,
-        };
-      })
-      .filter((bill): bill is FeedBill => bill !== null);
+    // Wait for all bill processing (including short title fetching) to complete
+    const feedBillsWithNulls = await Promise.all(processBillPromises);
+    const feedBills = feedBillsWithNulls.filter((bill): bill is FeedBill => bill !== null);
 
     // 5. Cache the results in Firestore
     if (feedBills.length > 0) {
