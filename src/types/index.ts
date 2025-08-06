@@ -417,3 +417,18 @@ export interface DistrictOfficesRecord {
   };
   offices: DistrictOffice[];
 }
+
+export interface FeedBill {
+  shortTitle: string;
+  billNumber: string;
+  congress: number;
+  type: string;
+  number: string;
+  latestAction: {
+    actionDate: string;
+    text: string;
+  };
+  sponsorParty: string;
+  committeeName: string;
+  status: string;
+}
