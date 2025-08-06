@@ -401,7 +401,7 @@ export default async function CommitteeDetailPage({ params }: { params: { congre
                   <div>
                     <h4 className="font-semibold">Office</h4>
                     <p className="text-muted-foreground">
-                      Contact information available on the official committee website
+                      Contact information available on the committee website
                     </p>
                   </div>
                 </div>
@@ -478,3 +478,5 @@ export default async function CommitteeDetailPage({ params }: { params: { congre
     </div>
   );
 }
+
+    

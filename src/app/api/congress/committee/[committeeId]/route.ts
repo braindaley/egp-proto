@@ -1,3 +1,4 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 
 interface CommitteeMember {
@@ -578,3 +579,5 @@ export async function GET(req: NextRequest, { params }: { params: { committeeId:
     }, { status: 500 });
   }
 }
+
+    
