@@ -211,23 +211,23 @@ export async function GET(req: NextRequest) {
       // Use current congress (119) - hardcoded for prototype
       const latestCongress = '119';
 
-      // 1. Check for fresh cache for congress 119
+      // 1. Check for fresh cache
       const q = query(
         cacheCollection, 
-        where('billData.congress', '==', 119),
         where('cachedAt', '>', sixtyMinutesAgo), 
         orderBy('cachedAt', 'desc'), 
         limit(500)
       );
       const cacheSnapshot = await getDocs(q);
       
-      if (!cacheSnapshot.empty) {
-          const bills = cacheSnapshot.docs.map(doc => doc.data().billData as FeedBill);
-          if (bills.length > 0) {
-              console.log(`Serving ${bills.length} bills for Congress ${latestCongress} from fresh Firestore cache.`);
-              const sortedBills = bills.sort((a, b) => b.importanceScore - a.importanceScore);
-              return NextResponse.json({ bills: sortedBills });
-          }
+      const cachedBillsForCongress = cacheSnapshot.docs
+        .map(doc => doc.data().billData as FeedBill)
+        .filter(bill => bill.congress.toString() === latestCongress);
+
+      if (cachedBillsForCongress.length > 0) {
+          console.log(`Serving ${cachedBillsForCongress.length} bills for Congress ${latestCongress} from fresh Firestore cache.`);
+          const sortedBills = cachedBillsForCongress.sort((a, b) => b.importanceScore - a.importanceScore);
+          return NextResponse.json({ bills: sortedBills });
       }
 
       console.log(`Cache is stale or empty for Congress ${latestCongress}. Fetching new data from Congress API.`);
@@ -252,7 +252,6 @@ export async function GET(req: NextRequest) {
       
       // Process bills in smaller batches with better error handling
       const batchSize = 5;
-      const maxRetries = 2;
       
       for (let i = 0; i < billItems.length; i += batchSize) {
         const batch = billItems.slice(i, i + batchSize);
@@ -271,7 +270,7 @@ export async function GET(req: NextRequest) {
             const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
             
             billDetails = await Promise.race([
-              fetchBillDetails(bill.congress, bill.type, bill.number, API_KEY),
+              fetchBillDetails(bill.congress, bill.type, parseInt(bill.number, 10), API_KEY),
               new Promise<any>((_, reject) => 
                 setTimeout(() => reject(new Error('Timeout')), 5000)
               )
