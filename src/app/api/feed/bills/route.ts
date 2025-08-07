@@ -284,8 +284,8 @@ export async function GET(req: NextRequest) {
               sponsorFullName = primarySponsor.fullName || 'Unknown';
               sponsorParty = primarySponsor.party || 'N/A';
               
-              // Only fetch sponsor image for first 15 bills to save time
-              if (i < 15 && primarySponsor.bioguideId) {
+              // Fetch sponsor image for all bills with bioguideId
+              if (primarySponsor.bioguideId) {
                 try {
                   const memberDetails = await fetchMemberDetails(primarySponsor.bioguideId, API_KEY);
                   sponsorImageUrl = memberDetails.imageUrl;
