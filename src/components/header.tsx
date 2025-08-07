@@ -33,22 +33,22 @@ export function Header() {
           </Link>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-2">
-            <div className="flex items-center gap-4 border-r pr-4">
-                {navLinks.map(link => (
-                    <Link
-                        key={link.href}
-                        href={link.href}
-                        className={cn(
-                            "text-sm font-medium transition-colors",
-                            pathname === link.href ? "text-primary" : "text-muted-foreground hover:text-primary"
-                        )}
-                    >
-                        {link.label}
-                    </Link>
-                ))}
-            </div>
+          <nav className="hidden md:flex items-center gap-4">
+            {navLinks.map(link => (
+                <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                        "text-sm font-medium transition-colors border-b-2",
+                        pathname === link.href ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-primary"
+                    )}
+                >
+                    {link.label}
+                </Link>
+            ))}
+          </nav>
 
+          <div className="hidden md:flex items-center gap-2">
             <CongressSelector />
 
             {loading ? (
@@ -76,7 +76,7 @@ export function Header() {
                     </Button>
                 </>
             )}
-          </nav>
+          </div>
 
           {/* Mobile Hamburger Menu */}
           <div className="md:hidden">
