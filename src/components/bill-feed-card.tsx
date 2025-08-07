@@ -125,7 +125,7 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                 </span>
             </div>
           </div>
-          <CardDescription className="flex items-center gap-4 text-xs pt-2">
+          <div className="text-muted-foreground flex items-center gap-4 text-xs pt-2">
             <div className="flex items-center gap-2">
                 {bill.sponsorImageUrl && (
                     <Image 
@@ -145,7 +145,7 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                 <Library className="h-3 w-3" />
                 {bill.committeeName}
             </span>
-          </CardDescription>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
             <div>
