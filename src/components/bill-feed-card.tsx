@@ -37,6 +37,15 @@ const BillStatusIndicator = ({ status }: { status: string }) => {
     );
 };
 
+const getScoreColor = (score: number) => {
+    if (score >= 40) return 'text-purple-600';
+    if (score >= 30) return 'text-red-600';
+    if (score >= 25) return 'text-green-600';
+    if (score >= 15) return 'text-blue-600';
+    if (score >= 8) return 'text-yellow-600';
+    return 'text-gray-500';
+};
+
 const ImportanceBadge = ({ score }: { score: number }) => {
     let text = "📝 Introduced";
     let color = "bg-gray-100 text-gray-800";
@@ -62,19 +71,15 @@ const ImportanceBadge = ({ score }: { score: number }) => {
     }
     
     return (
-        <Badge variant="outline" className={`flex items-center gap-1.5 ${color}`}>
-            {icon} {text}
-        </Badge>
+        <div className="flex items-center gap-2">
+            <span className={cn("text-sm font-bold", getScoreColor(score))}>
+              {score}
+            </span>
+            <Badge variant="outline" className={`flex items-center gap-1.5 ${color}`}>
+                {icon} {text}
+            </Badge>
+        </div>
     );
-};
-
-const getScoreColor = (score: number) => {
-    if (score >= 40) return 'text-purple-600';
-    if (score >= 30) return 'text-red-600';
-    if (score >= 25) return 'text-green-600';
-    if (score >= 15) return 'text-blue-600';
-    if (score >= 8) return 'text-yellow-600';
-    return 'text-gray-500';
 };
 
 
@@ -120,9 +125,6 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
             </CardTitle>
           </div>
           <div className="text-muted-foreground flex items-center gap-4 text-xs pt-2">
-            <span className={cn("text-xs font-bold", getScoreColor(bill.importanceScore))}>
-              Score: {bill.importanceScore}
-            </span>
             <Badge variant="outline" className="shrink-0">{bill.billNumber}</Badge>
             <div className="flex items-center gap-2">
                 {bill.sponsorImageUrl && (
@@ -190,4 +192,5 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
       </Card>
     );
 }
+
 
