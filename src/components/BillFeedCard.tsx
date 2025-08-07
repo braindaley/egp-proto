@@ -118,13 +118,15 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
             {/* 1. Sponsor Information - MOVED TO TOP */}
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
                 {bill.sponsorImageUrl && (
-                    <Image 
-                        src={bill.sponsorImageUrl} 
-                        alt={bill.sponsorFullName}
-                        width={40}
-                        height={40}
-                        className="rounded-full"
-                    />
+                    <div className="w-14 h-14 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
+                        <Image 
+                            src={bill.sponsorImageUrl} 
+                            alt={bill.sponsorFullName}
+                            width={56}
+                            height={56}
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
                 )}
                 <span className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${partyColor}`}>
                     <Users className="h-3 w-3" />
