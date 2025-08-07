@@ -26,14 +26,25 @@ export function Header() {
   return (
     <header className="bg-background border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
-            <Landmark className="h-6 w-6" />
-            <span>eGp Prototype</span>
-          </Link>
+        <div className="flex h-16 items-center md:grid md:grid-cols-3">
+          {/* Left Section - Desktop */}
+          <div className="hidden md:flex justify-start">
+             <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
+                <Landmark className="h-6 w-6" />
+                <span>eGp Prototype</span>
+            </Link>
+          </div>
+
+          {/* Mobile: Logo is part of the flex container */}
+          <div className="flex-1 md:hidden">
+             <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
+                <Landmark className="h-6 w-6" />
+                <span>eGp Prototype</span>
+            </Link>
+          </div>
           
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-4">
+          {/* Center Section - Desktop */}
+          <nav className="hidden md:flex justify-center items-center gap-4">
             {navLinks.map(link => (
                 <Link
                     key={link.href}
@@ -48,9 +59,9 @@ export function Header() {
             ))}
           </nav>
 
-          <div className="hidden md:flex items-center gap-2">
+          {/* Right Section - Desktop */}
+          <div className="hidden md:flex items-center justify-end gap-2">
             <CongressSelector />
-
             {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
             ) : user ? (
