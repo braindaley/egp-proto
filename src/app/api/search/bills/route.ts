@@ -8,13 +8,11 @@ export async function GET(req: NextRequest) {
   const searchTerm = searchParams.get('q');
   const debug = searchParams.get('debug') === 'true';
 
-  console.log('🔍 Search API called with term:', searchTerm); // Debug log
+  console.log('🔍 Search API called with term:', searchTerm);
 
-  // If debug mode, return all cached bills for inspection
   if (debug) {
     const db = getFirestore(app);
     const cacheCollection = collection(db, 'cached_bills');
-    
     try {
       const q = query(
         cacheCollection,
@@ -44,7 +42,6 @@ export async function GET(req: NextRequest) {
   }
 
   if (!searchTerm || searchTerm.trim().length < 2) {
-    console.log('❌ Search term too short'); // Debug log
     return NextResponse.json({ error: 'Search term must be at least 2 characters' }, { status: 400 });
   }
 
@@ -52,53 +49,37 @@ export async function GET(req: NextRequest) {
   const cacheCollection = collection(db, 'cached_bills');
 
   try {
-    console.log('📊 Querying Firestore for cached bills...'); // Debug log
-    
-    // Search through ALL cached bills from Congress 119
+    console.log('📊 Querying Firestore for cached bills...');
     const q = query(
       cacheCollection,
       where('billData.congress', '==', 119),
       orderBy('cachedAt', 'desc'),
-      limit(500) // Search through up to 500 cached bills
+      limit(500)
     );
 
     const snapshot = await getDocs(q);
-    console.log('📦 Found', snapshot.size, 'cached bills in Firestore'); // Debug log
-    
     if (snapshot.empty) {
-      console.log('⚠️ No cached bills found'); // Debug log
       return NextResponse.json({ bills: [] });
     }
 
     const allBills = snapshot.docs.map(doc => doc.data().billData as FeedBill);
-    console.log('💾 Loaded', allBills.length, 'bills from cache'); // Debug log
-    
-    // Filter bills based on search term (case-insensitive)
     const searchTermLower = searchTerm.toLowerCase();
+
     const matchedBills = allBills.filter(bill => {
-      const titleMatch = bill.shortTitle.toLowerCase().includes(searchTermLower);
-      const sponsorMatch = bill.sponsorFullName.toLowerCase().includes(searchTermLower);
-      const subjectMatch = bill.committeeName.toLowerCase().includes(searchTermLower);
-      const billNumberMatch = bill.billNumber.toLowerCase().includes(searchTermLower);
-      const actionMatch = bill.latestAction.text.toLowerCase().includes(searchTermLower);
+      // Ensure bill and its properties are not null
+      if (!bill) return false;
+      const titleMatch = bill.shortTitle?.toLowerCase().includes(searchTermLower) || false;
+      const sponsorMatch = bill.sponsorFullName?.toLowerCase().includes(searchTermLower) || false;
+      const subjectMatch = bill.committeeName?.toLowerCase().includes(searchTermLower) || false;
+      const billNumberMatch = bill.billNumber?.toLowerCase().includes(searchTermLower) || false;
+      const actionMatch = bill.latestAction?.text?.toLowerCase().includes(searchTermLower) || false;
       
       return titleMatch || sponsorMatch || subjectMatch || billNumberMatch || actionMatch;
     });
 
-    console.log('✅ Found', matchedBills.length, 'matching bills for term:', searchTerm); // Debug log
+    console.log(`✅ Found ${matchedBills.length} matching bills for term: "${searchTerm}"`);
     
-    // Log what was searched to help debug
-    console.log('🔍 Search details:', {
-      searchTerm,
-      totalBillsSearched: allBills.length,
-      matchedBills: matchedBills.length,
-      sampleMatched: matchedBills.slice(0, 3).map(bill => bill.billNumber)
-    });
-
-    // Sort by importance score
-    const sortedResults = matchedBills.sort((a, b) => b.importanceScore - a.importanceScore);
-    
-    // Limit results to prevent overwhelming the UI
+    const sortedResults = matchedBills.sort((a, b) => (b.importanceScore || 0) - (a.importanceScore || 0));
     const limitedResults = sortedResults.slice(0, 100);
 
     const response = { 
@@ -107,16 +88,10 @@ export async function GET(req: NextRequest) {
       searched: allBills.length 
     };
 
-    console.log('📤 Returning search results:', {
-      foundBills: limitedResults.length,
-      totalMatches: matchedBills.length,
-      totalSearched: allBills.length
-    }); // Debug log
-
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('🚨 Error in search API:', error); // Debug log
+    console.error('🚨 Error in search API:', error);
     const errorMessage = error instanceof Error ? error.message : 'Search failed';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
