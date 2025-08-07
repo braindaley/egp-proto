@@ -117,16 +117,7 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
     return (
       <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out">
         <CardHeader>
-          <div className="flex justify-between items-start gap-4">
-            <CardTitle className="font-headline text-lg leading-snug">
-                <Link href={detailUrl} className="hover:underline text-primary">
-                    {bill.shortTitle}
-                </Link>
-            </CardTitle>
-          </div>
-          <div className="text-muted-foreground flex items-center gap-4 text-xs pt-2">
-            <Badge variant="outline" className="shrink-0">{bill.billNumber}</Badge>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                 {bill.sponsorImageUrl && (
                     <Image 
                         src={bill.sponsorImageUrl} 
@@ -140,12 +131,20 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                     <Users className="h-3 w-3" />
                     {bill.sponsorFullName} ({bill.sponsorParty})
                 </span>
+                <Dot />
+                 <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Library className="h-3 w-3" />
+                    {bill.committeeName}
+                </span>
             </div>
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-                <Library className="h-3 w-3" />
-                {bill.committeeName}
-            </span>
-          </div>
+            <div className="flex justify-between items-start gap-4">
+                <CardTitle className="font-headline text-lg leading-snug">
+                    <Link href={detailUrl} className="hover:underline text-primary">
+                        {bill.shortTitle}
+                    </Link>
+                </CardTitle>
+                <Badge variant="outline" className="shrink-0">{bill.billNumber}</Badge>
+            </div>
         </CardHeader>
         <CardContent className="space-y-4">
             <div>
@@ -192,5 +191,4 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
       </Card>
     );
 }
-
 
