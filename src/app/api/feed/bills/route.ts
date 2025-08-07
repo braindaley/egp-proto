@@ -236,7 +236,7 @@ export async function GET(req: NextRequest) {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const updatedSince = thirtyDaysAgo.toISOString().split('T')[0];
-      const listUrl = `https://api.congress.gov/v3/bill/${latestCongress}?updatedSince=${updatedSince}&limit=25&sort=updateDate+desc&api_key=${API_KEY}`;
+      const listUrl = `https://api.congress.gov/v3/bill/${latestCongress}?updatedSince=${updatedSince}&limit=50&sort=updateDate+desc&api_key=${API_KEY}`;
       
       const listRes = await fetch(listUrl, { next: { revalidate: 600 } });
       if (!listRes.ok) throw new Error(`Failed to fetch bill list from Congress API: ${listRes.status}`);
@@ -254,7 +254,7 @@ export async function GET(req: NextRequest) {
       const batchSize = 5;
       const maxRetries = 2;
       
-      for (let i = 0; i < Math.min(billItems.length, 20); i += batchSize) {
+      for (let i = 0; i < billItems.length; i += batchSize) {
         const batch = billItems.slice(i, i + batchSize);
         
         const batchPromises = batch.map(async (bill): Promise<FeedBill | null> => {
@@ -284,8 +284,8 @@ export async function GET(req: NextRequest) {
               sponsorFullName = primarySponsor.fullName || 'Unknown';
               sponsorParty = primarySponsor.party || 'N/A';
               
-              // Only fetch sponsor image for first 10 bills to save time
-              if (i < 10 && primarySponsor.bioguideId) {
+              // Only fetch sponsor image for first 15 bills to save time
+              if (i < 15 && primarySponsor.bioguideId) {
                 try {
                   const memberDetails = await fetchMemberDetails(primarySponsor.bioguideId, API_KEY);
                   sponsorImageUrl = memberDetails.imageUrl;
