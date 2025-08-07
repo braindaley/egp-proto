@@ -438,4 +438,5 @@ export interface FeedBill {
   committeeName: string;
   status: string;
   importanceScore: number;
+  summary?: string;
 }

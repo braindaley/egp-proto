@@ -1,8 +1,9 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import type { Bill, CongressApiResponse, FeedBill, Sponsor } from '@/types';
+import type { Bill, CongressApiResponse, FeedBill, Sponsor, Summary } from '@/types';
 import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, doc, where } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
+import { convert } from 'html-to-text';
 
 // This function determines a simplified status of the bill
 function getBillStatus(latestActionText: string): string {
@@ -132,38 +133,56 @@ async function fetchBillDetails(congress: number, type: string, number: number, 
   cosponsors?: { count: number };
   title?: string;
   subjects?: string[];
+  summary?: string;
 }> {
   try {
     const billUrl = `https://api.congress.gov/v3/bill/${congress}/${type.toLowerCase()}/${number}?api_key=${API_KEY}`;
     
-    // Add timeout to prevent hanging requests
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     
-    const response = await fetch(billUrl, { 
-      signal: controller.signal,
-      next: { revalidate: 3600 } // Cache for 1 hour
-    });
+    const response = await Promise.race([
+        fetch(billUrl, { signal: controller.signal, next: { revalidate: 3600 } }),
+        new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
+    ]);
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
       console.warn(`Failed to fetch bill details for ${congress}/${type}/${number}: ${response.status}`);
-      return { sponsors: [], subjects: ['General Legislation'] };
+      return { sponsors: [], subjects: ['General Legislation'], summary: undefined };
     }
     
     const data = await response.json();
+    const bill = data.bill || {};
     
-    // Extract subjects more safely
+    // Fetch summary
+    let summaryText: string | undefined = undefined;
+    if (bill.summaries?.url) {
+        try {
+            const summaryRes = await fetch(`${bill.summaries.url}&api_key=${API_KEY}`);
+            if (summaryRes.ok) {
+                const summaryData = await summaryRes.json();
+                if (summaryData.summaries?.length > 0) {
+                    const latestSummary = summaryData.summaries.sort((a: Summary, b: Summary) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime())[0];
+                    summaryText = convert(latestSummary.text, { wordwrap: 130 });
+                }
+            }
+        } catch (summaryError) {
+            console.warn(`Could not fetch summary for ${bill.number}:`, summaryError);
+        }
+    }
+
+    // Extract subjects
     let subjects: string[] = [];
     try {
-      if (data.bill?.subjects?.policyArea?.name) {
-        subjects.push(data.bill.subjects.policyArea.name);
+      if (bill.subjects?.policyArea?.name) {
+        subjects.push(bill.subjects.policyArea.name);
       }
-      if (data.bill?.subjects?.legislativeSubjects && Array.isArray(data.bill.subjects.legislativeSubjects)) {
-        const legSubjects = data.bill.subjects.legislativeSubjects
+      if (bill.subjects?.legislativeSubjects && Array.isArray(bill.subjects.legislativeSubjects)) {
+        const legSubjects = bill.subjects.legislativeSubjects
           .map((s: any) => s?.name)
           .filter(Boolean)
-          .slice(0, 3); // Limit to first 3 to avoid too long strings
+          .slice(0, 3);
         subjects.push(...legSubjects);
       }
     } catch (subjectError) {
@@ -175,18 +194,19 @@ async function fetchBillDetails(congress: number, type: string, number: number, 
     }
     
     return {
-      sponsors: data.bill?.sponsors || [],
-      cosponsors: data.bill?.cosponsors,
-      title: data.bill?.title,
-      subjects
+      sponsors: bill.sponsors || [],
+      cosponsors: bill.cosponsors,
+      title: bill.title,
+      subjects,
+      summary: summaryText,
     };
   } catch (error) {
-    if (error.name === 'AbortError') {
+    if (error.name === 'AbortError' || error.message === 'Timeout') {
       console.warn(`Request timeout for bill ${congress}/${type}/${number}`);
     } else {
       console.warn(`Error fetching bill details for ${congress}/${type}/${number}:`, error);
     }
-    return { sponsors: [], subjects: ['General Legislation'] };
+    return { sponsors: [], subjects: ['General Legislation'], summary: undefined };
   }
 }
 
@@ -201,20 +221,16 @@ export async function GET(req: NextRequest) {
   const db = getFirestore(app);
   const cacheCollection = collection(db, 'cached_bills');
   
-  // Check for fresh cache within the last 60 minutes.
   const sixtyMinutesAgo = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
 
   try {
-    // Set overall timeout for the entire operation
     const overallTimeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Operation timeout')), 25000) // 25 seconds max
+      setTimeout(() => reject(new Error('Operation timeout')), 25000)
     );
     
     const processData = async () => {
-      // Use current congress (119) - hardcoded for prototype
       const latestCongress = '119';
 
-      // 1. Check for fresh cache
       const q = query(cacheCollection, orderBy('cachedAt', 'desc'), limit(1));
       const cacheSnapshot = await getDocs(q);
       const latestDoc = cacheSnapshot.docs[0];
@@ -222,24 +238,22 @@ export async function GET(req: NextRequest) {
       if (latestDoc && latestDoc.data().cachedAt > sixtyMinutesAgo) {
           const allCachedQuery = query(
             cacheCollection, 
-            where('billData.congress', '==', 119),
-            limit(500)
+            orderBy('importanceScore', 'desc'),
+            limit(50)
           );
           const allDocsSnapshot = await getDocs(allCachedQuery);
           const cachedBillsForCongress = allDocsSnapshot.docs
             .map(doc => doc.data().billData as FeedBill)
-            .filter(bill => bill.status !== 'Became Law'); // Filter here as well
+            .filter(bill => bill.congress === 119 && bill.status !== 'Became Law');
 
           if (cachedBillsForCongress.length > 0) {
              console.log(`Serving ${cachedBillsForCongress.length} bills for Congress ${latestCongress} from fresh Firestore cache.`);
-             const sortedBills = cachedBillsForCongress.sort((a, b) => b.importanceScore - a.importanceScore);
-             return NextResponse.json({ bills: sortedBills });
+             return NextResponse.json({ bills: cachedBillsForCongress });
           }
       }
 
       console.log(`Cache is stale or empty for Congress ${latestCongress}. Fetching new data from Congress API.`);
 
-      // 2. Fetch new data from Congress API for congress 119
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const updatedSince = thirtyDaysAgo.toISOString().split('T')[0];
@@ -254,10 +268,7 @@ export async function GET(req: NextRequest) {
 
       console.log(`Fetched ${billItems.length} bills from Congress API. Now fetching detailed information...`);
 
-      // 3. Process bills WITH detailed sponsor information (optimized)
       const feedBills: FeedBill[] = [];
-      
-      // Process bills in smaller batches with better error handling
       const batchSize = 5;
       
       for (let i = 0; i < billItems.length; i += batchSize) {
@@ -266,53 +277,35 @@ export async function GET(req: NextRequest) {
         const batchPromises = batch.map(async (bill): Promise<FeedBill | null> => {
           if (!bill || !bill.latestAction) return null;
 
-          // Exclude bills that have already become law
           const status = getBillStatus(bill.latestAction.text);
-          if (status === 'Became Law') {
-            return null;
-          }
+          if (status === 'Became Law') return null;
 
-          let billDetails = { sponsors: [], subjects: ['General Legislation'] };
+          let billDetails;
+          try {
+            billDetails = await fetchBillDetails(bill.congress, bill.type, parseInt(bill.number, 10), API_KEY);
+          } catch (error) {
+            console.warn(`Failed to fetch details for bill ${bill.type} ${bill.number}:`, error);
+            billDetails = { sponsors: [], subjects: ['General Legislation'], summary: undefined };
+          }
+          
           let sponsorImageUrl: string | null = null;
           let sponsorFullName = 'Sponsor information unavailable';
           let sponsorParty = 'N/A';
+          const primarySponsor = billDetails.sponsors[0];
           
-          try {
-            // Fetch detailed bill information with timeout
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-            
-            billDetails = await Promise.race([
-              fetchBillDetails(bill.congress, bill.type, parseInt(bill.number, 10), API_KEY),
-              new Promise<any>((_, reject) => 
-                setTimeout(() => reject(new Error('Timeout')), 5000)
-              )
-            ]);
-            clearTimeout(timeoutId);
-            
-            // Get primary sponsor info
-            const primarySponsor = billDetails.sponsors[0];
-            if (primarySponsor) {
-              sponsorFullName = primarySponsor.fullName || 'Unknown';
-              sponsorParty = primarySponsor.party || 'N/A';
-              
-              // Fetch sponsor image for all bills with bioguideId
-              if (primarySponsor.bioguideId) {
-                try {
-                  const memberDetails = await fetchMemberDetails(primarySponsor.bioguideId, API_KEY);
-                  sponsorImageUrl = memberDetails.imageUrl;
-                } catch (imageError) {
-                  console.warn(`Failed to fetch image for ${primarySponsor.bioguideId}:`, imageError);
-                  // Continue without image
-                }
+          if (primarySponsor) {
+            sponsorFullName = primarySponsor.fullName || 'Unknown';
+            sponsorParty = primarySponsor.party || 'N/A';
+            if (primarySponsor.bioguideId) {
+              try {
+                const memberDetails = await fetchMemberDetails(primarySponsor.bioguideId, API_KEY);
+                sponsorImageUrl = memberDetails.imageUrl;
+              } catch (imageError) {
+                console.warn(`Failed to fetch image for ${primarySponsor.bioguideId}:`, imageError);
               }
             }
-          } catch (error) {
-            console.warn(`Failed to fetch details for bill ${bill.type} ${bill.number}:`, error);
-            // Continue with basic information
           }
 
-          // Use detailed bill title if available, otherwise fall back to list title
           const billTitle = billDetails.title || bill.title;
           const importanceScore = calculateImportanceScore({
             ...bill,
@@ -332,6 +325,7 @@ export async function GET(req: NextRequest) {
               committeeName: Array.isArray(billDetails.subjects) ? billDetails.subjects.join(', ') : 'General Legislation',
               status: status,
               importanceScore,
+              summary: billDetails.summary,
           };
         });
 
@@ -344,27 +338,24 @@ export async function GET(req: NextRequest) {
           
           feedBills.push(...validResults);
           
-          // Add a delay between batches to respect API limits
           if (i + batchSize < billItems.length) {
             await new Promise(resolve => setTimeout(resolve, 200));
           }
         } catch (batchError) {
           console.warn(`Batch ${i} failed:`, batchError);
-          // Continue with next batch
         }
       }
       
       console.log(`Processed ${feedBills.length} bills with detailed sponsor information.`);
       
-      // 4. Cache the results in Firestore
       if (feedBills.length > 0) {
-          console.log('💾 Starting to cache', feedBills.length, 'bills to Firestore...'); // Debug log
+          console.log('💾 Starting to cache', feedBills.length, 'bills to Firestore...');
           try {
             const batch = writeBatch(db);
             feedBills.forEach((bill, index) => {
                 const billId = `${bill.congress}-${bill.type}-${bill.number}`;
                 const docRef = doc(cacheCollection, billId);
-                console.log(`📝 Adding bill ${index + 1}/${feedBills.length} to cache: ${billId}`); // Debug log
+                console.log(`📝 Adding bill ${index + 1}/${feedBills.length} to cache: ${billId}`);
                 batch.set(docRef, {
                     billId: billId,
                     billData: bill,
@@ -377,42 +368,36 @@ export async function GET(req: NextRequest) {
             console.log(`✅ Successfully cached ${feedBills.length} bills to Firestore collection 'cached_bills'.`);
           } catch (cacheError) {
             console.error('🚨 Error caching bills to Firestore:', cacheError);
-            // Continue without caching - don't fail the whole request
           }
       } else {
         console.log('⚠️ No bills to cache');
       }
 
-      // 5. Return sorted results
       const sortedBills = feedBills.sort((a, b) => b.importanceScore - a.importanceScore);
       return NextResponse.json({ bills: sortedBills });
     };
 
-    // Race between processing and timeout
     return await Promise.race([processData(), overallTimeout]);
 
   } catch (error) {
     console.error('Error in /api/feed/bills:', error);
     
-    // If operation timed out, try to return cached data even if older
     if (error instanceof Error && error.message === 'Operation timeout') {
       console.log('Operation timed out, checking for older cached data...');
       try {
         const oldCacheQuery = query(
           cacheCollection, 
-          where('billData.congress', '==', 119),
-          orderBy('cachedAt', 'desc'), 
-          limit(100)
+          orderBy('importanceScore', 'desc'),
+          limit(50)
         );
         const oldCacheSnapshot = await getDocs(oldCacheQuery);
         
         if (!oldCacheSnapshot.empty) {
           const bills = oldCacheSnapshot.docs
             .map(doc => doc.data().billData as FeedBill)
-            .filter(bill => bill.status !== 'Became Law');
+            .filter(bill => bill.congress === 119 && bill.status !== 'Became Law');
           console.log(`Serving ${bills.length} bills from older cache due to timeout.`);
-          const sortedBills = bills.sort((a, b) => b.importanceScore - a.importanceScore);
-          return NextResponse.json({ bills: sortedBills });
+          return NextResponse.json({ bills });
         }
       } catch (cacheError) {
         console.error('Failed to retrieve old cache:', cacheError);

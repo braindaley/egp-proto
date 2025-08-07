@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { getBillTypeSlug, formatDate } from '@/lib/utils';
-import { Check, Dot, Users, Library, ArrowRight, ThumbsUp, ThumbsDown, Eye, Flame, TrendingUp, Award, ClipboardCheck } from 'lucide-react';
+import { Check, Dot, Users, Library, ArrowRight, ThumbsUp, ThumbsDown, Eye, Flame, TrendingUp, Award, ClipboardCheck, MessageSquareText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
@@ -115,41 +116,41 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
     return (
       <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out">
         <CardHeader>
-            {/* 1. Sponsor Information - MOVED TO TOP */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                {bill.sponsorImageUrl && (
-                    <div className="w-14 h-14 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
-                        <Image 
-                            src={bill.sponsorImageUrl} 
-                            alt={bill.sponsorFullName}
-                            width={56}
-                            height={56}
-                            className="w-full h-full object-cover"
-                        />
-                    </div>
-                )}
-                <span className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${partyColor}`}>
-                    <Users className="h-3 w-3" />
-                    {bill.sponsorFullName} ({bill.sponsorParty})
-                </span>
-            </div>
-            
-            {/* 2. Bill Number + Subjects ON SAME LINE */}
             <div className="flex items-center gap-3 mb-3">
                 <Badge variant="outline" className="shrink-0 font-semibold">{bill.billNumber}</Badge>
-                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Library className="h-4 w-4" />
-                    {bill.committeeName}
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground truncate">
+                    <Library className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{bill.committeeName}</span>
                 </span>
             </div>
 
-            {/* 3. Bill Title */}
             <div className="space-y-2">
                 <CardTitle className="font-headline text-lg leading-snug">
                     <Link href={detailUrl} className="hover:underline text-primary">
                         {bill.shortTitle}
                     </Link>
                 </CardTitle>
+                {bill.summary && (
+                  <p className="text-sm text-muted-foreground line-clamp-2 pt-1">
+                    {bill.summary}
+                  </p>
+                )}
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-muted-foreground pt-3">
+                {bill.sponsorImageUrl && (
+                    <Image 
+                        src={bill.sponsorImageUrl} 
+                        alt={bill.sponsorFullName}
+                        width={24}
+                        height={24}
+                        className="rounded-full"
+                    />
+                )}
+                <span className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${partyColor}`}>
+                    <Users className="h-3 w-3" />
+                    {bill.sponsorFullName} ({bill.sponsorParty})
+                </span>
             </div>
         </CardHeader>
         <CardContent className="space-y-4">
