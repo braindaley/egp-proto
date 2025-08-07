@@ -137,23 +137,20 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                     {bill.committeeName}
                 </span>
             </div>
-            <div className="flex justify-between items-start gap-4">
+            <div className="space-y-2">
                 <CardTitle className="font-headline text-lg leading-snug">
                     <Link href={detailUrl} className="hover:underline text-primary">
                         {bill.shortTitle}
                     </Link>
                 </CardTitle>
-                <Badge variant="outline" className="shrink-0">{bill.billNumber}</Badge>
+                 <Badge variant="outline" className="shrink-0">{bill.billNumber}</Badge>
             </div>
         </CardHeader>
         <CardContent className="space-y-4">
-            <div>
-                <h4 className="font-semibold text-sm mb-1 text-foreground">Latest Action</h4>
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                    <span className="font-bold">{formatDate(bill.latestAction.actionDate)}:</span>{' '}
-                    {bill.latestAction.text}
-                </p>
-            </div>
+            <p className="text-sm text-muted-foreground line-clamp-2">
+                <span className="font-semibold text-foreground">Latest Action:</span>{' '}
+                {bill.latestAction.text} ({formatDate(bill.latestAction.actionDate)})
+            </p>
              <BillStatusIndicator status={bill.status} />
         </CardContent>
         <CardFooter className="flex justify-between items-center pt-4 border-t">
