@@ -2,24 +2,26 @@
 'use client';
 
 import Link from 'next/link';
-import { Landmark, LogOut, User, Loader2, ChevronDown, Menu } from 'lucide-react';
-import { CongressSelector } from './congress-selector';
+import { Landmark, LogOut, User, Loader2, Menu, Rss, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from './ui/separator';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { CongressSelector } from './congress-selector';
 
 export function Header() {
   const { user, loading, logout, selectedCongress } = useAuth();
+  const pathname = usePathname();
 
   const billsHref = selectedCongress ? `/bill/${selectedCongress}` : '/bills';
   const congressHref = selectedCongress ? `/congress/${selectedCongress}` : '/congress';
+
+  const navLinks = [
+    { href: '/', label: 'For you', icon: Rss },
+    { href: '/following', label: 'Following', icon: Star },
+  ];
 
   return (
     <header className="bg-background border-b sticky top-0 z-50">
@@ -29,37 +31,55 @@ export function Header() {
             <Landmark className="h-6 w-6" />
             <span>eGp Prototype</span>
           </Link>
-          <nav className="flex items-center gap-2">
-            {/* Auth Buttons */}
-            <div className="hidden md:flex items-center gap-2">
-              {loading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-              ) : user ? (
-                  <>
-                      <Button variant="ghost" size="sm" asChild>
-                          <Link href="/dashboard">
-                              <User className="mr-2 h-4 w-4" />
-                              Dashboard
-                          </Link>
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={logout}>
-                          <LogOut className="mr-2 h-4 w-4" />
-                          Logout
-                      </Button>
-                  </>
-              ) : (
-                  <>
-                      <Button variant="ghost" size="sm" asChild>
-                          <Link href="/login">Login</Link>
-                      </Button>
-                      <Button size="sm" asChild>
-                           <Link href="/signup">Sign Up</Link>
-                      </Button>
-                  </>
-              )}
+          
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-2">
+            <div className="flex items-center gap-4 border-r pr-4">
+                {navLinks.map(link => (
+                    <Link
+                        key={link.href}
+                        href={link.href}
+                        className={cn(
+                            "text-sm font-medium transition-colors",
+                            pathname === link.href ? "text-primary" : "text-muted-foreground hover:text-primary"
+                        )}
+                    >
+                        {link.label}
+                    </Link>
+                ))}
             </div>
 
-            {/* Hamburger Menu */}
+            <CongressSelector />
+
+            {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+            ) : user ? (
+                <>
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link href="/dashboard">
+                            <User className="mr-2 h-4 w-4" />
+                            Dashboard
+                        </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={logout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout
+                    </Button>
+                </>
+            ) : (
+                <>
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link href="/login">Login</Link>
+                    </Button>
+                    <Button size="sm" asChild>
+                         <Link href="/signup">Sign Up</Link>
+                    </Button>
+                </>
+            )}
+          </nav>
+
+          {/* Mobile Hamburger Menu */}
+          <div className="md:hidden">
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon">
@@ -80,6 +100,21 @@ export function Header() {
                     </div>
                     
                     <Separator />
+                    
+                    {navLinks.map(link => (
+                        <SheetClose key={link.href} asChild>
+                            <Link 
+                                href={link.href} 
+                                className={cn("flex items-center gap-2 w-full text-left p-2 rounded-md hover:bg-accent",
+                                pathname === link.href ? "bg-accent" : "")}
+                            >
+                                <link.icon className="h-4 w-4" />
+                                {link.label}
+                            </Link>
+                        </SheetClose>
+                    ))}
+
+                    <Separator />
 
                     <SheetClose asChild>
                       <Link href={billsHref} className="block w-full text-left p-2 rounded-md hover:bg-accent">
@@ -99,8 +134,7 @@ export function Header() {
 
                     <Separator />
                     
-                    {/* Mobile Auth Buttons */}
-                    <div className="md:hidden space-y-2">
+                    <div className="space-y-2">
                          {loading ? (
                             <div className="flex justify-center p-2"><Loader2 className="h-5 w-5 animate-spin" /></div>
                         ) : user ? (
@@ -140,7 +174,7 @@ export function Header() {
                 </div>
               </SheetContent>
             </Sheet>
-          </nav>
+          </div>
         </div>
       </div>
     </header>

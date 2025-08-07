@@ -1,7 +1,7 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { FeedNavigation } from '@/components/FeedNavigation';
 import { BillFeedCard } from '@/components/bill-feed-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,6 @@ export default function BillsFeed() {
   const [allBills, setAllBills] = useState<FeedBill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'foryou' | 'following'>('foryou');
   const [showAll, setShowAll] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -60,43 +59,36 @@ export default function BillsFeed() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <FeedNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-        <div className="space-y-4 pt-4">
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
-        </div>
+      <div className="space-y-4 pt-4">
+        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-48 w-full" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-4">
-        <FeedNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-        <div className="text-center py-8">
-          <div className="text-red-600 font-semibold">Could Not Load Bill Feed</div>
-          <p className="text-sm text-muted-foreground mt-2">
-            There was an issue fetching the latest bills. Please try again later.
-          </p>
-          <div className="text-xs text-red-500 mt-2 max-w-md mx-auto">
-            Error: {error}
-          </div>
-          <button 
-            onClick={fetchBills}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Try Again
-          </button>
+      <div className="text-center py-8">
+        <div className="text-red-600 font-semibold">Could Not Load Bill Feed</div>
+        <p className="text-sm text-muted-foreground mt-2">
+          There was an issue fetching the latest bills. Please try again later.
+        </p>
+        <div className="text-xs text-red-500 mt-2 max-w-md mx-auto">
+          Error: {error}
         </div>
+        <button 
+          onClick={fetchBills}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <FeedNavigation activeTab={activeTab} onTabChange={setActiveTab} />
       
       <div className="space-y-4 p-4 border bg-card rounded-lg">
         <div className="relative">
