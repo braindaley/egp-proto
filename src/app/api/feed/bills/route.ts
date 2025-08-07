@@ -63,54 +63,78 @@ function calculateImportanceScore(detailedBill: Bill, latestActionText: string):
   return Math.max(0, score);
 }
 
-// NEW: Function to fetch short title for a bill
+// Function to fetch short title for a bill
 async function fetchShortTitle(congress: number, billType: string, billNumber: string, apiKey: string): Promise<string | null> {
   try {
     const titlesUrl = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}/titles?api_key=${apiKey}`;
+    
     const titlesRes = await fetch(titlesUrl, { 
       next: { revalidate: 3600 },
       signal: AbortSignal.timeout(5000) 
     });
     
     if (!titlesRes.ok) {
-      console.log(`Titles fetch failed for ${congress}/${billType}/${billNumber}: ${titlesRes.status}`);
       return null;
     }
     
     const titlesData = await titlesRes.json();
     
     if (titlesData?.titles && Array.isArray(titlesData.titles)) {
-      // Method 1: Look for titleTypeCode 101 (most reliable)
-      let shortTitle = titlesData.titles.find((t: any) => 
-        t.titleTypeCode === '101' || t.titleTypeCode === 101
+      // Priority order for short title codes (more recent legislative action = higher priority)
+      const titlePriority = [103, 102, 101, 108]; // Reported to Senate, Passed House, Introduced, Portions
+      
+      // Method 1: Look for specific short title codes in priority order
+      for (const code of titlePriority) {
+        const shortTitle = titlesData.titles.find((t: any) => 
+          t.titleTypeCode === code || t.titleTypeCode === String(code)
+        );
+        if (shortTitle && shortTitle.title) {
+          return shortTitle.title;
+        }
+      }
+      
+      // Method 2: Fallback to any titleType containing "short title"
+      const anyShortTitle = titlesData.titles.find((t: any) => 
+        t.titleType?.toLowerCase().includes('short title')
       );
       
-      // Method 2: Fallback to titleType text matching
-      if (!shortTitle) {
-        shortTitle = titlesData.titles.find((t: any) => 
-          t.titleType?.toLowerCase().includes('short title') && 
-          t.titleType?.toLowerCase().includes('introduced')
-        );
-      }
-      
-      // Method 3: Fallback to any short title
-      if (!shortTitle) {
-        shortTitle = titlesData.titles.find((t: any) => 
-          t.titleType?.toLowerCase().includes('short title')
-        );
-      }
-      
-      if (shortTitle && shortTitle.title) {
-        console.log(`✅ Found short title for ${billType}${billNumber}: "${shortTitle.title}"`);
-        return shortTitle.title;
+      if (anyShortTitle && anyShortTitle.title) {
+        return anyShortTitle.title;
       }
     }
     
     return null;
   } catch (error) {
-    console.log(`Short title fetch failed for ${congress}/${billType}/${billNumber}:`, error);
     return null;
   }
+}
+
+// Function to process long title into shorter version
+function processLongTitle(fullTitle: string): string {
+  if (!fullTitle) return 'No title';
+  
+  // If it's already reasonably short (under 80 chars), keep it
+  if (fullTitle.length <= 80) {
+    return fullTitle;
+  }
+  
+  // Try to find a shorter version by splitting on common separators
+  const parts = fullTitle.split(/[;,]|\s+-\s+/);
+  const firstPart = parts[0]?.trim();
+  
+  // If the first part is reasonable length and doesn't contain "official title", use it
+  if (firstPart && firstPart.length <= 80 && !firstPart.toLowerCase().includes('official title')) {
+    return firstPart;
+  }
+  
+  // Otherwise, truncate intelligently
+  if (fullTitle.length > 100) {
+    const truncated = fullTitle.substring(0, 100);
+    const lastSpace = truncated.lastIndexOf(' ');
+    return lastSpace > 50 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+  }
+  
+  return fullTitle;
 }
 
 export async function GET(req: NextRequest) {
@@ -154,7 +178,7 @@ export async function GET(req: NextRequest) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const updatedSince = thirtyDaysAgo.toISOString().split('T')[0];
-    const listUrl = `https://api.congress.gov/v3/bill?congress=${latestCongress}&updatedSince=${updatedSince}&limit=500&sort=updateDate+desc&api_key=${API_KEY}`;
+    const listUrl = `https://api.congress.gov/v3/bill?congress=${latestCongress}&updatedSince=${updatedSince}&limit=100&sort=updateDate+desc&api_key=${API_KEY}`;
     
     const listRes = await fetch(listUrl, { next: { revalidate: 600 } });
     if (!listRes.ok) throw new Error(`Failed to fetch bill list from Congress API: ${listRes.status}`);
@@ -171,14 +195,14 @@ export async function GET(req: NextRequest) {
     });
     const detailedBillResponses = await Promise.all(billDetailPromises);
 
-    // 4. Process and score bills
+    // 4. Process and score bills with short title fetching
     const processBillPromises = detailedBillResponses.map(async (response, index) => {
       if (!response || !response.bill) return null;
       
       const billListItem = billItems[index];
       const detailedBill: Bill = response.bill;
       
-      // NEW: Fetch short title for this bill
+      // Fetch short title for this bill (with timeout to avoid blocking)
       const shortTitle = await fetchShortTitle(
         billListItem.congress, 
         billListItem.type.toLowerCase(), 
@@ -186,11 +210,8 @@ export async function GET(req: NextRequest) {
         API_KEY
       );
       
-      // Use short title if found, otherwise fall back to processing the long title
-      const displayTitle = shortTitle || 
-        detailedBill.title?.split(';').find((t: string) => !t.toLowerCase().includes('official title')) || 
-        detailedBill.title || 
-        'No title';
+      // Use short title if found, otherwise process the long title
+      const displayTitle = shortTitle || processLongTitle(detailedBill.title || '');
       
       const sponsor: Sponsor | undefined = detailedBill.sponsors?.[0];
       const importanceScore = calculateImportanceScore(detailedBill, detailedBill.latestAction?.text);
