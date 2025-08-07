@@ -17,11 +17,15 @@ export default function BillsFeed() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<BillsFeedData | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   const fetchBills = async () => {
     try {
       setIsLoading(true);
       setError(null);
+      
+      console.log('🔄 Fetching main bills feed...'); // Debug log
       
       const response = await fetch('/api/feed/bills', {
         cache: 'no-cache',
@@ -30,8 +34,11 @@ export default function BillsFeed() {
         },
       });
 
+      console.log('📨 Main feed API response status:', response.status); // Debug log
+
       if (!response.ok) {
         const errorData = await response.text();
+        console.error('❌ Main feed API error:', errorData); // Debug log
         throw new Error(`Failed to fetch bills: ${response.status} - ${errorData}`);
       }
 
@@ -41,22 +48,72 @@ export default function BillsFeed() {
         throw new Error(result.error);
       }
 
+      console.log('✅ Main feed loaded successfully:', result.bills?.length, 'bills'); // Debug log
       setData(result);
     } catch (err) {
-      console.error('Error fetching bills:', err);
+      console.error('🚨 Error fetching main bills:', err); // Debug log
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Filter bills based on search term
-  const filteredBills = data?.bills?.filter(bill => 
-    bill.shortTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    bill.sponsorFullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    bill.committeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const searchBills = async (term: string) => {
+    if (!term || term.trim().length < 2) {
+      setSearchResults(null);
+      return;
+    }
+
+    console.log('🔍 Starting search for:', term); // Debug log
+
+    try {
+      setIsSearching(true);
+      const searchUrl = `/api/search/bills?q=${encodeURIComponent(term)}`;
+      console.log('📡 Calling search API:', searchUrl); // Debug log
+      
+      const response = await fetch(searchUrl, {
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('📨 Search API response status:', response.status); // Debug log
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Search API error:', errorText); // Debug log
+        throw new Error(`Search failed: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Search results:', result); // Debug log
+      setSearchResults(result);
+    } catch (err) {
+      console.error('🚨 Search error:', err); // Debug log
+      // Don't set error state for search failures, just clear results
+      setSearchResults({ bills: [] });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Debounce search to avoid too many API calls
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchTerm.trim().length >= 2) {
+        searchBills(searchTerm);
+      } else {
+        setSearchResults(null);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  // Get the bills to display (search results or regular feed)
+  const displayBills = searchResults?.bills || data?.bills || [];
+  const isShowingSearchResults = searchResults !== null && searchTerm.trim().length >= 2;
 
   useEffect(() => {
     fetchBills();
@@ -163,18 +220,20 @@ export default function BillsFeed() {
         </div>
         
         <p className="text-muted-foreground">
-          {searchTerm ? (
-            `Showing ${filteredBills.length} of ${data.bills.length} bills matching "${searchTerm}"`
+          {isShowingSearchResults ? (
+            searchResults ? 
+              `Found ${searchResults.bills.length} bills${searchResults.total ? ` of ${searchResults.searched} total cached bills` : ''} matching "${searchTerm}"` :
+              `Searching for "${searchTerm}"...`
           ) : (
-            `Showing ${data.bills.length} recent bills from the 119th Congress, updated in the last 30 days and ranked by importance`
+            `Showing ${data?.bills.length || 0} most recent bills from the 119th Congress, updated in the last 30 days and ranked by importance`
           )}
         </p>
       </div>
 
       {/* Bills Grid */}
-      {filteredBills.length > 0 ? (
+      {displayBills.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1">
-          {filteredBills.map((bill, index) => (
+          {displayBills.map((bill, index) => (
             <BillFeedCard 
               key={`${bill.congress}-${bill.type}-${bill.number}`}
               bill={bill} 
@@ -182,20 +241,29 @@ export default function BillsFeed() {
             />
           ))}
         </div>
-      ) : searchTerm ? (
+      ) : searchTerm.trim().length >= 2 ? (
         <div className="text-center py-8">
-          <Search className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-          <h3 className="text-lg font-medium mb-2">No Results Found</h3>
-          <p className="text-muted-foreground">
-            No bills match your search for "{searchTerm}". Try a different term or clear your search.
-          </p>
-          <Button 
-            onClick={() => setSearchTerm('')} 
-            variant="outline" 
-            className="mt-4"
-          >
-            Clear Search
-          </Button>
+          {isSearching ? (
+            <div className="flex items-center justify-center space-x-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Searching all bills...</span>
+            </div>
+          ) : (
+            <>
+              <Search className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Results Found</h3>
+              <p className="text-muted-foreground">
+                No bills match your search for "{searchTerm}". Try a different term or clear your search.
+              </p>
+              <Button 
+                onClick={() => setSearchTerm('')} 
+                variant="outline" 
+                className="mt-4"
+              >
+                Clear Search
+              </Button>
+            </>
+          )}
         </div>
       ) : null}
 
