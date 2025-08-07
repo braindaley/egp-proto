@@ -1,3 +1,4 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Bill, CongressApiResponse, FeedBill, Sponsor } from '@/types';
 import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, doc, where } from 'firebase/firestore';
@@ -199,6 +200,8 @@ export async function GET(req: NextRequest) {
 
   const db = getFirestore(app);
   const cacheCollection = collection(db, 'cached_bills');
+  
+  // Check for fresh cache within the last 60 minutes.
   const sixtyMinutesAgo = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
 
   try {
@@ -212,18 +215,20 @@ export async function GET(req: NextRequest) {
       const latestCongress = '119';
 
       // 1. Check for fresh cache
-      const q = query(
-        cacheCollection, 
-        where('cachedAt', '>', sixtyMinutesAgo), 
-        orderBy('cachedAt', 'desc'), 
-        limit(1) // Check just one recent doc to see if cache is fresh
-      );
+      const q = query(cacheCollection, orderBy('cachedAt', 'desc'), limit(1));
       const cacheSnapshot = await getDocs(q);
+      const latestDoc = cacheSnapshot.docs[0];
 
-      if (!cacheSnapshot.empty) {
-          const allCachedQuery = query(cacheCollection, where('billData.congress', '==', 119), limit(500));
+      if (latestDoc && latestDoc.data().cachedAt > sixtyMinutesAgo) {
+          const allCachedQuery = query(
+            cacheCollection, 
+            where('billData.congress', '==', 119),
+            limit(500)
+          );
           const allDocsSnapshot = await getDocs(allCachedQuery);
-          const cachedBillsForCongress = allDocsSnapshot.docs.map(doc => doc.data().billData as FeedBill);
+          const cachedBillsForCongress = allDocsSnapshot.docs
+            .map(doc => doc.data().billData as FeedBill)
+            .filter(bill => bill.status !== 'Became Law'); // Filter here as well
 
           if (cachedBillsForCongress.length > 0) {
              console.log(`Serving ${cachedBillsForCongress.length} bills for Congress ${latestCongress} from fresh Firestore cache.`);
@@ -260,6 +265,12 @@ export async function GET(req: NextRequest) {
         
         const batchPromises = batch.map(async (bill): Promise<FeedBill | null> => {
           if (!bill || !bill.latestAction) return null;
+
+          // Exclude bills that have already become law
+          const status = getBillStatus(bill.latestAction.text);
+          if (status === 'Became Law') {
+            return null;
+          }
 
           let billDetails = { sponsors: [], subjects: ['General Legislation'] };
           let sponsorImageUrl: string | null = null;
@@ -319,7 +330,7 @@ export async function GET(req: NextRequest) {
               sponsorFullName,
               sponsorImageUrl,
               committeeName: Array.isArray(billDetails.subjects) ? billDetails.subjects.join(', ') : 'General Legislation',
-              status: getBillStatus(bill.latestAction.text),
+              status: status,
               importanceScore,
           };
         });
@@ -396,7 +407,9 @@ export async function GET(req: NextRequest) {
         const oldCacheSnapshot = await getDocs(oldCacheQuery);
         
         if (!oldCacheSnapshot.empty) {
-          const bills = oldCacheSnapshot.docs.map(doc => doc.data().billData as FeedBill);
+          const bills = oldCacheSnapshot.docs
+            .map(doc => doc.data().billData as FeedBill)
+            .filter(bill => bill.status !== 'Became Law');
           console.log(`Serving ${bills.length} bills from older cache due to timeout.`);
           const sortedBills = bills.sort((a, b) => b.importanceScore - a.importanceScore);
           return NextResponse.json({ bills: sortedBills });
