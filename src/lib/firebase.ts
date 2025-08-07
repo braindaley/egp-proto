@@ -11,7 +11,8 @@ const firebaseConfig = {
   "apiKey": "AIzaSyDpn3QKPct12ZUwFwbLEQolbd4aGD-eyto",
   "authDomain": "egut-with-api.firebaseapp.com",
   "measurementId": "",
-  "messagingSenderId": "891405266254"
+  "messagingSenderId": "891405266254",
+  "databaseURL": "https://egut-with-api.firebaseio.com"
 };
 
 let app: FirebaseApp;

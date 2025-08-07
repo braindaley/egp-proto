@@ -346,20 +346,29 @@ export async function GET(req: NextRequest) {
       
       // 4. Cache the results in Firestore
       if (feedBills.length > 0) {
-          const batch = writeBatch(db);
-          feedBills.forEach(bill => {
-              const billId = `${bill.congress}-${bill.type}-${bill.number}`;
-              const docRef = doc(cacheCollection, billId);
-              batch.set(docRef, {
-                  billId: billId,
-                  billData: bill,
-                  importanceScore: bill.importanceScore,
-                  cachedAt: Timestamp.now(),
-                  source: 'congress_api'
-              });
-          });
-          await batch.commit();
-          console.log(`Cached ${feedBills.length} bills successfully for Congress ${latestCongress}.`);
+          console.log('💾 Starting to cache', feedBills.length, 'bills to Firestore...'); // Debug log
+          try {
+            const batch = writeBatch(db);
+            feedBills.forEach((bill, index) => {
+                const billId = `${bill.congress}-${bill.type}-${bill.number}`;
+                const docRef = doc(cacheCollection, billId);
+                console.log(`📝 Adding bill ${index + 1}/${feedBills.length} to cache: ${billId}`); // Debug log
+                batch.set(docRef, {
+                    billId: billId,
+                    billData: bill,
+                    importanceScore: bill.importanceScore,
+                    cachedAt: Timestamp.now(),
+                    source: 'congress_api'
+                });
+            });
+            await batch.commit();
+            console.log(`✅ Successfully cached ${feedBills.length} bills to Firestore collection 'cached_bills'.`);
+          } catch (cacheError) {
+            console.error('🚨 Error caching bills to Firestore:', cacheError);
+            // Continue without caching - don't fail the whole request
+          }
+      } else {
+        console.log('⚠️ No bills to cache');
       }
 
       // 5. Return sorted results
