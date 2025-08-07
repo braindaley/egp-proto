@@ -1,148 +1,167 @@
-
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { BillFeedCard } from '@/components/bill-feed-card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { BillFeedCard } from './BillFeedCard';
+import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { FeedBill } from '@/types';
 
-export default function BillsFeed() {
-  const [allBills, setAllBills] = useState<FeedBill[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+interface BillsFeedData {
+  bills: FeedBill[];
+  error?: string;
+}
 
-  const fetchBills = useCallback(async () => {
+export default function BillsFeed() {
+  const [data, setData] = useState<BillsFeedData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchBills = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       setError(null);
-      const response = await fetch('/api/feed/bills');
+      
+      const response = await fetch('/api/feed/bills', {
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error Response:', errorText);
-        throw new Error(`Failed to fetch bills: ${response.status} - ${errorText}`);
+        const errorData = await response.text();
+        throw new Error(`Failed to fetch bills: ${response.status} - ${errorData}`);
       }
-      const data = await response.json();
-      setAllBills(data.bills || []);
+
+      const result: BillsFeedData = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      setData(result);
     } catch (err) {
       console.error('Error fetching bills:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch bills');
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchBills();
-  }, [fetchBills]);
+  }, []);
 
-  const filteredBills = useMemo(() => {
-    let bills = showAll ? allBills : allBills.filter(bill => bill.importanceScore >= 10);
-    if (searchTerm) {
-      const lowercasedTerm = searchTerm.toLowerCase();
-      bills = bills.filter(bill => 
-        bill.shortTitle.toLowerCase().includes(lowercasedTerm) ||
-        bill.billNumber.toLowerCase().includes(lowercasedTerm)
-      );
-    }
-    return bills;
-  }, [allBills, showAll, searchTerm]);
+  const handleRetry = () => {
+    fetchBills();
+  };
 
-  const highPriorityCount = useMemo(() => allBills.filter(b => b.importanceScore >= 30).length, [allBills]);
-  const mediumPriorityCount = useMemo(() => allBills.filter(b => b.importanceScore >= 10 && b.importanceScore < 30).length, [allBills]);
-  const percentageShown = allBills.length > 0 ? ((filteredBills.length / allBills.length) * 100).toFixed(0) : 0;
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="space-y-4 pt-4">
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-48 w-full" />
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <div className="space-y-2">
+            <p className="text-lg font-medium">Loading Latest Bills</p>
+            <p className="text-sm text-muted-foreground">
+              Fetching the most recent congressional activity...
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <div className="text-red-600 font-semibold">Could Not Load Bill Feed</div>
-        <p className="text-sm text-muted-foreground mt-2">
-          There was an issue fetching the latest bills. Please try again later.
-        </p>
-        <div className="text-xs text-red-500 mt-2 max-w-md mx-auto">
-          Error: {error}
+      <div className="py-8">
+        <Alert variant="destructive" className="max-w-2xl mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <div className="space-y-3">
+            <div>
+              <h3 className="font-semibold">Could Not Load Bill Feed</h3>
+              <AlertDescription className="mt-1">
+                There was an issue fetching the latest bills. Please try again later.
+              </AlertDescription>
+              <AlertDescription className="mt-2 text-xs opacity-90">
+                Error: {error}
+              </AlertDescription>
+            </div>
+            <Button 
+              onClick={handleRetry} 
+              variant="outline" 
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Try Again
+            </Button>
+          </div>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!data || !data.bills || data.bills.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="space-y-4">
+          <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground/50" />
+          <div>
+            <h3 className="text-lg font-medium">No Bills Available</h3>
+            <p className="text-muted-foreground">
+              No recent congressional bills were found. Please check back later.
+            </p>
+          </div>
+          <Button onClick={handleRetry} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
         </div>
-        <button 
-          onClick={fetchBills}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Try Again
-        </button>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      
-      <div className="space-y-4 p-4 border bg-card rounded-lg">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search by title or bill number..."
-            className="pl-9"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+      {/* Header */}
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-                <Switch 
-                  id="show-all-bills" 
-                  checked={showAll}
-                  onCheckedChange={setShowAll}
-                />
-                <Label htmlFor="show-all-bills">Show All Bills</Label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {showAll ? 'Showing all recent bills' : 'Hiding lower priority bills (score < 10)'}
-            </p>
+          <h1 className="text-2xl font-bold tracking-tight">Latest Congressional Bills</h1>
+          <Button 
+            onClick={handleRetry} 
+            variant="ghost" 
+            size="sm"
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
-      </div>
-      
-      <div className="text-sm text-muted-foreground">
-        <p>
-          Displaying {filteredBills.length} of {allBills.length} bills.
-          {!showAll && ` (Top ${percentageShown}%)`}
-        </p>
-        <p>
-          High Priority: {highPriorityCount} | Medium Priority: {mediumPriorityCount}
+        <p className="text-muted-foreground">
+          Showing {data.bills.length} recent bills from the 119th Congress, ranked by importance and activity.
         </p>
       </div>
 
-      {filteredBills.length === 0 ? (
-        <div className="text-center py-8">
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Bills Found</h3>
-          <p className="text-gray-600">
-            {searchTerm ? `No bills match your search term "${searchTerm}".` : 'There are no high-priority bills to display.'}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredBills.map((bill, index) => (
-            <BillFeedCard 
-              key={`${bill.congress}-${bill.type}-${bill.number}`} 
-              bill={bill} 
-              index={index}
-            />
-          ))}
-        </div>
-      )}
+      {/* Bills Grid */}
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1">
+        {data.bills.map((bill, index) => (
+          <BillFeedCard 
+            key={`${bill.congress}-${bill.type}-${bill.number}`}
+            bill={bill} 
+            index={index}
+          />
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="text-center pt-6 border-t">
+        <p className="text-sm text-muted-foreground">
+          Data provided by the U.S. Congress API • Last updated: {new Date().toLocaleDateString()}
+        </p>
+      </div>
     </div>
   );
 }

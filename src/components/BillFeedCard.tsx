@@ -115,30 +115,8 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
     return (
       <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out">
         <CardHeader>
-            {/* 1. Bill Number - MOVED TO TOP */}
-            <div className="mb-2">
-                <Badge variant="outline" className="shrink-0 font-semibold">{bill.billNumber}</Badge>
-            </div>
-            
-            {/* 2. Subjects/Issues - MOVED AFTER BILL NUMBER */}
-            <div className="mb-3">
-                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Library className="h-4 w-4" />
-                    {bill.committeeName}
-                </span>
-            </div>
-
-            {/* 3. Bill Title */}
-            <div className="space-y-2">
-                <CardTitle className="font-headline text-lg leading-snug">
-                    <Link href={detailUrl} className="hover:underline text-primary">
-                        {bill.shortTitle}
-                    </Link>
-                </CardTitle>
-            </div>
-
-            {/* 4. Sponsor Information - SEPARATED & 40x40 IMAGE */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3">
+            {/* 1. Sponsor Information - MOVED TO TOP */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
                 {bill.sponsorImageUrl && (
                     <Image 
                         src={bill.sponsorImageUrl} 
@@ -152,6 +130,24 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                     <Users className="h-3 w-3" />
                     {bill.sponsorFullName} ({bill.sponsorParty})
                 </span>
+            </div>
+            
+            {/* 2. Bill Number + Subjects ON SAME LINE */}
+            <div className="flex items-center gap-3 mb-3">
+                <Badge variant="outline" className="shrink-0 font-semibold">{bill.billNumber}</Badge>
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Library className="h-4 w-4" />
+                    {bill.committeeName}
+                </span>
+            </div>
+
+            {/* 3. Bill Title */}
+            <div className="space-y-2">
+                <CardTitle className="font-headline text-lg leading-snug">
+                    <Link href={detailUrl} className="hover:underline text-primary">
+                        {bill.shortTitle}
+                    </Link>
+                </CardTitle>
             </div>
         </CardHeader>
         <CardContent className="space-y-4">
