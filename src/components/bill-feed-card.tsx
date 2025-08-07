@@ -119,13 +119,13 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                 </Link>
             </CardTitle>
             <div className="flex flex-col items-end gap-2">
-                <Badge variant="outline" className="shrink-0">{bill.billNumber}</Badge>
                 <span className={cn("text-xs font-bold", getScoreColor(bill.importanceScore))}>
                   Score: {bill.importanceScore}
                 </span>
             </div>
           </div>
           <div className="text-muted-foreground flex items-center gap-4 text-xs pt-2">
+            <Badge variant="outline" className="shrink-0">{bill.billNumber}</Badge>
             <div className="flex items-center gap-2">
                 {bill.sponsorImageUrl && (
                     <Image 
