@@ -216,18 +216,20 @@ export async function GET(req: NextRequest) {
         cacheCollection, 
         where('cachedAt', '>', sixtyMinutesAgo), 
         orderBy('cachedAt', 'desc'), 
-        limit(500)
+        limit(1) // Check just one recent doc to see if cache is fresh
       );
       const cacheSnapshot = await getDocs(q);
-      
-      const cachedBillsForCongress = cacheSnapshot.docs
-        .map(doc => doc.data().billData as FeedBill)
-        .filter(bill => bill.congress.toString() === latestCongress);
 
-      if (cachedBillsForCongress.length > 0) {
-          console.log(`Serving ${cachedBillsForCongress.length} bills for Congress ${latestCongress} from fresh Firestore cache.`);
-          const sortedBills = cachedBillsForCongress.sort((a, b) => b.importanceScore - a.importanceScore);
-          return NextResponse.json({ bills: sortedBills });
+      if (!cacheSnapshot.empty) {
+          const allCachedQuery = query(cacheCollection, where('billData.congress', '==', 119), limit(500));
+          const allDocsSnapshot = await getDocs(allCachedQuery);
+          const cachedBillsForCongress = allDocsSnapshot.docs.map(doc => doc.data().billData as FeedBill);
+
+          if (cachedBillsForCongress.length > 0) {
+             console.log(`Serving ${cachedBillsForCongress.length} bills for Congress ${latestCongress} from fresh Firestore cache.`);
+             const sortedBills = cachedBillsForCongress.sort((a, b) => b.importanceScore - a.importanceScore);
+             return NextResponse.json({ bills: sortedBills });
+          }
       }
 
       console.log(`Cache is stale or empty for Congress ${latestCongress}. Fetching new data from Congress API.`);
