@@ -1,3 +1,4 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Bill, CongressApiResponse, FeedBill, Sponsor } from '@/types';
 import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, doc, where } from 'firebase/firestore';
@@ -80,26 +81,12 @@ async function fetchShortTitle(congress: number, billType: string, billNumber: s
     const titlesData = await titlesRes.json();
     
     if (titlesData?.titles && Array.isArray(titlesData.titles)) {
-      // Priority order for short title codes (more recent legislative action = higher priority)
-      const titlePriority = [103, 102, 101, 108]; // Reported to Senate, Passed House, Introduced, Portions
-      
-      // Method 1: Look for specific short title codes in priority order
-      for (const code of titlePriority) {
-        const shortTitle = titlesData.titles.find((t: any) => 
-          t.titleTypeCode === code || t.titleTypeCode === String(code)
-        );
-        if (shortTitle && shortTitle.title) {
-          return shortTitle.title;
-        }
-      }
-      
-      // Method 2: Fallback to any titleType containing "short title"
-      const anyShortTitle = titlesData.titles.find((t: any) => 
-        t.titleType?.toLowerCase().includes('short title')
+      // Find a "Short Title" - often more user-friendly
+      const shortTitle = titlesData.titles.find((t: any) =>
+          t.titleType?.toLowerCase().includes('short title(s) as introduced')
       );
-      
-      if (anyShortTitle && anyShortTitle.title) {
-        return anyShortTitle.title;
+      if (shortTitle && shortTitle.title) {
+          return shortTitle.title;
       }
     }
     
@@ -264,3 +251,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
+
+    
