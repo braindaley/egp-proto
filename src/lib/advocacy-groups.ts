@@ -1,3 +1,4 @@
+
 import type { Bill } from '@/types';
 
 export interface AdvocacyGroup {
@@ -64,6 +65,40 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'By ending taxpayer-funded subsidies for fossil fuel companies, this legislation levels the playing field for clean energy and frees up public funds for sustainable development.',
         supportCount: 18982,
         opposeCount: 4120,
+      },
+      {
+        bill: {
+            number: '14',
+            type: 'HR',
+            congress: 119,
+            title: 'National Parks Preservation Act',
+            latestAction: {
+                text: 'Referred to the Committee on Natural Resources.',
+                actionDate: '2025-01-20'
+            },
+            status: 'In Committee'
+        },
+        position: 'Support',
+        reasoning: 'This act designates new protected areas and increases funding for the National Park Service, safeguarding our natural treasures for future generations.',
+        supportCount: 9850,
+        opposeCount: 1520,
+      },
+      {
+        bill: {
+            number: '22',
+            type: 'HR',
+            congress: 119,
+            title: 'Streamline Energy Development Act',
+            latestAction: {
+                text: 'Referred to the Committee on Energy and Commerce.',
+                actionDate: '2025-02-05'
+            },
+            status: 'In Committee'
+        },
+        position: 'Oppose',
+        reasoning: 'This bill fast-tracks fossil fuel projects by weakening essential environmental reviews, posing a significant threat to our climate and local ecosystems.',
+        supportCount: 3100,
+        opposeCount: 15600,
       },
       {
         bill: {
