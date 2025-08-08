@@ -8,6 +8,7 @@ import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from './ui/separator';
 import { CongressSelector } from './congress-selector';
+import { FeedNavigation } from './FeedNavigation';
 
 export function Header() {
   const { user, loading, logout, selectedCongress } = useAuth();
@@ -18,7 +19,7 @@ export function Header() {
   return (
     <header className="bg-background border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center">
+        <div className="relative flex h-16 items-center justify-between">
           {/* Left Section - Logo */}
           <div className="flex items-center gap-6">
              <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
@@ -27,8 +28,10 @@ export function Header() {
             </Link>
           </div>
           
-          {/* Spacer to push auth/menu to the right */}
-          <div className="flex-grow" />
+          {/* Center Section - Feed Navigation */}
+           <div className="absolute left-1/2 -translate-x-1/2">
+                <FeedNavigation />
+            </div>
 
           {/* Right Section - Auth and Menu */}
           <div className="flex items-center gap-2">

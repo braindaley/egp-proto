@@ -20,7 +20,7 @@ export function FeedNavigation({ className }: FeedNavigationProps) {
   ];
 
   return (
-    <nav className={cn('border-b', className)}>
+    <nav className={cn('', className)}>
       <div className="flex h-full" role="tablist">
         {tabs.map((tab) => (
           <Link
