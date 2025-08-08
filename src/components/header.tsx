@@ -1,50 +1,30 @@
+
 'use client';
 
 import Link from 'next/link';
-import { Landmark, LogOut, User, Loader2, Menu, Rss, Star } from 'lucide-react';
+import { Landmark, LogOut, User, Loader2, Menu } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from './ui/separator';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
 import { CongressSelector } from './congress-selector';
 
 export function Header() {
   const { user, loading, logout, selectedCongress } = useAuth();
-  const pathname = usePathname();
 
   const billsHref = selectedCongress ? `/bill/${selectedCongress}` : '/bills';
   const congressHref = selectedCongress ? `/congress/${selectedCongress}` : '/congress';
-
-  const navLinks = [
-    { href: '/', label: 'For you', icon: Rss },
-    { href: '/following', label: 'Following', icon: Star },
-  ];
 
   return (
     <header className="bg-background border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center">
-          {/* Left Section - Logo & Main Nav */}
+          {/* Left Section - Logo */}
           <div className="flex items-center gap-6">
              <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
                 <Landmark className="h-6 w-6" />
                 <span className="hidden sm:inline">eGp Prototype</span>
             </Link>
-             <nav className="hidden md:flex items-center gap-4">
-              {navLinks.map(link => (
-                <Link 
-                  key={link.href}
-                  href={link.href}
-                  className={cn("text-sm font-medium transition-colors hover:text-primary",
-                    pathname === link.href ? "text-primary" : "text-muted-foreground"
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
           </div>
           
           {/* Spacer to push auth/menu to the right */}
@@ -101,21 +81,6 @@ export function Header() {
                       <CongressSelector />
                     </div>
                     
-                    <Separator />
-                    
-                    {navLinks.map(link => (
-                        <SheetClose key={link.href} asChild>
-                            <Link 
-                                href={link.href} 
-                                className={cn("flex items-center gap-2 w-full text-left p-2 rounded-md hover:bg-accent",
-                                pathname === link.href ? "bg-accent" : "")}
-                            >
-                                <link.icon className="h-4 w-4" />
-                                {link.label}
-                            </Link>
-                        </SheetClose>
-                    ))}
-
                     <Separator />
 
                     <SheetClose asChild>
