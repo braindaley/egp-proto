@@ -37,12 +37,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
           number: '4815',
           type: 'S',
           congress: 119,
-          title: 'Clean Energy Infrastructure Investment Act',
-          latestAction: {
-            text: 'Introduced in Senate',
-            actionDate: '2025-02-10'
-          },
-          status: 'In Committee'
         },
         position: 'Support',
         reasoning: 'This bill provides critical funding for modernizing our energy grid and accelerating the transition to renewable energy sources, which is essential for combating climate change.',
@@ -54,12 +48,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
           number: '9021',
           type: 'HR',
           congress: 119,
-          title: 'Fossil Fuel Subsidy Elimination Act',
-          latestAction: {
-            text: 'Referred to the Committee on Ways and Means.',
-            actionDate: '2025-03-01'
-          },
-          status: 'In Committee'
         },
         position: 'Support',
         reasoning: 'By ending taxpayer-funded subsidies for fossil fuel companies, this legislation levels the playing field for clean energy and frees up public funds for sustainable development.',
@@ -71,12 +59,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
             number: '14',
             type: 'HR',
             congress: 119,
-            title: 'National Parks Preservation Act',
-            latestAction: {
-                text: 'Referred to the Committee on Natural Resources.',
-                actionDate: '2025-01-20'
-            },
-            status: 'In Committee'
         },
         position: 'Support',
         reasoning: 'This act designates new protected areas and increases funding for the National Park Service, safeguarding our natural treasures for future generations.',
@@ -88,12 +70,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
             number: '22',
             type: 'HR',
             congress: 119,
-            title: 'Streamline Energy Development Act',
-            latestAction: {
-                text: 'Referred to the Committee on Energy and Commerce.',
-                actionDate: '2025-02-05'
-            },
-            status: 'In Committee'
         },
         position: 'Oppose',
         reasoning: 'This bill fast-tracks fossil fuel projects by weakening essential environmental reviews, posing a significant threat to our climate and local ecosystems.',
@@ -105,12 +81,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
           number: '8871',
           type: 'HR',
           congress: 119,
-          title: 'Industrial Pollution Rollback Act',
-          latestAction: {
-            text: 'Reported by the Committee on Energy and Commerce.',
-            actionDate: '2025-03-15'
-          },
-          status: 'In Committee'
         },
         position: 'Oppose',
         reasoning: 'This act would weaken clean air and water protections, allowing industrial polluters to increase emissions that harm public health and the environment.',
@@ -129,40 +99,28 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
     yearsActive: 104,
     billsSupportedCount: 300,
     priorityBills: [
-      {
-        bill: {
-            number: '14',
-            type: 'HR',
-            congress: 119,
-            title: 'National Parks Preservation Act',
-            latestAction: {
-                text: 'Referred to the Committee on Natural Resources.',
-                actionDate: '2025-01-20'
+        {
+            bill: {
+                number: '14',
+                type: 'HR',
+                congress: 119,
             },
-            status: 'In Committee'
+            position: 'Support',
+            reasoning: 'This act designates new protected areas and increases funding for the National Park Service, safeguarding our natural treasures for future generations.',
+            supportCount: 9850,
+            opposeCount: 1520,
         },
-        position: 'Support',
-        reasoning: 'This act designates new protected areas and increases funding for the National Park Service, safeguarding our natural treasures for future generations.',
-        supportCount: 9850,
-        opposeCount: 1520,
-      },
-      {
-        bill: {
-            number: '22',
-            type: 'HR',
-            congress: 119,
-            title: 'Streamline Energy Development Act',
-            latestAction: {
-                text: 'Referred to the Committee on Energy and Commerce.',
-                actionDate: '2025-02-05'
+        {
+            bill: {
+                number: '22',
+                type: 'HR',
+                congress: 119,
             },
-            status: 'In Committee'
+            position: 'Oppose',
+            reasoning: 'This bill fast-tracks fossil fuel projects by weakening essential environmental reviews, posing a significant threat to our climate and local ecosystems.',
+            supportCount: 3100,
+            opposeCount: 15600,
         },
-        position: 'Oppose',
-        reasoning: 'This bill fast-tracks fossil fuel projects by weakening essential environmental reviews, posing a significant threat to our climate and local ecosystems.',
-        supportCount: 3100,
-        opposeCount: 15600,
-      },
     ],
   },
   'brennan-center-for-justice': {

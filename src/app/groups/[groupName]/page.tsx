@@ -8,6 +8,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Users, Calendar, BarChart, Mic, Edit, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import type { Bill } from '@/types';
+import { getBillTypeSlug } from '@/lib/utils';
+
+// Function to fetch full bill details
+async function getBillDetails(congress: number, billType: string, billNumber: string): Promise<Bill | null> {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+    const billTypeSlug = getBillTypeSlug(billType);
+    const url = `${baseUrl}/api/bill?congress=${congress}&billType=${billTypeSlug}&billNumber=${billNumber}`;
+    try {
+        const res = await fetch(url, { next: { revalidate: 3600 } });
+        if (!res.ok) {
+            console.error(`Failed to fetch bill details for ${billType} ${billNumber}: ${res.status}`);
+            return null;
+        }
+        return await res.json();
+    } catch (error) {
+        console.error("Error in getBillDetails:", error);
+        return null;
+    }
+}
 
 function OrganizationHeader({ group }: { group: any }) {
     return (
@@ -101,19 +121,28 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
         notFound();
     }
     
-    const { priorityBills } = groupData;
+    // Fetch full bill details for each priority bill
+    const priorityBillsWithData = await Promise.all(
+        (groupData.priorityBills || []).map(async (item) => {
+            const billDetails = await getBillDetails(item.bill.congress!, item.bill.type!, item.bill.number!);
+            return {
+                ...item,
+                bill: billDetails || item.bill, // Fallback to partial data if fetch fails
+            };
+        })
+    );
     
     return (
         <div className="container mx-auto px-4 py-8 md:py-12">
             <div className="max-w-3xl mx-auto space-y-8">
                 <OrganizationHeader group={groupData} />
 
-                {priorityBills && priorityBills.length > 0 ? (
+                {priorityBillsWithData && priorityBillsWithData.length > 0 ? (
                     <>
                         <h2 className="text-2xl font-bold font-headline text-center">Priority Legislation</h2>
                         <div className="space-y-6">
-                            {priorityBills.map((item) => (
-                                <AdvocacyBillCard key={item.bill.number} priorityBill={item} />
+                            {priorityBillsWithData.map((item, index) => (
+                                <AdvocacyBillCard key={index} priorityBill={item} />
                             ))}
                         </div>
                     </>
