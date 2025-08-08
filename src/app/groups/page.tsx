@@ -27,6 +27,7 @@ const advocacyGroups = [
   { name: 'National Voter Registration Day', slug: 'national-voter-registration-day' },
   { name: 'Democracy NC', slug: 'democracy-nc' },
   { name: 'The Civics Center', slug: 'the-civics-center' },
+  { name: 'No Labels', slug: 'no-labels' },
 ].sort((a, b) => a.name.localeCompare(b.name));
 
 export default function VoterAdvocacyGroupsPage() {
