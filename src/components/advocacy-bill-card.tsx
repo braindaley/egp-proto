@@ -20,6 +20,10 @@ export function AdvocacyBillCard({ priorityBill }: { priorityBill: PriorityBill 
   const handleSupport = () => setUserSupport(prev => (prev === 1 ? 0 : 1));
   const handleOppose = () => setUserSupport(prev => (prev === -1 ? 0 : -1));
 
+  const summaryText = bill.summaries?.items?.[0]?.text 
+    ? (bill.summaries.items[0].text.replace(/<[^>]*>/g, '').substring(0, 250) + '...')
+    : 'No summary available.';
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -32,13 +36,14 @@ export function AdvocacyBillCard({ priorityBill }: { priorityBill: PriorityBill 
             {bill.title}
           </Link>
         </CardTitle>
+        <CardDescription className="pt-2">{summaryText}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className={`p-3 rounded-md border-l-4 ${position === 'Support' ? 'bg-green-50 border-green-600' : 'bg-red-50 border-red-600'}`}>
             <h4 className={`font-semibold text-sm mb-2 ${position === 'Support' ? 'text-green-800' : 'text-red-800'}`}>
                 Organization's Position: {position}
             </h4>
-            <div className="text-sm text-muted-foreground whitespace-pre-line">{reasoning}</div>
+            <div className="text-sm text-muted-foreground whitespace-pre-wrap">{reasoning}</div>
         </div>
 
         <div className="flex justify-around items-center text-center pt-4">
