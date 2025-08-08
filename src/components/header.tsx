@@ -97,6 +97,11 @@ export function Header() {
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>
+                      <Link href="/groups" className="block w-full text-left p-2 rounded-md hover:bg-accent">
+                        Groups
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
                       <Link href="/support-us" className="block w-full text-left p-2 rounded-md hover:bg-accent">
                           Support Us
                       </Link>
