@@ -26,71 +26,50 @@ export function Header() {
   return (
     <header className="bg-background border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center md:grid md:grid-cols-3">
-          {/* Left Section - Desktop */}
-          <div className="hidden md:flex justify-start">
-             <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
-                <Landmark className="h-6 w-6" />
-                <span>eGp Prototype</span>
-            </Link>
-          </div>
-
-          {/* Mobile: Logo is part of the flex container */}
-          <div className="flex-1 md:hidden">
+        <div className="flex h-16 items-center">
+          {/* Left Section - Logo */}
+          <div className="flex-1 md:flex-none">
              <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
                 <Landmark className="h-6 w-6" />
                 <span>eGp Prototype</span>
             </Link>
           </div>
           
-          {/* Center Section - Desktop */}
-          <nav className="hidden md:flex justify-center items-center gap-4">
-            {navLinks.map(link => (
-                <Link
-                    key={link.href}
-                    href={link.href}
-                    className={cn(
-                        "text-sm font-medium transition-colors border-b-2",
-                        pathname === link.href ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-primary"
-                    )}
-                >
-                    {link.label}
-                </Link>
-            ))}
-          </nav>
+          {/* Spacer to push auth/menu to the right */}
+          <div className="flex-grow" />
 
-          {/* Right Section - Desktop */}
-          <div className="hidden md:flex items-center justify-end gap-2">
-            <CongressSelector />
-            {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-            ) : user ? (
-                <>
-                    <Button variant="ghost" size="sm" asChild>
-                        <Link href="/dashboard">
-                            <User className="mr-2 h-4 w-4" />
-                            Dashboard
-                        </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={logout}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Logout
-                    </Button>
-                </>
-            ) : (
-                <>
-                    <Button variant="ghost" size="sm" asChild>
-                        <Link href="/login">Login</Link>
-                    </Button>
-                    <Button size="sm" asChild>
-                         <Link href="/signup">Sign Up</Link>
-                    </Button>
-                </>
-            )}
-          </div>
+          {/* Right Section - Auth and Menu */}
+          <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
+                <CongressSelector />
+                {loading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                ) : user ? (
+                    <>
+                        <Button variant="ghost" size="sm" asChild>
+                            <Link href="/dashboard">
+                                <User className="mr-2 h-4 w-4" />
+                                Dashboard
+                            </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={logout}>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Logout
+                        </Button>
+                    </>
+                ) : (
+                    <>
+                        <Button variant="ghost" size="sm" asChild>
+                            <Link href="/login">Login</Link>
+                        </Button>
+                        <Button size="sm" asChild>
+                            <Link href="/signup">Sign Up</Link>
+                        </Button>
+                    </>
+                )}
+            </div>
 
-          {/* Mobile Hamburger Menu */}
-          <div className="md:hidden">
+            {/* Hamburger Menu (visible on all screens) */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon">
