@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -114,84 +113,91 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
     };
 
     return (
-      <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out">
-        <CardHeader>
-            <div className="flex items-center gap-3 mb-3">
-                <Badge variant="outline" className="shrink-0 font-semibold">{bill.billNumber}</Badge>
-                <span className="flex items-center gap-1.5 text-sm text-muted-foreground truncate">
-                    <Library className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{bill.committeeName}</span>
-                </span>
-            </div>
+        <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out">
+            <CardHeader>
+                {/* Sponsor info at the top with larger circular image */}
+                <div className="flex items-center gap-4 mb-4">
+                    {bill.sponsorImageUrl && (
+                        <div className="w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0">
+                            <Image 
+                                src={bill.sponsorImageUrl} 
+                                alt={bill.sponsorFullName}
+                                width={60}
+                                height={60}
+                                className="w-full h-full object-cover"
+                            />
+                        </div>
+                    )}
+                    <span className={`flex items-center gap-1.5 px-3 py-2 rounded-full ${partyColor}`}>
+                        <Users className="h-3 w-3" />
+                        {bill.sponsorFullName} ({bill.sponsorParty})
+                    </span>
+                </div>
 
-            <div className="space-y-2">
-                <CardTitle className="font-headline text-lg leading-snug">
-                    <Link href={detailUrl} className="hover:underline text-primary">
-                        {bill.shortTitle}
-                    </Link>
-                </CardTitle>
-                {bill.summary && (
-                  <p className="text-sm text-muted-foreground line-clamp-2 pt-1">
-                    {bill.summary}
-                  </p>
-                )}
-            </div>
+                {/* Bill number and subjects on same line */}
+                <div className="flex items-center gap-3 mb-3 flex-wrap">
+                    <Badge variant="outline" className="shrink-0 font-semibold">{bill.billNumber}</Badge>
+                    <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Library className="h-4 w-4 shrink-0" />
+                        <span>{bill.committeeName}</span>
+                    </span>
+                </div>
 
-            <div className="flex items-center gap-2 text-xs text-muted-foreground pt-3">
-                {bill.sponsorImageUrl && (
-                    <Image 
-                        src={bill.sponsorImageUrl} 
-                        alt={bill.sponsorFullName}
-                        width={24}
-                        height={24}
-                        className="rounded-full"
-                    />
-                )}
-                <span className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${partyColor}`}>
-                    <Users className="h-3 w-3" />
-                    {bill.sponsorFullName} ({bill.sponsorParty})
-                </span>
-            </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground line-clamp-2">
-                <span className="font-semibold text-foreground">Latest Action:</span>{' '}
-                {bill.latestAction.text} ({formatDate(bill.latestAction.actionDate)})
-            </p>
-             <BillStatusIndicator status={bill.status} />
-        </CardContent>
-        <CardFooter className="flex justify-between items-center pt-4 border-t">
-            <div className="flex items-center gap-2">
-                <Button 
-                    variant={supportStatus === 'supported' ? 'secondary' : 'outline'}
-                    size="sm"
-                    onClick={handleSupport}
-                    className="flex items-center gap-1.5"
-                >
-                    <ThumbsUp className={cn("h-4 w-4", supportStatus === 'supported' && "text-green-600")} />
-                    Support
-                </Button>
-                <Button 
-                    variant={supportStatus === 'opposed' ? 'secondary' : 'outline'}
-                    size="sm"
-                    onClick={handleOppose}
-                    className="flex items-center gap-1.5"
-                >
-                    <ThumbsDown className={cn("h-4 w-4", supportStatus === 'opposed' && "text-red-600")} />
-                    Oppose
-                </Button>
-                <Button 
-                    variant={isWatched ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={handleWatch}
-                    className="flex items-center gap-1.5 text-muted-foreground"
-                >
-                    <Eye className={cn("h-4 w-4", isWatched && "text-blue-600")} />
-                    {isWatched ? 'Watching' : 'Watch'}
-                </Button>
-            </div>
-            <ImportanceBadge score={bill.importanceScore} />
-        </CardFooter>
-      </Card>
+                {/* Bill title */}
+                <div className="space-y-2">
+                    <CardTitle className="font-headline text-lg leading-snug">
+                        <Link href={detailUrl} className="hover:underline text-primary">
+                            {bill.shortTitle}
+                        </Link>
+                    </CardTitle>
+                    {bill.summary && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 pt-1">
+                            {bill.summary}
+                        </p>
+                    )}
+                </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                    <span className="font-semibold text-foreground">Latest Action:</span>{' '}
+                    {bill.latestAction.text} ({formatDate(bill.latestAction.actionDate)})
+                </p>
+                <BillStatusIndicator status={bill.status} />
+            </CardContent>
+            
+            <CardFooter className="flex justify-between items-center pt-4 border-t">
+                <div className="flex items-center gap-2">
+                    <Button 
+                        variant={supportStatus === 'supported' ? 'secondary' : 'outline'}
+                        size="sm"
+                        onClick={handleSupport}
+                        className="flex items-center gap-1.5"
+                    >
+                        <ThumbsUp className={cn("h-4 w-4", supportStatus === 'supported' && "text-green-600")} />
+                        Support
+                    </Button>
+                    <Button 
+                        variant={supportStatus === 'opposed' ? 'secondary' : 'outline'}
+                        size="sm"
+                        onClick={handleOppose}
+                        className="flex items-center gap-1.5"
+                    >
+                        <ThumbsDown className={cn("h-4 w-4", supportStatus === 'opposed' && "text-red-600")} />
+                        Oppose
+                    </Button>
+                    <Button 
+                        variant={isWatched ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={handleWatch}
+                        className="flex items-center gap-1.5 text-muted-foreground"
+                    >
+                        <Eye className={cn("h-4 w-4", isWatched && "text-blue-600")} />
+                        {isWatched ? 'Watching' : 'Watch'}
+                    </Button>
+                </div>
+                <ImportanceBadge score={bill.importanceScore} />
+            </CardFooter>
+        </Card>
     );
 }
