@@ -25,7 +25,7 @@ export function AdvocacyBillCard({ priorityBill }: { priorityBill: PriorityBill 
       <CardHeader>
         <div className="flex items-center justify-between mb-2">
           <Badge variant="outline">{bill.type} {bill.number}</Badge>
-          <Badge variant="secondary">{bill.status || 'In Committee'}</Badge>
+          <Badge variant="secondary">{bill.latestAction?.text || 'In Committee'}</Badge>
         </div>
         <CardTitle className="text-xl font-headline">
           <Link href={detailUrl} className="hover:underline">
@@ -34,12 +34,11 @@ export function AdvocacyBillCard({ priorityBill }: { priorityBill: PriorityBill 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">{reasoning}</p>
-        
         <div className={`p-3 rounded-md border-l-4 ${position === 'Support' ? 'bg-green-50 border-green-600' : 'bg-red-50 border-red-600'}`}>
             <h4 className={`font-semibold text-sm mb-2 ${position === 'Support' ? 'text-green-800' : 'text-red-800'}`}>
                 Organization's Position: {position}
             </h4>
+            <div className="text-sm text-muted-foreground whitespace-pre-line">{reasoning}</div>
         </div>
 
         <div className="flex justify-around items-center text-center pt-4">
