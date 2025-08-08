@@ -1,8 +1,5 @@
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight } from 'lucide-react';
 
 const advocacyGroups = [
   { name: 'League of Women Voters', slug: 'league-of-women-voters' },
@@ -35,26 +32,23 @@ const advocacyGroups = [
 export default function VoterAdvocacyGroupsPage() {
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold text-primary">Voter Advocacy Groups</CardTitle>
-          <CardDescription className="text-lg text-muted-foreground mt-2">
+      <header className="text-center mb-12">
+          <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">Voter Advocacy Groups</h1>
+          <p className="text-lg text-muted-foreground">
             Explore organizations dedicated to strengthening democracy and voter participation.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {advocacyGroups.map((group) => (
-              <Button asChild key={group.slug} variant="outline" className="justify-start">
-                <Link href={`/groups/${group.slug}`} className="flex items-center justify-between">
-                  <span>{group.name}</span>
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+          </p>
+      </header>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {advocacyGroups.map((group) => (
+          <Link
+            href={`/groups/${group.slug}`}
+            key={group.slug}
+            className="text-center p-4 rounded-lg bg-card text-card-foreground shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors duration-200 ease-in-out"
+          >
+            <span className="font-medium">{group.name}</span>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
