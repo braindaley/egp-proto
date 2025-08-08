@@ -56,31 +56,9 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
       },
       {
         bill: {
-            number: '14',
+            number: '8871',
             type: 'HR',
             congress: 119,
-        },
-        position: 'Support',
-        reasoning: 'This act designates new protected areas and increases funding for the National Park Service, safeguarding our natural treasures for future generations.',
-        supportCount: 9850,
-        opposeCount: 1520,
-      },
-      {
-        bill: {
-            number: '22',
-            type: 'HR',
-            congress: 119,
-        },
-        position: 'Oppose',
-        reasoning: 'This bill fast-tracks fossil fuel projects by weakening essential environmental reviews, posing a significant threat to our climate and local ecosystems.',
-        supportCount: 3100,
-        opposeCount: 15600,
-      },
-      {
-        bill: {
-          number: '8871',
-          type: 'HR',
-          congress: 119,
         },
         position: 'Oppose',
         reasoning: 'This act would weaken clean air and water protections, allowing industrial polluters to increase emissions that harm public health and the environment.',
@@ -117,7 +95,7 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
                 congress: 119,
             },
             position: 'Oppose',
-            reasoning: 'This bill fast-tracks fossil fuel projects by weakening essential environmental reviews, posing a significant threat to our climate and local ecosystems.',
+            reasoning: "Why LWV Opposes the SAVE Act (H.R. 22) It creates unnecessary barriers to voting. Although voters are already required to affirm citizenship when registering, the SAVE Act adds redundant requirements, such as presenting documentary proof of U.S. citizenship in person every time you update your registration. This puts an unfair burden on many eligible voters. It disproportionately impacts marginalized groups. The League highlights how the SAVE Act harms rural voters, voters of color, military families who move frequently, those recovering from disasters, and especially married women who’ve changed their names and may struggle to match documentation. It addresses a problem that doesn’t exist. Noncitizen voting is already illegal and extremely rare. The League warns that the SAVE Act is rooted in fear, misinformation, and divisive rhetoric—not real threats to democracy. It undermines voter access and overloads election infrastructure. Requiring in-person registrations and strict document checks could overwhelm local election offices and undermine the League’s century-long mission of encouraging broad participation.",
             supportCount: 3100,
             opposeCount: 15600,
         },
