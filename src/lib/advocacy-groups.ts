@@ -131,40 +131,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
     priorityBills: [
       {
         bill: {
-          number: '4815',
-          type: 'S',
-          congress: 119,
-          title: 'Clean Energy Infrastructure Investment Act',
-          latestAction: {
-            text: 'Introduced in Senate',
-            actionDate: '2025-02-10'
-          },
-          status: 'In Committee'
-        },
-        position: 'Support',
-        reasoning: 'This bill provides critical funding for modernizing our energy grid and accelerating the transition to renewable energy sources, which is essential for combating climate change.',
-        supportCount: 12543,
-        opposeCount: 2319,
-      },
-      {
-        bill: {
-          number: '9021',
-          type: 'HR',
-          congress: 119,
-          title: 'Fossil Fuel Subsidy Elimination Act',
-          latestAction: {
-            text: 'Referred to the Committee on Ways and Means.',
-            actionDate: '2025-03-01'
-          },
-          status: 'In Committee'
-        },
-        position: 'Support',
-        reasoning: 'By ending taxpayer-funded subsidies for fossil fuel companies, this legislation levels the playing field for clean energy and frees up public funds for sustainable development.',
-        supportCount: 18982,
-        opposeCount: 4120,
-      },
-      {
-        bill: {
             number: '14',
             type: 'HR',
             congress: 119,
@@ -196,23 +162,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'This bill fast-tracks fossil fuel projects by weakening essential environmental reviews, posing a significant threat to our climate and local ecosystems.',
         supportCount: 3100,
         opposeCount: 15600,
-      },
-      {
-        bill: {
-          number: '8871',
-          type: 'HR',
-          congress: 119,
-          title: 'Industrial Pollution Rollback Act',
-          latestAction: {
-            text: 'Reported by the Committee on Energy and Commerce.',
-            actionDate: '2025-03-15'
-          },
-          status: 'In Committee'
-        },
-        position: 'Oppose',
-        reasoning: 'This act would weaken clean air and water protections, allowing industrial polluters to increase emissions that harm public health and the environment.',
-        supportCount: 1877,
-        opposeCount: 22451,
       },
     ],
   },
