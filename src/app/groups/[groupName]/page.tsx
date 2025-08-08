@@ -101,45 +101,34 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
         notFound();
     }
     
-    // Add a specific case for the sample content
-    if (groupName === 'environmental-defense-alliance') {
-         const { priorityBills } = groupData;
-         
-         return (
-             <div className="container mx-auto px-4 py-8 md:py-12">
-                 <div className="max-w-3xl mx-auto space-y-8">
-                    <OrganizationHeader group={groupData} />
-
-                    <h2 className="text-2xl font-bold font-headline text-center">Priority Legislation</h2>
-
-                    <div className="space-y-6">
-                        {priorityBills.map((item) => (
-                            <AdvocacyBillCard key={item.bill.number} priorityBill={item} />
-                        ))}
-                    </div>
-
-                    <ImpactSection />
-                    <QuickActions />
-                </div>
-            </div>
-         );
-    }
-
+    const { priorityBills } = groupData;
+    
     return (
         <div className="container mx-auto px-4 py-8 md:py-12">
             <div className="max-w-3xl mx-auto space-y-8">
                 <OrganizationHeader group={groupData} />
-                
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Content Coming Soon</CardTitle>
-                        <CardContent className="pt-4">
-                        <p className="text-muted-foreground">
-                            Detailed legislative priorities and supported bills for this organization will be available here shortly.
-                        </p>
-                        </CardContent>
-                    </CardHeader>
-                </Card>
+
+                {priorityBills && priorityBills.length > 0 ? (
+                    <>
+                        <h2 className="text-2xl font-bold font-headline text-center">Priority Legislation</h2>
+                        <div className="space-y-6">
+                            {priorityBills.map((item) => (
+                                <AdvocacyBillCard key={item.bill.number} priorityBill={item} />
+                            ))}
+                        </div>
+                    </>
+                ) : (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Content Coming Soon</CardTitle>
+                            <CardContent className="pt-4">
+                                <p className="text-muted-foreground">
+                                    Detailed legislative priorities and supported bills for this organization will be available here shortly.
+                                </p>
+                            </CardContent>
+                        </CardHeader>
+                    </Card>
+                )}
 
                 <ImpactSection />
                 <QuickActions />
