@@ -41,7 +41,7 @@ export function AdvocacyBillCard({ priorityBill }: { priorityBill: PriorityBill 
       <CardContent className="space-y-4">
         <div className={`p-3 rounded-md border-l-4 ${position === 'Support' ? 'bg-green-50 border-green-600' : 'bg-red-50 border-red-600'}`}>
             <h4 className={`font-semibold text-sm mb-2 ${position === 'Support' ? 'text-green-800' : 'text-red-800'}`}>
-                Organization's Position: {position}
+                {position}
             </h4>
             <div className="text-sm text-muted-foreground prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: reasoning }} />
         </div>
