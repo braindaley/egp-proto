@@ -84,7 +84,7 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
           congress: 119,
         },
         position: 'Support',
-        reasoning: 'This act designates new protected areas and increases funding for the National Park Service, safeguarding our natural treasures for future generations.',
+        reasoning: '• **It restores protections weakened by court decisions.** After the 2013 *Shelby County v. Holder* ruling gutted key provisions of the Voting Rights Act, this legislation is seen as essential to reestablish federal oversight and guard against discriminatory changes in voting laws.\n\n• **It defends democracy and honors the VRA’s legacy.** Named for civil rights hero John Lewis, the bill is framed as much-needed defense of voting rights—particularly amid renewed state-level attacks on fair representation and redistricting.\n\n• **It aligns with LWV’s mission.** The League has a long history of fighting to make elections fair, inclusive, and accessible. This act fits squarely within that mission by preventing racial discrimination and ensuring every voter is heard.',
         supportCount: 9850,
         opposeCount: 1520,
       },
