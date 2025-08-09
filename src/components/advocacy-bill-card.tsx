@@ -20,7 +20,7 @@ export function AdvocacyBillCard({ priorityBill }: { priorityBill: PriorityBill 
   const handleSupport = () => setUserSupport(prev => (prev === 1 ? 0 : 1));
   const handleOppose = () => setUserSupport(prev => (prev === -1 ? 0 : 1));
 
-  const summaryText = bill.summaries?.items?.[0]?.text 
+  const summaryText = bill.summaries?.items?.[0]?.text
     ? (bill.summaries.items[0].text.replace(/<[^>]*>/g, '').substring(0, 250) + '...')
     : 'No summary available.';
 
@@ -43,7 +43,7 @@ export function AdvocacyBillCard({ priorityBill }: { priorityBill: PriorityBill 
             <h4 className={`font-semibold text-sm mb-2 ${position === 'Support' ? 'text-green-800' : 'text-red-800'}`}>
                 {position}
             </h4>
-            <div className="text-sm text-muted-foreground prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: reasoning }} />
+            <div className="prose prose-h3:text-lg prose-h3:font-semibold prose-sm max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: `<h3>${reasoning}</h3>` }} />
         </div>
 
         <div className="flex justify-around items-center text-center pt-4">
