@@ -18,7 +18,7 @@ export function AdvocacyBillCard({ priorityBill }: { priorityBill: PriorityBill 
   const detailUrl = `/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
 
   const handleSupport = () => setUserSupport(prev => (prev === 1 ? 0 : 1));
-  const handleOppose = () => setUserSupport(prev => (prev === -1 ? 0 : -1));
+  const handleOppose = () => setUserSupport(prev => (prev === -1 ? 0 : 1));
 
   const summaryText = bill.summaries?.items?.[0]?.text 
     ? (bill.summaries.items[0].text.replace(/<[^>]*>/g, '').substring(0, 250) + '...')
@@ -43,7 +43,7 @@ export function AdvocacyBillCard({ priorityBill }: { priorityBill: PriorityBill 
             <h4 className={`font-semibold text-sm mb-2 ${position === 'Support' ? 'text-green-800' : 'text-red-800'}`}>
                 Organization's Position: {position}
             </h4>
-            <div className="text-sm text-muted-foreground whitespace-pre-wrap">{reasoning}</div>
+            <div className="text-sm text-muted-foreground prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: reasoning }} />
         </div>
 
         <div className="flex justify-around items-center text-center pt-4">
