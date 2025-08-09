@@ -10,6 +10,8 @@ import { ExternalLink, Users, Calendar, BarChart, Mic, Edit, CheckCircle } from 
 import { Badge } from '@/components/ui/badge';
 import type { Bill } from '@/types';
 import { getBillTypeSlug } from '@/lib/utils';
+import { remark } from 'remark';
+import html from 'remark-html';
 
 // Function to fetch full bill details
 async function getBillDetails(congress: number, billType: string, billNumber: string): Promise<Bill | null> {
@@ -27,6 +29,11 @@ async function getBillDetails(congress: number, billType: string, billNumber: st
         console.error("Error in getBillDetails:", error);
         return null;
     }
+}
+
+async function processMarkdown(markdown: string) {
+    const result = await remark().use(html).process(markdown);
+    return result.toString();
 }
 
 function OrganizationHeader({ group }: { group: any }) {
@@ -121,13 +128,15 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
         notFound();
     }
     
-    // Fetch full bill details for each priority bill
+    // Fetch full bill details and process markdown for each priority bill
     const priorityBillsWithData = await Promise.all(
         (groupData.priorityBills || []).map(async (item) => {
             const billDetails = await getBillDetails(item.bill.congress!, item.bill.type!, item.bill.number!);
+            const processedReasoning = await processMarkdown(item.reasoning);
             return {
                 ...item,
                 bill: billDetails || item.bill, // Fallback to partial data if fetch fails
+                reasoning: processedReasoning,
             };
         })
     );
