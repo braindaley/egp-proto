@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle 
 import { Separator } from './ui/separator';
 import { CongressSelector } from './congress-selector';
 import { FeedNavigation } from './FeedNavigation';
-import ZipCodeManager from './ZipCodeManager';
+import { ZipCodeChanger } from './ZipCodeManager'; // Import the new UI component
 
 export function Header() {
   const { user, loading, logout, selectedCongress } = useAuth();
@@ -81,14 +81,17 @@ export function Header() {
                   <h3 className="text-lg font-semibold mb-4">Navigation</h3>
                   <div className="space-y-4">
                     <div className="space-y-2">
+                      <label className="text-sm font-medium">Your Location</label>
+                      <ZipCodeChanger />
+                    </div>
+                    
+                    <Separator />
+
+                    <div className="space-y-2">
                       <label className="text-sm font-medium">Congress Session</label>
                       <CongressSelector />
                     </div>
                     
-                    <Separator />
-                    
-                    <ZipCodeManager />
-
                     <Separator />
 
                     <SheetClose asChild>

@@ -2,105 +2,67 @@ import { NextResponse } from 'next/server';
 import type { Bill } from '@/types';
 import Parser from 'rss-parser';
 
-// Helper to extract bills from HTML content
+// Mapping from URL slug to bill type abbreviation
+const typeMap: { [key: string]: string } = {
+    'house-bill': 'H.R.',
+    'senate-bill': 'S.',
+    'house-joint-resolution': 'H.J.Res.',
+    'senate-joint-resolution': 'S.J.Res.',
+    'house-concurrent-resolution': 'H.Con.Res.',
+    'senate-concurrent-resolution': 'S.Con.Res.',
+    'house-resolution': 'H.Res.',
+    'senate-resolution': 'S.Res.',
+};
+
 function parseBillsFromContent(content: string): Partial<Bill>[] {
-    console.log('🔍 Parsing content length:', content.length);
-    console.log('🔍 Content preview:', content.substring(0, 500));
-    
+    console.log('--- Using Robust Bill Parsing ---');
     const bills: Partial<Bill>[] = [];
-    
-    // The actual format from Congress.gov RSS:
-    // <li><a href='https://www.congress.gov/bill/119th-congress/house-bill/1'>H.R.1</a> [119th] - One Big Beautiful Bill Act</li>
-    const congressPattern = /<li><a href='https:\/\/www\.congress\.gov\/bill\/(\d+)th-congress\/([^']+)'>((?:H\.R\.|S\.|H\.Res\.|S\.Res\.|H\.J\.Res\.|S\.J\.Res\.|H\.Con\.Res\.|S\.Con\.Res\.)\s*\d+)<\/a>\s*\[(\d+)th\]\s*-\s*([^<]+)<\/li>/gi;
-    
-    console.log('🔍 Testing Congress.gov RSS pattern...');
+    // This pattern finds links to bills and captures the title that follows.
+    // It's more resilient than matching the entire HTML structure (e.g., `<li>` tags).
+    const billPattern = /<a href='https:\/\/www\.congress\.gov\/bill\/(\d+)th-congress\/([^\/]+)\/(\d+)'>.*?<\/a>.*?-\s*([\s\S]*?)(?=<br|<li>|<\/ul>|$)/gi;
+
     let match;
-    let matchCount = 0;
-    
-    while ((match = congressPattern.exec(content)) !== null && matchCount < 20) {
-        matchCount++;
-        console.log(`✅ Match ${matchCount}:`, match);
-        
+    while ((match = billPattern.exec(content)) !== null) {
         const congress = parseInt(match[1], 10);
-        const urlPath = match[2];
-        const billFullNumber = match[3]; // e.g., "H.R.1"
-        const congressInBrackets = parseInt(match[4], 10);
-        const billTitle = match[5].trim();
+        const billTypeSlug = match[2];
+        const billNumber = match[3];
+        let title = match[4].trim().replace(/&amp;/g, '&').replace(/\s*\.\.\.\s*$/, '');
+
+        const type = typeMap[billTypeSlug];
         
-        // Parse bill type and number from the full number
-        const billMatch = billFullNumber.match(/(H\.R\.|S\.|H\.Res\.|S\.Res\.|H\.J\.Res\.|S\.J\.Res\.|H\.Con\.Res\.|S\.Con\.Res\.)\s*(\d+)/);
-        
-        if (!billMatch) {
-            console.log(`❌ Could not parse bill number from: ${billFullNumber}`);
+        if (!type) {
+            console.warn(`[Parser] Skipping unknown bill type slug: ${billTypeSlug}`);
             continue;
-        }
-        
-        const billType = billMatch[1].trim();
-        const billNumber = billMatch[2].trim();
-        const billUrl = `https://www.congress.gov/bill/${congress}th-congress/${urlPath}`;
-        
-        // Clean up title
-        let cleanTitle = billTitle.replace(/\s*\.\.\.\s*$/, '').trim();
-        if (cleanTitle.length > 200) {
-            cleanTitle = cleanTitle.substring(0, 200) + '...';
         }
 
-        // Avoid duplicates
-        const billKey = `${billType}${billNumber}`;
-        if (bills.some(b => `${b.type}${b.number}` === billKey)) {
-            console.log(`⚠️ Skipping duplicate: ${billKey}`);
-            continue;
-        }
+        const billUrl = `https://www.congress.gov/bill/${congress}th-congress/${billTypeSlug}/${billNumber}`;
 
         const bill: Partial<Bill> = {
             congress,
             number: billNumber,
-            type: billType,
-            title: cleanTitle,
-            shortTitle: `${billType} ${billNumber} - ${cleanTitle}`,
+            type,
+            title,
             url: billUrl,
+            shortTitle: `${type} ${billNumber} - ${title}`,
         };
-
-        bills.push(bill);
-        console.log(`✅ Added bill: ${billType} ${billNumber} - ${cleanTitle.substring(0, 50)}...`);
-    }
-    
-    // Reset regex lastIndex
-    congressPattern.lastIndex = 0;
-
-    console.log(`📊 Total bills extracted: ${bills.length}`);
-    
-    // If no bills found, let's try a simpler fallback pattern
-    if (bills.length === 0) {
-        console.log('🔄 No bills found with primary pattern, trying fallback...');
-        const fallbackPattern = /<a href='[^']*'>([^<]+)<\/a>[^-]*-\s*([^<\n]+)/gi;
         
-        let fallbackMatch;
-        while ((fallbackMatch = fallbackPattern.exec(content)) !== null && bills.length < 10) {
-            const billText = fallbackMatch[1].trim();
-            const titleText = fallbackMatch[2].trim();
-            
-            console.log(`🔄 Fallback match: ${billText} - ${titleText}`);
-            
-            const billMatch = billText.match(/(H\.R\.|S\.|H\.Res\.|S\.Res\.|H\.J\.Res\.|S\.J\.Res\.|H\.Con\.Res\.|S\.Con\.Res\.)\s*(\d+)/);
-            if (billMatch) {
-                const bill: Partial<Bill> = {
-                    congress: 119,
-                    number: billMatch[2].trim(),
-                    type: billMatch[1].trim(),
-                    title: titleText,
-                    shortTitle: `${billMatch[1].trim()} ${billMatch[2].trim()} - ${titleText}`,
-                    url: `https://www.congress.gov/bill/119th-congress/${billMatch[1].toLowerCase().replace(/\./g, '')}-${billMatch[2]}`,
-                };
-                bills.push(bill);
-                console.log(`✅ Added fallback bill: ${bill.type} ${bill.number}`);
-            }
+        // Avoid duplicates that can sometimes appear in the feed
+        if (!bills.some(b => b.number === bill.number && b.type === bill.type)) {
+            bills.push(bill);
+            console.log(`[Parser] ✅ Parsed: ${type} ${billNumber}`);
         }
-        fallbackPattern.lastIndex = 0;
+    }
+
+    if (bills.length === 0) {
+        console.log('[Parser] ❌ No bills found with robust pattern.');
+        console.log('--- Content for Debugging ---');
+        console.log(content);
+        console.log('--- End Content ---');
     }
     
     return bills;
 }
+
 
 export async function GET() {
     const rssUrl = 'https://www.congress.gov/rss/most-viewed-bills.xml';
@@ -111,41 +73,20 @@ export async function GET() {
         const feed = await parser.parseURL(rssUrl);
 
         console.log('📡 RSS Feed parsed successfully');
-        console.log('📊 Feed items count:', feed.items?.length || 0);
-
-        if (!feed.items || feed.items.length === 0) {
+        if (!feed?.items?.length) {
             console.log('❌ No items found in RSS feed');
             return NextResponse.json({ 
                 bills: [], 
-                debug: { 
-                    error: 'No items found in RSS feed',
-                    rssItems: 0,
-                    parsedCount: 0,
-                    lastUpdated: new Date().toISOString()
-                } 
+                debug: { error: 'No items found in RSS feed' } 
             }, { status: 404 });
         }
 
         let allBills: Partial<Bill>[] = [];
-        
         for (const item of feed.items) {
-            console.log('\n🔄 Processing RSS item...');
-            console.log('📋 Item title:', item.title);
-            console.log('🔗 Item link:', item.link);
-            
-            // The actual bills are in the content, not the title
-            let content = '';
-            if (item.content) {
-                content = item.content;
-                console.log('📄 Using content field');
-            } else if (item.contentSnippet) {
-                content = item.contentSnippet;
-                console.log('📄 Using contentSnippet field');
-            } else if (item.description) {
-                content = item.description;
-                console.log('📄 Using description field');
-            } else {
-                console.log('❌ No content found in item');
+            // The actual bill details are in the 'content' field as HTML
+            const content = item.content || item.contentSnippet || '';
+            if (!content) {
+                console.log(`[Item] Skipping RSS item with no content: "${item.title}"`);
                 continue;
             }
 
@@ -153,22 +94,22 @@ export async function GET() {
             allBills = allBills.concat(billsFromContent);
         }
 
-        // Convert to full Bill objects
+        // Convert to full Bill objects, adding required fields
         const bills: Bill[] = allBills.map(bill => ({
             congress: bill.congress!,
             number: bill.number!,
             type: bill.type!,
+            originChamber: bill.type!.startsWith('H') ? 'House' : 'Senate',
+            originChamberCode: bill.type!.startsWith('H') ? 'H' : 'S',
             title: bill.title!,
             shortTitle: bill.shortTitle,
             url: bill.url!,
-            latestAction: { 
+            updateDate: new Date().toISOString(),
+            introducedDate: new Date().toISOString(), // Placeholder
+            latestAction: { // Placeholder
                 actionDate: new Date().toISOString(), 
                 text: 'This bill is currently popular on Congress.gov.' 
             },
-            updateDate: new Date().toISOString(),
-            originChamber: bill.type!.startsWith('H') ? 'House' : 'Senate',
-            introducedDate: new Date().toISOString(),
-            originChamberCode: bill.type!.startsWith('H') ? 'H' : 'S',
             sponsors: [],
             cosponsors: { count: 0, items: [], url: '' },
             committees: { count: 0, items: [] },
@@ -184,29 +125,28 @@ export async function GET() {
         console.log(`\n📈 Final Results: ${bills.length} bills parsed from ${feed.items.length} RSS items`);
 
         return NextResponse.json({
-            bills: bills.slice(0, 10), // Top 10
+            bills: bills.slice(0, 10), // Return top 10
             debug: {
                 rssItems: feed.items.length,
                 parsedCount: bills.length,
                 lastUpdated: feed.lastBuildDate ? new Date(feed.lastBuildDate).toISOString() : new Date().toISOString(),
                 feedTitle: feed.title,
-                feedDescription: feed.description,
-                contentSample: feed.items[0]?.content?.substring(0, 300) || 'No content found'
             },
         });
         
     } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        console.error('❌ Error fetching or parsing RSS feed:', err);
+        const error = err instanceof Error ? err : new Error('Unknown error');
+        console.error('❌ Error fetching or parsing popular bills RSS feed:', {
+            message: error.message,
+            stack: error.stack,
+            cause: 'cause' in error ? error.cause : undefined,
+        });
         
         return NextResponse.json({
             bills: [],
             debug: { 
-                error: errorMessage, 
+                error: `Failed to process RSS feed: ${error.message}`, 
                 timestamp: new Date().toISOString(),
-                rssItems: 0,
-                parsedCount: 0,
-                lastUpdated: new Date().toISOString()
             }
         }, { status: 500 });
     }

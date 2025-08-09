@@ -1,10 +1,12 @@
 
-import type {Metadata} from 'next';
+import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { Header } from '@/components/header';
 import { AuthProvider } from '@/hooks/use-auth';
 import { Footer } from '@/components/footer';
+import { ZipCodeProvider } from '@/hooks/useZipCode';
+import { ZipCodeBanner } from '@/components/ui/zip-code-banner';
 
 export const metadata: Metadata = {
   title: 'eGp Prototype',
@@ -26,14 +28,18 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <div className="relative flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </div>
-          <Toaster />
+          <ZipCodeProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <Header />
+              {/* This banner will appear only when the zip code is not set */}
+              <ZipCodeBanner /> 
+              <main className="flex-1">
+                {children}
+              </main>
+              <Footer />
+            </div>
+            <Toaster />
+          </ZipCodeProvider>
         </AuthProvider>
       </body>
     </html>

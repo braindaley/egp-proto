@@ -1,80 +1,75 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Button } from './ui/button';
+import { useState, useEffect } from 'react';
+import { useZipCode } from '@/hooks/useZipCode';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { MapPin } from 'lucide-react';
 
-const ZipCodeManager: React.FC = () => {
-  const [zipCode, setZipCode] = useState<string>('');
-  const [status, setStatus] = useState<string>('Detecting location...');
+// This is the primary component for MANUALLY changing the zip code.
+// All automatic detection has been removed.
+export const ZipCodeChanger = () => {
+    const { zipCode, setZipCode } = useZipCode();
+    const [localZip, setLocalZip] = useState(zipCode || "");
+    const [isOpen, setIsOpen] = useState(false);
 
-  const fetchZipCode = (latitude: number, longitude: number) => {
-    // Using a free reverse geocoding API
-    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`)
-      .then(response => response.json())
-      .then(data => {
-        if (data.postcode) {
-          setZipCode(data.postcode);
-          setStatus('Location detected.');
-        } else {
-          setStatus('Could not determine zip code. Please enter it manually.');
+    // When the global zip code changes, update the local input
+    useEffect(() => {
+        if (zipCode) {
+            setLocalZip(zipCode);
         }
-      })
-      .catch(error => {
-        console.error('Error fetching zip code:', error);
-        setStatus('Could not determine zip code. Please enter it manually.');
-      });
-  };
+    }, [zipCode]);
 
-  const handleDetectLocation = () => {
-    if (navigator.geolocation) {
-      setStatus('Detecting location...');
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          fetchZipCode(position.coords.latitude, position.coords.longitude);
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-          setStatus('Geolocation failed. Please enter your zip code manually.');
+    const handleManualChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setLocalZip(e.target.value);
+    };
+
+    const handleUpdate = () => {
+        if (localZip) {
+            setZipCode(localZip);
+            setIsOpen(false);
         }
-      );
-    } else {
-      setStatus("Geolocation is not supported by this browser.");
-    }
-  };
-  
-  useEffect(() => {
-    handleDetectLocation();
-  }, []);
-
-  return (
-    <div className="space-y-4">
-       <div>
-        <h3 className="text-lg font-medium">Your Location</h3>
-        <p className="text-sm text-muted-foreground">
-          Your zip code helps us find your elected officials.
-        </p>
-      </div>
-      <div className="flex items-end gap-2">
-        <div className="flex-grow">
-            <Label htmlFor="zip-code">Zip Code</Label>
-            <Input
-                id="zip-code"
-                type="text"
-                value={zipCode}
-                onChange={(e) => setZipCode(e.target.value)}
-                placeholder="Enter your zip code"
-            />
-        </div>
-        <Button onClick={handleDetectLocation} variant="outline">
-            Detect
-        </Button>
-      </div>
-      <p className="text-sm text-muted-foreground">{status}</p>
-    </div>
-  );
-};
-
-export default ZipCodeManager;
+    };
+    
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full justify-start text-left">
+                    <MapPin className="mr-2 h-4 w-4 flex-shrink-0" /> 
+                    <span className="truncate">
+                        {zipCode ? `Zip: ${zipCode}` : 'Set Zip Code'}
+                    </span>
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Update Your Location</DialogTitle>
+                    <DialogDescription>
+                        To find your elected officials, please provide your zip code.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                    <div className="flex items-end gap-2">
+                        <div className="flex-grow">
+                            <Label htmlFor="zip-code">Zip Code</Label>
+                            <Input
+                                id="zip-code"
+                                type="text"
+                                value={localZip}
+                                onChange={handleManualChange}
+                                placeholder="Enter zip code"
+                                onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
+                            />
+                        </div>
+                        <Button onClick={handleUpdate}>
+                            Update
+                        </Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    )
+}
