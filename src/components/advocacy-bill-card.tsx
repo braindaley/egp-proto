@@ -1,4 +1,3 @@
-
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -10,7 +9,7 @@ import type { PriorityBill } from '@/lib/advocacy-groups';
 import { ThumbsUp, ThumbsDown, Eye, ArrowRight } from 'lucide-react';
 
 export function AdvocacyBillCard({ priorityBill }: { priorityBill: PriorityBill }) {
-  const { bill, position, reasoning, supportCount, opposeCount } = priorityBill;
+  const { bill, position, reasoning, supportCount, opposeCount, actionButtonText } = priorityBill;
   const [userSupport, setUserSupport] = useState<'none' | 'support' | 'oppose'>('none');
   const [isWatched, setIsWatched] = useState(false);
 
@@ -40,13 +39,16 @@ export function AdvocacyBillCard({ priorityBill }: { priorityBill: PriorityBill 
       </CardHeader>
       <CardContent className="space-y-4">
         <div className={`p-3 rounded-md border-l-4 ${position === 'Support' ? 'bg-green-50 border-green-600' : 'bg-red-50 border-red-600'}`}>
-            <h4 className={`font-semibold text-sm mb-2 ${position === 'Support' ? 'text-green-800' : 'text-red-800'}`}>
+            <h3 className={`font-semibold text-lg mb-3 ${position === 'Support' ? 'text-green-800' : 'text-red-800'}`}>
                 {position}
-            </h4>
+            </h3>
             <div 
-                className="prose prose-sm max-w-none text-muted-foreground prose-h3:font-semibold prose-h3:text-lg prose-h3:mb-2 prose-ul:list-disc prose-ul:pl-5" 
+                className="prose prose-sm max-w-none text-muted-foreground prose-h3:font-semibold prose-h3:text-lg prose-h3:mb-2 prose-ul:list-disc prose-ul:pl-5 mb-4" 
                 dangerouslySetInnerHTML={{ __html: reasoning }} 
             />
+            <Button className="w-full" size="sm">
+                {actionButtonText || "Write Congress to Make an Impact"}
+            </Button>
         </div>
 
         <div className="flex justify-around items-center text-center pt-4">

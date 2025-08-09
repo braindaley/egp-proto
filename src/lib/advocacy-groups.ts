@@ -1,4 +1,3 @@
-
 import type { Bill } from '@/types';
 
 export interface AdvocacyGroup {
@@ -19,6 +18,7 @@ export interface PriorityBill {
   reasoning: string;
   supportCount: number;
   opposeCount: number;
+  actionButtonText?: string;
 }
 
 const advocacyGroupsData: Record<string, AdvocacyGroup> = {
@@ -42,6 +42,7 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'This bill provides critical funding for modernizing our energy grid and accelerating the transition to renewable energy sources, which is essential for combating climate change.',
         supportCount: 12543,
         opposeCount: 2319,
+        actionButtonText: 'Contact Your Senator Today'
       },
       {
         bill: {
@@ -53,6 +54,7 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'By ending taxpayer-funded subsidies for fossil fuel companies, this legislation levels the playing field for clean energy and frees up public funds for sustainable development.',
         supportCount: 18982,
         opposeCount: 4120,
+        actionButtonText: 'Tell Congress to End Fossil Fuel Subsidies'
       },
       {
         bill: {
@@ -64,6 +66,7 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'This act would weaken clean air and water protections, allowing industrial polluters to increase emissions that harm public health and the environment.',
         supportCount: 1877,
         opposeCount: 22451,
+        actionButtonText: 'Oppose This Harmful Legislation'
       },
     ],
   },
@@ -83,10 +86,11 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
           type: 'HR',
           congress: 119,
         },
-        position: 'Support',
-        reasoning: '### Why LWV Supports the John R. Lewis Voting Rights Advancement Act\n\n*   **It restores protections weakened by court decisions.** After the 2013 *Shelby County v. Holder* ruling gutted key provisions of the Voting Rights Act, this legislation is seen as essential to reestablish federal oversight and guard against discriminatory changes in voting laws.\n\n*   **It defends democracy and honors the VRA’s legacy.** Named for civil rights hero John Lewis, the bill is framed as much-needed defense of voting rights—particularly amid renewed state-level attacks on fair representation and redistricting.\n\n*   **It aligns with LWV’s mission.** The League has a long history of fighting to make elections fair, inclusive, and accessible. This act fits squarely within that mission by preventing racial discrimination and ensuring every voter is heard.',
+        position: 'Tell your Senators to support HR 14',
+        reasoning: '**It restores protections weakened by court decisions.** After the 2013 *Shelby County v. Holder* ruling gutted key provisions of the Voting Rights Act, this legislation is seen as essential to reestablish federal oversight and guard against discriminatory changes in voting laws.\n\n*   **It defends democracy and honors the VRA\'s legacy.** Named for civil rights hero John Lewis, the bill is framed as much-needed defense of voting rights—particularly amid renewed state-level attacks on fair representation and redistricting.\n\n*   **It aligns with LWV\'s mission.** The League has a long history of fighting to make elections fair, inclusive, and accessible. This act fits squarely within that mission by preventing racial discrimination and ensuring every voter is heard.',
         supportCount: 9850,
         opposeCount: 1520,
+        actionButtonText: 'Contact Your Representatives to Support Voting Rights'
       },
       {
         bill: {
@@ -95,9 +99,10 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
             congress: 119,
         },
         position: 'Tell your Senators to oppose the SAVE Act',
-        reasoning: '### Why LWV Opposes the SAVE Act (H.R. 22)\n\n*   **It creates unnecessary barriers to voting.** Although voters are already required to affirm citizenship when registering, the SAVE Act adds redundant requirements, such as presenting documentary proof of U.S. citizenship in person every time you update your registration. This puts an unfair burden on many eligible voters.\n*   **It disproportionately impacts marginalized groups.** The League highlights how the SAVE Act harms rural voters, voters of color, military families who move frequently, those recovering from disasters, and especially married women who\'ve changed their names and may struggle to match documentation.\n*   **It addresses a problem that doesn’t exist.** Noncitizen voting is already illegal and extremely rare. The League warns that the SAVE Act is rooted in fear, misinformation, and divisive rhetoric—not real threats to democracy.\n*   **It undermines voter access and overloads election infrastructure.** Requiring in-person registrations and strict document checks could overwhelm local election offices and undermine the League’s century-long mission of encouraging broad participation.',
+        reasoning: '**It creates unnecessary barriers to voting.** Although voters are already required to affirm citizenship when registering, the SAVE Act adds redundant requirements, such as presenting documentary proof of U.S. citizenship in person every time you update your registration. This puts an unfair burden on many eligible voters.\n*   **It disproportionately impacts marginalized groups.** The League highlights how the SAVE Act harms rural voters, voters of color, military families who move frequently, those recovering from disasters, and especially married women who\'ve changed their names and may struggle to match documentation.\n*   **It addresses a problem that doesn\'t exist.** Noncitizen voting is already illegal and extremely rare. The League warns that the SAVE Act is rooted in fear, misinformation, and divisive rhetoric—not real threats to democracy.\n*   **It undermines voter access and overloads election infrastructure.** Requiring in-person registrations and strict document checks could overwhelm local election offices and undermine the League\'s century-long mission of encouraging broad participation.',
         supportCount: 3100,
         opposeCount: 15600,
+        actionButtonText: 'Tell Your Senator to Vote NO on the SAVE Act'
       },
     ],
   },
@@ -105,7 +110,7 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
     name: 'Brennan Center for Justice',
     slug: 'brennan-center-for-justice',
     logoUrl: 'https://placehold.co/100x100.png',
-    description: 'A nonpartisan law and policy institute that works to reform, revitalize, and when necessary, defend our country’s systems of democracy and justice.',
+    description: 'A nonpartisan law and policy institute that works to reform, revitalize, and when necessary, defend our country\'s systems of democracy and justice.',
     website: 'https://www.brennancenter.org/',
     nonprofitStatus: '501(c)(3) Nonprofit',
     yearsActive: 29,
@@ -127,7 +132,7 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
     name: 'No Labels',
     slug: 'no-labels',
     logoUrl: 'https://placehold.co/100x100.png',
-    description: 'A national movement of commonsense Americans pushing our leaders to solve the nation’s biggest problems. It advocates for bipartisanship and problem-solving in politics.',
+    description: 'A national movement of commonsense Americans pushing our leaders to solve the nation\'s biggest problems. It advocates for bipartisanship and problem-solving in politics.',
     website: 'https://www.nolabels.org/',
     nonprofitStatus: '501(c)(4) Nonprofit',
     yearsActive: 14,
