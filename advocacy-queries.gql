@@ -1,0 +1,65 @@
+# Get a user's primary representatives using the user_representatives table
+# This query joins user_representatives with contact_directory
+query GetUserRepresentatives($userId: String!) {
+  user_representatives(where: {userId: {_eq: $userId}, isPrimary: {_eq: true}}) {
+    nodes {
+      contact_directory {
+        contactId
+        name
+        title
+        contactType
+        party
+        email
+        phone
+        preferredContactMethod
+        responsiveness_score
+      }
+    }
+  }
+}
+
+# Get contact details for a list of legislators by their bioguideId
+# Your app would first get the list of sponsors/committee members for a bill,
+# then use this query to get their contact info from your database.
+query GetContactsByBioguideIds($bioguideIds: [String!]) {
+  contact_directory(where: {bioguideId: {_in: $bioguideIds}, isActive: {_eq: true}}) {
+    nodes {
+      contactId
+      name
+      title
+      party
+      state
+      district
+      email
+      responsiveness_score
+      tags
+    }
+  }
+}
+
+
+# Search for contacts using various criteria
+query SearchContacts($searchTerm: String!, $contactTypes: [String!], $states: [String!]) {
+  contact_directory(where: {
+    _and: [
+      {_or: [
+        {name: {_ilike: $searchTerm}},
+        {title: {_ilike: $searchTerm}}
+      ]},
+      {contactType: {_in: $contactTypes}},
+      {state: {_in: $states}},
+      {isActive: {_eq: true}}
+    ]
+  }) {
+    nodes {
+      contactId
+      name
+      title
+      contactType
+      party
+      state
+      district
+      responsiveness_score
+    }
+  }
+}

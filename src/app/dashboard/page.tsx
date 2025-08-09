@@ -1,75 +1,45 @@
 
 'use client';
 
-import { useAuth } from '@/hooks/use-auth';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
+import React from 'react';
+import MessageHistory from '@/components/dashboard/MessageHistory';
+import BillStatusTracker from '@/components/dashboard/BillStatusTracker';
+import AdvocacyAnalytics from '@/components/dashboard/AdvocacyAnalytics';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export default function DashboardPage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user) {
-    return (
-        <div className="container mx-auto px-4 py-8 md:py-12">
-            <div className="max-w-2xl mx-auto">
-                <Card>
-                    <CardHeader className="flex flex-row items-center gap-4">
-                        <Skeleton className="h-16 w-16 rounded-full" />
-                        <div className="space-y-2">
-                           <Skeleton className="h-6 w-48" />
-                           <Skeleton className="h-4 w-64" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Skeleton className="h-8 w-full" />
-                        <Skeleton className="h-8 w-full" />
-                        <Skeleton className="h-8 w-full" />
-                    </CardContent>
-                </Card>
-            </div>
-      </div>
-    );
-  }
+const UserDashboardPage = () => {
+  // Mock user ID for demonstration
+  const userId = 'user_12345';
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
-        <div className="max-w-2xl mx-auto">
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16">
-                            <AvatarImage src={user.photoURL ?? ''} alt="User profile picture" />
-                            <AvatarFallback>{user.email?.[0].toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <CardTitle className="text-2xl">Welcome!</CardTitle>
-                            <CardDescription>This is your personal dashboard.</CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                    <p>
-                        <strong>Email:</strong> {user.email}
-                    </p>
-                    <p>
-                        <strong>User ID:</strong> {user.uid}
-                    </p>
-                    <p>
-                        <strong>Email Verified:</strong> {user.emailVerified ? 'Yes' : 'No'}
-                    </p>
-                </CardContent>
-            </Card>
-        </div>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8" style={{ backgroundColor: '#E6E6FA' }}>
+      <div className="mb-8 text-center">
+        <h1 className="text-4xl font-bold" style={{ color: '#4B0082', fontFamily: 'Poppins, sans-serif' }}>
+          Your Advocacy Dashboard
+        </h1>
+        <p className="text-lg" style={{ color: '#4B0082', fontFamily: 'PT Sans, sans-serif' }}>
+          Track your impact, monitor bill progress, and view your message history.
+        </p>
+      </div>
+
+      <Tabs defaultValue="history" className="w-full">
+        <TabsList className="grid w-full grid-cols-3" style={{ borderColor: '#8F00FF' }}>
+          <TabsTrigger value="history" style={{ fontFamily: 'Poppins, sans-serif' }}>Message History</TabsTrigger>
+          <TabsTrigger value="tracking" style={{ fontFamily: 'Poppins, sans-serif' }}>Bill Status Tracking</TabsTrigger>
+          <TabsTrigger value="analytics" style={{ fontFamily: 'Poppins, sans-serif' }}>Analytics</TabsTrigger>
+        </TabsList>
+        <TabsContent value="history">
+          <MessageHistory userId={userId} />
+        </TabsContent>
+        <TabsContent value="tracking">
+          <BillStatusTracker userId={userId} />
+        </TabsContent>
+        <TabsContent value="analytics">
+          <AdvocacyAnalytics userId={userId} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
-}
+};
+
+export default UserDashboardPage;

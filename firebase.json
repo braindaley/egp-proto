@@ -1,7 +1,13 @@
 {
   "emulators": {
     "dataconnect": {
+      "host": "127.0.0.1",
+      "port": 9399,
       "dataDir": "dataconnect/.dataconnect/pgliteData"
+    },
+    "hub": {
+      "host": "127.0.0.1",
+      "port": 4400
     }
   },
   "dataconnect": {
