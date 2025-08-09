@@ -8,7 +8,7 @@ import {
   ReactNode,
 } from 'react';
 import {
-  User,
+  User as FirebaseUser,
   onAuthStateChanged,
   signOut,
   createUserWithEmailAndPassword,
@@ -22,6 +22,27 @@ import type { Congress } from '@/types';
 // Add this outside your component
 let congressCache: Congress[] | null = null;
 let cacheExpiry: number = 0;
+
+export interface User extends FirebaseUser {
+  firstName?: string;
+  lastName?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  congressionalDistrict?: string;
+  stateSenatedistrict?: string;
+  stateHouseDistrict?: string;
+  birthYear?: number;
+  gender?: string;
+  maritalStatus?: string;
+  politicalAffiliation?: string;
+  education?: string;
+  profession?: string;
+  militaryService?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
 function getFallbackCongresses(): Congress[] {
   console.warn('Using fallback congress data.');

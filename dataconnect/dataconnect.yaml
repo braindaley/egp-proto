@@ -1,0 +1,12 @@
+specVersion: "v1"
+serviceId: "advocacy"
+location: "northamerica-northeast1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "advocacy_db"
+      cloudSql:
+        instanceId: "advocacy-fdc"
+      # schemaValidation: "COMPATIBLE"
+connectorDirs: ["./connector"]
