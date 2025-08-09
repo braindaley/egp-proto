@@ -28,13 +28,15 @@ export function AdvocacyBillCard({ priorityBill }: { priorityBill: PriorityBill 
       <CardHeader>
         <div className="flex items-center justify-between mb-2">
           <Badge variant="outline">{bill.type} {bill.number}</Badge>
-          <Badge variant="secondary">{bill.latestAction?.text || 'In Committee'}</Badge>
         </div>
         <CardTitle className="text-xl font-headline">
           <Link href={detailUrl} className="hover:underline">
             {bill.title}
           </Link>
         </CardTitle>
+        <div className="text-sm text-muted-foreground mt-2 mb-3">
+          {bill.latestAction?.text || 'In Committee'}
+        </div>
         <CardDescription className="pt-2">{summaryText}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
