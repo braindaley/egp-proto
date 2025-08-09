@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle 
 import { Separator } from './ui/separator';
 import { CongressSelector } from './congress-selector';
 import { FeedNavigation } from './FeedNavigation';
+import ZipCodeManager from './ZipCodeManager';
 
 export function Header() {
   const { user, loading, logout, selectedCongress } = useAuth();
@@ -84,6 +85,10 @@ export function Header() {
                       <CongressSelector />
                     </div>
                     
+                    <Separator />
+                    
+                    <ZipCodeManager />
+
                     <Separator />
 
                     <SheetClose asChild>
