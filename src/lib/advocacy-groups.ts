@@ -15,7 +15,7 @@ export interface AdvocacyGroup {
 
 export interface PriorityBill {
   bill: Partial<Bill>;
-  position: 'Support' | 'Oppose';
+  position: 'Support' | 'Oppose' | string;
   reasoning: string;
   supportCount: number;
   opposeCount: number;
@@ -84,7 +84,7 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
           congress: 119,
         },
         position: 'Support',
-        reasoning: '• **It restores protections weakened by court decisions.** After the 2013 *Shelby County v. Holder* ruling gutted key provisions of the Voting Rights Act, this legislation is seen as essential to reestablish federal oversight and guard against discriminatory changes in voting laws.\n\n• **It defends democracy and honors the VRA’s legacy.** Named for civil rights hero John Lewis, the bill is framed as much-needed defense of voting rights—particularly amid renewed state-level attacks on fair representation and redistricting.\n\n• **It aligns with LWV’s mission.** The League has a long history of fighting to make elections fair, inclusive, and accessible. This act fits squarely within that mission by preventing racial discrimination and ensuring every voter is heard.',
+        reasoning: '### Why LWV Supports the John R. Lewis Voting Rights Advancement Act\n\n*   **It restores protections weakened by court decisions.** After the 2013 *Shelby County v. Holder* ruling gutted key provisions of the Voting Rights Act, this legislation is seen as essential to reestablish federal oversight and guard against discriminatory changes in voting laws.\n\n*   **It defends democracy and honors the VRA’s legacy.** Named for civil rights hero John Lewis, the bill is framed as much-needed defense of voting rights—particularly amid renewed state-level attacks on fair representation and redistricting.\n\n*   **It aligns with LWV’s mission.** The League has a long history of fighting to make elections fair, inclusive, and accessible. This act fits squarely within that mission by preventing racial discrimination and ensuring every voter is heard.',
         supportCount: 9850,
         opposeCount: 1520,
       },
@@ -95,7 +95,7 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
             congress: 119,
         },
         position: 'Tell your Senators to oppose the SAVE Act',
-        reasoning: '• **It creates unnecessary barriers to voting.** Although voters are already required to affirm citizenship when registering, the SAVE Act adds redundant requirements, such as presenting documentary proof of U.S. citizenship in person every time you update your registration. This puts an unfair burden on many eligible voters.\n\n• **It disproportionately impacts marginalized groups.** The League highlights how the SAVE Act harms rural voters, voters of color, military families who move frequently, those recovering from disasters, and especially married women who\'ve changed their names and may struggle to match documentation.\n\n• **It addresses a problem that doesn’t exist.** Noncitizen voting is already illegal and extremely rare. The League warns that the SAVE Act is rooted in fear, misinformation, and divisive rhetoric—not real threats to democracy.\n\n• **It undermines voter access and overloads election infrastructure.** Requiring in-person registrations and strict document checks could overwhelm local election offices and undermine the League’s century-long mission of encouraging broad participation.',
+        reasoning: '### Why LWV Opposes the SAVE Act (H.R. 22)\n\n*   **It creates unnecessary barriers to voting.** Although voters are already required to affirm citizenship when registering, the SAVE Act adds redundant requirements, such as presenting documentary proof of U.S. citizenship in person every time you update your registration. This puts an unfair burden on many eligible voters.\n*   **It disproportionately impacts marginalized groups.** The League highlights how the SAVE Act harms rural voters, voters of color, military families who move frequently, those recovering from disasters, and especially married women who\'ve changed their names and may struggle to match documentation.\n*   **It addresses a problem that doesn’t exist.** Noncitizen voting is already illegal and extremely rare. The League warns that the SAVE Act is rooted in fear, misinformation, and divisive rhetoric—not real threats to democracy.\n*   **It undermines voter access and overloads election infrastructure.** Requiring in-person registrations and strict document checks could overwhelm local election offices and undermine the League’s century-long mission of encouraging broad participation.',
         supportCount: 3100,
         opposeCount: 15600,
       },
