@@ -10,10 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-
+import { useZipCode } from '@/hooks/useZipCode';
+import { useMembersByZip } from '@/hooks/useMembersByZip';
 
 const ProfileManager: React.FC = () => {
   const { user, loading } = useAuth();
+  const { zipCode } = useZipCode();
+  const { representatives } = useMembersByZip(zipCode);
   const [profile, setProfile] = useState<Partial<User>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -28,6 +31,7 @@ const ProfileManager: React.FC = () => {
         city: user.city || '',
         state: user.state || '',
         zipCode: user.zipCode || '',
+        congressionalDistrict: user.congressionalDistrict || '',
         birthYear: user.birthYear || undefined,
         gender: user.gender || '',
         politicalAffiliation: user.politicalAffiliation || '',
@@ -37,6 +41,18 @@ const ProfileManager: React.FC = () => {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    if (representatives.length > 0 && !profile.congressionalDistrict) {
+      const houseRep = representatives.find(rep => rep.officeTitle.includes('House'));
+      if (houseRep?.districtNumber) {
+        setProfile(prev => ({
+          ...prev,
+          congressionalDistrict: houseRep.districtNumber.toString()
+        }));
+      }
+    }
+  }, [representatives, profile.congressionalDistrict]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -117,6 +133,10 @@ const ProfileManager: React.FC = () => {
                     <Label htmlFor="zipCode">Zip Code</Label>
                     <Input id="zipCode" name="zipCode" value={profile.zipCode} onChange={handleInputChange} />
                 </div>
+                <div>
+                    <Label htmlFor="congressionalDistrict">Congressional District</Label>
+                    <Input id="congressionalDistrict" name="congressionalDistrict" value={profile.congressionalDistrict} onChange={handleInputChange} placeholder="e.g., 5" />
+                </div>
                  <div>
                     <Label htmlFor="birthYear">Birth Year</Label>
                     <Select
@@ -194,6 +214,7 @@ const ProfileManager: React.FC = () => {
             <ul className="space-y-2">
               <li><strong>Full Name:</strong> {profile.firstName} {profile.lastName}</li>
               <li><strong>Address:</strong> {profile.address}, {profile.city}, {profile.state} {profile.zipCode}</li>
+              <li><strong>Congressional District:</strong> {profile.congressionalDistrict || 'N/A'}</li>
               <li><strong>Age:</strong> {profile.birthYear ? new Date().getFullYear() - profile.birthYear : 'N/A'}</li>
               <li><strong>Gender:</strong> {profile.gender || 'N/A'}</li>
               <li><strong>Party Affiliation:</strong> {profile.politicalAffiliation || 'N/A'}</li>

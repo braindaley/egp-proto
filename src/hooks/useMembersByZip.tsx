@@ -11,6 +11,7 @@ interface Representative {
   urls?: string[];
   photoUrl?: string;
   officeTitle: string;
+  districtNumber?: number;
 }
 
 export const useMembersByZip = (zipCode: string | null) => {
