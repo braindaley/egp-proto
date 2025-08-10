@@ -78,6 +78,36 @@ const DeliveryHandler: React.FC<DeliveryHandlerProps> = ({
       setStatus('error');
     }
   };
+  
+  const getSignature = () => {
+    const signatureParts: string[] = [];
+    if (personalDataIncluded.fullName) signatureParts.push('Your Name');
+    if (personalDataIncluded.address) signatureParts.push('Your Address/ZIP Code');
+    if (personalDataIncluded.age) signatureParts.push('Your Age/Birth Year');
+    if (personalDataIncluded.gender) signatureParts.push('Your Gender, Marital Status');
+    if (personalDataIncluded.partyAffiliation) signatureParts.push('Your Party Affiliation');
+    if (personalDataIncluded.education) signatureParts.push('Your Education Level');
+    if (personalDataIncluded.profession) signatureParts.push('Your Profession/Industry');
+    if (personalDataIncluded.votingPrecinct) signatureParts.push('Your Voting Precinct');
+    if (personalDataIncluded.militaryService) signatureParts.push('Your Military Service');
+    if (personalDataIncluded.issueImportance) signatureParts.push('Your Issue Importance Ranking');
+    return signatureParts.join('\n');
+  }
+
+  const Preview = () => (
+    <div className="mt-6">
+      <h3 className="text-lg font-semibold mb-2">Message Preview</h3>
+      <div
+        className={`p-6 border rounded-md bg-gray-50`}
+      >
+        <div className="prose prose-sm max-w-none">
+            <p className="whitespace-pre-wrap">{messageContent}</p>
+            <br />
+            <p className="whitespace-pre-wrap">{getSignature()}</p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <Card>
@@ -86,9 +116,12 @@ const DeliveryHandler: React.FC<DeliveryHandlerProps> = ({
       </CardHeader>
       <CardContent>
         {status === 'idle' && (
-          <Button onClick={handleSend} size="lg" className="w-full">
-            Confirm and Send
-          </Button>
+          <div>
+            <Preview />
+            <Button onClick={handleSend} size="lg" className="w-full mt-6">
+              Confirm and Send
+            </Button>
+          </div>
         )}
 
         {status === 'sending' && (

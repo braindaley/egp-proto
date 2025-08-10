@@ -20,6 +20,13 @@ interface PersonalData {
   issueImportance: boolean;
 }
 
+// Define the shape of the recipients
+interface Recipients {
+    representatives: boolean;
+    committeeLeadership: boolean;
+    billSponsors: boolean;
+}
+
 // Define the props for the AdvocacyMessageForm component
 interface AdvocacyMessageFormProps {
   billType: string; // To demonstrate dynamic form logic
@@ -28,6 +35,13 @@ interface AdvocacyMessageFormProps {
 }
 
 const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, recipientCategory, onSubmit }) => {
+  // State for recipients
+  const [recipients, setRecipients] = useState<Recipients>({
+    representatives: true,
+    committeeLeadership: false,
+    billSponsors: false,
+  });
+
   // State to manage the user's selection of personal information
   const [personalData, setPersonalData] = useState<PersonalData>({
     fullName: true, // Full Name is required
@@ -45,57 +59,23 @@ const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, rec
   // State for privacy controls
   const [savePreferences, setSavePreferences] = useState(false);
   const [useAnonymousId, setUseAnonymousId] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
 
-  // Handle checkbox changes
-  const handleCheckboxChange = (field: keyof PersonalData) => {
+  // Handle recipient checkbox changes
+  const handleRecipientChange = (field: keyof Recipients) => {
+    setRecipients((prev) => ({ ...prev, [field]: !prev[field] }));
+  };
+  
+  // Handle personal data checkbox changes
+  const handlePersonalDataChange = (field: keyof PersonalData) => {
     if (field === 'fullName') return; // Full Name is always required
     setPersonalData((prev) => ({ ...prev, [field]: !prev[field] }));
-  };
-
-  // Generate a preview of the message signature
-  const generatePreview = () => {
-    if (useAnonymousId) {
-      return 'Message sent from Anonymous Constituent';
-    }
-
-    const includedData = Object.entries(personalData)
-      .filter(([, isSelected]) => isSelected)
-      .map(([field]) => {
-        switch (field) {
-          case 'fullName':
-            return 'Your Name';
-          case 'address':
-            return 'Your Address/ZIP Code';
-          case 'age':
-            return 'Your Age/Birth Year';
-          case 'gender':
-            return 'Your Gender, Marital Status';
-          case 'partyAffiliation':
-            return 'Your Party Affiliation';
-          case 'education':
-            return 'Your Education Level';
-          case 'profession':
-            return 'Your Profession/Industry';
-          case 'votingPrecinct':
-            return 'Your Voting Precinct';
-          case 'militaryService':
-            return 'Your Military Service Status';
-          case 'issueImportance':
-            return 'Your Ranking of Issue Importance';
-          default:
-            return '';
-        }
-      })
-      .join('\\n');
-
-    return includedData;
   };
 
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
+      recipients,
       personalDataIncluded: personalData,
       savePreferences,
       useAnonymousId,
@@ -123,6 +103,43 @@ const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, rec
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit}>
+          {/* Recipient Selection */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Select Recipients</h3>
+            <div className="grid grid-cols-1 gap-4">
+               <div className="flex items-center">
+                    <Checkbox
+                        id="representatives"
+                        checked={recipients.representatives}
+                        onCheckedChange={() => handleRecipientChange('representatives')}
+                    />
+                    <Label htmlFor="representatives" className="ml-2">
+                        Your congressional representatives
+                    </Label>
+                </div>
+                <div className="flex items-center">
+                    <Checkbox
+                        id="committeeLeadership"
+                        checked={recipients.committeeLeadership}
+                        onCheckedChange={() => handleRecipientChange('committeeLeadership')}
+                    />
+                    <Label htmlFor="committeeLeadership" className="ml-2">
+                        Applicable Committee Leadership
+                    </Label>
+                </div>
+                <div className="flex items-center">
+                    <Checkbox
+                        id="billSponsors"
+                        checked={recipients.billSponsors}
+                        onCheckedChange={() => handleRecipientChange('billSponsors')}
+                    />
+                    <Label htmlFor="billSponsors" className="ml-2">
+                        Bill Sponsors
+                    </Label>
+                </div>
+            </div>
+          </div>
+
           {/* Personal Information Selection */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Include Personal Information</h3>
@@ -136,7 +153,7 @@ const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, rec
                     <Checkbox
                       id={field}
                       checked={personalData[field]}
-                      onCheckedChange={() => handleCheckboxChange(field)}
+                      onCheckedChange={() => handlePersonalDataChange(field)}
                       disabled={field === 'fullName'}
                     />
                     <Label htmlFor={field} className="ml-2">
@@ -160,24 +177,12 @@ const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, rec
                 <Switch id="anonymous-id" checked={useAnonymousId} onCheckedChange={setUseAnonymousId} />
                 <Label htmlFor="anonymous-id" className="ml-2">Use an anonymous identifier</Label>
               </div>
-              <div className="flex items-center">
-                <Switch id="show-preview" checked={showPreview} onCheckedChange={setShowPreview} />
-                <Label htmlFor="show-preview" className="ml-2">Show preview of how your information will appear</Label>
-              </div>
             </div>
           </div>
 
-          {/* Message Preview */}
-          {showPreview && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-2">Message Preview</h3>
-              <div className="p-4 border rounded-md bg-gray-50">
-                <p className="text-sm text-gray-700 whitespace-pre-line">{generatePreview()}</p>
-              </div>
-            </div>
-          )}
-
-          <Button type="submit">Send Message</Button>
+          <div className="flex justify-end">
+            <Button type="submit">Next</Button>
+          </div>
         </form>
       </CardContent>
     </Card>

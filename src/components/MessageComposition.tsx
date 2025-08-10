@@ -34,6 +34,7 @@ interface MessageCompositionProps {
   personalData: PersonalData;
   recipientInfo: RecipientInfo;
   onSubmit: (message: string) => void;
+  onBack: () => void;
 }
 
 const MessageComposition: React.FC<MessageCompositionProps> = ({
@@ -42,11 +43,11 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
   personalData,
   recipientInfo,
   onSubmit,
+  onBack,
 }) => {
   const [message, setMessage] = useState('');
   const [tone, setTone] = useState('formal');
   const [deliveryMethod, setDeliveryMethod] = useState('email');
-  const [showPreview, setShowPreview] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const generateAITemplate = () => {
@@ -91,21 +92,6 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
     }
   };
 
-  const getSignature = () => {
-    const signatureParts: string[] = [];
-    if (personalData.fullName) signatureParts.push('Your Name');
-    if (personalData.address) signatureParts.push('Your Address/ZIP Code');
-    if (personalData.age) signatureParts.push('Your Age/Birth Year');
-    if (personalData.gender) signatureParts.push('Your Gender, Marital Status');
-    if (personalData.partyAffiliation) signatureParts.push('Your Party Affiliation');
-    if (personalData.education) signatureParts.push('Your Education Level');
-    if (personalData.profession) signatureParts.push('Your Profession/Industry');
-    if (personalData.votingPrecinct) signatureParts.push('Your Voting Precinct');
-    if (personalData.militaryService) signatureParts.push('Your Military Service');
-    if (personalData.issueImportance) signatureParts.push('Your Issue Importance Ranking');
-    return signatureParts.join('\n');
-  }
-
   const CharacterCount = () => {
     const limit = deliveryMethod === 'email' ? 5000 : 10000;
     const count = message.length;
@@ -116,36 +102,6 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
         </p>
     );
   }
-
-  const Preview = () => (
-    <div className="mt-6">
-      <h3 className="text-lg font-semibold mb-2">Message Preview</h3>
-      <div
-        className={`p-6 border rounded-md ${
-          deliveryMethod === 'postal' ? 'bg-white shadow-md font-serif' : 'bg-gray-50'
-        }`}
-        style={{ borderColor: '#E6E6FA' }}
-      >
-        {deliveryMethod === 'postal' && (
-          <div className="mb-8 text-center">
-            <h2 className="text-2xl font-bold" style={{ color: '#4B0082', fontFamily: 'Poppins, sans-serif' }}>Congress Bills Explorer</h2>
-            <p className="text-sm" style={{ color: '#4B0082' }}>Your Voice, Your Government</p>
-          </div>
-        )}
-        <div className="prose prose-sm max-w-none" style={{ fontFamily: 'PT Sans, sans-serif' }}>
-            <p className="whitespace-pre-wrap">{message}</p>
-            <br />
-            <p className="whitespace-pre-wrap">{getSignature()}</p>
-        </div>
-        {deliveryMethod === 'postal' && (
-            <div className="mt-8 text-xs text-gray-500">
-                <p>To: {recipientInfo.name}</p>
-                <p>{recipientInfo.address}</p>
-            </div>
-        )}
-      </div>
-    </div>
-  );
 
   return (
     <Card>
@@ -209,13 +165,6 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-              <Switch id="show-preview" checked={showPreview} onCheckedChange={setShowPreview} />
-              <Label htmlFor="show-preview">Show Preview</Label>
-          </div>
-
-          {showPreview && <Preview />}
-          
           {validationErrors.length > 0 && (
              <Alert variant="destructive">
                <AlertTitle>Validation Errors</AlertTitle>
@@ -229,9 +178,12 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
 
         </div>
       </CardContent>
-      <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline" onClick={validateMessage}>Validate Message</Button>
-        <Button onClick={handleSubmit}>Send Message</Button>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={onBack}>Back</Button>
+        <div className="flex gap-2">
+            <Button variant="outline" onClick={validateMessage}>Validate Message</Button>
+            <Button onClick={handleSubmit}>Next</Button>
+        </div>
       </CardFooter>
     </Card>
   );
