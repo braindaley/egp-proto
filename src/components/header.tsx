@@ -9,19 +9,29 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle 
 import { Separator } from './ui/separator';
 import { CongressSelector } from './congress-selector';
 import { FeedNavigation } from './FeedNavigation';
-import { ZipCodeChanger } from './ZipCodeManager'; // Import the new UI component
+import { ZipCodeChanger } from './ZipCodeManager';
+import { useState, useEffect } from 'react';
 
 export function Header() {
-  const { user, loading, logout, selectedCongress, isInitialLoadComplete } = useAuth();
+  const { user, loading, logout, selectedCongress } = useAuth();
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const billsHref = selectedCongress ? `/bill/${selectedCongress}` : '/bills';
   const congressHref = selectedCongress ? `/congress/${selectedCongress}` : '/congress';
 
   const renderAuthContent = () => {
-    if (!isInitialLoadComplete) {
-      return <div className="h-9 w-[140px]"><Loader2 className="h-5 w-5 animate-spin" /></div>;
+    if (!hasMounted) {
+      return <div className="h-9 w-[140px]" />; // Render a placeholder on server and initial client render
     }
 
+    if (loading) {
+      return <div className="h-9 w-[140px] flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>;
+    }
+    
     if (user) {
         return (
             <>
@@ -130,7 +140,7 @@ export function Header() {
                     <Separator />
                     
                     <div className="space-y-2">
-                         {!isInitialLoadComplete ? (
+                         {!hasMounted ? (
                             <div className="flex justify-center p-2"><Loader2 className="h-5 w-5 animate-spin" /></div>
                         ) : user ? (
                             <>
