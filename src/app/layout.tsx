@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -6,7 +7,7 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { ZipCodeBanner } from "@/components/ui/zip-code-banner";
 import { AuthProvider } from "@/hooks/use-auth";
-import { ZipCodeProvider } from "@/hooks/useZipCode";
+import { ZipCodeProvider } from "@/hooks/use-zip-code.tsx";
 
 const inter = Inter({ subsets: ["latin"] });
 
