@@ -80,13 +80,16 @@ export function Header() {
                 <div className="p-4">
                   <h3 className="text-lg font-semibold mb-4">Navigation</h3>
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Your Location</label>
-                      <ZipCodeChanger />
-                    </div>
+                    {!user && (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Your Location</label>
+                          <ZipCodeChanger />
+                        </div>
+                        <Separator />
+                      </>
+                    )}
                     
-                    <Separator />
-
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Congress Session</label>
                       <CongressSelector />

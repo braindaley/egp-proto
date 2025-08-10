@@ -122,7 +122,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                     {matchStatus === 'isMatch' && (
                         <Badge variant="outline" className="text-base bg-green-100 text-green-800 border-green-200">
-                           Represents Your Zip Code
+                           Your Representative
                         </Badge>
                     )}
                     <Badge variant={member.partyName === 'Republican' ? 'destructive' : member.partyName === 'Democratic' ? 'default' : 'secondary'} className="text-base">

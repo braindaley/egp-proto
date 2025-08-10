@@ -3,24 +3,25 @@
 
 import { useState, useEffect } from 'react';
 import { useZipCode } from '@/hooks/use-zip-code';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from './button';
 import { Input } from './input';
 import { X } from 'lucide-react';
 
 export function ZipCodeBanner() {
   const { zipCode, saveZipCode } = useZipCode();
+  const { user } = useAuth();
   const [inputZip, setInputZip] = useState('');
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Show banner only if zipCode is not set after initial check
     const timer = setTimeout(() => {
-        if (!zipCode) {
+        if (!zipCode && !user?.zipCode) {
             setIsVisible(true);
         }
-    }, 1000); // Wait 1 second to avoid flash on load
+    }, 1000);
     return () => clearTimeout(timer);
-  }, [zipCode]);
+  }, [zipCode, user]);
 
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -33,7 +34,7 @@ export function ZipCodeBanner() {
     }
   };
 
-  if (!isVisible) {
+  if (!isVisible || (user && user.zipCode)) {
     return null;
   }
 

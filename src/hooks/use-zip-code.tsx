@@ -2,6 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useAuth } from './use-auth'; // Import useAuth
 
 interface ZipCodeContextType {
   zipCode: string | null;
@@ -14,13 +15,18 @@ const ZipCodeContext = createContext<ZipCodeContextType | undefined>(undefined);
 
 export const ZipCodeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [zipCode, setZipCodeState] = useState<string | null>(null);
+  const { user } = useAuth(); // Get user from useAuth
 
   useEffect(() => {
-    const storedZip = localStorage.getItem('user_zip_code');
-    if (storedZip) {
-      setZipCodeState(storedZip);
+    if (user && user.zipCode) {
+      setZipCodeState(user.zipCode);
+    } else {
+      const storedZip = localStorage.getItem('user_zip_code');
+      if (storedZip) {
+        setZipCodeState(storedZip);
+      }
     }
-  }, []);
+  }, [user]);
 
   const setZipCode = (newZipCode: string | null) => {
     setZipCodeState(newZipCode);
