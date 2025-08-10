@@ -239,7 +239,6 @@ export interface ExtendedMemberIds {
   maplight?: number;
   wikidata?: string;
   google_entity_id?: string;
-  pictorial?: number;
 }
 
 export interface LegislatorData {
@@ -312,6 +311,7 @@ export interface Member {
   updateDate: string;
   news?: NewsArticle[];
   committeeAssignments?: string;
+  email?: string;
 }
 
 export interface Congress {

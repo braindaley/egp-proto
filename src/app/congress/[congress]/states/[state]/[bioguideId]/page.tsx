@@ -19,6 +19,11 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
 
     // Only fetch basic data initially. The rest will be loaded client-side.
     const memberData: Member = await res.json();
+    
+    // Add mock email address
+    const memberName = memberData.directOrderName.toLowerCase().replace(/\s+/g, '.');
+    memberData.email = `${memberName}@congress-placeholder.com`;
+
     return memberData;
     
   } catch (error) {

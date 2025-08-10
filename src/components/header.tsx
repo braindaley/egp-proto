@@ -12,10 +12,44 @@ import { FeedNavigation } from './FeedNavigation';
 import { ZipCodeChanger } from './ZipCodeManager'; // Import the new UI component
 
 export function Header() {
-  const { user, loading, logout, selectedCongress } = useAuth();
+  const { user, loading, logout, selectedCongress, isInitialLoadComplete } = useAuth();
 
   const billsHref = selectedCongress ? `/bill/${selectedCongress}` : '/bills';
   const congressHref = selectedCongress ? `/congress/${selectedCongress}` : '/congress';
+
+  const renderAuthContent = () => {
+    if (!isInitialLoadComplete) {
+      return <div className="h-9 w-[140px]"><Loader2 className="h-5 w-5 animate-spin" /></div>;
+    }
+
+    if (user) {
+        return (
+            <>
+                <Button variant="ghost" size="sm" asChild>
+                    <Link href="/dashboard">
+                        <User className="mr-2 h-4 w-4" />
+                        Dashboard
+                    </Link>
+                </Button>
+                <Button variant="outline" size="sm" onClick={logout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                </Button>
+            </>
+        );
+    }
+    
+    return (
+        <>
+            <Button variant="ghost" size="sm" asChild>
+                <Link href="/login">Login</Link>
+            </Button>
+            <Button size="sm" asChild>
+                <Link href="/signup">Sign Up</Link>
+            </Button>
+        </>
+    );
+  }
 
   return (
     <header className="bg-background border-b sticky top-0 z-50">
@@ -37,32 +71,7 @@ export function Header() {
           {/* Right Section - Auth and Menu */}
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
-                <CongressSelector />
-                {loading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                ) : user ? (
-                    <>
-                        <Button variant="ghost" size="sm" asChild>
-                            <Link href="/dashboard">
-                                <User className="mr-2 h-4 w-4" />
-                                Dashboard
-                            </Link>
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={logout}>
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Logout
-                        </Button>
-                    </>
-                ) : (
-                    <>
-                        <Button variant="ghost" size="sm" asChild>
-                            <Link href="/login">Login</Link>
-                        </Button>
-                        <Button size="sm" asChild>
-                            <Link href="/signup">Sign Up</Link>
-                        </Button>
-                    </>
-                )}
+                {renderAuthContent()}
             </div>
 
             {/* Hamburger Menu (visible on all screens) */}
@@ -121,7 +130,7 @@ export function Header() {
                     <Separator />
                     
                     <div className="space-y-2">
-                         {loading ? (
+                         {!isInitialLoadComplete ? (
                             <div className="flex justify-center p-2"><Loader2 className="h-5 w-5 animate-spin" /></div>
                         ) : user ? (
                             <>

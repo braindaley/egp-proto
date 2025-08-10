@@ -35,6 +35,7 @@ interface MessageCompositionProps {
   recipientInfo: RecipientInfo;
   onSubmit: (message: string) => void;
   onBack: () => void;
+  recipientSelection: React.ReactNode;
 }
 
 const MessageComposition: React.FC<MessageCompositionProps> = ({
@@ -44,6 +45,7 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
   recipientInfo,
   onSubmit,
   onBack,
+  recipientSelection,
 }) => {
   const [message, setMessage] = useState('');
   const [tone, setTone] = useState('formal');
@@ -54,15 +56,15 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
     // Simulated AI template generation based on bill type and stance
     const templates: Record<string, Record<string, string>> = {
       defense: {
-        support: `Dear ${recipientInfo.name},\n\nI am writing to express my strong support for the upcoming defense bill. Our nation's security is of utmost importance, and I believe this bill provides the necessary resources to strengthen our military and protect our interests at home and abroad.\n\nThank you for your leadership and consideration.\n\nSincerely,\n[Your Name]`,
-        oppose: `Dear ${recipientInfo.name},\n\nI am writing to voice my serious concerns about the upcoming defense bill. While I agree that national security is a priority, I believe the current version of this bill is misguided and contains provisions that are not in the best interest of our country. I urge you to reconsider your support.\n\nSincerely,\n[Your Name]`,
+        support: `Dear Honorable Representative,\n\nI am writing to express my strong support for the upcoming defense bill. Our nation's security is of utmost importance, and I believe this bill provides the necessary resources to strengthen our military and protect our interests at home and abroad.\n\nThank you for your leadership and consideration.\n\nSincerely,\n[Your Name]`,
+        oppose: `Dear Honorable Representative,\n\nI am writing to voice my serious concerns about the upcoming defense bill. While I agree that national security is a priority, I believe the current version of this bill is misguided and contains provisions that are not in the best interest of our country. I urge you to reconsider your support.\n\nSincerely,\n[Your Name]`,
       },
       healthcare: {
-        support: `Dear ${recipientInfo.name},\n\nI am writing to urge you to support the new healthcare bill. Access to affordable, quality healthcare is a fundamental right, and this bill takes significant steps towards achieving that goal for all Americans. It is a crucial piece of legislation that will positively impact countless lives.\n\nSincerely,\n[Your Name]`,
-        oppose: `Dear ${recipientInfo.name},\n\nI am writing to express my strong opposition to the new healthcare bill. I have serious reservations about its potential impact on healthcare costs, coverage, and quality. I believe it will create more problems than it solves and I urge you to vote against it.\n\nSincerely,\n[Your Name]`,
+        support: `Dear Honorable Representative,\n\nI am writing to urge you to support the new healthcare bill. Access to affordable, quality healthcare is a fundamental right, and this bill takes significant steps towards achieving that goal for all Americans. It is a crucial piece of legislation that will positively impact countless lives.\n\nSincerely,\n[Your Name]`,
+        oppose: `Dear Honorable Representative,\n\nI am writing to express my strong opposition to the new healthcare bill. I have serious reservations about its potential impact on healthcare costs, coverage, and quality. I believe it will create more problems than it solves and I urge you to vote against it.\n\nSincerely,\n[Your Name]`,
       },
     };
-    const defaultTemplate = `Dear ${recipientInfo.name},\n\nI am writing to you regarding the ${billType} bill. My position is one of ${userStance}. I believe this is an important issue for our community.\n\nSincerely,\n[Your Name]`;
+    const defaultTemplate = `Dear Honorable Representative,\n\nI am writing to you regarding the ${billType} bill. My position is one of ${userStance}. I believe this is an important issue for our community.\n\nSincerely,\n[Your Name]`;
 
     const generatedTemplate = templates[billType]?.[userStance] || defaultTemplate;
     setMessage(generatedTemplate.replace('[Your Name]', personalData.fullName ? 'Your Name' : 'A Constituent'));
@@ -72,15 +74,6 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
     const errors: string[] = [];
     if (!message.trim()) {
       errors.push('Message cannot be empty.');
-    }
-    if (deliveryMethod === 'email' && !recipientInfo.email) {
-      errors.push('Recipient email is missing for email delivery.');
-    }
-    if (deliveryMethod === 'postal' && !recipientInfo.address) {
-      errors.push('Recipient address is missing for postal mail delivery.');
-    }
-    if (tone === 'formal' && (message.includes('!!!') || message.toLowerCase().includes('u r'))) {
-        errors.push('The message content seems too informal for the selected "Formal" tone.');
     }
     setValidationErrors(errors);
     return errors.length === 0;
@@ -110,6 +103,9 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          
+          {recipientSelection}
+
           <div>
             <Label>Smart Templates</Label>
             <div className="flex items-center gap-2 mt-1">

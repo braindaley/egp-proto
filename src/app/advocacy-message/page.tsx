@@ -3,18 +3,75 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import AdvocacyMessageForm from '../../components/AdvocacyMessageForm';
+import AdvocacyMessageForm, {Recipients as RecipientCategories} from '../../components/AdvocacyMessageForm';
 import MessageComposition from '../../components/MessageComposition';
 import DeliveryHandler from '../../components/advocacy/DeliveryHandler';
 import SelectBill from '../../components/SelectBill';
 import { Stepper, Step, StepLabel } from '@/components/ui/stepper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/hooks/use-auth';
+import { useZipCode } from '@/hooks/use-zip-code';
+import { useMembersByZip } from '@/hooks/useMembersByZip';
+import type { Member, Bill, Sponsor } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+
+// Helper function to fetch bill details
+async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+  const url = `${baseUrl}/api/bills/search?congress=${congress}&type=${billType}&number=${billNumber}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error(`Failed to fetch bill details: ${res.status}`);
+      return null;
+    }
+    const data = await res.json();
+    return data.bills[0] || null;
+  } catch (error) {
+    console.error("Error in getBillDetails:", error);
+    return null;
+  }
+}
+
+// Helper function to fetch committee members
+async function getCommitteeMembers(committeeId: string): Promise<any[]> {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+    const url = `${baseUrl}/api/congress/committee/${committeeId}`;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            console.error(`Failed to fetch committee members: ${res.status}`);
+            return [];
+        }
+        const data = await res.json();
+        return data.members || [];
+    } catch (error) {
+        console.error("Error in getCommitteeMembers:", error);
+        return [];
+    }
+}
 
 const AdvocacyMessagePage: React.FC = () => {
   const [step, setStep] = useState(0);
   const [advocacyData, setAdvocacyData] = useState<any>(null);
   const [message, setMessage] = useState('');
-  
+  const [recipients, setRecipients] = useState<any[]>([]);
+  const [bill, setBill] = useState<Bill | null>(null);
+  const [availableRecipients, setAvailableRecipients] = useState<{
+    representatives: Member[];
+    committeeLeadership: Sponsor[];
+    billSponsors: Sponsor[];
+  }>({
+    representatives: [],
+    committeeLeadership: [],
+    billSponsors: [],
+  });
+
+  const { zipCode } = useZipCode();
+  const { representatives: congressionalReps } = useMembersByZip(zipCode);
+
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -22,22 +79,68 @@ const AdvocacyMessagePage: React.FC = () => {
   const billType = searchParams.get('type');
   const billNumber = searchParams.get('number');
   
-  const recipientInfo = {
-    name: 'Honorable Jane Doe',
-    address: '123 Capitol Hill, Washington D.C. 20515',
-    email: 'jane.doe@example.com'
+  useEffect(() => {
+    if (congress && billType && billNumber) {
+      getBillDetails(congress, billType, billNumber).then(setBill);
+    }
+  }, [congress, billType, billNumber]);
+  
+  useEffect(() => {
+    setAvailableRecipients(prev => ({ ...prev, representatives: congressionalReps as Member[] }));
+  }, [congressionalReps]);
+
+  const handleFormSubmit = async (data: any) => {
+    setAdvocacyData(data);
+    
+    const recipientCategories: RecipientCategories = data.recipients;
+    let leadership: Sponsor[] = [];
+    let sponsors: Sponsor[] = [];
+
+    if (recipientCategories.committeeLeadership && bill?.committees?.items?.[0]?.systemCode) {
+        const members = await getCommitteeMembers(bill.committees.items[0].systemCode);
+        const chair = members.find(m => m.title === 'Chair' || m.title === 'Chairman');
+        const rankingMember = members.find(m => m.title === 'Ranking Member');
+        
+        if (chair) {
+            leadership.push({ 
+                bioguideId: chair.bioguideId, 
+                fullName: chair.name, 
+                firstName: chair.name.split(' ')[0],
+                lastName: chair.name.split(' ').slice(-1)[0],
+                party: chair.party,
+                state: chair.state,
+                url: chair.url,
+            });
+        }
+        if (rankingMember) {
+             leadership.push({ 
+                bioguideId: rankingMember.bioguideId, 
+                fullName: rankingMember.name, 
+                firstName: rankingMember.name.split(' ')[0],
+                lastName: rankingMember.name.split(' ').slice(-1)[0],
+                party: rankingMember.party,
+                state: rankingMember.state,
+                url: rankingMember.url,
+            });
+        }
+    }
+
+    if (recipientCategories.billSponsors && bill?.sponsors) {
+        sponsors = bill.sponsors;
+    }
+
+    setAvailableRecipients(prev => ({
+        ...prev,
+        committeeLeadership: leadership,
+        billSponsors: sponsors
+    }));
+
+    setStep(prev => prev + 1);
   };
   
-  const recipients = [{id: 'B001234', name: recipientInfo.name}];
-
-  const handleFormSubmit = (data: any) => {
-    setAdvocacyData(data);
-    setStep(billNumber ? 1 : 2);
-  };
-
   const handleComposeSubmit = (composedMessage: string) => {
     setMessage(composedMessage);
-    setStep(billNumber ? 2 : 3); 
+    setStep(prev => prev + 1);
   };
   
   const handleDeliveryComplete = () => {
@@ -54,6 +157,7 @@ const AdvocacyMessagePage: React.FC = () => {
       setStep(0);
       setMessage('');
       setAdvocacyData(null);
+      setRecipients([]);
   }
 
   const steps = billNumber 
@@ -70,14 +174,50 @@ const AdvocacyMessagePage: React.FC = () => {
     </Card>
   );
   
-  const currentStep = billNumber ? step : step - 1;
+  const currentStepOffset = billNumber ? 0 : 1;
+
+  const renderRecipientSelection = () => {
+    const recipientCategories: RecipientCategories = advocacyData.recipients;
+    const allRecipients = [
+        ...(recipientCategories.representatives ? availableRecipients.representatives : []),
+        ...(recipientCategories.committeeLeadership ? availableRecipients.committeeLeadership : []),
+        ...(recipientCategories.billSponsors ? availableRecipients.billSponsors : [])
+    ];
+    
+    const uniqueRecipients = allRecipients.filter((v,i,a)=>a.findIndex(t=>(t.bioguideId === v.bioguideId))===i);
+
+    return (
+        <div>
+            <h3 className="text-lg font-semibold mb-2">Selecting recipients</h3>
+            {uniqueRecipients.map(recipient => (
+                <div key={recipient.bioguideId} className="flex items-center mb-2">
+                    <Checkbox
+                        id={recipient.bioguideId}
+                        checked={recipients.some(r => r.bioguideId === recipient.bioguideId)}
+                        onCheckedChange={() => {
+                            setRecipients(prev => 
+                                prev.some(r => r.bioguideId === recipient.bioguideId)
+                                    ? prev.filter(r => r.bioguideId !== recipient.bioguideId)
+                                    : [...prev, recipient]
+                            );
+                        }}
+                    />
+                    <Label htmlFor={recipient.bioguideId} className="ml-2">
+                        {recipient.fullName || recipient.directOrderName}
+                    </Label>
+                </div>
+            ))}
+        </div>
+    );
+  }
+
 
   return (
     <div className="container mx-auto p-8">
       <div className="mb-8">
         <Stepper>
             {steps.map((label, index) => (
-                 <Step key={label} active={currentStep === index}>
+                 <Step key={label} active={step - currentStepOffset === index}>
                     <StepLabel>{label}</StepLabel>
                 </Step>
             ))}
@@ -90,7 +230,7 @@ const AdvocacyMessagePage: React.FC = () => {
 
       {step === (billNumber ? 0 : 1) && (
          <AdvocacyMessageForm
-            billType={billType || 'defense'}
+            billType={bill?.shortTitle || 'general'}
             recipientCategory="party_leader"
             onSubmit={handleFormSubmit}
           />
@@ -98,12 +238,13 @@ const AdvocacyMessagePage: React.FC = () => {
 
       {step === (billNumber ? 1 : 2) && advocacyData && (
          <MessageComposition
-            billType={billType || 'defense'}
+            billType={bill?.shortTitle || 'general'}
             userStance="support"
             personalData={advocacyData.personalDataIncluded}
-            recipientInfo={recipientInfo}
+            recipientInfo={recipients[0]}
             onSubmit={handleComposeSubmit}
             onBack={handleBack}
+            recipientSelection={renderRecipientSelection()}
           />
       )}
       

@@ -21,7 +21,7 @@ interface PersonalData {
 }
 
 // Define the shape of the recipients
-interface Recipients {
+export interface Recipients {
     representatives: boolean;
     committeeLeadership: boolean;
     billSponsors: boolean;
@@ -31,7 +31,12 @@ interface Recipients {
 interface AdvocacyMessageFormProps {
   billType: string; // To demonstrate dynamic form logic
   recipientCategory: string; // To demonstrate dynamic form logic
-  onSubmit: (data: any) => void;
+  onSubmit: (data: {
+    recipients: Recipients;
+    personalDataIncluded: PersonalData;
+    savePreferences: boolean;
+    useAnonymousId: boolean;
+  }) => void;
 }
 
 const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, recipientCategory, onSubmit }) => {

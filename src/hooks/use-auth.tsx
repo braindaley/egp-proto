@@ -53,7 +53,7 @@ function getFallbackCongresses(): Congress[] {
     { name: '117th Congress', number: 117, startYear: '2021', endYear: '2023' },
     { name: '116th Congress', number: 116, startYear: '2019', endYear: '2021' },
     { name: '115th Congress', number: 115, startYear: '2017', endYear: '2019' },
-  ].sort((a, b) => b.number - a.number);
+  ].sort((a, b) => b.number - a.number) as Congress[];
 }
 
 async function getCongresses(): Promise<Congress[]> {
