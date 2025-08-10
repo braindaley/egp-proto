@@ -62,8 +62,6 @@ async function getCongresses(): Promise<Congress[]> {
         return congressCache;
     }
 
-    // This function now calls the internal API route instead of the external one.
-    // This is more secure and avoids client-side fetch issues.
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:9002');
     const url = `${baseUrl}/api/congresses`;
     
@@ -84,8 +82,9 @@ async function getCongresses(): Promise<Congress[]> {
           .filter(Boolean)
           .map((congress: any) => ({
             ...congress,
-            number: parseInt(congress.name.match(/(\\d+)/)?.[1] || '0', 10)
+            number: parseInt(congress.name.match(/(\d+)/)?.[1] || '0', 10)
           }))
+          .filter((congress: any) => congress.number > 0) // Filter out any with parsing errors
           .sort((a: any, b: any) => b.number - a.number);
         
         if (congresses.length > 0) {
