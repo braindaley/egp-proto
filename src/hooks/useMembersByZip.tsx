@@ -13,6 +13,7 @@ interface Representative {
   photoUrl?: string;
   officeTitle: string;
   districtNumber?: number;
+  bioguideId?: string;
 }
 
 export const useMembersByZip = (zipCodeProp?: string | null) => {

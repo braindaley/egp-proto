@@ -24,6 +24,9 @@ interface Legislator {
     social: {
         twitter: string;
     };
+    references: {
+      bioguide_id: string;
+    }
 }
 
 interface FieldResponse {
@@ -45,6 +48,7 @@ interface AppRepresentative {
   districtNumber?: number;
   phones?: string[];
   urls?: string[];
+  bioguideId?: string;
 }
 
 
@@ -83,6 +87,7 @@ function transformGeocodIoResponse(data: GeocodIoResponse): AppRepresentative[] 
           districtNumber: legislator.type === 'representative' ? district.district_number : undefined,
           phones: legislator.contact.phone ? [legislator.contact.phone] : [],
           urls: legislator.contact.url ? [legislator.contact.url] : [],
+          bioguideId: legislator.references.bioguide_id,
         });
       }
     }

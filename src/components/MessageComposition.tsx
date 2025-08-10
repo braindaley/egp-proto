@@ -104,7 +104,7 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
       <CardContent>
         <div className="space-y-4">
           
-          {recipientSelection}
+          <div>{recipientSelection}</div>
 
           <div>
             <Label>Smart Templates</Label>

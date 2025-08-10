@@ -34,20 +34,21 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
 }
 
 // Helper function to fetch committee members
-async function getCommitteeMembers(committeeId: string): Promise<any[]> {
-    const url = `/api/congress/committee/${committeeId}`;
-    try {
-        const res = await fetch(url);
-        if (!res.ok) {
-            console.error(`Failed to fetch committee members: ${res.status}`);
-            return [];
-        }
-        const data = await res.json();
-        return data.members || [];
-    } catch (error) {
-        console.error("Error in getCommitteeMembers:", error);
-        return [];
-    }
+async function getCommitteeMembers(committeeId: string, congress: string, chamber: 'house' | 'senate'): Promise<any[]> {
+  const url = `/api/congress/committee/${committeeId}?congress=${congress}&chamber=${chamber}`;
+  try {
+      const res = await fetch(url);
+      if (!res.ok) {
+          console.error(`Failed to fetch committee members: ${res.status}`);
+          return [];
+      }
+      const data = await res.json();
+      // Adjust this based on the actual structure of the returned data
+      return data.committee?.members || [];
+  } catch (error) {
+      console.error("Error in getCommitteeMembers:", error);
+      return [];
+  }
 }
 
 const AdvocacyMessagePage: React.FC = () => {
@@ -92,9 +93,13 @@ const AdvocacyMessagePage: React.FC = () => {
     const recipientCategories: RecipientCategories = data.recipients;
     let leadership: Sponsor[] = [];
     let sponsors: Sponsor[] = [];
-
-    if (recipientCategories.committeeLeadership && bill?.committees?.items?.[0]?.systemCode) {
-        const members = await getCommitteeMembers(bill.committees.items[0].systemCode);
+  
+    const committee = bill?.committees?.items?.[0];
+    const committeeId = committee?.systemCode;
+    const chamber = bill?.type?.toLowerCase().startsWith('hr') ? 'house' : 'senate';
+  
+    if (recipientCategories.committeeLeadership && committeeId && congress) {
+        const members = await getCommitteeMembers(committeeId, congress, chamber);
         const chair = members.find(m => m.title === 'Chair' || m.title === 'Chairman');
         const rankingMember = members.find(m => m.title === 'Ranking Member');
         
@@ -120,6 +125,8 @@ const AdvocacyMessagePage: React.FC = () => {
                 url: rankingMember.url,
             });
         }
+    } else if (recipientCategories.committeeLeadership && !committeeId) {
+        console.warn("Committee leadership requested but no committee ID found on the bill object.");
     }
 
     if (recipientCategories.billSponsors && bill?.sponsors) {
@@ -131,6 +138,11 @@ const AdvocacyMessagePage: React.FC = () => {
         committeeLeadership: leadership,
         billSponsors: sponsors
     }));
+
+    // Pre-select the user's representatives
+    if(recipientCategories.representatives) {
+        setRecipients(prev => [...prev, ...congressionalReps]);
+    }
 
     setStep(prev => prev + 1);
   };
@@ -174,6 +186,9 @@ const AdvocacyMessagePage: React.FC = () => {
   const currentStepOffset = billNumber ? 0 : 1;
 
   const renderRecipientSelection = () => {
+    if (!advocacyData) {
+      return null;
+    }
     const recipientCategories: RecipientCategories = advocacyData.recipients;
     const allRecipients = [
         ...(recipientCategories.representatives ? availableRecipients.representatives : []),
@@ -191,16 +206,20 @@ const AdvocacyMessagePage: React.FC = () => {
                     <Checkbox
                         id={recipient.bioguideId}
                         checked={recipients.some(r => r.bioguideId === recipient.bioguideId)}
-                        onCheckedChange={() => {
-                            setRecipients(prev => 
-                                prev.some(r => r.bioguideId === recipient.bioguideId)
-                                    ? prev.filter(r => r.bioguideId !== recipient.bioguideId)
-                                    : [...prev, recipient]
-                            );
+                        onCheckedChange={(checked) => {
+                            setRecipients(prev => {
+                                const isSelected = prev.some(r => r.bioguideId === recipient.bioguideId);
+                                if (checked && !isSelected) {
+                                    return [...prev, recipient];
+                                } else if (!checked && isSelected) {
+                                    return prev.filter(r => r.bioguideId !== recipient.bioguideId);
+                                }
+                                return prev;
+                            });
                         }}
                     />
                     <Label htmlFor={recipient.bioguideId} className="ml-2">
-                        {recipient.fullName || recipient.directOrderName}
+                        {recipient.fullName || recipient.directOrderName || recipient.name}
                     </Label>
                 </div>
             ))}

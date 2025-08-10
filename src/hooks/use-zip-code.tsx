@@ -20,6 +20,7 @@ export const ZipCodeProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => {
     if (user && user.zipCode) {
       setZipCodeState(user.zipCode);
+      localStorage.setItem('user_zip_code', user.zipCode);
     } else {
       const storedZip = localStorage.getItem('user_zip_code');
       if (storedZip) {
