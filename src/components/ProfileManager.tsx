@@ -44,7 +44,11 @@ const ProfileManager: React.FC = () => {
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setProfile(prev => ({ ...prev, [name]: value }));
+    let finalValue: string | boolean = value;
+    if (name === 'militaryService') {
+        finalValue = value === 'true';
+    }
+    setProfile(prev => ({ ...prev, [name]: finalValue }));
   };
 
 
@@ -66,7 +70,15 @@ const ProfileManager: React.FC = () => {
     return <p>Loading profile...</p>;
   }
   
-  const birthYears = Array.from({length: 100}, (_, i) => new Date().getFullYear() - i);
+  const birthYears = Array.from({length: 100}, (_, i) => new Date().getFullYear() - i - 18);
+  const genderOptions = ['Female', 'Male', 'Non-binary', 'Other', 'Prefer not to say'];
+  const partyOptions = ['Democrat', 'Republican', 'Independent', 'Libertarian', 'Green Party', 'Other', 'No Affiliation'];
+  const educationOptions = ['High School', 'Some College', 'Associate Degree', "Bachelor's Degree", "Master's Degree", "Doctoral Degree", "Professional Degree"];
+  const professionOptions = [
+    'Technology', 'Healthcare', 'Education', 'Finance', 'Law', 'Skilled Trades', 'Sales & Marketing', 'Arts & Entertainment', 
+    'Science & Research', 'Government & Public Service', 'Business & Management', 'Student', 'Homemaker', 'Retired', 'Other'
+  ];
+   const militaryOptions = [{label: 'Yes', value: 'true'}, {label: 'No', value: 'false'}];
 
 
   return (
@@ -125,23 +137,51 @@ const ProfileManager: React.FC = () => {
                 </div>
                 <div>
                     <Label htmlFor="gender">Gender</Label>
-                    <Input id="gender" name="gender" value={profile.gender} onChange={handleInputChange} />
+                    <Select value={profile.gender} onValueChange={(value) => handleSelectChange('gender', value)}>
+                        <SelectTrigger id="gender"><SelectValue placeholder="Select gender"/></SelectTrigger>
+                        <SelectContent>
+                            {genderOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div>
                     <Label htmlFor="politicalAffiliation">Party Affiliation</Label>
-                    <Input id="politicalAffiliation" name="politicalAffiliation" value={profile.politicalAffiliation} onChange={handleInputChange} />
+                    <Select value={profile.politicalAffiliation} onValueChange={(value) => handleSelectChange('politicalAffiliation', value)}>
+                        <SelectTrigger id="politicalAffiliation"><SelectValue placeholder="Select party"/></SelectTrigger>
+                        <SelectContent>
+                             {partyOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div>
                     <Label htmlFor="education">Education</Label>
-                    <Input id="education" name="education" value={profile.education} onChange={handleInputChange} />
+                    <Select value={profile.education} onValueChange={(value) => handleSelectChange('education', value)}>
+                        <SelectTrigger id="education"><SelectValue placeholder="Select education level"/></SelectTrigger>
+                        <SelectContent>
+                           {educationOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                 </div>
                  <div>
                     <Label htmlFor="profession">Profession</Label>
-                    <Input id="profession" name="profession" value={profile.profession} onChange={handleInputChange} />
+                    <Select value={profile.profession} onValueChange={(value) => handleSelectChange('profession', value)}>
+                         <SelectTrigger id="profession"><SelectValue placeholder="Select profession"/></SelectTrigger>
+                        <SelectContent>
+                           {professionOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                 </div>
-                 <div className="flex items-center">
-                    <input type="checkbox" id="militaryService" name="militaryService" checked={profile.militaryService} onChange={handleInputChange} className="mr-2"/>
+                 <div>
                     <Label htmlFor="militaryService">Military Service</Label>
+                     <Select
+                        value={profile.militaryService?.toString()}
+                        onValueChange={(value) => handleSelectChange('militaryService', value)}
+                    >
+                        <SelectTrigger id="militaryService"><SelectValue placeholder="Select status"/></SelectTrigger>
+                        <SelectContent>
+                           {militaryOptions.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
             <div className="flex justify-end gap-2">
