@@ -20,15 +20,14 @@ import { Label } from '@/components/ui/label';
 // Helper function to fetch bill details
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
-  const url = `${baseUrl}/api/bills/search?congress=${congress}&type=${billType}&number=${billNumber}`;
+  const url = `${baseUrl}/api/bill?congress=${congress}&billType=${billType}&billNumber=${billNumber}`;
   try {
     const res = await fetch(url);
     if (!res.ok) {
       console.error(`Failed to fetch bill details: ${res.status}`);
       return null;
     }
-    const data = await res.json();
-    return data.bills[0] || null;
+    return await res.json();
   } catch (error) {
     console.error("Error in getBillDetails:", error);
     return null;
