@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 interface ZipCodeContextType {
   zipCode: string | null;
@@ -13,9 +13,21 @@ const ZipCodeContext = createContext<ZipCodeContextType | undefined>(undefined);
 export const ZipCodeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [zipCode, setZipCodeState] = useState<string | null>(null);
 
+  useEffect(() => {
+    const storedZip = localStorage.getItem('zipCode');
+    if (storedZip) {
+      setZipCodeState(storedZip);
+    }
+  }, []);
+
   const setZipCode = (newZipCode: string | null) => {
     console.log(`[ZipCodeProvider] Updating zip code to: ${newZipCode}`);
     setZipCodeState(newZipCode);
+    if (newZipCode) {
+      localStorage.setItem('zipCode', newZipCode);
+    } else {
+      localStorage.removeItem('zipCode');
+    }
   };
 
   return (
