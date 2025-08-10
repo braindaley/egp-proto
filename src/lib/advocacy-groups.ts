@@ -18,7 +18,6 @@ export interface PriorityBill {
   reasoning: string;
   supportCount: number;
   opposeCount: number;
-  actionButtonText?: string;
 }
 
 const advocacyGroupsData: Record<string, AdvocacyGroup> = {
@@ -42,7 +41,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: '### Why LWV Supports the John R. Lewis Voting Rights Advancement Act\n\n*   **It restores protections weakened by court decisions.** After the 2013 *Shelby County v. Holder* ruling gutted key provisions of the Voting Rights Act, this legislation is seen as essential to reestablish federal oversight and guard against discriminatory changes in voting laws.\n\n*   **It defends democracy and honors the VRA\'s legacy.** Named for civil rights hero John Lewis, the bill is framed as much-needed defense of voting rights—particularly amid renewed state-level attacks on fair representation and redistricting.\n\n*   **It aligns with LWV\'s mission.** The League has a long history of fighting to make elections fair, inclusive, and accessible. This act fits squarely within that mission by preventing racial discrimination and ensuring every voter is heard.',
         supportCount: 9850,
         opposeCount: 1520,
-        actionButtonText: 'Contact Your Representatives to Support Voting Rights'
       },
       {
         bill: {
@@ -54,7 +52,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: '### Why LWV Opposes the SAVE Act (H.R. 22)\n\n*   **It creates unnecessary barriers to voting.** Although voters are already required to affirm citizenship when registering, the SAVE Act adds redundant requirements, such as presenting documentary proof of U.S. citizenship in person every time you update your registration. This puts an unfair burden on many eligible voters.\n*   **It disproportionately impacts marginalized groups.** The League highlights how the SAVE Act harms rural voters, voters of color, military families who move frequently, those recovering from disasters, and especially married women who\'ve changed their names and may struggle to match documentation.\n*   **It addresses a problem that doesn\'t exist.** Noncitizen voting is already illegal and extremely rare. The League warns that the SAVE Act is rooted in fear, misinformation, and divisive rhetoric—not real threats to democracy.\n*   **It undermines voter access and overloads election infrastructure.** Requiring in-person registrations and strict document checks could overwhelm local election offices and undermine the League\'s century-long mission of encouraging broad participation.',
         supportCount: 3100,
         opposeCount: 15600,
-        actionButtonText: 'Tell Your Senator to Vote NO on the SAVE Act'
       },
       {
         bill: {
@@ -66,7 +63,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'The For the People Act represents comprehensive democracy reform that would expand voting access, end partisan gerrymandering, and reduce the influence of big money in politics. This legislation would restore and strengthen voting rights protections that have been weakened by recent court decisions and state legislative actions.',
         supportCount: 12400,
         opposeCount: 3850,
-        actionButtonText: 'Urge Congress to Pass Democracy Reform'
       },
     ],
   },
@@ -90,7 +86,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'The SAVE Act would require documentary proof of citizenship for voter registration, creating significant barriers for eligible voters. Research shows that more than 21 million Americans would not be able to quickly locate required documents, and nearly 4 million citizens lack access to any form of citizenship proof.',
         supportCount: 2800,
         opposeCount: 18500,
-        actionButtonText: 'Oppose Discriminatory Voting Barriers'
       },
       {
         bill: {
@@ -102,7 +97,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Federal oversight is essential to prevent discriminatory voting changes. This bill would restore key provisions of the Voting Rights Act that were struck down in Shelby County v. Holder, providing crucial protections against voter suppression.',
         supportCount: 14200,
         opposeCount: 4100,
-        actionButtonText: 'Restore Voting Rights Protections'
       },
       {
         bill: {
@@ -114,7 +108,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Comprehensive election security and voting access reforms are needed to protect democracy. This legislation addresses cybersecurity threats, improves election infrastructure, and ensures all eligible Americans can participate in elections.',
         supportCount: 16800,
         opposeCount: 5200,
-        actionButtonText: 'Secure Our Elections and Democracy'
       },
     ],
   },
@@ -138,7 +131,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'The For the People Act would transform American democracy by expanding voting rights, ending partisan gerrymandering through independent redistricting commissions, and implementing comprehensive campaign finance reform including small-donor public financing.',
         supportCount: 18900,
         opposeCount: 6200,
-        actionButtonText: 'Support Democracy Reform Now'
       },
       {
         bill: {
@@ -150,7 +142,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Restoring net neutrality protections ensures equal access to information and prevents internet service providers from blocking, throttling, or prioritizing content based on payment. An open internet is essential for democracy and civic participation.',
         supportCount: 22500,
         opposeCount: 3800,
-        actionButtonText: 'Restore Net Neutrality Protections'
       },
       {
         bill: {
@@ -162,7 +153,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'This legislation would weaken campaign finance disclosure requirements and allow more dark money in elections. Voters have a right to know who is funding political advertisements and campaign activities.',
         supportCount: 4100,
         opposeCount: 16700,
-        actionButtonText: 'Oppose Dark Money in Elections'
       },
     ],
   },
@@ -186,7 +176,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'The John R. Lewis Voting Rights Advancement Act would restore and strengthen voting rights protections, particularly for communities of color and other traditionally underrepresented groups who continue to face barriers to voting.',
         supportCount: 11200,
         opposeCount: 2100,
-        actionButtonText: 'Restore Voting Rights Now'
       },
       {
         bill: {
@@ -198,7 +187,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Comprehensive voting reforms are needed to ensure all eligible Americans can participate in elections. This includes automatic voter registration, expanded early voting, and restoration of voting rights for people with prior felony convictions.',
         supportCount: 13800,
         opposeCount: 4300,
-        actionButtonText: 'Expand Voting Access for All'
       },
       {
         bill: {
@@ -210,7 +198,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Documentary proof of citizenship requirements create significant barriers to voter registration, particularly for naturalized citizens, low-income Americans, and elderly voters who may lack easy access to required documents.',
         supportCount: 3200,
         opposeCount: 14900,
-        actionButtonText: 'Stop Voter Registration Barriers'
       },
     ],
   },
@@ -234,7 +221,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'The Fair Representation Act would establish multi-member congressional districts elected through ranked choice voting, ensuring that every vote counts and that Congress better reflects the diversity of American voters. This reform would end gerrymandering and increase competition.',
         supportCount: 8900,
         opposeCount: 5200,
-        actionButtonText: 'Support Fair Representation in Congress'
       },
       {
         bill: {
@@ -246,7 +232,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Federal support for ranked choice voting implementation would help states and localities adopt this proven reform that gives voters more choice, reduces negative campaigning, and ensures winners have majority support.',
         supportCount: 12400,
         opposeCount: 3100,
-        actionButtonText: 'Promote Ranked Choice Voting'
       },
       {
         bill: {
@@ -258,7 +243,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'State bans on ranked choice voting prevent local communities from implementing proven electoral reforms. Voters and local governments should have the freedom to choose voting methods that work best for their communities.',
         supportCount: 2800,
         opposeCount: 9600,
-        actionButtonText: 'Protect Local Voting Rights'
       },
     ],
   },
@@ -282,7 +266,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Additional ID requirements would create new barriers for eligible voters, particularly impacting communities that already face challenges accessing identification. Nearly 21 million Americans lack current government-issued photo ID, with disproportionate impacts on marginalized communities.',
         supportCount: 4200,
         opposeCount: 18300,
-        actionButtonText: 'Oppose Additional Voting Barriers'
       },
       {
         bill: {
@@ -294,7 +277,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Comprehensive voting reforms should include provisions to make obtaining required voter ID easier and more accessible, including federal standards for acceptable forms of ID and assistance for voters who need help obtaining documentation.',
         supportCount: 15600,
         opposeCount: 4800,
-        actionButtonText: 'Make Voting More Accessible'
       },
       {
         bill: {
@@ -306,7 +288,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Federal funding for voter ID assistance programs would help ensure that all eligible Americans can obtain the identification needed to exercise their right to vote, regardless of their economic circumstances or geographic location.',
         supportCount: 13200,
         opposeCount: 2900,
-        actionButtonText: 'Fund Voter ID Assistance'
       },
     ],
   },
@@ -330,7 +311,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Young voters face unique barriers to voting including frequent moves, lack of traditional forms of ID, and unfamiliarity with voting processes. Comprehensive voting reform would address these barriers through automatic registration, expanded early voting, and modernized election systems.',
         supportCount: 19500,
         opposeCount: 3200,
-        actionButtonText: 'Empower Young Voters'
       },
       {
         bill: {
@@ -342,7 +322,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Lowering the voting age for federal elections would recognize the civic engagement and political awareness of 16 and 17-year-olds, many of whom are already participating in democracy through youth councils, school boards, and community organizing.',
         supportCount: 8900,
         opposeCount: 12400,
-        actionButtonText: 'Expand Youth Political Participation'
       },
       {
         bill: {
@@ -354,7 +333,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Additional documentation requirements disproportionately impact young voters who are more likely to lack traditional forms of ID or have mismatched addresses due to frequent moves for school or work. These barriers suppress youth civic participation.',
         supportCount: 4100,
         opposeCount: 16800,
-        actionButtonText: 'Remove Barriers to Youth Voting'
       },
     ],
   },
@@ -378,7 +356,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'The John R. Lewis Voting Rights Advancement Act would restore critical protections against voting discrimination that particularly benefit Latino and immigrant communities, ensuring equal access to the ballot and language assistance.',
         supportCount: 16200,
         opposeCount: 2800,
-        actionButtonText: 'Protect Latino Voting Rights'
       },
       {
         bill: {
@@ -390,7 +367,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Comprehensive immigration reform would provide a pathway to citizenship for millions of immigrants, expanding the electorate and ensuring that immigrant communities have a voice in the democratic process.',
         supportCount: 18900,
         opposeCount: 6100,
-        actionButtonText: 'Support Immigration Reform'
       },
       {
         bill: {
@@ -402,7 +378,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Documentary proof of citizenship requirements would create significant barriers for naturalized citizens and Latino voters, many of whom may face challenges obtaining or affording required documentation.',
         supportCount: 3400,
         opposeCount: 15800,
-        actionButtonText: 'Stop Anti-Immigrant Voting Barriers'
       },
     ],
   },
@@ -426,7 +401,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'The John R. Lewis Voting Rights Advancement Act is essential for protecting Black voting rights and preventing discriminatory voting changes. This legislation would restore federal oversight of elections in areas with histories of discrimination.',
         supportCount: 17800,
         opposeCount: 2200,
-        actionButtonText: 'Defend Black Voting Rights'
       },
       {
         bill: {
@@ -438,7 +412,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Comprehensive democracy reform would expand voting access in Black communities through automatic registration, early voting expansion, and restoration of voting rights for people with prior convictions, addressing historical and ongoing voter suppression.',
         supportCount: 16500,
         opposeCount: 4100,
-        actionButtonText: 'Expand Black Political Power'
       },
       {
         bill: {
@@ -450,7 +423,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'D.C. statehood would provide full representation for the majority-Black District of Columbia, ending taxation without representation and ensuring that D.C. residents have voting representation in Congress.',
         supportCount: 14200,
         opposeCount: 8100,
-        actionButtonText: 'Support D.C. Statehood'
       },
     ],
   },
@@ -474,7 +446,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'The For the People Act would make voting more accessible for all Americans through automatic voter registration, expanded early voting, and improved election security. These reforms would help create a culture where voting is easy and accessible for everyone.',
         supportCount: 20100,
         opposeCount: 4500,
-        actionButtonText: 'Make Voting Accessible for All'
       },
       {
         bill: {
@@ -486,7 +457,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Voting rights protections are fundamental to ensuring that every American can participate in democracy. The John R. Lewis Voting Rights Advancement Act would restore crucial safeguards against discriminatory voting practices.',
         supportCount: 18700,
         opposeCount: 3100,
-        actionButtonText: 'Protect Voting Rights for All'
       },
       {
         bill: {
@@ -498,7 +468,6 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         reasoning: 'Additional barriers to voter registration would make it harder for eligible Americans to participate in elections, particularly impacting first-time voters and communities that have historically faced voting obstacles.',
         supportCount: 5200,
         opposeCount: 16900,
-        actionButtonText: 'Remove Voting Barriers'
       },
     ],
   },

@@ -15,10 +15,9 @@ interface AdvocacyBillCardProps {
     bill: Bill;
     position: string;
     reasoning: string;
-    actionButtonText?: string;
 }
 
-const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning, actionButtonText }) => {
+const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning }) => {
     const billId = `${bill.type.toUpperCase()}${bill.number}`;
     const billTitle = bill.title || `Legislation ${billId}`;
 
@@ -51,14 +50,7 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                     />
                 </div>
                 <div className="mt-auto pt-4">
-                    {actionButtonText && (
-                         <Button asChild className="w-full mb-2" size="sm">
-                            <Link href="/advocacy-message">
-                                {actionButtonText}
-                            </Link>
-                        </Button>
-                    )}
-                    <Button asChild className="w-full" size="sm" variant="outline">
+                    <Button asChild className="w-full" size="sm">
                         <Link href={`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`}>
                             Voice your opinion
                         </Link>

@@ -19,8 +19,7 @@ import { Label } from '@/components/ui/label';
 
 // Helper function to fetch bill details
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
-  const url = `${baseUrl}/api/bill?congress=${congress}&billType=${billType}&billNumber=${billNumber}`;
+  const url = `/api/bill?congress=${congress}&billType=${billType}&billNumber=${billNumber}`;
   try {
     const res = await fetch(url);
     if (!res.ok) {
@@ -36,8 +35,7 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
 
 // Helper function to fetch committee members
 async function getCommitteeMembers(committeeId: string): Promise<any[]> {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
-    const url = `${baseUrl}/api/congress/committee/${committeeId}`;
+    const url = `/api/congress/committee/${committeeId}`;
     try {
         const res = await fetch(url);
         if (!res.ok) {
