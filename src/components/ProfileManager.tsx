@@ -10,13 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { useZipCode } from '@/hooks/useZipCode';
+import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
 
 const ProfileManager: React.FC = () => {
   const { user, loading } = useAuth();
-  const { zipCode } = useZipCode();
-  const { representatives } = useMembersByZip(zipCode);
+  const { zipCode: cookieZipCode } = useZipCode();
+  const { representatives } = useMembersByZip(cookieZipCode);
   const [profile, setProfile] = useState<Partial<User>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -30,7 +30,7 @@ const ProfileManager: React.FC = () => {
         address: user.address || '',
         city: user.city || '',
         state: user.state || '',
-        zipCode: user.zipCode || '',
+        zipCode: user.zipCode || cookieZipCode || '',
         congressionalDistrict: user.congressionalDistrict || '',
         birthYear: user.birthYear || undefined,
         gender: user.gender || '',
@@ -40,7 +40,7 @@ const ProfileManager: React.FC = () => {
         militaryService: user.militaryService || false,
       });
     }
-  }, [user]);
+  }, [user, cookieZipCode]);
 
   useEffect(() => {
     if (representatives.length > 0 && !profile.congressionalDistrict) {

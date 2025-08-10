@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useZipCode } from '@/hooks/use-zip-code';
 
 // This should match the structure of the objects returned by our /api/congress/members/by-zip endpoint
 interface Representative {
@@ -14,10 +15,13 @@ interface Representative {
   districtNumber?: number;
 }
 
-export const useMembersByZip = (zipCode: string | null) => {
+export const useMembersByZip = (zipCodeProp?: string | null) => {
+  const { zipCode: cookieZipCode } = useZipCode();
   const [representatives, setRepresentatives] = useState<Representative[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const zipCode = zipCodeProp || cookieZipCode;
 
   const fetchMembers = useCallback(async () => {
     if (!zipCode) {
