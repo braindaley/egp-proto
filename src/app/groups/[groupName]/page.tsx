@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getAdvocacyGroupData } from '@/lib/advocacy-groups';
-import { AdvocacyBillCard } from '@/components/advocacy-bill-card';
+import AdvocacyBillCard from '@/components/advocacy-bill-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Users, Calendar, BarChart, Mic, Edit, CheckCircle } from 'lucide-react';
@@ -151,7 +151,13 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
                         <h2 className="text-2xl font-bold font-headline text-center">Priority Legislation</h2>
                         <div className="space-y-6">
                             {priorityBillsWithData.map((item, index) => (
-                                <AdvocacyBillCard key={index} priorityBill={item} />
+                                <AdvocacyBillCard 
+                                    key={index}
+                                    bill={item.bill}
+                                    position={item.position}
+                                    reasoning={item.reasoning}
+                                    actionButtonText={item.actionButtonText} 
+                                />
                             ))}
                         </div>
                     </>

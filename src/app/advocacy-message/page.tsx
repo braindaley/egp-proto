@@ -1,17 +1,26 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AdvocacyMessageForm from '../../components/AdvocacyMessageForm';
 import MessageComposition from '../../components/MessageComposition';
 import DeliveryHandler from '../../components/advocacy/DeliveryHandler';
+import SelectBill from '../../components/SelectBill';
 import { Stepper, Step, StepLabel } from '@/components/ui/stepper';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const AdvocacyMessagePage: React.FC = () => {
   const [step, setStep] = useState(0);
   const [advocacyData, setAdvocacyData] = useState<any>(null);
   const [message, setMessage] = useState('');
+  
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const congress = searchParams.get('congress');
+  const billType = searchParams.get('type');
+  const billNumber = searchParams.get('number');
   
   const recipientInfo = {
     name: 'Honorable Jane Doe',
@@ -21,16 +30,14 @@ const AdvocacyMessagePage: React.FC = () => {
   
   const recipients = [{id: 'B001234', name: recipientInfo.name}];
 
-  const router = useRouter();
-
   const handleFormSubmit = (data: any) => {
     setAdvocacyData(data);
-    setStep(1);
+    setStep(billNumber ? 1 : 2);
   };
 
   const handleComposeSubmit = (composedMessage: string) => {
     setMessage(composedMessage);
-    setStep(2); 
+    setStep(billNumber ? 2 : 3); 
   };
   
   const handleDeliveryComplete = () => {
@@ -49,31 +56,49 @@ const AdvocacyMessagePage: React.FC = () => {
       setAdvocacyData(null);
   }
 
-  const steps = ['Select Info', 'Compose Message', 'Send Message'];
+  const steps = billNumber 
+    ? ['Select Info', 'Compose Message', 'Send Message']
+    : ['Select Bill', 'Select Info', 'Compose Message', 'Send Message'];
+
+  const BillContextCard = () => (
+    <Card className="mb-8 bg-secondary/50">
+        <CardContent className="p-4">
+            <p className="text-center font-medium">
+                Voice your opinion on Bill {billType?.toUpperCase()} {billNumber}
+            </p>
+        </CardContent>
+    </Card>
+  );
+  
+  const currentStep = billNumber ? step : step - 1;
 
   return (
     <div className="container mx-auto p-8">
       <div className="mb-8">
         <Stepper>
             {steps.map((label, index) => (
-                 <Step key={label} active={step === index}>
+                 <Step key={label} active={currentStep === index}>
                     <StepLabel>{label}</StepLabel>
                 </Step>
             ))}
         </Stepper>
       </div>
+      
+      {billType && billNumber && <BillContextCard />}
 
-      {step === 0 && (
+      {step === 0 && !billNumber && <SelectBill />}
+
+      {step === (billNumber ? 0 : 1) && (
          <AdvocacyMessageForm
-            billType="defense"
+            billType={billType || 'defense'}
             recipientCategory="party_leader"
             onSubmit={handleFormSubmit}
           />
       )}
 
-      {step === 1 && advocacyData && (
+      {step === (billNumber ? 1 : 2) && advocacyData && (
          <MessageComposition
-            billType="defense"
+            billType={billType || 'defense'}
             userStance="support"
             personalData={advocacyData.personalDataIncluded}
             recipientInfo={recipientInfo}
@@ -82,7 +107,7 @@ const AdvocacyMessagePage: React.FC = () => {
           />
       )}
       
-      {step === 2 && advocacyData && (
+      {step === (billNumber ? 2 : 3) && advocacyData && (
         <DeliveryHandler
             messageContent={message}
             recipients={recipients}

@@ -16,6 +16,7 @@ import {
   sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import type { Congress } from '@/types';
 
@@ -83,7 +84,7 @@ async function getCongresses(): Promise<Congress[]> {
           .filter(Boolean)
           .map((congress: any) => ({
             ...congress,
-            number: parseInt(congress.name.match(/(\d+)/)?.[1] || '0', 10)
+            number: parseInt(congress.name.match(/(\\d+)/)?.[1] || '0', 10)
           }))
           .sort((a: any, b: any) => b.number - a.number);
         
@@ -133,10 +134,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [congresses, setCongresses] = useState<Congress[]>([]);
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   const router = useRouter();
+  const db = getFirestore();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (userDoc.exists()) {
+          setUser({ ...firebaseUser, ...userDoc.data() } as User);
+        } else {
+          setUser(firebaseUser);
+        }
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
     
@@ -149,7 +160,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [selectedCongress]);
+  }, [selectedCongress, db]);
 
   const login = (email: string, pass: string) => {
     return signInWithEmailAndPassword(auth, email, pass);

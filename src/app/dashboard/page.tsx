@@ -1,45 +1,64 @@
 
 'use client';
 
-import React from 'react';
-import MessageHistory from '@/components/dashboard/MessageHistory';
-import BillStatusTracker from '@/components/dashboard/BillStatusTracker';
+import { useAuth } from '@/hooks/use-auth';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import AdvocacyAnalytics from '@/components/dashboard/AdvocacyAnalytics';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import BillStatusTracker from '@/components/dashboard/BillStatusTracker';
+import MessageHistory from '@/components/dashboard/MessageHistory';
+import ProfileManager from '@/components/ProfileManager';
 
-const UserDashboardPage = () => {
-  // Mock user ID for demonstration
-  const userId = 'user_12345';
+export default function DashboardPage() {
+    const { user, loading, logout } = useAuth();
 
-  return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8" style={{ backgroundColor: '#E6E6FA' }}>
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold" style={{ color: '#4B0082', fontFamily: 'Poppins, sans-serif' }}>
-          Your Advocacy Dashboard
-        </h1>
-        <p className="text-lg" style={{ color: '#4B0082', fontFamily: 'PT Sans, sans-serif' }}>
-          Track your impact, monitor bill progress, and view your message history.
-        </p>
-      </div>
+    if (loading) {
+        return <p>Loading...</p>;
+    }
 
-      <Tabs defaultValue="history" className="w-full">
-        <TabsList className="grid w-full grid-cols-3" style={{ borderColor: '#8F00FF' }}>
-          <TabsTrigger value="history" style={{ fontFamily: 'Poppins, sans-serif' }}>Message History</TabsTrigger>
-          <TabsTrigger value="tracking" style={{ fontFamily: 'Poppins, sans-serif' }}>Bill Status Tracking</TabsTrigger>
-          <TabsTrigger value="analytics" style={{ fontFamily: 'Poppins, sans-serif' }}>Analytics</TabsTrigger>
-        </TabsList>
-        <TabsContent value="history">
-          <MessageHistory userId={userId} />
-        </TabsContent>
-        <TabsContent value="tracking">
-          <BillStatusTracker userId={userId} />
-        </TabsContent>
-        <TabsContent value="analytics">
-          <AdvocacyAnalytics userId={userId} />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-};
-
-export default UserDashboardPage;
+    if (!user) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <Card className="w-full max-w-md p-8 text-center">
+                    <CardHeader>
+                        <CardTitle className="text-2xl font-bold">Access Restricted</CardTitle>
+                        <CardDescription>Please log in to view your dashboard.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild>
+                            <Link href="/login">Log In</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+    
+    return (
+        <div className="container mx-auto p-4 md:p-8">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold font-headline">
+                        Welcome, {user.firstName || user.email}
+                    </h1>
+                    <p className="text-muted-foreground mt-1">
+                        Here is an overview of your advocacy efforts and tools.
+                    </p>
+                </div>
+                <Button onClick={logout} variant="outline" className="mt-4 md:mt-0">
+                    Log Out
+                </Button>
+            </header>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <main className="lg:col-span-3 space-y-8">
+                    <ProfileManager />
+                    <AdvocacyAnalytics />
+                    <BillStatusTracker />
+                    <MessageHistory />
+                </main>
+            </div>
+        </div>
+    );
+}

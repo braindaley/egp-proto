@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Checkbox } from './ui/checkbox';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
+import { useAuth } from '@/hooks/use-auth';
 
 // Define the shape of the personal data that can be included in a message
 interface PersonalData {
@@ -17,7 +18,6 @@ interface PersonalData {
   profession: boolean;
   votingPrecinct: boolean;
   militaryService: boolean;
-  issueImportance: boolean;
 }
 
 // Define the shape of the recipients
@@ -35,6 +35,8 @@ interface AdvocacyMessageFormProps {
 }
 
 const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, recipientCategory, onSubmit }) => {
+  const { user } = useAuth();
+    
   // State for recipients
   const [recipients, setRecipients] = useState<Recipients>({
     representatives: true,
@@ -53,12 +55,29 @@ const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, rec
     profession: false,
     votingPrecinct: false,
     militaryService: false,
-    issueImportance: false,
   });
 
   // State for privacy controls
   const [savePreferences, setSavePreferences] = useState(false);
   const [useAnonymousId, setUseAnonymousId] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            setPersonalData(prev => ({
+                ...prev,
+                fullName: !!(user.firstName || user.lastName),
+                address: !!(user.address || user.city || user.state || user.zipCode),
+                age: !!user.birthYear,
+                gender: !!user.gender,
+                partyAffiliation: !!user.politicalAffiliation,
+                education: !!user.education,
+                profession: !!user.profession,
+                militaryService: !!user.militaryService,
+                votingPrecinct: !!user.zipCode, // Placeholder for precinct logic
+            }));
+        }
+    }, [user]);
+
 
   // Handle recipient checkbox changes
   const handleRecipientChange = (field: keyof Recipients) => {
@@ -85,7 +104,7 @@ const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, rec
   // Dynamic form logic: determine which fields to show based on billType and recipientCategory
   const shouldShowField = (field: keyof PersonalData) => {
     // Example: only show military service for defense-related bills
-    if (field === 'militaryService' && billType !== 'defense') {
+    if (field === 'militaryService' && billType.toLowerCase() !== 'defense') {
       return false;
     }
     // Example: only show party affiliation for messages to party leaders

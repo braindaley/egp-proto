@@ -53,6 +53,13 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 {bill.shortTitle}
               </p>
             )}
+             <div className="mt-4">
+                 <Button asChild size="lg">
+                    <Link href={`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`}>
+                        Voice your opinion
+                    </Link>
+                </Button>
+            </div>
           </header>
 
             <Card>
