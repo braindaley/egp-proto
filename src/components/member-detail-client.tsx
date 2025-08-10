@@ -16,7 +16,7 @@ import { CampaignPromisesCard } from './campaign-promises-card';
 import { LegislativeActivityCard } from './legislative-activity-card';
 import { NewsCard } from './news-card';
 import { CampaignFinanceCard } from './campaign-finance-card';
-import { useZipCode } from '@/hooks/useZipCode';
+import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
 
 // --- Name Matching Function ---
