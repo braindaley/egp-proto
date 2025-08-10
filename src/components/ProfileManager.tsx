@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+
 
 const ProfileManager: React.FC = () => {
   const { user, loading } = useAuth();
@@ -41,12 +43,17 @@ const ProfileManager: React.FC = () => {
     setProfile(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
+  const handleSelectChange = (name: string, value: string) => {
+    setProfile(prev => ({ ...prev, [name]: value }));
+  };
+
+
   const handleSave = async () => {
     if (!user) return;
     setIsSaving(true);
     try {
       const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, { ...profile, updatedAt: new Date() }, { merge: true });
+      await setDoc(userRef, { ...profile, birthYear: Number(profile.birthYear) }, { merge: true });
       setIsEditing(false);
     } catch (error) {
       console.error("Error saving profile:", error);
@@ -58,6 +65,9 @@ const ProfileManager: React.FC = () => {
   if (loading) {
     return <p>Loading profile...</p>;
   }
+  
+  const birthYears = Array.from({length: 100}, (_, i) => new Date().getFullYear() - i);
+
 
   return (
     <Card>
@@ -97,7 +107,21 @@ const ProfileManager: React.FC = () => {
                 </div>
                  <div>
                     <Label htmlFor="birthYear">Birth Year</Label>
-                    <Input id="birthYear" name="birthYear" type="number" value={profile.birthYear || ''} onChange={handleInputChange} />
+                    <Select
+                        value={profile.birthYear?.toString() || ''}
+                        onValueChange={(value) => handleSelectChange('birthYear', value)}
+                    >
+                        <SelectTrigger id="birthYear">
+                            <SelectValue placeholder="Select year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {birthYears.map(year => (
+                                <SelectItem key={year} value={year.toString()}>
+                                    {year}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div>
                     <Label htmlFor="gender">Gender</Label>
