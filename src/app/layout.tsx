@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { ZipCodeBanner } from "@/components/ui/zip-code-banner";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ZipCodeProvider } from "@/hooks/useZipCode";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,11 +23,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Header />
-        {children}
-        <Toaster />
-        <Footer />
-        <ZipCodeBanner />
+        <AuthProvider>
+          <ZipCodeProvider>
+            <Header />
+            {children}
+            <Toaster />
+            <Footer />
+            <ZipCodeBanner />
+          </ZipCodeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
