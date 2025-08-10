@@ -49,7 +49,10 @@ const BillStatusTracker: React.FC<BillStatusTrackerProps> = ({ userId }) => {
         ) : (
           trackedBills.map(bill => (
             <div key={bill.id} className="mb-6 p-4 border rounded-lg">
-              <h3 className="text-lg font-semibold">{bill.title} - <Badge>{bill.status}</Badge></h3>
+              <div className="text-lg font-semibold mb-2">
+                <span>{bill.title} - </span>
+                <Badge>{bill.status}</Badge>
+              </div>
               
               <div className="my-4">
                 <h4 className="font-semibold mb-2">Progress Timeline:</h4>
@@ -66,7 +69,10 @@ const BillStatusTracker: React.FC<BillStatusTrackerProps> = ({ userId }) => {
 
               <div>
                 <h4 className="font-semibold">Voting Results:</h4>
-                <p>Rep. {bill.votes[0].representative}: <Badge variant={bill.votes[0].vote === 'Yea' ? 'default' : 'destructive'}>{bill.votes[0].vote}</Badge></p>
+                <div className="flex items-center gap-2">
+                    <span>Rep. {bill.votes[0].representative}:</span>
+                    <Badge variant={bill.votes[0].vote === 'Yea' ? 'default' : 'destructive'}>{bill.votes[0].vote}</Badge>
+                </div>
               </div>
               
               <div className="mt-4">
