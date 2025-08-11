@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { Mail, Send, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Mail, Send, ThumbsUp, ThumbsDown, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { generateAdvocacyMessage } from '@/ai/flows/generate-advocacy-message-flow';
 
 interface PersonalData {
   fullName: boolean;
@@ -22,7 +23,6 @@ interface PersonalData {
   profession: boolean;
   votingPrecinct: boolean;
   militaryService: boolean;
-  issueImportance: boolean;
 }
 
 interface RecipientInfo {
@@ -32,8 +32,10 @@ interface RecipientInfo {
 }
 
 interface MessageCompositionProps {
-  billType: string;
-  userStance: 'support' | 'oppose';
+  billTitle: string;
+  billSummary: string;
+  userStance: 'support' | 'oppose' | 'none';
+  onStanceChange: (stance: 'support' | 'oppose' | 'none') => void;
   personalData: PersonalData;
   recipientInfo: RecipientInfo;
   onSubmit: (message: string) => void;
@@ -42,8 +44,10 @@ interface MessageCompositionProps {
 }
 
 const MessageComposition: React.FC<MessageCompositionProps> = ({
-  billType,
-  userStance: initialUserStance,
+  billTitle,
+  billSummary,
+  userStance,
+  onStanceChange,
   personalData,
   recipientInfo,
   onSubmit,
@@ -54,29 +58,34 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
   const [tone, setTone] = useState('formal');
   const [deliveryMethod, setDeliveryMethod] = useState('email');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [userStance, setUserStance] = useState<'support' | 'oppose' | 'none'>('none');
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const generateAITemplate = () => {
+  const generateAITemplate = async () => {
     if (userStance === 'none') {
         setValidationErrors(['Please select "Support" or "Oppose" before generating a template.']);
         return;
     }
     setValidationErrors([]);
-    // Simulated AI template generation based on bill type and stance
-    const templates: Record<string, Record<string, string>> = {
-      defense: {
-        support: `Dear Honorable Representative,\n\nI am writing to express my strong support for the upcoming defense bill. Our nation's security is of utmost importance, and I believe this bill provides the necessary resources to strengthen our military and protect our interests at home and abroad.\n\nThank you for your leadership and consideration.\n\nSincerely,\n[Your Name]`,
-        oppose: `Dear Honorable Representative,\n\nI am writing to voice my serious concerns about the upcoming defense bill. While I agree that national security is a priority, I believe the current version of this bill is misguided and contains provisions that are not in the best interest of our country. I urge you to reconsider your support.\n\nSincerely,\n[Your Name]`,
-      },
-      healthcare: {
-        support: `Dear Honorable Representative,\n\nI am writing to urge you to support the new healthcare bill. Access to affordable, quality healthcare is a fundamental right, and this bill takes significant steps towards achieving that goal for all Americans. It is a crucial piece of legislation that will positively impact countless lives.\n\nSincerely,\n[Your Name]`,
-        oppose: `Dear Honorable Representative,\n\nI am writing to express my strong opposition to the new healthcare bill. I have serious reservations about its potential impact on healthcare costs, coverage, and quality. I believe it will create more problems than it solves and I urge you to vote against it.\n\nSincerely,\n[Your Name]`,
-      },
-    };
-    const defaultTemplate = `Dear Honorable Representative,\n\nI am writing to you regarding the ${billType} bill. My position is one of ${userStance}. I believe this is an important issue for our community.\n\nSincerely,\n[Your Name]`;
+    setIsGenerating(true);
 
-    const generatedTemplate = templates[billType]?.[userStance] || defaultTemplate;
-    setMessage(generatedTemplate.replace('[Your Name]', personalData.fullName ? 'Your Name' : 'A Constituent'));
+    try {
+        const result = await generateAdvocacyMessage({
+            billTitle,
+            billSummary,
+            userStance,
+            tone: tone as 'Formal' | 'Passionate' | 'Personal',
+            personalData: {
+                fullName: personalData.fullName,
+                address: personalData.address,
+            }
+        });
+        setMessage(result);
+    } catch(e) {
+        console.error("Error generating message", e);
+        setValidationErrors(['There was an error generating the message. Please try again.']);
+    } finally {
+        setIsGenerating(false);
+    }
   };
 
   const validateMessage = () => {
@@ -123,7 +132,7 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
           <div className="flex gap-2">
             <Button
                 variant={userStance === 'support' ? 'default' : 'outline'}
-                onClick={() => setUserStance('support')}
+                onClick={() => onStanceChange('support')}
                 size="sm"
             >
                 <ThumbsUp className="mr-2 h-4 w-4" />
@@ -131,7 +140,7 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
             </Button>
             <Button
                 variant={userStance === 'oppose' ? 'destructive' : 'outline'}
-                onClick={() => setUserStance('oppose')}
+                onClick={() => onStanceChange('oppose')}
                 size="sm"
             >
                 <ThumbsDown className="mr-2 h-4 w-4" />
@@ -142,7 +151,8 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
           <div>
             <Label>Smart Templates</Label>
             <div className="flex items-center gap-2 mt-1">
-              <Button onClick={generateAITemplate} variant="outline">
+              <Button onClick={generateAITemplate} variant="outline" disabled={isGenerating}>
+                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 Generate AI Template
               </Button>
               <p className="text-sm text-gray-500">Based on bill type and your stance.</p>

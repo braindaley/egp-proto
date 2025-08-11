@@ -57,6 +57,7 @@ const AdvocacyMessagePage: React.FC = () => {
   const [message, setMessage] = useState('');
   const [recipients, setRecipients] = useState<any[]>([]);
   const [bill, setBill] = useState<Bill | null>(null);
+  const [userStance, setUserStance] = useState<'support' | 'oppose' | 'none'>('none');
   const [availableRecipients, setAvailableRecipients] = useState<{
     representatives: Member[];
     committeeLeadership: Sponsor[];
@@ -264,8 +265,10 @@ const AdvocacyMessagePage: React.FC = () => {
 
       {step === (billNumber ? 1 : 2) && advocacyData && (
          <MessageComposition
-            billType={bill?.shortTitle || 'general'}
-            userStance="support"
+            billTitle={bill?.title || 'this legislation'}
+            billSummary={bill?.summaries?.summary?.text || 'This bill addresses important issues for the country.'}
+            userStance={userStance}
+            onStanceChange={setUserStance}
             personalData={advocacyData.personalDataIncluded}
             recipientInfo={recipients[0]}
             onSubmit={handleComposeSubmit}
