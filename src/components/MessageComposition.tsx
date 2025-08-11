@@ -114,14 +114,12 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
             <Button 
                 variant={userStance === 'support' ? 'default' : 'outline'}
                 onClick={() => setUserStance('support')}
-                className="flex-1"
             >
                 Support
             </Button>
             <Button
                 variant={userStance === 'oppose' ? 'destructive' : 'outline'}
                 onClick={() => setUserStance('oppose')}
-                className="flex-1"
             >
                 Oppose
             </Button>
