@@ -24,51 +24,21 @@ function getFallbackCongresses(): Congress[] {
   ].sort((a, b) => b.number - a.number) as Congress[];
 }
 
-async function getCongresses(): Promise<Congress[]> {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
-    const url = `${baseUrl}/api/congresses`;
-    
-    try {
-        const res = await fetch(url, { next: { revalidate: 3600 } }); // Revalidate every hour
-        if (!res.ok) {
-            console.error(`Failed to fetch congresses from internal API: ${res.status}`);
-            return getFallbackCongresses();
-        }
-        const data = await res.json();
-        const congresses = (data.congresses || [])
-          .filter(Boolean)
-          .map((congress: any) => ({ ...congress, number: parseInt(congress.name.match(/(\\d+)/)?.[1] || '0', 10) }))
-          .filter((congress: any) => congress.number > 0)
-          .sort((a: any, b: any) => b.number - a.number);
-        
-        return congresses.length > 0 ? congresses : getFallbackCongresses();
-    } catch (error) {
-        console.error('Error fetching congresses from internal API:', error);
-        return getFallbackCongresses();
-    }
-}
-
-export function Header() {
+export function Header({ congresses: initialCongresses }: { congresses: Congress[] }) {
   const { user, loading, logout } = useAuth();
-  const [congresses, setCongresses] = useState<Congress[]>([]);
+  const [congresses, setCongresses] = useState<Congress[]>(initialCongresses.length > 0 ? initialCongresses : getFallbackCongresses());
   const [selectedCongress, setSelectedCongress] = useState<string>('');
 
   useEffect(() => {
-    async function loadData() {
-      const data = await getCongresses();
-      setCongresses(data);
-      if (data.length > 0) {
-        // Try to get from localStorage first
-        const storedCongress = localStorage.getItem('selectedCongress');
-        if (storedCongress && data.some(c => c.number.toString() === storedCongress)) {
-          setSelectedCongress(storedCongress);
-        } else {
-          setSelectedCongress(data[0].number.toString());
-        }
+    if (congresses.length > 0) {
+      const storedCongress = localStorage.getItem('selectedCongress');
+      if (storedCongress && congresses.some(c => c.number.toString() === storedCongress)) {
+        setSelectedCongress(storedCongress);
+      } else {
+        setSelectedCongress(congresses[0].number.toString());
       }
     }
-    loadData();
-  }, []);
+  }, [congresses]);
 
   const handleSetSelectedCongress = (congress: string) => {
     setSelectedCongress(congress);

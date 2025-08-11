@@ -21,7 +21,7 @@ import { useRouter } from 'next/navigation';
 import type { Congress } from '@/types';
 
 // This file should only handle authentication logic.
-// Data fetching for congresses is handled by server components.
+// Data fetching for congresses is now handled by server components.
 
 export interface User extends FirebaseUser {
   firstName?: string;
