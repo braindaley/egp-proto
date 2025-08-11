@@ -10,6 +10,12 @@ import Image from 'next/image';
 import { ExternalLink, User, Star, History, Info, ChevronsUpDown, MapPin, X, BarChart3 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getBillTypeSlug, formatDate, constructBillUrl } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BillTracker } from '@/components/bill-tracker';
+import { BillAmendments } from './bill-amendments';
+import { SummaryDisplay } from './bill-summary-display';
 import { SocialMediaLinks } from './social-media-links';
 import { DistrictOffices } from './district-offices';
 import { CommitteeAssignmentsCard } from './committee-assignments-card';
@@ -19,6 +25,7 @@ import { NewsCard } from './news-card';
 import { CampaignFinanceCard } from './campaign-finance-card';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
+import { Separator } from './ui/separator';
 
 // --- Name Matching Function ---
 function areNamesSimilar(nameA: string, nameB: string): boolean {
@@ -166,7 +173,47 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
         <Card>
           <CardHeader> <CardTitle className="flex items-center gap-2"><User /> Basic Info</CardTitle> </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            {/* ... content remains the same ... */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-semibold text-muted-foreground">Full Name</h4>
+                <p>{member.directOrderName}</p>
+              </div>
+              {member.birthYear && (
+                 <div>
+                   <h4 className="font-semibold text-muted-foreground">Born</h4>
+                   <p>{member.birthYear} (Age: {new Date().getFullYear() - parseInt(member.birthYear)})</p>
+                 </div>
+              )}
+               {firstTerm && (
+                  <div>
+                    <h4 className="font-semibold text-muted-foreground">First Term</h4>
+                    <p>{firstTerm.startYear}</p>
+                  </div>
+              )}
+              {yearsOfService > 0 && (
+                 <div>
+                   <h4 className="font-semibold text-muted-foreground">Years of Service</h4>
+                   <p>{yearsOfService}</p>
+                 </div>
+              )}
+            </div>
+             <Separator />
+             <div className="space-y-2">
+                {member.officialWebsiteUrl && (
+                    <div className="flex items-center gap-2">
+                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                      <a href={member.officialWebsiteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Official Website</a>
+                    </div>
+                )}
+                 {member.addressInformation && (
+                   <div className="flex items-start gap-2">
+                     <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                     <p>{member.addressInformation.officeAddress}</p>
+                   </div>
+                 )}
+             </div>
+             <SocialMediaLinks bioguideId={member.bioguideId} />
+             <DistrictOffices bioguideId={member.bioguideId} />
           </CardContent>
         </Card>
         <CampaignFinanceCard member={member} congress={congress} state={member.state.toLowerCase()} bioguideId={member.bioguideId} />
