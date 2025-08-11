@@ -10,8 +10,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Landmark, CalendarDays } from 'lucide-react';
+import { ArrowRight, Landmark, CalendarDays, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { getBillTypeSlug } from '@/lib/utils';
+import { getBillSupportData } from '@/lib/bill-support-data';
 
 function formatDate(dateString: string) {
   if (!dateString) return 'N/A';
@@ -25,6 +26,9 @@ function formatDate(dateString: string) {
 export function BillCard({ bill }: { bill: Bill }) {
   const billTypeSlug = getBillTypeSlug(bill.type);
   const detailUrl = `/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
+  
+  // Get consistent mock support data
+  const { supportCount, opposeCount } = getBillSupportData(bill.congress!, bill.type!, bill.number!);
 
   return (
     <Link href={detailUrl} className="flex">
@@ -52,6 +56,24 @@ export function BillCard({ bill }: { bill: Bill }) {
                     </p>
                 </div>
             )}
+            
+            {/* Support/Oppose counts */}
+            <div className="flex items-center justify-around text-center py-2 border-t border-b">
+                <div className="flex items-center gap-2 text-green-600">
+                    <ThumbsUp className="h-4 w-4" />
+                    <div>
+                        <p className="font-bold text-sm">{supportCount.toLocaleString()}</p>
+                        <p className="text-xs font-medium">Supporters</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 text-red-600">
+                    <ThumbsDown className="h-4 w-4" />
+                    <div>
+                        <p className="font-bold text-sm">{opposeCount.toLocaleString()}</p>
+                        <p className="text-xs font-medium">Opponents</p>
+                    </div>
+                </div>
+            </div>
         </CardContent>
         <CardFooter className="flex justify-between items-center text-xs text-muted-foreground pt-4 border-t mt-auto">
             <div className="flex items-center gap-1.5">

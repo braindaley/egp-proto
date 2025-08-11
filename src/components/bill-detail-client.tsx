@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import type { Bill, RelatedBill } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { getBillSupportData } from '@/lib/bill-support-data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -23,6 +24,9 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   const hasTextVersions = bill.textVersions?.items && bill.textVersions.items.length > 0;
   const hasActions = bill.actions?.items && bill.actions.items.length > 0;
   const hasRelatedBills = bill.relatedBills?.items && bill.relatedBills.items.length > 0;
+  
+  // Get consistent mock support data
+  const { supportCount, opposeCount } = getBillSupportData(bill.congress!, bill.type!, bill.number!);
   
   // Extract subject names from the API response (now properly mapped by the API)
   const subjectNames = bill.subjects?.items?.map(subject => 
@@ -61,6 +65,32 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 </Button>
             </div>
           </header>
+          
+          {/* Support/Oppose counts */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Public Sentiment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-around text-center py-4">
+                <div className="flex items-center gap-3 text-green-600">
+                  <ThumbsUp className="h-6 w-6" />
+                  <div>
+                    <p className="font-bold text-2xl">{supportCount.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Supporters</p>
+                  </div>
+                </div>
+                <div className="h-12 w-px bg-border"></div>
+                <div className="flex items-center gap-3 text-red-600">
+                  <ThumbsDown className="h-6 w-6" />
+                  <div>
+                    <p className="font-bold text-2xl">{opposeCount.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Opponents</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
             <Card>
                 <CardHeader>

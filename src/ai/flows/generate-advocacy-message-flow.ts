@@ -36,7 +36,7 @@ const advocacyMessagePrompt = ai.definePrompt(
       Provide the output as a JSON object with a single key "message".
 
       **Instructions:**
-      1.  Start with a formal salutation (e.g., "Dear Honorable Representative,").
+      1.  DO NOT include any salutation (no "Dear...", etc.) at the beginning.
       2.  Clearly state the user's position (support or opposition) regarding the specified bill early in the message.
       3.  Incorporate 1-2 key points from the bill summary to show the user is informed.
       4.  Adapt the language and style to match the requested tone:
@@ -45,8 +45,7 @@ const advocacyMessagePrompt = ai.definePrompt(
           - **Personal:** A friendly, story-based tone that connects the issue to a personal experience.
       5.  Keep the message concise, ideally 3-4 short paragraphs.
       6.  End with a clear call to action (e.g., "I urge you to vote YES/NO...", "Please consider my position...").
-      7.  Conclude with a respectful closing (e.g., "Sincerely,").
-      8.  Use "[Your Name]" as a placeholder for the user's name. If the user has not provided their full name, use "A Concerned Constituent".
+      7.  DO NOT include any closing signature (no "Sincerely", no name placeholder, etc.) at the end.
 
       **Bill Details:**
       - Title: {{{billTitle}}}

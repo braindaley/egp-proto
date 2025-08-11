@@ -11,6 +11,7 @@ import { Check, Dot, Users, Library, ArrowRight, ThumbsUp, ThumbsDown, Eye, Flam
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
+import { getBillSupportData } from '@/lib/bill-support-data';
 
 const BillStatusIndicator = ({ status }: { status: string }) => {
     const steps: string[] = ['Introduced', 'In Committee', 'Passed House', 'Passed Senate', 'To President', 'Became Law'];
@@ -87,6 +88,9 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
 
     const billTypeSlug = getBillTypeSlug(bill.type);
     const detailUrl = `/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
+    
+    // Get consistent mock support data
+    const { supportCount, opposeCount } = getBillSupportData(bill.congress, bill.type, bill.number);
 
     const partyColor = bill.sponsorParty === 'R' ? 'bg-red-100 text-red-800' 
                      : bill.sponsorParty === 'D' ? 'bg-blue-100 text-blue-800'
@@ -164,6 +168,24 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                     {bill.latestAction.text} ({formatDate(bill.latestAction.actionDate)})
                 </p>
                 <BillStatusIndicator status={bill.status} />
+                
+                {/* Support/Oppose counts */}
+                <div className="flex items-center justify-around text-center py-2 border-t border-b">
+                    <div className="flex items-center gap-2 text-green-600">
+                        <ThumbsUp className="h-5 w-5" />
+                        <div>
+                            <p className="font-bold text-lg">{supportCount.toLocaleString()}</p>
+                            <p className="text-xs font-medium">Supporters</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-red-600">
+                        <ThumbsDown className="h-5 w-5" />
+                        <div>
+                            <p className="font-bold text-lg">{opposeCount.toLocaleString()}</p>
+                            <p className="text-xs font-medium">Opponents</p>
+                        </div>
+                    </div>
+                </div>
             </CardContent>
             
             <CardFooter className="flex justify-between items-center pt-4 border-t">

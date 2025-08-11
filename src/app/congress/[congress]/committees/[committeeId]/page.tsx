@@ -4,8 +4,12 @@ import { CommitteeDetailClient } from '@/components/committee-detail-client';
 import type { EnhancedCommitteeInfo } from '@/types';
 
 async function getCommitteeDetails(committeeId: string): Promise<EnhancedCommitteeInfo | null> {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
-    const url = `${baseUrl}/api/congress/committee/${committeeId}`;
+    // For local development, use localhost; for production use the public URL
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const host = isDevelopment 
+        ? `http://localhost:${process.env.PORT || 3000}`
+        : process.env.NEXT_PUBLIC_APP_URL || 'https://egp.gscadmin.com';
+    const url = `${host}/api/congress/committee/${committeeId}`;
     try {
         const res = await fetch(url, { next: { revalidate: 3600 } });
         if (!res.ok) {
@@ -21,7 +25,7 @@ async function getCommitteeDetails(committeeId: string): Promise<EnhancedCommitt
 }
 
 export default async function CommitteeDetailPage({ params }: { params: { congress: string, committeeId: string } }) {
-  const { committeeId } = await params;
+  const { congress, committeeId } = await params;
   
   const committee = await getCommitteeDetails(committeeId);
 
@@ -30,6 +34,6 @@ export default async function CommitteeDetailPage({ params }: { params: { congre
   }
   
   return (
-    <CommitteeDetailClient committee={committee} />
+    <CommitteeDetailClient committee={committee} congress={congress} />
   );
 }

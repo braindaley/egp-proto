@@ -1,32 +1,23 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import AdvocacyMessageForm, {Recipients as RecipientCategories} from '../../components/AdvocacyMessageForm';
-import MessageComposition from '../../components/MessageComposition';
-import DeliveryHandler from '../../components/advocacy/DeliveryHandler';
-import SelectBill from '../../components/SelectBill';
 import { Stepper, Step, StepLabel } from '@/components/ui/stepper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/hooks/use-auth';
-import { useZipCode } from '@/hooks/use-zip-code';
-import { useMembersByZip } from '@/hooks/useMembersByZip';
-
-interface Representative {
-  name: string;
-  party: string;
-  phones?: string[];
-  urls?: string[];
-  photoUrl?: string;
-  officeTitle: string;
-  districtNumber?: number;
-  bioguideId?: string;
-}
-import type { Member, Bill, Sponsor } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Sparkles, Loader2, AlertCircle, User, Mail, Search, X } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { useZipCode } from '@/hooks/use-zip-code';
+import { useMembersByZip } from '@/hooks/useMembersByZip';
+import { generateAdvocacyMessage } from '@/ai/flows/generate-advocacy-message-flow';
+import Link from 'next/link';
+import type { Member, Bill, Sponsor } from '@/types';
 
 // Helper function to fetch bill details
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
@@ -44,273 +35,669 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
   }
 }
 
+// Helper function to generate dummy emails for members
+function generateMemberEmail(member: any): string {
+  const firstName = member.firstName || member.name?.split(' ')[0] || 'member';
+  const lastName = member.lastName || member.name?.split(' ').slice(-1)[0] || 'congress';
+  const bioguideId = member.bioguideId || Math.random().toString(36).substring(7);
+  return `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${bioguideId}@congress.gov`;
+}
+
 // Helper function to fetch committee members
 async function getCommitteeMembers(committeeId: string, congress: string, chamber: 'house' | 'senate'): Promise<any[]> {
   const url = `/api/congress/committee/${committeeId}?congress=${congress}&chamber=${chamber}`;
   try {
-      const res = await fetch(url);
-      if (!res.ok) {
-          console.error(`Failed to fetch committee members: ${res.status}`);
-          return [];
-      }
-      const data = await res.json();
-      // Adjust this based on the actual structure of the returned data
-      return data.committee?.members || [];
-  } catch (error) {
-      console.error("Error in getCommitteeMembers:", error);
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error(`Failed to fetch committee members: ${res.status}`);
       return [];
+    }
+    const data = await res.json();
+    return data.committee?.members || [];
+  } catch (error) {
+    console.error("Error in getCommitteeMembers:", error);
+    return [];
   }
 }
 
+interface PersonalDataField {
+  key: string;
+  label: string;
+  value: any;
+  available: boolean;
+}
+
 const AdvocacyMessageContent: React.FC = () => {
-  const [step, setStep] = useState(0);
-  const [advocacyData, setAdvocacyData] = useState<any>(null);
-  const [message, setMessage] = useState('');
-  const [recipients, setRecipients] = useState<any[]>([]);
+  const [step, setStep] = useState(1);
   const [bill, setBill] = useState<Bill | null>(null);
-  const [userStance, setUserStance] = useState<'support' | 'oppose' | 'none'>('none');
-  const [availableRecipients, setAvailableRecipients] = useState<{
-    representatives: Representative[];
-    committeeLeadership: Sponsor[];
-    billSponsors: Sponsor[];
+  const [selectedMembers, setSelectedMembers] = useState<any[]>([]);
+  const [userStance, setUserStance] = useState<'support' | 'oppose' | ''>('');
+  const [message, setMessage] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedPersonalData, setSelectedPersonalData] = useState<string[]>(['fullName']);
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [additionalMembers, setAdditionalMembers] = useState<any[]>([]);
+  const [availableMembers, setAvailableMembers] = useState<{
+    representatives: any[];
+    committeeLeadership: any[];
+    billSponsors: any[];
   }>({
     representatives: [],
     committeeLeadership: [],
     billSponsors: [],
   });
 
+  const { user } = useAuth();
   const { zipCode } = useZipCode();
   const { representatives: congressionalReps } = useMembersByZip(zipCode);
-
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const congress = searchParams.get('congress');
   const billType = searchParams.get('type');
   const billNumber = searchParams.get('number');
-  
+
+  // Fetch bill details
   useEffect(() => {
     if (congress && billType && billNumber) {
       getBillDetails(congress, billType, billNumber).then(setBill);
     }
   }, [congress, billType, billNumber]);
-  
-  useEffect(() => {
-    setAvailableRecipients(prev => ({ ...prev, representatives: congressionalReps }));
-  }, [congressionalReps]);
 
-  const handleFormSubmit = async (data: any) => {
-    setAdvocacyData(data);
-    
-    const recipientCategories: RecipientCategories = data.recipients;
-    let leadership: Sponsor[] = [];
-    let sponsors: Sponsor[] = [];
-  
-    const committee = bill?.committees?.items?.[0];
-    const committeeId = committee?.systemCode;
-    const chamber = bill?.type?.toLowerCase().startsWith('hr') ? 'house' : 'senate';
-  
-    if (recipientCategories.committeeLeadership && committeeId && congress) {
+  // Prepare available members
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (!bill) return;
+
+      // Add dummy emails to congressional reps
+      const repsWithEmails = congressionalReps.map(rep => ({
+        ...rep,
+        email: generateMemberEmail(rep)
+      }));
+
+      // Get committee leadership
+      let leadership: any[] = [];
+      const committee = bill?.committees?.items?.[0];
+      const committeeId = committee?.systemCode;
+      const chamber = bill?.type?.toLowerCase().startsWith('hr') ? 'house' : 'senate';
+
+      if (committeeId && congress) {
         const members = await getCommitteeMembers(committeeId, congress, chamber);
         const chair = members.find(m => m.title === 'Chair' || m.title === 'Chairman');
         const rankingMember = members.find(m => m.title === 'Ranking Member');
         
         if (chair) {
-            leadership.push({ 
-                bioguideId: chair.bioguideId, 
-                fullName: chair.name, 
-                firstName: chair.name.split(' ')[0],
-                lastName: chair.name.split(' ').slice(-1)[0],
-                party: chair.party,
-                state: chair.state,
-                url: chair.url,
-            });
+          leadership.push({
+            ...chair,
+            email: generateMemberEmail(chair),
+            role: 'Committee Chair'
+          });
         }
         if (rankingMember) {
-             leadership.push({ 
-                bioguideId: rankingMember.bioguideId, 
-                fullName: rankingMember.name, 
-                firstName: rankingMember.name.split(' ')[0],
-                lastName: rankingMember.name.split(' ').slice(-1)[0],
-                party: rankingMember.party,
-                state: rankingMember.state,
-                url: rankingMember.url,
-            });
-        }
-    } else if (recipientCategories.committeeLeadership && !committeeId) {
-        console.warn("Committee leadership requested but no committee ID found on the bill object.");
-    }
-
-    if (recipientCategories.billSponsors && bill?.sponsors) {
-        sponsors = bill.sponsors;
-    }
-
-    setAvailableRecipients(prev => ({
-        ...prev,
-        committeeLeadership: leadership,
-        billSponsors: sponsors
-    }));
-
-    // Pre-select all available recipients from the chosen categories
-    const allAvailable = [
-        ...(recipientCategories.representatives ? congressionalReps : []),
-        ...(recipientCategories.committeeLeadership ? leadership : []),
-        ...(recipientCategories.billSponsors ? sponsors : [])
-    ];
-    const uniqueRecipients = allAvailable.filter((v,i,a)=>a.findIndex(t=>(t.bioguideId === v.bioguideId))===i);
-    setRecipients(uniqueRecipients);
-
-    setStep(prev => prev + 1);
-  };
-  
-  const handleComposeSubmit = (composedMessage: string) => {
-    setMessage(composedMessage);
-    setStep(prev => prev + 1);
-  };
-  
-  const handleDeliveryComplete = () => {
-      setTimeout(() => {
-          router.push('/admin/advocacy-messages');
-      }, 2000);
-  };
-  
-  const handleBack = () => {
-    setStep(step - 1);
-  }
-  
-  const handleReset = () => {
-      setStep(0);
-      setMessage('');
-      setAdvocacyData(null);
-      setRecipients([]);
-  }
-
-  const steps = billNumber 
-    ? ['Select Info', 'Compose Message', 'Send Message']
-    : ['Select Bill', 'Select Info', 'Compose Message', 'Send Message'];
-
-  const BillContextCard = () => (
-    <Card className="mb-8 bg-secondary/50">
-        <CardContent className="p-4">
-            <p className="text-center font-medium">
-                Voice your opinion on Bill {billType?.toUpperCase()} {billNumber}
-            </p>
-        </CardContent>
-    </Card>
-  );
-  
-  const currentStepOffset = billNumber ? 0 : 1;
-  
-  const renderRecipientSelection = () => {
-    if (!advocacyData) return null;
-
-    const { representatives, committeeLeadership, billSponsors } = advocacyData.recipients;
-
-    const handleRecipientToggle = (recipient: Representative | Sponsor) => {
-      const recipientId = (recipient as Sponsor).bioguideId || (recipient as Representative).bioguideId || (recipient as Representative).name;
-      setRecipients(prev => {
-        const isSelected = prev.some(r => {
-          const id = (r as Sponsor).bioguideId || (r as Representative).bioguideId || (r as Representative).name;
-          return id === recipientId;
-        });
-        if (isSelected) {
-          return prev.filter(r => {
-            const id = (r as Sponsor).bioguideId || (r as Representative).bioguideId || (r as Representative).name;
-            return id !== recipientId;
+          leadership.push({
+            ...rankingMember,
+            email: generateMemberEmail(rankingMember),
+            role: 'Ranking Member'
           });
-        } else {
-          return [...prev, recipient];
         }
+      }
+
+      // Add dummy emails to bill sponsors
+      const sponsorsWithEmails = (bill?.sponsors || []).map(sponsor => ({
+        ...sponsor,
+        email: generateMemberEmail(sponsor)
+      }));
+
+      setAvailableMembers({
+        representatives: repsWithEmails,
+        committeeLeadership: leadership,
+        billSponsors: sponsorsWithEmails
       });
     };
 
-    const renderCategory = (title: string, categoryRecipients: (Representative | Sponsor)[]) => {
-      if (categoryRecipients.length === 0) return null;
-      return (
-        <div key={title}>
-          <h4 className="font-semibold text-sm text-muted-foreground mt-4 mb-2">{title}</h4>
-          <div className="space-y-2">
-            {categoryRecipients.map(recipient => {
-              const recipientId = (recipient as Sponsor).bioguideId || (recipient as Representative).bioguideId || (recipient as Representative).name;
-              return (
-                <div key={recipientId} className="flex items-center">
+    fetchMembers();
+  }, [bill, congressionalReps, congress]);
+
+  // Get personal data fields from user profile
+  const getPersonalDataFields = (): PersonalDataField[] => {
+    const addressParts = [user?.address, user?.city, user?.state, user?.zipCode].filter(Boolean);
+    const addressValue = addressParts.join(', ');
+    const addressAvailable = addressParts.length > 0;
+    
+    return [
+      { key: 'fullName', label: 'Full Name', value: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(), available: !!(user?.firstName || user?.lastName) },
+      { key: 'fullAddress', label: 'Full Address', value: addressValue, available: addressAvailable },
+      { key: 'birthYear', label: 'Birth Year', value: user?.birthYear, available: !!user?.birthYear },
+      { key: 'gender', label: 'Gender', value: user?.gender, available: !!user?.gender },
+      { key: 'politicalAffiliation', label: 'Political Affiliation', value: user?.politicalAffiliation, available: !!user?.politicalAffiliation },
+      { key: 'education', label: 'Education', value: user?.education, available: !!user?.education },
+      { key: 'profession', label: 'Profession', value: user?.profession, available: !!user?.profession },
+      { key: 'militaryService', label: 'Military Service', value: user?.militaryService ? 'Yes' : 'No', available: user?.militaryService !== undefined },
+    ];
+  };
+
+  const personalDataFields = getPersonalDataFields();
+  const availableFields = personalDataFields.filter(f => f.available);
+  const unavailableFields = personalDataFields.filter(f => !f.available);
+
+  // Generate AI message
+  const generateAITemplate = async () => {
+    if (!userStance) {
+      return;
+    }
+    setIsGenerating(true);
+
+    try {
+      const result = await generateAdvocacyMessage({
+        billTitle: bill?.shortTitle || bill?.title || 'this legislation',
+        billSummary: bill?.summaries?.summary?.text || 'This bill addresses important issues.',
+        userStance: userStance.charAt(0).toUpperCase() + userStance.slice(1) as 'Support' | 'Oppose',
+        tone: 'Formal',
+        personalData: {
+          fullName: selectedPersonalData.includes('fullName'),
+          address: selectedPersonalData.includes('fullAddress'),
+        }
+      });
+      setMessage(result);
+    } catch(e) {
+      console.error("Error generating message", e);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Toggle member selection
+  const toggleMember = (member: any) => {
+    setSelectedMembers(prev => {
+      const exists = prev.find(m => m.bioguideId === member.bioguideId || m.email === member.email);
+      if (exists) {
+        return prev.filter(m => m.bioguideId !== member.bioguideId && m.email !== member.email);
+      }
+      return [...prev, member];
+    });
+  };
+
+  // Toggle personal data field
+  const togglePersonalData = (key: string) => {
+    if (key === 'fullName') return; // Full name is always required
+    setSelectedPersonalData(prev => {
+      if (prev.includes(key)) {
+        return prev.filter(k => k !== key);
+      }
+      return [...prev, key];
+    });
+  };
+
+  // Search for members of Congress
+  const handleMemberSearch = async () => {
+    if (!searchTerm.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/congress/members?search=${encodeURIComponent(searchTerm)}&limit=10`);
+      if (response.ok) {
+        const data = await response.json();
+        const membersWithEmails = (data.members || []).map((member: any) => ({
+          ...member,
+          email: generateMemberEmail(member),
+          officeTitle: member.terms?.item?.[0]?.chamber === 'Senate' ? 'United States Senate' : 'United States House of Representatives'
+        }));
+        setSearchResults(membersWithEmails);
+      }
+    } catch (error) {
+      console.error('Error searching members:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Add member from search results
+  const addAdditionalMember = (member: any) => {
+    const exists = additionalMembers.some(m => m.bioguideId === member.bioguideId);
+    if (!exists) {
+      setAdditionalMembers([...additionalMembers, member]);
+      setSelectedMembers([...selectedMembers, member]);
+    }
+    setSearchTerm('');
+    setSearchResults([]);
+  };
+
+  // Remove additional member
+  const removeAdditionalMember = (memberId: string) => {
+    setAdditionalMembers(additionalMembers.filter(m => m.bioguideId !== memberId));
+    setSelectedMembers(selectedMembers.filter(m => m.bioguideId !== memberId));
+  };
+
+  // Handle send message
+  const handleSend = async () => {
+    // Here you would implement the actual send logic
+    console.log('Sending message to:', selectedMembers);
+    console.log('Message:', message);
+    console.log('Personal data included:', selectedPersonalData);
+    console.log('Save as default:', saveAsDefault);
+    
+    // If saveAsDefault is true, save the selected fields to user preferences
+    if (saveAsDefault) {
+      // TODO: Save selectedPersonalData to user preferences in Firebase
+      console.log('Saving default preferences:', selectedPersonalData);
+    }
+    
+    // Simulate sending
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 1500);
+  };
+
+  // Step 1: Select Outreach
+  const renderStep1 = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Step 1: Select Outreach</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Your Representatives */}
+        {availableMembers.representatives.length > 0 && (
+          <div>
+            <h3 className="font-semibold mb-3">Your Congressional Representatives</h3>
+            <div className="space-y-2">
+              {availableMembers.representatives.map(rep => (
+                <div key={rep.bioguideId || rep.name} className="flex items-center space-x-2">
                   <Checkbox
-                    id={recipientId}
-                    checked={recipients.some(r => {
-                      const id = (r as Sponsor).bioguideId || (r as Representative).bioguideId || (r as Representative).name;
-                      return id === recipientId;
-                    })}
-                    onCheckedChange={() => handleRecipientToggle(recipient)}
+                    checked={selectedMembers.some(m => m.bioguideId === rep.bioguideId || m.name === rep.name)}
+                    onCheckedChange={() => toggleMember(rep)}
                   />
-                  <Label htmlFor={recipientId} className="ml-2">
-                    {(recipient as Sponsor).fullName || (recipient as Representative).name}
+                  <Label className="flex items-center space-x-2 cursor-pointer">
+                    <span>{rep.name}</span>
+                    <span className="text-sm text-muted-foreground">({rep.party})</span>
+                    <Mail className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{rep.email}</span>
                   </Label>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Committee Leadership */}
+        {availableMembers.committeeLeadership.length > 0 && (
+          <div>
+            <h3 className="font-semibold mb-3">Committee Leadership</h3>
+            <div className="space-y-2">
+              {availableMembers.committeeLeadership.map(member => (
+                <div key={member.bioguideId} className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={selectedMembers.some(m => m.bioguideId === member.bioguideId)}
+                    onCheckedChange={() => toggleMember(member)}
+                  />
+                  <Label className="flex items-center space-x-2 cursor-pointer">
+                    <span>{member.name}</span>
+                    <span className="text-sm text-muted-foreground">({member.role})</span>
+                    <Mail className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{member.email}</span>
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Bill Sponsors */}
+        {availableMembers.billSponsors.length > 0 && (
+          <div>
+            <h3 className="font-semibold mb-3">Bill Sponsors</h3>
+            <div className="space-y-2">
+              {availableMembers.billSponsors.map(sponsor => (
+                <div key={sponsor.bioguideId} className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={selectedMembers.some(m => m.bioguideId === sponsor.bioguideId)}
+                    onCheckedChange={() => toggleMember(sponsor)}
+                  />
+                  <Label className="flex items-center space-x-2 cursor-pointer">
+                    <span>{sponsor.fullName}</span>
+                    <span className="text-sm text-muted-foreground">({sponsor.party})</span>
+                    <Mail className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{sponsor.email}</span>
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Search for additional members */}
+        <div>
+          <h3 className="font-semibold mb-3">Add Additional Members</h3>
+          <div className="flex gap-2 mb-3">
+            <div className="relative flex-1">
+              <Input
+                placeholder="Search by name (e.g., 'John Smith' or 'Smith')"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleMemberSearch()}
+                className="pr-10"
+              />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            </div>
+            <Button 
+              onClick={handleMemberSearch}
+              disabled={isSearching || !searchTerm.trim()}
+              variant="outline"
+            >
+              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+            </Button>
+          </div>
+
+          {/* Search Results */}
+          {searchResults.length > 0 && (
+            <div className="bg-muted rounded-lg p-3 mb-3 max-h-48 overflow-y-auto">
+              <p className="text-sm text-muted-foreground mb-2">Search Results:</p>
+              {searchResults.map(member => (
+                <div key={member.bioguideId} className="flex items-center justify-between py-1">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm">{member.name}</span>
+                    <span className="text-xs text-muted-foreground">({member.partyName}, {member.state})</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => addAdditionalMember(member)}
+                    disabled={additionalMembers.some(m => m.bioguideId === member.bioguideId)}
+                  >
+                    {additionalMembers.some(m => m.bioguideId === member.bioguideId) ? 'Added' : 'Add'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Added Members */}
+          {additionalMembers.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Added Members:</p>
+              {additionalMembers.map(member => (
+                <div key={member.bioguideId} className="flex items-center justify-between bg-secondary rounded-lg px-3 py-2">
+                  <div className="flex items-center space-x-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{member.name}</span>
+                    <span className="text-xs text-muted-foreground">({member.partyName})</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removeAdditionalMember(member.bioguideId)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end">
+          <Button 
+            onClick={() => setStep(2)}
+            disabled={selectedMembers.length === 0}
+          >
+            Next
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Step 2: Include Personal Information
+  const renderStep2 = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Step 2: Include Personal Information</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Available fields */}
+        {availableFields.length > 0 && (
+          <div>
+            <h3 className="font-semibold mb-3">Available Information</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {availableFields.map(field => (
+                <div key={field.key} className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={selectedPersonalData.includes(field.key)}
+                    onCheckedChange={() => togglePersonalData(field.key)}
+                    disabled={field.key === 'fullName'}
+                  />
+                  <Label className="cursor-pointer">
+                    <span>{field.label}</span>
+                    {field.value && (
+                      <span className="text-sm text-muted-foreground ml-2">({field.value})</span>
+                    )}
+                  </Label>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center space-x-2 mt-4 mb-4">
+              <Switch
+                id="save-default"
+                checked={saveAsDefault}
+                onCheckedChange={setSaveAsDefault}
+              />
+              <Label htmlFor="save-default" className="cursor-pointer">
+                Save as default for all future mailings
+              </Label>
+            </div>
+          </div>
+        )}
+
+        {/* Unavailable fields */}
+        {unavailableFields.length > 0 && (
+          <div>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Some information is missing from your profile. 
+                <Link href="/dashboard" className="ml-2 text-primary underline">
+                  Update your profile
+                </Link>
+                {' '}to include:
+                <ul className="mt-2 list-disc list-inside">
+                  {unavailableFields.map(field => (
+                    <li key={field.key} className="text-sm">{field.label}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* Stance selection */}
+        <div>
+          <h3 className="font-semibold mb-3">Your Position</h3>
+          <div className="flex gap-3">
+            <Button
+              variant={userStance === 'support' ? 'default' : 'outline'}
+              onClick={() => setUserStance('support')}
+              size="lg"
+              className="flex-1"
+            >
+              <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+              </svg>
+              Support
+            </Button>
+            <Button
+              variant={userStance === 'oppose' ? 'destructive' : 'outline'}
+              onClick={() => setUserStance('oppose')}
+              size="lg"
+              className="flex-1"
+            >
+              <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .904-.405.904-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+              </svg>
+              Oppose
+            </Button>
           </div>
         </div>
-      );
-    };
 
+        {/* Message composition */}
+        <div>
+          <h3 className="font-semibold mb-3">Your Message</h3>
+          <div className="space-y-3">
+            <Button 
+              onClick={generateAITemplate} 
+              variant="outline" 
+              disabled={!userStance || isGenerating}
+              className="w-full"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate AI Template
+                </>
+              )}
+            </Button>
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Write your message here, or generate a template to get started..."
+              rows={10}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-between">
+          <Button variant="outline" onClick={() => setStep(1)}>
+            Back
+          </Button>
+          <Button 
+            onClick={() => setStep(3)}
+            disabled={!message || !userStance}
+          >
+            Next
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Step 3: Review and Send
+  const renderStep3 = () => {
+    const selectedPersonalFields = personalDataFields.filter(f => selectedPersonalData.includes(f.key));
+    
+    // Generate salutation based on member type
+    const getSalutation = (member: any) => {
+      const lastName = member.lastName || member.fullName?.split(' ').slice(-1)[0] || member.name?.split(' ').slice(-1)[0] || '';
+      // Check if member is a senator based on officeTitle or chamber
+      const isSenator = member.officeTitle?.toLowerCase().includes('senate') || 
+                       member.chamber?.toLowerCase() === 'senate' || 
+                       member.url?.includes('/senate/');
+      const title = isSenator ? 'Senator' : 'Representative';
+      return `Dear ${title} ${lastName}`;
+    };
+    
     return (
-      <div>
-        <h3 className="text-lg font-semibold mb-2">Select Recipients</h3>
-        {representatives && renderCategory('Your Congressional Representatives', availableRecipients.representatives)}
-        {committeeLeadership && renderCategory('Applicable Committee Leadership', availableRecipients.committeeLeadership)}
-        {billSponsors && renderCategory('Bill Sponsors', availableRecipients.billSponsors)}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Step 3: Review and Send</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Recipients */}
+          <div>
+            <h3 className="font-semibold mb-3">Recipients ({selectedMembers.length})</h3>
+            <div className="bg-muted rounded-lg p-4 space-y-2">
+              {selectedMembers.map(member => (
+                <div key={member.bioguideId || member.email}>
+                  <div className="font-medium">{getSalutation(member)}</div>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-2">
+                      <User className="h-3 w-3" />
+                      <span>{member.fullName || member.name}</span>
+                      <span>({member.party})</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Mail className="h-3 w-3" />
+                      <span className="text-xs">{member.email}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Message Body */}
+          <div>
+            <h3 className="font-semibold mb-3">Message Body</h3>
+            <div className="bg-muted rounded-lg p-4">
+              <p className="whitespace-pre-wrap">{message}</p>
+            </div>
+          </div>
+
+          {/* Signature */}
+          <div>
+            <h3 className="font-semibold mb-3">Signature</h3>
+            <div className="bg-muted rounded-lg p-4">
+              <p className="font-medium">Sincerely,</p>
+              <p className="mt-2">{personalDataFields.find(f => f.key === 'fullName')?.value || 'Your Name'}</p>
+              {selectedPersonalFields.filter(f => f.key !== 'fullName').map(field => (
+                <p key={field.key} className="text-sm text-muted-foreground">
+                  {field.label}: {field.value}
+                </p>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep(2)}>
+              Back
+            </Button>
+            <Button onClick={handleSend}>
+              Send Message
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
-  }
+  };
 
   return (
-    <div className="container mx-auto p-8">
+    <div className="container mx-auto p-8 max-w-4xl">
+      {/* Bill Context */}
+      {bill && (
+        <Card className="mb-6 bg-secondary/50">
+          <CardContent className="p-4">
+            <p className="text-center font-medium">
+              Voice your opinion on {billType?.toUpperCase()} {billNumber}: {bill.shortTitle || bill.title}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Stepper */}
       <div className="mb-8">
         <Stepper>
-            {steps.map((label, index) => (
-                 <Step key={label} active={step - currentStepOffset === index}>
-                    <StepLabel>{label}</StepLabel>
-                </Step>
-            ))}
+          <Step active={step === 1}>
+            <StepLabel>Select Outreach</StepLabel>
+          </Step>
+          <Step active={step === 2}>
+            <StepLabel>Include Personal Information</StepLabel>
+          </Step>
+          <Step active={step === 3}>
+            <StepLabel>Review & Send</StepLabel>
+          </Step>
         </Stepper>
       </div>
-      
-      {billType && billNumber && <BillContextCard />}
 
-      {step === 0 && !billNumber && <SelectBill />}
-
-      {step === (billNumber ? 0 : 1) && (
-         <AdvocacyMessageForm
-            billType={bill?.shortTitle || 'general'}
-            recipientCategory="party_leader"
-            onSubmit={handleFormSubmit}
-          />
-      )}
-
-      {step === (billNumber ? 1 : 2) && advocacyData && (
-         <MessageComposition
-            billTitle={bill?.title || 'this legislation'}
-            billSummary={bill?.summaries?.summary?.text || 'This bill addresses important issues for the country.'}
-            userStance={userStance}
-            onStanceChange={setUserStance}
-            personalData={advocacyData.personalDataIncluded}
-            recipientInfo={recipients[0]}
-            onSubmit={handleComposeSubmit}
-            onBack={handleBack}
-            recipientSelection={renderRecipientSelection()}
-          />
-      )}
-      
-      {step === (billNumber ? 2 : 3) && advocacyData && (
-        <DeliveryHandler
-            messageContent={message}
-            recipients={recipients}
-            deliveryMethod="email"
-            personalDataIncluded={advocacyData.personalDataIncluded}
-            onComplete={handleDeliveryComplete}
-            onReset={handleReset}
-        />
-      )}
+      {/* Step Content */}
+      {step === 1 && renderStep1()}
+      {step === 2 && renderStep2()}
+      {step === 3 && renderStep3()}
     </div>
   );
 };

@@ -59,6 +59,7 @@ export interface Sponsor {
     party: string;
     state: string;
     url: string;
+    email?: string;
     depiction?: {
         imageUrl?: string;
     };
@@ -264,6 +265,7 @@ export interface Member {
   name: string;
   partyName: string;
   state: string;
+  email?: string;
   terms: {
     item?: MemberTerm[];
     current?: {
@@ -467,4 +469,24 @@ export interface EnhancedCommitteeInfo {
   rankingMember?: CommitteeMember;
   members: CommitteeMember[];
   subcommittees: Subcommittee[];
+  jurisdiction?: string;
+  address?: string;
+  phone?: string;
+  minorityUrl?: string;
+  youtubeId?: string;
+  systemCode?: string;
+  recentMeetings?: CommitteeMeeting[];
+}
+
+export interface CommitteeMeeting {
+  eventId: string;
+  title: string;
+  date: string;
+  chamber: string;
+  meetingType: string;
+  location?: {
+    building?: string;
+    room?: string;
+  };
+  url?: string;
 }

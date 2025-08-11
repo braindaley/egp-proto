@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import AdvocacyAnalytics from '@/components/dashboard/AdvocacyAnalytics';
 import BillStatusTracker from '@/components/dashboard/BillStatusTracker';
 import MessageHistory from '@/components/dashboard/MessageHistory';
 import ProfileManager from '@/components/ProfileManager';
@@ -54,7 +53,6 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <main className="lg:col-span-3 space-y-8">
                     <ProfileManager />
-                    <AdvocacyAnalytics />
                     <BillStatusTracker />
                     <MessageHistory />
                 </main>

@@ -60,14 +60,11 @@ interface SubcommitteeDetailResponse {
 }
 
 async function getSubcommitteeDetails(congress: string, committeeId: string, subcommitteeId: string): Promise<EnhancedSubcommitteeInfo | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const url = `${baseUrl}/api/congress/committee/${committeeId}/subcommittee/${subcommitteeId}?congress=${congress}`;
 
   try {
-    const res = await fetch(url, { 
-      next: { revalidate: 3600 },
-      cache: 'force-cache'
-    });
+    const res = await fetch(url);
     if (!res.ok) {
       console.error(`Failed to fetch subcommittee details from internal API: ${res.status}`);
       return null;
@@ -180,22 +177,6 @@ export default async function SubcommitteeDetailPage({ params }: { params: { con
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
-      {/* Breadcrumb Navigation */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-        <a href={`/congress/${congress}`} className="hover:text-primary">
-          {congress}th Congress
-        </a>
-        <ChevronRight className="h-4 w-4" />
-        <a href={`/congress/${congress}/committees`} className="hover:text-primary">
-          Committees
-        </a>
-        <ChevronRight className="h-4 w-4" />
-        <a href={subcommittee.parentCommittee.url} className="hover:text-primary">
-          {subcommittee.parentCommittee.name}
-        </a>
-        <ChevronRight className="h-4 w-4" />
-        <span className="text-foreground">{subcommittee.name}</span>
-      </nav>
 
       <header className="mb-12">
         <p className="text-lg text-muted-foreground font-medium mb-1">{congress}th Congress</p>

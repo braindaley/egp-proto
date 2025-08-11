@@ -150,6 +150,16 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                            Your Representative
                         </Badge>
                     )}
+                    {matchStatus === 'loading' && (
+                        <Badge variant="outline" className="text-base bg-blue-100 text-blue-800 border-blue-200">
+                           Checking...
+                        </Badge>
+                    )}
+                    {!zipCode && matchStatus === 'idle' && (
+                        <Badge variant="outline" className="text-xs text-muted-foreground cursor-help" title="Set your ZIP code to see if this is your representative">
+                           Set ZIP to see if this is your rep
+                        </Badge>
+                    )}
                     <Badge variant={member.partyName === 'Republican' ? 'destructive' : member.partyName === 'Democratic' ? 'default' : 'secondary'} className="text-base">
                         {member.partyName}
                     </Badge>
