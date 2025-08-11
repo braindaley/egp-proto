@@ -11,23 +11,74 @@ import { CongressSelector } from './congress-selector';
 import { FeedNavigation } from './FeedNavigation';
 import { ZipCodeChanger } from './ZipCodeManager';
 import { useState, useEffect } from 'react';
+import type { Congress } from '@/types';
+
+function getFallbackCongresses(): Congress[] {
+  console.warn('Using fallback congress data.');
+  return [
+    { name: '119th Congress', number: 119, startYear: '2025', endYear: '2027' },
+    { name: '118th Congress', number: 118, startYear: '2023', endYear: '2025' },
+    { name: '117th Congress', number: 117, startYear: '2021', endYear: '2023' },
+    { name: '116th Congress', number: 116, startYear: '2019', endYear: '2021' },
+    { name: '115th Congress', number: 115, startYear: '2017', endYear: '2019' },
+  ].sort((a, b) => b.number - a.number) as Congress[];
+}
+
+async function getCongresses(): Promise<Congress[]> {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+    const url = `${baseUrl}/api/congresses`;
+    
+    try {
+        const res = await fetch(url, { next: { revalidate: 3600 } }); // Revalidate every hour
+        if (!res.ok) {
+            console.error(`Failed to fetch congresses from internal API: ${res.status}`);
+            return getFallbackCongresses();
+        }
+        const data = await res.json();
+        const congresses = (data.congresses || [])
+          .filter(Boolean)
+          .map((congress: any) => ({ ...congress, number: parseInt(congress.name.match(/(\\d+)/)?.[1] || '0', 10) }))
+          .filter((congress: any) => congress.number > 0)
+          .sort((a: any, b: any) => b.number - a.number);
+        
+        return congresses.length > 0 ? congresses : getFallbackCongresses();
+    } catch (error) {
+        console.error('Error fetching congresses from internal API:', error);
+        return getFallbackCongresses();
+    }
+}
 
 export function Header() {
-  const { user, loading, logout, selectedCongress } = useAuth();
-  const [hasMounted, setHasMounted] = useState(false);
+  const { user, loading, logout } = useAuth();
+  const [congresses, setCongresses] = useState<Congress[]>([]);
+  const [selectedCongress, setSelectedCongress] = useState<string>('');
 
   useEffect(() => {
-    setHasMounted(true);
+    async function loadData() {
+      const data = await getCongresses();
+      setCongresses(data);
+      if (data.length > 0) {
+        // Try to get from localStorage first
+        const storedCongress = localStorage.getItem('selectedCongress');
+        if (storedCongress && data.some(c => c.number.toString() === storedCongress)) {
+          setSelectedCongress(storedCongress);
+        } else {
+          setSelectedCongress(data[0].number.toString());
+        }
+      }
+    }
+    loadData();
   }, []);
+
+  const handleSetSelectedCongress = (congress: string) => {
+    setSelectedCongress(congress);
+    localStorage.setItem('selectedCongress', congress);
+  };
 
   const billsHref = selectedCongress ? `/bill/${selectedCongress}` : '/bills';
   const congressHref = selectedCongress ? `/congress/${selectedCongress}` : '/congress';
 
   const renderAuthContent = () => {
-    if (!hasMounted) {
-      return <div className="h-9 w-[140px]" />; // Render a placeholder on server and initial client render
-    }
-
     if (loading) {
       return <div className="h-9 w-[140px] flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>;
     }
@@ -111,7 +162,11 @@ export function Header() {
                     
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Congress Session</label>
-                      <CongressSelector />
+                      <CongressSelector 
+                          congresses={congresses}
+                          selectedCongress={selectedCongress}
+                          setSelectedCongress={handleSetSelectedCongress}
+                      />
                     </div>
                     
                     <Separator />
@@ -140,7 +195,7 @@ export function Header() {
                     <Separator />
                     
                     <div className="space-y-2">
-                         {!hasMounted ? (
+                         {loading ? (
                             <div className="flex justify-center p-2"><Loader2 className="h-5 w-5 animate-spin" /></div>
                         ) : user ? (
                             <>

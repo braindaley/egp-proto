@@ -8,11 +8,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useAuth } from '@/hooks/use-auth';
 import { usePathname, useRouter } from 'next/navigation';
+import type { Congress } from '@/types';
 
-export function CongressSelector() {
-  const { congresses, selectedCongress, setSelectedCongress } = useAuth();
+interface CongressSelectorProps {
+    congresses: Congress[];
+    selectedCongress: string;
+    setSelectedCongress: (congress: string) => void;
+}
+
+export function CongressSelector({ congresses, selectedCongress, setSelectedCongress }: CongressSelectorProps) {
   const router = useRouter();
   const pathname = usePathname();
   
@@ -21,7 +26,7 @@ export function CongressSelector() {
 
     // Check if the current path is a congress-specific page
     const pathSegments = pathname.split('/');
-    if ((pathSegments[1] === 'bill' || pathSegments[1] === 'congress') && pathSegments.length > 2) {
+    if ((pathSegments[1] === 'bill' || pathSegments[1] === 'congress') && pathSegments.length > 2 && /^\d+$/.test(pathSegments[2])) {
       // Reconstruct the URL with the new congress number
       pathSegments[2] = congressNumber;
       const newPath = pathSegments.join('/');
