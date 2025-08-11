@@ -226,7 +226,6 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                     {Object.entries(member.extendedIds).map(([key, value]) => {
                       if (!value || (Array.isArray(value) && value.length === 0)) return null;
                       
-                      // Capitalize the key for display
                       const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
                       return (
@@ -261,7 +260,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 />
-              Data
+              State-Level Data for {member.state}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -270,35 +269,62 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-5/6" />
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-4/5" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-3 w-1/2 mt-4" />
               </div>
             ) : censusData ? (
-              <div className="space-y-2">
-                <p><strong>State:</strong> {censusData.NAME || 'N/A'}</p>
-                <p><strong>GEOID:</strong> {censusData.GEOID || 'N/A'}</p>
-                <p><strong>Total Population:</strong> {parseInt(censusData.total_pop || '0').toLocaleString()}</p>
-                <p><strong>% Female:</strong> {parseFloat(censusData.pct_female || '0').toFixed(1)}%</p>
-                <p><strong>% Male:</strong> {parseFloat(censusData.pct_male || '0').toFixed(1)}%</p>
-                <p><strong>% White:</strong> {parseFloat(censusData.pct_white || '0').toFixed(1)}%</p>
-                <p><strong>% Black:</strong> {parseFloat(censusData.pct_black || '0').toFixed(1)}%</p>
-                <p><strong>% American Indian:</strong> {parseFloat(censusData.pct_am_indian || '0').toFixed(1)}%</p>
-                <p><strong>% Asian:</strong> {parseFloat(censusData.pct_asian || '0').toFixed(1)}%</p>
-                <p><strong>% Pacific Islander:</strong> {parseFloat(censusData.pct_pacificI || '0').toFixed(1)}%</p>
-                <p><strong>% Other:</strong> {parseFloat(censusData.pct_other || '0').toFixed(1)}%</p>
-                <p><strong>% Two or More Races:</strong> {parseFloat(censusData.pct_two_or_more || '0').toFixed(1)}%</p>
-                <p><strong>% Divorced:</strong> {parseFloat(censusData.pct_divorced || '0').toFixed(1)}%</p>
-                <p><strong>% High School or Higher:</strong> {parseFloat(censusData.pct_hs_or_higher || '0').toFixed(1)}%</p>
-                <p><strong>% Bachelor's or Higher:</strong> {parseFloat(censusData.pct_ba_or_higher || '0').toFixed(1)}%</p>
-                <p><strong>% Doctorate:</strong> {parseFloat(censusData.pct_doctorate || '0').toFixed(1)}%</p>
-                <p><strong>% Uninsured:</strong> {parseFloat(censusData.pct_uninsured || '0').toFixed(1)}%</p>
-                <p><strong>Median Household Income:</strong> ${parseInt(censusData.med_household_income || '0').toLocaleString()}</p>
-                <div className="text-xs text-muted-foreground pt-2">
-                  Data provided by <a href="https://github.com/annikamore11/census_data" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">https://github.com/annikamore11/census_data</a>.
+              <div className="space-y-4">
+                {/* Population */}
+                <div>
+                  <h4 className="font-semibold mb-2 text-foreground">Population</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Total:</p>
+                      <p className="font-medium">{parseInt(censusData.total_pop || '0').toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Female:</p>
+                      <p className="font-medium">{parseFloat(censusData.pct_female || '0').toFixed(1)}%</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Male:</p>
+                      <p className="font-medium">{parseFloat(censusData.pct_male || '0').toFixed(1)}%</p>
+                    </div>
+                  </div>
+                </div>
+                <Separator />
+                 {/* Race/Ethnicity */}
+                <div>
+                  <h4 className="font-semibold mb-2 text-foreground">Race & Ethnicity</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                    <div><p className="text-muted-foreground">White:</p><p className="font-medium">{parseFloat(censusData.pct_white || '0').toFixed(1)}%</p></div>
+                    <div><p className="text-muted-foreground">Black:</p><p className="font-medium">{parseFloat(censusData.pct_black || '0').toFixed(1)}%</p></div>
+                    <div><p className="text-muted-foreground">Asian:</p><p className="font-medium">{parseFloat(censusData.pct_asian || '0').toFixed(1)}%</p></div>
+                    <div><p className="text-muted-foreground">American Indian:</p><p className="font-medium">{parseFloat(censusData.pct_am_indian || '0').toFixed(1)}%</p></div>
+                    <div><p className="text-muted-foreground">Pacific Islander:</p><p className="font-medium">{parseFloat(censusData.pct_pacificI || '0').toFixed(1)}%</p></div>
+                    <div><p className="text-muted-foreground">2+ Races:</p><p className="font-medium">{parseFloat(censusData.pct_two_or_more || '0').toFixed(1)}%</p></div>
+                  </div>
+                </div>
+                <Separator />
+                {/* Education */}
+                <div>
+                  <h4 className="font-semibold mb-2 text-foreground">Education</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                    <div><p className="text-muted-foreground">High School or Higher:</p><p className="font-medium">{parseFloat(censusData.pct_hs_or_higher || '0').toFixed(1)}%</p></div>
+                    <div><p className="text-muted-foreground">Bachelor's or Higher:</p><p className="font-medium">{parseFloat(censusData.pct_ba_or_higher || '0').toFixed(1)}%</p></div>
+                    <div><p className="text-muted-foreground">Doctorate Degree:</p><p className="font-medium">{parseFloat(censusData.pct_doctorate || '0').toFixed(1)}%</p></div>
+                  </div>
+                </div>
+                <Separator />
+                {/* Economic Indicators */}
+                 <div>
+                  <h4 className="font-semibold mb-2 text-foreground">Economic Indicators</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                    <div><p className="text-muted-foreground">Median HH Income:</p><p className="font-medium">${parseInt(censusData.med_household_income || '0').toLocaleString()}</p></div>
+                    <div><p className="text-muted-foreground">Uninsured:</p><p className="font-medium">{parseFloat(censusData.pct_uninsured || '0').toFixed(1)}%</p></div>
+                     <div><p className="text-muted-foreground">Divorced:</p><p className="font-medium">{parseFloat(censusData.pct_divorced || '0').toFixed(1)}%</p></div>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground pt-2 text-right">
+                  Data provided by <a href="https://github.com/annikamore11/census_data" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">annikamore11/census_data</a>.
                 </div>
               </div>
             ) : (
