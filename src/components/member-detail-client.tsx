@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
-import { ExternalLink, User, Star, History, Info, ChevronsUpDown, MapPin, X, BarChart3 } from 'lucide-react';
+import { ExternalLink, User, Star, History, Info, ChevronsUpDown, MapPin, X, BarChart3, Building2, Phone } from 'lucide-react';
 import { Button } from './ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -58,11 +58,6 @@ function areNamesSimilar(nameA: string, nameB: string): boolean {
 }
 
 // --- Helper Functions ---
-function formatDate(dateString?: string) {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' });
-}
-
 function calculateYearsOfService(firstTerm?: MemberTerm) { if (!firstTerm) return 0; return new Date().getFullYear() - firstTerm.startYear; }
 function isCurrentlyServing(member: Member) {
     if (member.deathDate) return false;
@@ -207,8 +202,14 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                 )}
                  {member.addressInformation && (
                    <div className="flex items-start gap-2">
-                     <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                     <Building2 className="h-4 w-4 text-muted-foreground" />
                      <p>{member.addressInformation.officeAddress}</p>
+                   </div>
+                 )}
+                  {member.addressInformation?.phoneNumber && (
+                   <div className="flex items-start gap-2">
+                     <Phone className="h-4 w-4 text-muted-foreground" />
+                     <p>{member.addressInformation.phoneNumber}</p>
                    </div>
                  )}
              </div>
