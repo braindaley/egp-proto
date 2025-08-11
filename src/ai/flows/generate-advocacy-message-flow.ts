@@ -1,10 +1,11 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
 // Define the input schema for the flow
-export const GenerateAdvocacyMessageInputSchema = z.object({
+const GenerateAdvocacyMessageInputSchema = z.object({
   billTitle: z.string().describe('The title of the bill.'),
   billSummary: z.string().describe('A summary of what the bill does.'),
   userStance: z.enum(['Support', 'Oppose']).describe('The user\'s position on the bill.'),
