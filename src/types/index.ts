@@ -97,7 +97,7 @@ export interface PolicyArea {
     name: string;
 }
 
-type ApiCollection<T> = {
+export type ApiCollection<T> = {
     count: number;
     items: T[];
 }
@@ -118,7 +118,7 @@ export interface Bill {
   updateDate: string;
   url: string;
   sponsors: Sponsor[];
-  cosponsors: ApiCollection<Cosponsor> & { url: string; };
+  cosponsors?: ApiCollection<Cosponsor> & { url: string; };
   committees: ApiCollection<Committee>;
   summaries: {
     count: number;

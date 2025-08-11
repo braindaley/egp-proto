@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import type { Bill, CongressApiResponse, FeedBill, Sponsor, Summary } from '@/types';
+import type { Bill, CongressApiResponse, FeedBill, Sponsor, Summary, Cosponsor, ApiCollection } from '@/types';
 import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, doc, where } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { convert } from 'html-to-text';
@@ -117,8 +117,8 @@ async function fetchMemberDetails(bioguideId: string, API_KEY: string): Promise<
     const imageUrl = data.member?.depiction?.imageUrl || null;
     
     return { imageUrl };
-  } catch (error) {
-    if (error.name === 'AbortError') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
       console.warn(`Member request timeout for ${bioguideId}`);
     } else {
       console.warn(`Error fetching member details for ${bioguideId}:`, error);
@@ -130,7 +130,7 @@ async function fetchMemberDetails(bioguideId: string, API_KEY: string): Promise<
 // Function to fetch detailed bill information
 async function fetchBillDetails(congress: number, type: string, number: number, API_KEY: string): Promise<{
   sponsors: any[];
-  cosponsors?: { count: number };
+  cosponsors?: ApiCollection<Cosponsor> & { url: string };
   title?: string;
   subjects?: string[];
   summary?: string;
@@ -200,8 +200,8 @@ async function fetchBillDetails(congress: number, type: string, number: number, 
       subjects,
       summary: summaryText,
     };
-  } catch (error) {
-    if (error.name === 'AbortError' || error.message === 'Timeout') {
+  } catch (error: unknown) {
+    if (error instanceof Error && (error.name === 'AbortError' || error.message === 'Timeout')) {
       console.warn(`Request timeout for bill ${congress}/${type}/${number}`);
     } else {
       console.warn(`Error fetching bill details for ${congress}/${type}/${number}:`, error);

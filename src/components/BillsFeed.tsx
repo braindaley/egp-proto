@@ -10,6 +10,8 @@ import type { FeedBill } from '@/types';
 interface BillsFeedData {
   bills: FeedBill[];
   error?: string;
+  total?: number;
+  searched?: number;
 }
 
 export default function BillsFeed() {

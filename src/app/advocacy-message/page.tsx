@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AdvocacyMessageForm, {Recipients as RecipientCategories} from '../../components/AdvocacyMessageForm';
 import MessageComposition from '../../components/MessageComposition';
@@ -12,6 +12,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
+
+interface Representative {
+  name: string;
+  party: string;
+  phones?: string[];
+  urls?: string[];
+  photoUrl?: string;
+  officeTitle: string;
+  districtNumber?: number;
+  bioguideId?: string;
+}
 import type { Member, Bill, Sponsor } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -51,7 +62,7 @@ async function getCommitteeMembers(committeeId: string, congress: string, chambe
   }
 }
 
-const AdvocacyMessagePage: React.FC = () => {
+const AdvocacyMessageContent: React.FC = () => {
   const [step, setStep] = useState(0);
   const [advocacyData, setAdvocacyData] = useState<any>(null);
   const [message, setMessage] = useState('');
@@ -59,7 +70,7 @@ const AdvocacyMessagePage: React.FC = () => {
   const [bill, setBill] = useState<Bill | null>(null);
   const [userStance, setUserStance] = useState<'support' | 'oppose' | 'none'>('none');
   const [availableRecipients, setAvailableRecipients] = useState<{
-    representatives: Member[];
+    representatives: Representative[];
     committeeLeadership: Sponsor[];
     billSponsors: Sponsor[];
   }>({
@@ -85,7 +96,7 @@ const AdvocacyMessagePage: React.FC = () => {
   }, [congress, billType, billNumber]);
   
   useEffect(() => {
-    setAvailableRecipients(prev => ({ ...prev, representatives: congressionalReps as Member[] }));
+    setAvailableRecipients(prev => ({ ...prev, representatives: congressionalReps }));
   }, [congressionalReps]);
 
   const handleFormSubmit = async (data: any) => {
@@ -142,7 +153,7 @@ const AdvocacyMessagePage: React.FC = () => {
 
     // Pre-select all available recipients from the chosen categories
     const allAvailable = [
-        ...(recipientCategories.representatives ? (congressionalReps as Member[]) : []),
+        ...(recipientCategories.representatives ? congressionalReps : []),
         ...(recipientCategories.committeeLeadership ? leadership : []),
         ...(recipientCategories.billSponsors ? sponsors : [])
     ];
@@ -195,35 +206,48 @@ const AdvocacyMessagePage: React.FC = () => {
 
     const { representatives, committeeLeadership, billSponsors } = advocacyData.recipients;
 
-    const handleRecipientToggle = (recipient: any) => {
+    const handleRecipientToggle = (recipient: Representative | Sponsor) => {
+      const recipientId = (recipient as Sponsor).bioguideId || (recipient as Representative).bioguideId || (recipient as Representative).name;
       setRecipients(prev => {
-        const isSelected = prev.some(r => r.bioguideId === recipient.bioguideId);
+        const isSelected = prev.some(r => {
+          const id = (r as Sponsor).bioguideId || (r as Representative).bioguideId || (r as Representative).name;
+          return id === recipientId;
+        });
         if (isSelected) {
-          return prev.filter(r => r.bioguideId !== recipient.bioguideId);
+          return prev.filter(r => {
+            const id = (r as Sponsor).bioguideId || (r as Representative).bioguideId || (r as Representative).name;
+            return id !== recipientId;
+          });
         } else {
           return [...prev, recipient];
         }
       });
     };
 
-    const renderCategory = (title: string, categoryRecipients: (Member | Sponsor)[]) => {
+    const renderCategory = (title: string, categoryRecipients: (Representative | Sponsor)[]) => {
       if (categoryRecipients.length === 0) return null;
       return (
         <div key={title}>
           <h4 className="font-semibold text-sm text-muted-foreground mt-4 mb-2">{title}</h4>
           <div className="space-y-2">
-            {categoryRecipients.map(recipient => (
-              <div key={recipient.bioguideId} className="flex items-center">
-                <Checkbox
-                  id={recipient.bioguideId}
-                  checked={recipients.some(r => r.bioguideId === recipient.bioguideId)}
-                  onCheckedChange={() => handleRecipientToggle(recipient)}
-                />
-                <Label htmlFor={recipient.bioguideId} className="ml-2">
-                  {recipient.fullName || (recipient as Member).directOrderName || (recipient as Member).name}
-                </Label>
-              </div>
-            ))}
+            {categoryRecipients.map(recipient => {
+              const recipientId = (recipient as Sponsor).bioguideId || (recipient as Representative).bioguideId || (recipient as Representative).name;
+              return (
+                <div key={recipientId} className="flex items-center">
+                  <Checkbox
+                    id={recipientId}
+                    checked={recipients.some(r => {
+                      const id = (r as Sponsor).bioguideId || (r as Representative).bioguideId || (r as Representative).name;
+                      return id === recipientId;
+                    })}
+                    onCheckedChange={() => handleRecipientToggle(recipient)}
+                  />
+                  <Label htmlFor={recipientId} className="ml-2">
+                    {(recipient as Sponsor).fullName || (recipient as Representative).name}
+                  </Label>
+                </div>
+              );
+            })}
           </div>
         </div>
       );
@@ -288,6 +312,14 @@ const AdvocacyMessagePage: React.FC = () => {
         />
       )}
     </div>
+  );
+};
+
+const AdvocacyMessagePage: React.FC = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AdvocacyMessageContent />
+    </Suspense>
   );
 };
 
