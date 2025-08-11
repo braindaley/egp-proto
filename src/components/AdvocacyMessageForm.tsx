@@ -129,7 +129,7 @@ const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, rec
         <form onSubmit={handleSubmit}>
           {/* Recipient Selection */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Select Recipients</h3>
+            <h3 className="text-lg font-semibold mb-2">Select Outreach</h3>
             <div className="grid grid-cols-1 gap-4">
                <div className="flex items-center">
                     <Checkbox
