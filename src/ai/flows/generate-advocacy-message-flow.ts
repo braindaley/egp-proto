@@ -25,9 +25,15 @@ const advocacyMessagePrompt = ai.definePrompt(
   {
     name: 'advocacyMessagePrompt',
     input: { schema: GenerateAdvocacyMessageInputSchema },
+    output: {
+      schema: z.object({
+        message: z.string().describe('The generated advocacy message.'),
+      }),
+    },
     prompt: `
       You are an expert at writing compelling advocacy messages to elected officials. 
       Your task is to generate a concise and effective message based on the user's stance and desired tone.
+      Provide the output as a JSON object with a single key "message".
 
       **Instructions:**
       1.  Start with a formal salutation (e.g., "Dear Honorable Representative,").
@@ -66,7 +72,10 @@ const generateAdvocacyMessageFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await advocacyMessagePrompt(input);
-    return output!;
+    if (!output) {
+        throw new Error("Failed to generate advocacy message: AI returned no output.");
+    }
+    return output.message;
   }
 );
 
