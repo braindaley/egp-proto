@@ -52,19 +52,16 @@ export async function GET(req: NextRequest, { params }: { params: { committeeId:
 
   try {
     const allCommitteeData: CommitteeData | null = await fetchCommitteeData('https://unitedstates.github.io/congress-legislators/committee-membership-current.json');
-    const allCommitteeInfo: CommitteeInfoData | null = await fetchCommitteeData('https://unitedstates.github.io/congress-legislators/committees-current.json');
+    const allCommitteeInfo: CommitteeInfo[] | null = await fetchCommitteeData('https://unitedstates.github.io/congress-legislators/committees-current.json');
 
     if (!allCommitteeData || !allCommitteeInfo) {
       return NextResponse.json({ error: 'Could not fetch committee data sources' }, { status: 500 });
     }
     
-    let lookupKey = committeeId.toUpperCase();
-    if (lookupKey.endsWith('00')) {
-        lookupKey = lookupKey.slice(0, -2);
-    }
-
+    const lookupKey = committeeId.toUpperCase();
+    
+    const committeeInfo = allCommitteeInfo.find(c => c.thomas_id === lookupKey);
     const committeeMembers = allCommitteeData[lookupKey] || [];
-    const committeeInfo = allCommitteeInfo[lookupKey];
 
     if (committeeMembers.length === 0 && !committeeInfo) {
       return NextResponse.json({ error: `Committee with systemCode '${committeeId}' (lookup '${lookupKey}') not found.` }, { status: 404 });
