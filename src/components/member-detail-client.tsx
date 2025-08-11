@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
-import { ExternalLink, User, Star, History, Info, ChevronsUpDown, MapPin, X, BarChart3, Building2, Phone } from 'lucide-react';
+import { ExternalLink, User, Star, History, Info, ChevronsUpDown, MapPin, X, BarChart3, Building2, Phone, Hash } from 'lucide-react';
 import { Button } from './ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -215,6 +215,33 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
              </div>
              <SocialMediaLinks bioguideId={member.bioguideId} />
              <DistrictOffices bioguideId={member.bioguideId} />
+              {member.extendedIds && (
+              <>
+                <Separator />
+                <div>
+                  <h4 className="font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+                    <Hash className="h-4 w-4" /> Other Identifiers
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
+                    {Object.entries(member.extendedIds).map(([key, value]) => {
+                      if (!value || (Array.isArray(value) && value.length === 0)) return null;
+                      
+                      // Capitalize the key for display
+                      const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                      return (
+                        <div key={key} className="truncate">
+                          <span className="font-medium text-foreground">{label}: </span>
+                          <span className="text-muted-foreground">
+                            {Array.isArray(value) ? value.join(', ') : value}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
         <CampaignFinanceCard member={member} congress={congress} state={member.state.toLowerCase()} bioguideId={member.bioguideId} />
