@@ -1,4 +1,5 @@
 
+
 export interface Amendment {
     congress: number;
     number: number;
@@ -439,4 +440,31 @@ export interface FeedBill {
   status: string;
   importanceScore: number;
   summary?: string;
+}
+
+export interface CommitteeMember {
+  bioguideId: string;
+  name: string;
+  party: string;
+  state: string;
+  district?: string;
+  rank?: number;
+  title?: string;
+  url?: string;
+}
+
+export interface Subcommittee {
+  name: string;
+  systemCode: string;
+  url: string;
+}
+
+export interface EnhancedCommitteeInfo {
+  name: string;
+  chamber: string;
+  url?: string;
+  chair?: CommitteeMember;
+  rankingMember?: CommitteeMember;
+  members: CommitteeMember[];
+  subcommittees: Subcommittee[];
 }
