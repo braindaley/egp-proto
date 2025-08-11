@@ -1,4 +1,6 @@
 
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
@@ -7,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { Mail, Send } from 'lucide-react';
+import { Mail, Send, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PersonalData {
@@ -52,9 +54,14 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
   const [tone, setTone] = useState('formal');
   const [deliveryMethod, setDeliveryMethod] = useState('email');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [userStance, setUserStance] = useState(initialUserStance);
+  const [userStance, setUserStance] = useState<'support' | 'oppose' | 'none'>('none');
 
   const generateAITemplate = () => {
+    if (userStance === 'none') {
+        setValidationErrors(['Please select "Support" or "Oppose" before generating a template.']);
+        return;
+    }
+    setValidationErrors([]);
     // Simulated AI template generation based on bill type and stance
     const templates: Record<string, Record<string, string>> = {
       defense: {
@@ -76,6 +83,9 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
     const errors: string[] = [];
     if (!message.trim()) {
       errors.push('Message cannot be empty.');
+    }
+    if (userStance === 'none') {
+      errors.push('Please select a "Support" or "Oppose" stance.');
     }
     setValidationErrors(errors);
     return errors.length === 0;
@@ -111,16 +121,20 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
           <h3 className="text-lg font-semibold mb-2">Compose Your Message</h3>
 
           <div className="flex gap-2">
-            <Button 
+            <Button
                 variant={userStance === 'support' ? 'default' : 'outline'}
                 onClick={() => setUserStance('support')}
+                size="sm"
             >
+                <ThumbsUp className="mr-2 h-4 w-4" />
                 Support
             </Button>
             <Button
                 variant={userStance === 'oppose' ? 'destructive' : 'outline'}
                 onClick={() => setUserStance('oppose')}
+                size="sm"
             >
+                <ThumbsDown className="mr-2 h-4 w-4" />
                 Oppose
             </Button>
           </div>
