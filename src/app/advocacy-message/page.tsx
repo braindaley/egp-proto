@@ -139,10 +139,14 @@ const AdvocacyMessagePage: React.FC = () => {
         billSponsors: sponsors
     }));
 
-    // Pre-select the user's representatives
-    if(recipientCategories.representatives) {
-        setRecipients(prev => [...prev, ...congressionalReps]);
-    }
+    // Pre-select all available recipients from the chosen categories
+    const allAvailable = [
+        ...(recipientCategories.representatives ? (congressionalReps as Member[]) : []),
+        ...(recipientCategories.committeeLeadership ? leadership : []),
+        ...(recipientCategories.billSponsors ? sponsors : [])
+    ];
+    const uniqueRecipients = allAvailable.filter((v,i,a)=>a.findIndex(t=>(t.bioguideId === v.bioguideId))===i);
+    setRecipients(uniqueRecipients);
 
     setStep(prev => prev + 1);
   };
@@ -184,49 +188,55 @@ const AdvocacyMessagePage: React.FC = () => {
   );
   
   const currentStepOffset = billNumber ? 0 : 1;
-
+  
   const renderRecipientSelection = () => {
-    if (!advocacyData) {
-      return null;
-    }
-    const recipientCategories: RecipientCategories = advocacyData.recipients;
-    const allRecipients = [
-        ...(recipientCategories.representatives ? availableRecipients.representatives : []),
-        ...(recipientCategories.committeeLeadership ? availableRecipients.committeeLeadership : []),
-        ...(recipientCategories.billSponsors ? availableRecipients.billSponsors : [])
-    ];
-    
-    const uniqueRecipients = allRecipients.filter((v,i,a)=>a.findIndex(t=>(t.bioguideId === v.bioguideId))===i);
+    if (!advocacyData) return null;
+
+    const { representatives, committeeLeadership, billSponsors } = advocacyData.recipients;
+
+    const handleRecipientToggle = (recipient: any) => {
+      setRecipients(prev => {
+        const isSelected = prev.some(r => r.bioguideId === recipient.bioguideId);
+        if (isSelected) {
+          return prev.filter(r => r.bioguideId !== recipient.bioguideId);
+        } else {
+          return [...prev, recipient];
+        }
+      });
+    };
+
+    const renderCategory = (title: string, categoryRecipients: (Member | Sponsor)[]) => {
+      if (categoryRecipients.length === 0) return null;
+      return (
+        <div key={title}>
+          <h4 className="font-semibold text-sm text-muted-foreground mt-4 mb-2">{title}</h4>
+          <div className="space-y-2">
+            {categoryRecipients.map(recipient => (
+              <div key={recipient.bioguideId} className="flex items-center">
+                <Checkbox
+                  id={recipient.bioguideId}
+                  checked={recipients.some(r => r.bioguideId === recipient.bioguideId)}
+                  onCheckedChange={() => handleRecipientToggle(recipient)}
+                />
+                <Label htmlFor={recipient.bioguideId} className="ml-2">
+                  {recipient.fullName || (recipient as Member).directOrderName || (recipient as Member).name}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
 
     return (
-        <div>
-            <h3 className="text-lg font-semibold mb-2">Selecting recipients</h3>
-            {uniqueRecipients.map(recipient => (
-                <div key={recipient.bioguideId} className="flex items-center mb-2">
-                    <Checkbox
-                        id={recipient.bioguideId}
-                        checked={recipients.some(r => r.bioguideId === recipient.bioguideId)}
-                        onCheckedChange={(checked) => {
-                            setRecipients(prev => {
-                                const isSelected = prev.some(r => r.bioguideId === recipient.bioguideId);
-                                if (checked && !isSelected) {
-                                    return [...prev, recipient];
-                                } else if (!checked && isSelected) {
-                                    return prev.filter(r => r.bioguideId !== recipient.bioguideId);
-                                }
-                                return prev;
-                            });
-                        }}
-                    />
-                    <Label htmlFor={recipient.bioguideId} className="ml-2">
-                        {recipient.fullName || recipient.directOrderName || recipient.name}
-                    </Label>
-                </div>
-            ))}
-        </div>
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Select Recipients</h3>
+        {representatives && renderCategory('Your Congressional Representatives', availableRecipients.representatives)}
+        {committeeLeadership && renderCategory('Applicable Committee Leadership', availableRecipients.committeeLeadership)}
+        {billSponsors && renderCategory('Bill Sponsors', availableRecipients.billSponsors)}
+      </div>
     );
   }
-
 
   return (
     <div className="container mx-auto p-8">
