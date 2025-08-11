@@ -23,40 +23,50 @@ const GetCongressMembersOutputSchema = z.object({
 });
 export type GetCongressMembersOutput = z.infer<typeof GetCongressMembersOutputSchema>;
 
-// This function now fetches from the internal API route
+// This function now fetches directly from the Congress.gov API
 async function fetchMembers(
   congress: string,
   state: string,
 ): Promise<{ senators: Member[], representatives: Member[] }> {
-    // This assumes the app is running on localhost, which is fine for dev.
-    // In a real deployment, you'd use a relative URL or an env var for the base URL.
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+    const API_KEY = process.env.CONGRESS_API_KEY;
+    if (!API_KEY) {
+        console.error("CONGRESS_API_KEY is not set.");
+        return { senators: [], representatives: [] };
+    }
+
     const upperCaseState = state.toUpperCase();
-    const url = `${baseUrl}/api/congress/members?congress=${congress}&state=${upperCaseState}`;
+    const url = `https://api.congress.gov/v3/member/congress/${congress}/${upperCaseState}?currentMember=false&limit=250&api_key=${API_KEY}`;
 
-  try {
-    const response = await fetch(url, { next: { revalidate: 3600 } });
+    try {
+        const response = await fetch(url, { next: { revalidate: 3600 } });
 
-    console.log('🔍 INTERNAL API URL CALLED:', url);
-    console.log('🔍 INTERNAL API RESPONSE STATUS:', response.status);
-
-    if (!response.ok) {
-      console.error(`Failed to fetch members from internal API for ${upperCaseState}: ${response.status}`);
-      return { senators: [], representatives: [] };
-    }
+        if (!response.ok) {
+            console.error(`Failed to fetch members from Congress API for ${upperCaseState}: ${response.status}`);
+            return { senators: [], representatives: [] };
+        }
     
-    // Directly return the data from the API which should already be in the correct format
-    const data = await response.json();
-    console.log('🔍 INTERNAL API RESPONSE DATA:', JSON.stringify(data, null, 2));
-    
-    return {
-        senators: data.senators || [],
-        representatives: data.representatives || [],
+        const data = await response.json();
+        const allMembers = data.members || [];
+        
+        const senators: Member[] = [];
+        const representatives: Member[] = [];
+
+        allMembers.forEach((member: any) => {
+            if (!member.terms?.item) return;
+            const hasSenateTerm = member.terms.item.some((term: any) => term.chamber === 'Senate');
+            if (hasSenateTerm) {
+                senators.push(member);
+            } else {
+                representatives.push(member);
+            }
+        });
+
+        return { senators, representatives };
+
+    } catch (error) {
+        console.error(`Error fetching members for ${upperCaseState}:`, error);
+        return { senators: [], representatives: [] };
     }
-  } catch (error) {
-    console.error(`Error fetching members for ${upperCaseState}:`, error);
-    return { senators: [], representatives: [] };
-  }
 }
 
 
