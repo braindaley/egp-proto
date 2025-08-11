@@ -1,32 +1,58 @@
+
 import { notFound } from 'next/navigation';
-import type { Member } from '@/types';
+import type { Member, LegislatorData, ExtendedMemberIds } from '@/types';
 import { MemberDetailClient } from '@/components/member-detail-client';
 
 async function getMemberDetails(bioguideId: string): Promise<Member | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
-  const url = `${baseUrl}/api/congress/member/${bioguideId}`;
+  const API_KEY = process.env.CONGRESS_API_KEY;
+  if (!API_KEY) {
+    console.error('Server configuration error: CONGRESS_API_KEY not found.');
+    return null;
+  }
   
   try {
-    const res = await fetch(url, {
-      next: { revalidate: 3600 }, // Cache for 1 hour
-    });
+    console.log(`[MemberDetailPage] Fetching member details for bioguideId: ${bioguideId}`);
 
-    if (!res.ok) {
-      console.error(`Failed to fetch member from internal API: ${res.status}`);
+    const memberApiUrl = `https://api.congress.gov/v3/member/${bioguideId}?api_key=${API_KEY}`;
+    const legislatorsDataUrl = 'https://unitedstates.github.io/congress-legislators/legislators-current.json';
+
+    const [congressResponse, legislatorsResponse] = await Promise.all([
+      fetch(memberApiUrl, { next: { revalidate: 3600 } }),
+      fetch(legislatorsDataUrl, { next: { revalidate: 3600 } })
+    ]);
+
+    if (!congressResponse.ok) {
+      console.error(`[MemberDetailPage] Failed to fetch member from Congress API. Status: ${congressResponse.status}`);
       return null;
     }
 
-    // Only fetch basic data initially. The rest will be loaded client-side.
-    const memberData: Member = await res.json();
-    
-    // Add mock email address
-    const memberName = memberData.directOrderName.toLowerCase().replace(/\s+/g, '.');
-    memberData.email = `${memberName}@congress-placeholder.com`;
+    const congressData = await congressResponse.json();
+    const member: Member = congressData.member;
 
-    return memberData;
+    if (!member) {
+        console.error('[MemberDetailPage] Member data not found in Congress API response.');
+        return null;
+    }
+
+    // Add extended IDs from the second data source
+    if (legislatorsResponse.ok) {
+        const legislatorsData: LegislatorData[] = await legislatorsResponse.json();
+        const legislator = legislatorsData.find(leg => leg.id?.bioguide === bioguideId);
+        if (legislator) {
+            member.extendedIds = legislator.id;
+        }
+    } else {
+        console.warn(`[MemberDetailPage] Could not fetch extended legislators data. Status: ${legislatorsResponse.status}`);
+    }
+
+    // Add mock email address
+    const memberName = member.directOrderName.toLowerCase().replace(/\s+/g, '.');
+    member.email = `${memberName}@congress-placeholder.com`;
+
+    return member;
     
   } catch (error) {
-    console.error("Error in getMemberDetails:", error);
+    console.error("[MemberDetailPage] Error in getMemberDetails:", error);
     return null; 
   }
 }
