@@ -8,6 +8,7 @@ import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Mail, Send } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface PersonalData {
   fullName: boolean;
@@ -40,7 +41,7 @@ interface MessageCompositionProps {
 
 const MessageComposition: React.FC<MessageCompositionProps> = ({
   billType,
-  userStance,
+  userStance: initialUserStance,
   personalData,
   recipientInfo,
   onSubmit,
@@ -51,6 +52,7 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
   const [tone, setTone] = useState('formal');
   const [deliveryMethod, setDeliveryMethod] = useState('email');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [userStance, setUserStance] = useState(initialUserStance);
 
   const generateAITemplate = () => {
     // Simulated AI template generation based on bill type and stance
@@ -108,6 +110,23 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
 
           <h3 className="text-lg font-semibold mb-2">Compose Your Message</h3>
 
+          <div className="flex gap-2">
+            <Button 
+                variant={userStance === 'support' ? 'default' : 'outline'}
+                onClick={() => setUserStance('support')}
+                className="flex-1"
+            >
+                Support
+            </Button>
+            <Button
+                variant={userStance === 'oppose' ? 'destructive' : 'outline'}
+                onClick={() => setUserStance('oppose')}
+                className="flex-1"
+            >
+                Oppose
+            </Button>
+          </div>
+          
           <div>
             <Label>Smart Templates</Label>
             <div className="flex items-center gap-2 mt-1">
@@ -136,11 +155,11 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
                 <Label>Delivery Method</Label>
                 <div className="flex items-center space-x-4 mt-2">
                     <div className="flex items-center cursor-pointer" onClick={() => setDeliveryMethod('email')}>
-                       <Mail className={`h-5 w-5 ${deliveryMethod === 'email' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                       <Mail className={cn('h-5 w-5', deliveryMethod === 'email' ? 'text-indigo-600' : 'text-gray-400')} />
                        <Label className="ml-2 cursor-pointer">Email</Label>
                     </div>
                      <div className="flex items-center cursor-pointer" onClick={() => setDeliveryMethod('postal')}>
-                       <Send className={`h-5 w-5 ${deliveryMethod === 'postal' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                       <Send className={cn('h-5 w-5', deliveryMethod === 'postal' ? 'text-indigo-600' : 'text-gray-400')} />
                        <Label className="ml-2 cursor-pointer">Postal Mail</Label>
                     </div>
                 </div>
