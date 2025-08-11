@@ -12,9 +12,11 @@ interface AdvocacyBillCardProps {
     position: 'Support' | 'Oppose' | string;
     reasoning: string;
     actionButtonText: string;
+    supportCount: number;
+    opposeCount: number;
 }
 
-const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning, actionButtonText }) => {
+const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning, actionButtonText, supportCount, opposeCount }) => {
     if (!bill.type || !bill.number || !bill.congress) {
       return (
         <Card className="flex flex-col h-full items-center justify-center text-center">
@@ -59,6 +61,22 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                     className="prose prose-sm max-w-none text-muted-foreground prose-h3:font-semibold prose-h3:text-lg prose-h3:mb-2 prose-ul:list-disc prose-ul:pl-5 mb-4 flex-grow" 
                     dangerouslySetInnerHTML={{ __html: reasoning }} 
                 />
+                <div className="flex items-center justify-around text-center py-2 border-t border-b">
+                    <div className="flex items-center gap-2 text-green-600">
+                        <ThumbsUp className="h-5 w-5" />
+                        <div>
+                            <p className="font-bold text-lg">{supportCount.toLocaleString()}</p>
+                            <p className="text-xs font-medium">Supporters</p>
+                        </div>
+                    </div>
+                     <div className="flex items-center gap-2 text-red-600">
+                        <ThumbsDown className="h-5 w-5" />
+                         <div>
+                            <p className="font-bold text-lg">{opposeCount.toLocaleString()}</p>
+                            <p className="text-xs font-medium">Opponents</p>
+                        </div>
+                    </div>
+                </div>
                 <div className="mt-auto pt-4">
                     <Button asChild className="w-full" size="lg">
                         <Link href={`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}`}>

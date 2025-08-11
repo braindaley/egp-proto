@@ -206,7 +206,9 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
                                     bill={item.bill}
                                     position={item.position}
                                     reasoning={item.reasoning}
-                                    actionButtonText={item.actionButtonText} 
+                                    actionButtonText={item.actionButtonText}
+                                    supportCount={item.supportCount}
+                                    opposeCount={item.opposeCount}
                                 />
                             ))}
                         </div>
