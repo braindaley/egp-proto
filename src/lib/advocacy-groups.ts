@@ -57,18 +57,7 @@ const advocacyGroupsData: Record<string, AdvocacyGroup> = {
         supportCount: 3100,
         opposeCount: 15600,
       },
-      {
-        bill: {
-            number: '1',
-            type: 'HR',
-            congress: 119,
-        },
-        position: 'Support',
-        actionButtonText: 'Voice your opinion',
-        reasoning: 'The For the People Act represents comprehensive democracy reform that would expand voting access, end partisan gerrymandering, and reduce the influence of big money in politics. This legislation would restore and strengthen voting rights protections that have been weakened by recent court decisions and state legislative actions.',
-        supportCount: 12400,
-        opposeCount: 3850,
-      },
+
     ],
   },
   'brennan-center-for-justice': {

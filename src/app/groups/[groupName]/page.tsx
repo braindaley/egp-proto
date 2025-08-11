@@ -8,28 +8,78 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Users, Calendar, BarChart, Mic, Edit, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import type { Bill } from '@/types';
+import type { Bill, ApiCollection, Sponsor, Cosponsor, Committee, Summary, TextVersion, RelatedBill, Subject, PolicyArea } from '@/types';
 import { getBillTypeSlug } from '@/lib/utils';
 import { remark } from 'remark';
 import html from 'remark-html';
 
-// Function to fetch full bill details
+// Interfaces for API responses, to be used internally in this file
+interface ApiResponse {
+  [key: string]: any;
+}
+interface TitlesResponse {
+  titles?: Array<{ title: string; titleType: string; isForPortion?: string; }>;
+}
+interface SummariesResponse {
+  summaries?: Array<{ updateDate: string; [key: string]: any; }>;
+}
+interface ActionsResponse {
+  actions?: Array<{ actionDate: string; text: string; [key: string]: any; }>;
+}
+interface CommitteesResponse {
+  committees?: Array<{ name: string; systemCode: string; activities: Array<{ name: string; date?: string; }>; [key: string]: any; }>;
+}
+interface SubjectsResponse {
+  subjects?: { legislativeSubjects?: Array<{ name: string; }>; policyArea?: { name: string; }; };
+  pagination?: { next?: string; };
+}
+
+// Function to fetch full bill details directly from the Congress API
 async function getBillDetails(congress: number, billType: string, billNumber: string): Promise<Bill | null> {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+    const API_KEY = process.env.CONGRESS_API_KEY;
+    if (!API_KEY) {
+        console.error("CONGRESS_API_KEY is not set.");
+        return null;
+    }
+
     const billTypeSlug = getBillTypeSlug(billType);
-    const url = `${baseUrl}/api/bill?congress=${congress}&billType=${billTypeSlug}&billNumber=${billNumber}`;
+    const baseUrl = `https://api.congress.gov/v3/bill/${congress}/${billTypeSlug}/${billNumber}`;
+    const basicUrl = `${baseUrl}?embed=sponsors&api_key=${API_KEY}`;
+
     try {
-        const res = await fetch(url, { next: { revalidate: 3600 } });
-        if (!res.ok) {
-            console.error(`Failed to fetch bill details for ${billType} ${billNumber}: ${res.status}`);
-            return null;
+        const basicRes = await fetch(basicUrl, { next: { revalidate: 3600 } });
+        if (!basicRes.ok) return null;
+
+        const basicData: ApiResponse = await basicRes.json();
+        const bill: Bill = basicData.bill;
+
+        if (!bill) return null;
+
+        // Initialize optional structures
+        bill.sponsors = bill.sponsors || [];
+        bill.committees = { count: 0, items: [] };
+        bill.allSummaries = [];
+
+        // Fetch summaries
+        if (bill.summaries?.url) {
+            const summaryRes = await fetch(`${bill.summaries.url}&api_key=${API_KEY}`);
+            if (summaryRes.ok) {
+                const summaryData: SummariesResponse = await summaryRes.json();
+                const summaries = summaryData.summaries;
+                if (summaries && summaries.length > 0) {
+                    const sorted = [...summaries].sort((a, b) => new Date(b.updateDate).getTime() - new Date(a.updateDate).getTime());
+                    bill.allSummaries = sorted as any[];
+                }
+            }
         }
-        return await res.json();
+        
+        return bill;
     } catch (error) {
-        console.error("Error in getBillDetails:", error);
+        console.error(`Error fetching bill details for ${billType} ${billNumber}:`, error);
         return null;
     }
 }
+
 
 async function processMarkdown(markdown: string) {
     const result = await remark().use(html).process(markdown);
