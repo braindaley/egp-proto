@@ -106,6 +106,8 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
           
           <div>{recipientSelection}</div>
 
+          <h3 className="text-lg font-semibold mb-2">Compose Your Message</h3>
+
           <div>
             <Label>Smart Templates</Label>
             <div className="flex items-center gap-2 mt-1">
