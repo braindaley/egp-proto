@@ -69,11 +69,14 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
     setIsGenerating(true);
 
     try {
+        const capitalizedStance = userStance.charAt(0).toUpperCase() + userStance.slice(1);
+        const capitalizedTone = tone.charAt(0).toUpperCase() + tone.slice(1);
+
         const result = await generateAdvocacyMessage({
             billTitle,
             billSummary,
-            userStance,
-            tone: tone as 'Formal' | 'Passionate' | 'Personal',
+            userStance: capitalizedStance as 'Support' | 'Oppose',
+            tone: capitalizedTone as 'Formal' | 'Passionate' | 'Personal',
             personalData: {
                 fullName: personalData.fullName,
                 address: personalData.address,
