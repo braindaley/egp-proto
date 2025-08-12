@@ -54,7 +54,7 @@ export function ZipCodeBanner() {
         <Button type="submit">Submit</Button>
       </form>
        <Button 
-          variant="ghost" 
+          variant="custom1"
           size="icon" 
           className="absolute right-4 text-gray-400 hover:text-white"
           onClick={() => setIsVisible(false)}
