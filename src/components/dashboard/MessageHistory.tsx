@@ -145,8 +145,19 @@ const MessageHistory: React.FC = () => {
             {groupedMessages.map((group) => {
               const latestActivity = group.activities[0];
               const allRecipients = latestActivity?.recipients || [];
-              const messagePreview = latestActivity?.messageContent || '';
               const lastSentDate = latestActivity?.sentAt?.toDate();
+              
+              // Format recipients with FirstLast format and limit display
+              const formattedRecipients = allRecipients.map(r => {
+                const nameParts = r.name.split(' ');
+                const firstName = nameParts[0] || '';
+                const lastName = nameParts[nameParts.length - 1] || '';
+                return `${firstName}${lastName}`;
+              });
+              
+              const displayRecipients = formattedRecipients.length > 2 
+                ? `${formattedRecipients.slice(0, 2).join(', ')} (${formattedRecipients.length - 2} more)`
+                : formattedRecipients.join(', ');
               
               return (
                 <AccordionItem 
@@ -164,92 +175,84 @@ const MessageHistory: React.FC = () => {
                       </Avatar>
                       
                       <div className="flex-1 min-w-0">
-                        {/* Header Row */}
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="font-semibold text-base">
-                              {group.billType} {group.billNumber}: 
-                            </span>
-                            <span className="font-medium text-sm text-gray-900 truncate">
-                              {group.billShortTitle}
-                            </span>
-                            <Badge variant="outline" className="text-xs ml-2 flex-shrink-0">
-                              {group.billCurrentStatus}
+                        {/* Line One: To recipients, RE badge, Bill # title, date */}
+                        <div className="flex items-center justify-between gap-4 mb-1">
+                          <div className="flex items-center gap-4 min-w-0 flex-1">
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm text-muted-foreground">To:</span>
+                              <span className="text-sm font-medium truncate">{displayRecipients}</span>
+                            </div>
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs py-0 px-2 flex-shrink-0 bg-gray-50"
+                            >
+                              RE: {group.billShortTitle}
                             </Badge>
+                            <Badge 
+                              variant={latestActivity?.userStance === 'support' ? 'default' : 'destructive'} 
+                              className="text-xs py-0 px-1 flex-shrink-0"
+                            >
+                              {latestActivity?.userStance === 'support' ? 'Support' : 'Oppose'}
+                            </Badge>
+                            <span className="text-sm font-semibold">
+                              {group.billType} {group.billNumber}
+                            </span>
                           </div>
                           <div className="text-xs text-muted-foreground flex-shrink-0">
                             {lastSentDate && format(lastSentDate, 'MMM d, yyyy')}
                           </div>
                         </div>
                         
-                        {/* Recipients */}
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Users className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">To: {allRecipients.map(r => r.name).join(', ')}</span>
-                          <span className="mx-1">•</span>
-                          <Badge 
-                            variant={latestActivity?.userStance === 'support' ? 'default' : 'destructive'} 
-                            className="text-xs py-0 px-1 flex-shrink-0"
-                          >
-                            {latestActivity?.userStance === 'support' ? 'Support' : 'Oppose'}
-                          </Badge>
+                        {/* Line Two: Bill Status */}
+                        <div className="text-xs text-muted-foreground">
+                          Status: {group.billCurrentStatus}
                         </div>
                       </div>
                     </div>
                   </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
-                  <div className="space-y-3 border-t pt-4">
+                  <div className="space-y-4 border-t pt-4">
                     {group.activities.map((activity, index) => (
-                      <div key={activity.id} className={`rounded-lg p-4 ${index === 0 ? 'bg-blue-50/30 border-l-4 border-l-blue-400' : 'bg-gray-50/50 border-l-4 border-l-gray-300'}`}>
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex items-center gap-2">
-                            <Badge variant={activity.userStance === 'support' ? 'default' : 'destructive'} className="text-xs">
-                              {activity.userStance === 'support' ? 'Support' : 'Oppose'}
-                            </Badge>
-                            {index === 0 && (
-                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
-                                Latest
+                      <div key={activity.id} className="bg-white rounded-lg border shadow-sm">
+                        {/* Message Header */}
+                        <div className="p-4 border-b bg-gray-50/50">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={activity.userStance === 'support' ? 'default' : 'destructive'} className="text-xs">
+                                RE: {activity.userStance === 'support' ? 'Support' : 'Oppose'}
                               </Badge>
-                            )}
+                              <span className="text-sm font-semibold">
+                                {group.billType} {group.billNumber}: {group.billShortTitle}
+                              </span>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {format(activity.sentAt?.toDate() || new Date(), 'MMM d, yyyy \'at\' h:mm a')}
+                            </div>
                           </div>
-                          <span className="text-sm text-muted-foreground">
-                            {format(activity.sentAt?.toDate() || new Date(), 'PPp')}
-                          </span>
+                          
+                          {/* Recipients */}
+                          <div className="text-sm text-muted-foreground">
+                            <span className="font-medium">To:</span> {activity.recipients.map(r => r.name).join(', ')}
+                          </div>
                         </div>
                         
-                        {/* Recipients list with improved styling */}
-                        <div className="space-y-1 mb-4">
-                          <h4 className="text-xs font-medium text-gray-700 uppercase tracking-wide">Recipients</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                            {activity.recipients.map((recipient, idx) => (
-                              <div key={idx} className="flex items-center gap-2 text-sm bg-white/60 rounded px-2 py-1">
-                                <Avatar className="h-6 w-6">
-                                  <AvatarFallback className={`text-xs ${recipient.party === 'Republican' ? 'bg-red-100 text-red-700' : recipient.party === 'Democratic' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                                    {recipient.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-gray-900 truncate">{recipient.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {recipient.party} • {recipient.role}
-                                  </div>
-                                </div>
-                                <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        {/* Message Content */}
+                        <div className="p-4">
+                          <div className="prose prose-sm max-w-none">
+                            <p className="whitespace-pre-wrap text-gray-700 leading-relaxed mb-4">
+                              {activity.messageContent}
+                            </p>
+                            
+                            {/* Message Signature */}
+                            <div className="border-t pt-4 mt-6 text-sm text-gray-600">
+                              <p className="font-medium">Sincerely,</p>
+                              <p className="mt-1">Your Constituent</p>
+                              <div className="mt-2 text-xs text-muted-foreground italic">
+                                This message was sent via the Electronic Government Platform on {format(activity.sentAt?.toDate() || new Date(), 'MMMM d, yyyy \'at\' h:mm a')}
                               </div>
-                            ))}
+                            </div>
                           </div>
                         </div>
-                        
-                        {/* Message preview with better styling */}
-                        <details className="text-sm">
-                          <summary className="cursor-pointer text-primary hover:underline font-medium flex items-center gap-1">
-                            <FileText className="h-4 w-4" />
-                            View full message content
-                          </summary>
-                          <div className="mt-3 p-4 bg-white rounded-lg border shadow-sm">
-                            <p className="whitespace-pre-wrap text-gray-700 leading-relaxed">{activity.messageContent}</p>
-                          </div>
-                        </details>
                       </div>
                     ))}
                   </div>
