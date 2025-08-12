@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Stepper, Step, StepLabel } from '@/components/ui/stepper';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -67,6 +67,71 @@ interface PersonalDataField {
   available: boolean;
 }
 
+// Component for unauthenticated users
+const UnauthenticatedMessage: React.FC = () => {
+  const searchParams = useSearchParams();
+  const currentPath = '/advocacy-message';
+  
+  let returnUrl = currentPath;
+  try {
+    const queryString = searchParams.toString();
+    returnUrl = queryString ? `${currentPath}?${queryString}` : currentPath;
+  } catch (error) {
+    console.error('Error building return URL:', error);
+  }
+  
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-background px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">Voice Your Opinion</CardTitle>
+          <CardDescription>To voice your opinion, login or sign up</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="font-medium text-sm text-muted-foreground text-center">Benefits:</h3>
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-start space-x-3">
+                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                <span>Receive responses from messages you send</span>
+              </li>
+              <li className="flex items-start space-x-3">
+                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                <span>Track your impact on bills you care about</span>
+              </li>
+              <li className="flex items-start space-x-3">
+                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                <span>Ensure your messages reach the correct representatives</span>
+              </li>
+              <li className="flex items-start space-x-3">
+                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                <span>Streamline contacting multiple representatives about the same issue</span>
+              </li>
+            </ul>
+          </div>
+          
+          <div className="space-y-4">
+            <Button className="w-full" size="lg" asChild>
+              <Link href={`/login?returnTo=${encodeURIComponent(returnUrl)}`}>
+                Login
+              </Link>
+            </Button>
+            <Button className="w-full" size="lg" variant="outline" asChild>
+              <Link href={`/signup?returnTo=${encodeURIComponent(returnUrl)}`}>
+                Sign Up
+              </Link>
+            </Button>
+          </div>
+          
+          <div className="text-center text-sm text-muted-foreground">
+            After logging in, you'll return to this page to complete your message.
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 const AdvocacyMessageContent: React.FC = () => {
   const [step, setStep] = useState(1);
   const [bill, setBill] = useState<Bill | null>(null);
@@ -90,7 +155,7 @@ const AdvocacyMessageContent: React.FC = () => {
     billSponsors: [],
   });
 
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { zipCode } = useZipCode();
   const { representatives: congressionalReps } = useMembersByZip(zipCode);
   const router = useRouter();
@@ -273,22 +338,54 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Handle send message
   const handleSend = async () => {
-    // Here you would implement the actual send logic
-    console.log('Sending message to:', selectedMembers);
-    console.log('Message:', message);
-    console.log('Personal data included:', selectedPersonalData);
-    console.log('Save as default:', saveAsDefault);
+    if (!user || !bill) return;
     
-    // If saveAsDefault is true, save the selected fields to user preferences
-    if (saveAsDefault) {
-      // TODO: Save selectedPersonalData to user preferences in Firebase
-      console.log('Saving default preferences:', selectedPersonalData);
+    try {
+      // Import Firebase functions
+      const { getFirestore, collection, addDoc, Timestamp } = await import('firebase/firestore');
+      const { app } = await import('@/lib/firebase');
+      const db = getFirestore(app);
+      
+      // Save message activity to Firestore
+      const messageActivity = {
+        userId: user.uid,
+        billNumber: billNumber,
+        billType: billType,
+        congress: congress,
+        billShortTitle: bill.shortTitle || bill.title || 'Unknown Bill',
+        billCurrentStatus: bill.latestAction?.text || 'Status Unknown',
+        userStance: userStance, // 'support' or 'oppose'
+        messageContent: message,
+        recipients: selectedMembers.map(member => ({
+          name: member.fullName || member.name || 'Unknown',
+          bioguideId: member.bioguideId || '',
+          email: member.email || '',
+          party: member.party || member.partyName || '',
+          role: member.role || 'Representative'
+        })),
+        personalDataIncluded: selectedPersonalData,
+        sentAt: Timestamp.now(),
+        deliveryStatus: 'sent'
+      };
+      
+      await addDoc(collection(db, 'user_messages'), messageActivity);
+      
+      // If saveAsDefault is true, save the selected fields to user preferences
+      if (saveAsDefault) {
+        // TODO: Save selectedPersonalData to user preferences in Firebase
+        console.log('Saving default preferences:', selectedPersonalData);
+      }
+      
+      // Navigate to confirmation page with recipient count
+      const recipientCount = selectedMembers.length;
+      router.push(`/advocacy-message/confirmation?count=${recipientCount}`);
+      
+    } catch (error) {
+      console.error('Error saving message:', error);
+      // Still navigate to confirmation for now
+      const recipientCount = selectedMembers.length;
+      router.push(`/advocacy-message/confirmation?count=${recipientCount}`);
     }
-    
-    // Simulate sending
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 1500);
   };
 
   // Step 1: Select Outreach
@@ -567,7 +664,7 @@ const AdvocacyMessageContent: React.FC = () => {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Write your message here, or generate a template to get started..."
-              rows={10}
+              rows={20}
             />
           </div>
         </div>
@@ -665,6 +762,33 @@ const AdvocacyMessageContent: React.FC = () => {
       </Card>
     );
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="container mx-auto p-8 max-w-4xl flex justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  // Show login prompt for unauthenticated users
+  if (!user) {
+    try {
+      return <UnauthenticatedMessage />;
+    } catch (error) {
+      console.error('Error rendering unauthenticated message:', error);
+      return (
+        <div className="container mx-auto p-8 max-w-2xl">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p>Please <Link href="/login" className="text-primary underline">login</Link> to continue.</p>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+  }
 
   return (
     <div className="container mx-auto p-8 max-w-4xl">

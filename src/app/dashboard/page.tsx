@@ -1,16 +1,17 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import BillStatusTracker from '@/components/dashboard/BillStatusTracker';
 import MessageHistory from '@/components/dashboard/MessageHistory';
 import ProfileManager from '@/components/ProfileManager';
 
 export default function DashboardPage() {
     const { user, loading, logout } = useAuth();
+    const [showEditProfile, setShowEditProfile] = useState(false);
 
     if (loading) {
         return <p>Loading...</p>;
@@ -45,16 +46,23 @@ export default function DashboardPage() {
                         Here is an overview of your advocacy efforts and tools.
                     </p>
                 </div>
-                <Button onClick={logout} variant="outline" className="mt-4 md:mt-0">
-                    Log Out
-                </Button>
+                <div className="flex gap-2 mt-4 md:mt-0">
+                    <Button onClick={() => setShowEditProfile(!showEditProfile)} variant="outline">
+                        Edit Profile
+                    </Button>
+                    <Button onClick={logout} variant="outline">
+                        Log Out
+                    </Button>
+                </div>
             </header>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <main className="lg:col-span-3 space-y-8">
-                    <ProfileManager />
-                    <BillStatusTracker />
-                    <MessageHistory />
+                    {showEditProfile ? (
+                        <ProfileManager showEditForm={true} onCancel={() => setShowEditProfile(false)} />
+                    ) : (
+                        <MessageHistory />
+                    )}
                 </main>
             </div>
         </div>

@@ -13,12 +13,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
 
-const ProfileManager: React.FC = () => {
+interface ProfileManagerProps {
+  showEditForm?: boolean;
+  onCancel?: () => void;
+}
+
+const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, onCancel }) => {
   const { user, loading } = useAuth();
   const { zipCode: cookieZipCode } = useZipCode();
   const { representatives } = useMembersByZip(cookieZipCode);
   const [profile, setProfile] = useState<Partial<User>>({});
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(showEditForm);
   const [isSaving, setIsSaving] = useState(false);
   const db = getFirestore(app);
 
@@ -41,6 +46,10 @@ const ProfileManager: React.FC = () => {
       });
     }
   }, [user, cookieZipCode]);
+
+  useEffect(() => {
+    setIsEditing(showEditForm);
+  }, [showEditForm]);
 
   useEffect(() => {
     if (representatives.length > 0 && !profile.congressionalDistrict) {
@@ -75,11 +84,17 @@ const ProfileManager: React.FC = () => {
       const userRef = doc(db, 'users', user.uid);
       await setDoc(userRef, { ...profile, birthYear: Number(profile.birthYear) }, { merge: true });
       setIsEditing(false);
+      if (onCancel) onCancel();
     } catch (error) {
       console.error("Error saving profile:", error);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    if (onCancel) onCancel();
   };
   
   if (loading) {
@@ -100,7 +115,7 @@ const ProfileManager: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>My Profile</CardTitle>
+        <CardTitle>{showEditForm ? 'Edit Profile' : 'My Profile'}</CardTitle>
         <CardDescription>
           This information helps tailor your advocacy messages.
         </CardDescription>
@@ -205,7 +220,7 @@ const ProfileManager: React.FC = () => {
                 </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+              <Button variant="outline" onClick={handleCancel}>Cancel</Button>
               <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
             </div>
           </div>

@@ -1,9 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import type { Bill, RelatedBill } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
 import { getBillSupportData } from '@/lib/bill-support-data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,7 @@ import { BillAmendments } from './bill-amendments';
 import { SummaryDisplay } from './bill-summary-display';
 
 export function BillDetailClient({ bill }: { bill: Bill }) {
+  const [isWatched, setIsWatched] = useState(false);
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
   const hasCosponsors = bill.cosponsors?.items && bill.cosponsors.items.length > 0;
   const hasCommittees = bill.committees?.items && bill.committees.items.length > 0;
@@ -57,40 +59,40 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 {bill.shortTitle}
               </p>
             )}
-             <div className="mt-4">
+             <div className="mt-4 flex gap-3 items-center">
                  <Button asChild size="lg">
                     <Link href={`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`}>
                         Voice your opinion
                     </Link>
                 </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                >
+                  <ThumbsUp className="h-4 w-4" />
+                  <span className="font-semibold">{supportCount.toLocaleString()}</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                >
+                  <ThumbsDown className="h-4 w-4" />
+                  <span className="font-semibold">{opposeCount.toLocaleString()}</span>
+                </Button>
+                <Button 
+                  variant={isWatched ? 'secondary' : 'outline'}
+                  size="lg"
+                  onClick={() => setIsWatched(prev => !prev)}
+                  className="flex items-center gap-2 text-muted-foreground"
+                >
+                  <Eye className={`h-4 w-4 ${isWatched ? 'text-blue-600' : ''}`} />
+                  {isWatched ? 'Watching' : 'Watch'}
+                </Button>
             </div>
           </header>
           
-          {/* Support/Oppose counts */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Public Sentiment</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-around text-center py-4">
-                <div className="flex items-center gap-3 text-green-600">
-                  <ThumbsUp className="h-6 w-6" />
-                  <div>
-                    <p className="font-bold text-2xl">{supportCount.toLocaleString()}</p>
-                    <p className="text-sm font-medium text-muted-foreground">Supporters</p>
-                  </div>
-                </div>
-                <div className="h-12 w-px bg-border"></div>
-                <div className="flex items-center gap-3 text-red-600">
-                  <ThumbsDown className="h-6 w-6" />
-                  <div>
-                    <p className="font-bold text-2xl">{opposeCount.toLocaleString()}</p>
-                    <p className="text-sm font-medium text-muted-foreground">Opponents</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
             <Card>
                 <CardHeader>

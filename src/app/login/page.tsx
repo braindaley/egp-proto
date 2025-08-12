@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -28,11 +28,14 @@ const formSchema = z.object({
   password: z.string().min(1, { message: 'Password is required.' }),
 });
 
-export default function LoginPage() {
+function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { login } = useAuth();
+  
+  const returnTo = searchParams.get('returnTo');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,7 +53,9 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      router.push('/dashboard');
+      const redirectPath = returnTo || '/dashboard';
+      console.log('Redirecting to:', redirectPath);
+      router.push(redirectPath);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -67,7 +72,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Login</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
+          <CardDescription>To voice your opinion, login or sign up</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -107,7 +112,7 @@ export default function LoginPage() {
           <div className="mt-4 text-center text-sm">
             <p>
                 Don't have an account?{' '}
-                <Link href="/signup" className="underline">
+                <Link href={returnTo ? `/signup?returnTo=${encodeURIComponent(returnTo)}` : "/signup"} className="underline">
                     Sign up
                 </Link>
             </p>
@@ -123,5 +128,13 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div>Loading...</div></div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
