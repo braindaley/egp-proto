@@ -82,6 +82,8 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
   const [matchStatus, setMatchStatus] = useState<MatchStatus>('idle');
   const [censusData, setCensusData] = useState<any>(null);
   const [censusLoading, setCensusLoading] = useState(false);
+  const [districtCensusData, setDistrictCensusData] = useState<any>(null);
+  const [districtCensusLoading, setDistrictCensusLoading] = useState(false);
 
   useEffect(() => {
     if (isLoadingReps) {
@@ -116,6 +118,29 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
 
     fetchCensusData();
   }, [member.state]);
+
+  useEffect(() => {
+    const fetchDistrictCensusData = async () => {
+      if (!member.district) return; // Only fetch for House members with districts
+      
+      setDistrictCensusLoading(true);
+      try {
+        const response = await fetch(
+          `/api/census/congressional-district?state=${encodeURIComponent(member.state)}&district=${encodeURIComponent(member.district)}`
+        );
+        const data = await response.json();
+        if (data.success && data.data && data.data.length > 0) {
+          setDistrictCensusData(data.data[0]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch district census data:', error);
+      } finally {
+        setDistrictCensusLoading(false);
+      }
+    };
+
+    fetchDistrictCensusData();
+  }, [member.state, member.district]);
 
   const termsData = Array.isArray(member.terms) ? member.terms : (member.terms?.item || []);
   const allTerms = [...termsData].sort((a, b) => b.startYear - a.startYear);
@@ -263,6 +288,99 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
             <CardHeader> <CardTitle className="flex items-center gap-2"><History /> Service History</CardTitle> </CardHeader>
             <CardContent>
                 {/* ... content remains the same ... */}
+            </CardContent>
+          </Card>
+        )}
+        {member.district && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin />
+                Congressional District {member.district} Data for {member.state}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {districtCensusLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                </div>
+              ) : districtCensusData ? (
+                <div className="space-y-4">
+                  {/* District Info */}
+                  <div>
+                    <h4 className="font-semibold mb-2 text-foreground">District Information</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Name:</p>
+                        <p className="font-medium">{districtCensusData.NAME}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">GEOID:</p>
+                        <p className="font-medium">{districtCensusData.GEOID}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Separator />
+                  {/* Population */}
+                  <div>
+                    <h4 className="font-semibold mb-2 text-foreground">Population</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Total:</p>
+                        <p className="font-medium">{parseInt(districtCensusData.total_pop || '0').toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Female:</p>
+                        <p className="font-medium">{parseFloat(districtCensusData.pct_female || '0').toFixed(1)}%</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Male:</p>
+                        <p className="font-medium">{parseFloat(districtCensusData.pct_male || '0').toFixed(1)}%</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Separator />
+                  {/* Race/Ethnicity */}
+                  <div>
+                    <h4 className="font-semibold mb-2 text-foreground">Race & Ethnicity</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                      <div><p className="text-muted-foreground">White:</p><p className="font-medium">{parseFloat(districtCensusData.pct_white || '0').toFixed(1)}%</p></div>
+                      <div><p className="text-muted-foreground">Black:</p><p className="font-medium">{parseFloat(districtCensusData.pct_black || '0').toFixed(1)}%</p></div>
+                      <div><p className="text-muted-foreground">Asian:</p><p className="font-medium">{parseFloat(districtCensusData.pct_asian || '0').toFixed(1)}%</p></div>
+                      <div><p className="text-muted-foreground">American Indian:</p><p className="font-medium">{parseFloat(districtCensusData.pct_am_indian || '0').toFixed(1)}%</p></div>
+                      <div><p className="text-muted-foreground">Pacific Islander:</p><p className="font-medium">{parseFloat(districtCensusData.pct_pacificI || '0').toFixed(1)}%</p></div>
+                      <div><p className="text-muted-foreground">2+ Races:</p><p className="font-medium">{parseFloat(districtCensusData.pct_two_or_more || '0').toFixed(1)}%</p></div>
+                    </div>
+                  </div>
+                  <Separator />
+                  {/* Education */}
+                  <div>
+                    <h4 className="font-semibold mb-2 text-foreground">Education</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                      <div><p className="text-muted-foreground">High School or Higher:</p><p className="font-medium">{parseFloat(districtCensusData.pct_hs_or_higher || '0').toFixed(1)}%</p></div>
+                      <div><p className="text-muted-foreground">Bachelor's or Higher:</p><p className="font-medium">{parseFloat(districtCensusData.pct_ba_or_higher || '0').toFixed(1)}%</p></div>
+                      <div><p className="text-muted-foreground">Doctorate Degree:</p><p className="font-medium">{parseFloat(districtCensusData.pct_doctorate || '0').toFixed(1)}%</p></div>
+                    </div>
+                  </div>
+                  <Separator />
+                  {/* Economic Indicators */}
+                  <div>
+                    <h4 className="font-semibold mb-2 text-foreground">Economic Indicators</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                      <div><p className="text-muted-foreground">Median HH Income:</p><p className="font-medium">${parseInt(districtCensusData.med_household_income || '0').toLocaleString()}</p></div>
+                      <div><p className="text-muted-foreground">Uninsured:</p><p className="font-medium">{parseFloat(districtCensusData.pct_uninsured || '0').toFixed(1)}%</p></div>
+                      <div><p className="text-muted-foreground">Divorced:</p><p className="font-medium">{parseFloat(districtCensusData.pct_divorced || '0').toFixed(1)}%</p></div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground pt-2 text-right">
+                    Data provided by <a href="https://github.com/annikamore11/census_data" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">annikamore11/census_data</a>.
+                  </div>
+                </div>
+              ) : (
+                <p>Unable to load district census data for {member.state} District {member.district}</p>
+              )}
             </CardContent>
           </Card>
         )}
