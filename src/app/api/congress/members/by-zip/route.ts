@@ -128,6 +128,7 @@ const ZIP_TO_DISTRICT: Record<string, { state: string, stateCode: string, distri
   '92647': { state: 'California', stateCode: 'CA', district: 48 }, // Huntington Beach
   '92648': { state: 'California', stateCode: 'CA', district: 48 }, // Huntington Beach
   '92649': { state: 'California', stateCode: 'CA', district: 48 }, // Huntington Beach
+  '92660': { state: 'California', stateCode: 'CA', district: 47 }, // Newport Beach
   // Los Angeles area
   '90001': { state: 'California', stateCode: 'CA', district: 44 },
   '90210': { state: 'California', stateCode: 'CA', district: 36 }, // Beverly Hills
@@ -395,16 +396,6 @@ async function fetchDistrictMembers(stateCode: string, district?: number): Promi
         } catch (err) {
           console.error(`Error fetching member details for ${member.bioguideId}:`, err);
         }
-      } else if (hasHouseTerm && !district) {
-        // If no specific district requested, include all House members
-        representatives.push({
-          name: member.name,
-          party: member.partyName || 'Unknown',
-          officeTitle: `United States House of Representatives`,
-          bioguideId: member.bioguideId,
-          phones: [],
-          urls: member.url ? [member.url] : [],
-        });
       }
     }
     
