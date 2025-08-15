@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Loader2, AlertCircle, User, Mail, Search, X } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, User, Search, X } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
@@ -409,8 +409,6 @@ const AdvocacyMessageContent: React.FC = () => {
                   <Label className="flex items-center space-x-2 cursor-pointer">
                     <span>{rep.name}</span>
                     <span className="text-sm text-muted-foreground">({rep.party})</span>
-                    <Mail className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">{rep.email}</span>
                   </Label>
                 </div>
               ))}
@@ -432,8 +430,6 @@ const AdvocacyMessageContent: React.FC = () => {
                   <Label className="flex items-center space-x-2 cursor-pointer">
                     <span>{member.name}</span>
                     <span className="text-sm text-muted-foreground">({member.role})</span>
-                    <Mail className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">{member.email}</span>
                   </Label>
                 </div>
               ))}
@@ -455,8 +451,6 @@ const AdvocacyMessageContent: React.FC = () => {
                   <Label className="flex items-center space-x-2 cursor-pointer">
                     <span>{sponsor.fullName}</span>
                     <span className="text-sm text-muted-foreground">({sponsor.party})</span>
-                    <Mail className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">{sponsor.email}</span>
                   </Label>
                 </div>
               ))}
@@ -712,16 +706,10 @@ const AdvocacyMessageContent: React.FC = () => {
               {selectedMembers.map(member => (
                 <div key={member.bioguideId || member.email}>
                   <div className="font-medium">{getSalutation(member)}</div>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center space-x-2">
-                      <User className="h-3 w-3" />
-                      <span>{member.fullName || member.name}</span>
-                      <span>({member.party})</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Mail className="h-3 w-3" />
-                      <span className="text-xs">{member.email}</span>
-                    </div>
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <User className="h-3 w-3" />
+                    <span>{member.fullName || member.name}</span>
+                    <span>({member.party})</span>
                   </div>
                 </div>
               ))}
