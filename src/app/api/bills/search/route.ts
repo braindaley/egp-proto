@@ -104,13 +104,37 @@ function billMatchesSubjects(bill: CongressBill, requestedSubjects: string[]): {
         matchedSubjects.push(requestedSubject);
         break;
       }
-      // Animal keyword matching
-      else if (requestedSubject.toLowerCase() === 'animals' && 
+      // Enhanced keyword matching for new categories
+      else if (requestedSubject.toLowerCase() === 'science' && 
                (billSubject.toLowerCase().includes('animal') || 
                 billSubject.toLowerCase().includes('wildlife') ||
-                billSubject.toLowerCase().includes('livestock') ||
-                billSubject.toLowerCase().includes('pet'))) {
-        console.log(`   🐾 ANIMAL KEYWORD MATCH: "${requestedSubject}" found in "${billSubject}"`);
+                billSubject.toLowerCase().includes('energy') ||
+                billSubject.toLowerCase().includes('environment') ||
+                billSubject.toLowerCase().includes('technology') ||
+                billSubject.toLowerCase().includes('research'))) {
+        console.log(`   🔬 SCIENCE KEYWORD MATCH: "${requestedSubject}" found in "${billSubject}"`);
+        matchedSubjects.push(requestedSubject);
+        break;
+      }
+      else if (requestedSubject.toLowerCase() === 'economy & work' && 
+               (billSubject.toLowerCase().includes('economic') || 
+                billSubject.toLowerCase().includes('employment') ||
+                billSubject.toLowerCase().includes('labor') ||
+                billSubject.toLowerCase().includes('finance') ||
+                billSubject.toLowerCase().includes('commerce') ||
+                billSubject.toLowerCase().includes('agriculture'))) {
+        console.log(`   💼 ECONOMY KEYWORD MATCH: "${requestedSubject}" found in "${billSubject}"`);
+        matchedSubjects.push(requestedSubject);
+        break;
+      }
+      else if (requestedSubject.toLowerCase() === 'politics & policy' && 
+               (billSubject.toLowerCase().includes('government') || 
+                billSubject.toLowerCase().includes('congress') ||
+                billSubject.toLowerCase().includes('law') ||
+                billSubject.toLowerCase().includes('defense') ||
+                billSubject.toLowerCase().includes('security') ||
+                billSubject.toLowerCase().includes('crime'))) {
+        console.log(`   🏛️ POLITICS KEYWORD MATCH: "${requestedSubject}" found in "${billSubject}"`);
         matchedSubjects.push(requestedSubject);
         break;
       }

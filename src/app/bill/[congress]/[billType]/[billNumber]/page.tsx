@@ -1,41 +1,79 @@
 
-import { notFound } from 'next/navigation';
-import type { Bill } from '@/types';
+'use client';
+
+import { useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { BillDetailClient } from '@/components/bill-detail-client';
+import type { Bill } from '@/types';
 
-async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
-  // This assumes the app is running on localhost, which is fine for dev.
-  // In a real deployment, you'd use a relative URL or an env var for the base URL.
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
-  const url = `${baseUrl}/api/bill?congress=${congress}&billType=${billType}&billNumber=${billNumber}`;
-  
-  try {
-    const res = await fetch(url, {
-      next: { revalidate: 3600 },
-    });
+export default function BillDetailPage() {
+  const params = useParams();
+  const { congress, billType, billNumber } = params;
+  const [bill, setBill] = useState<Bill | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    if (!res.ok) {
-      console.error(`Failed to fetch bill from internal API: ${res.status}`);
-      return null;
+  useEffect(() => {
+    async function fetchBill() {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch(`/api/bill?congress=${congress}&billType=${billType}&billNumber=${billNumber}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch bill: ${response.status}`);
+        }
+        
+        const billData = await response.json();
+        setBill(billData);
+      } catch (err) {
+        console.error('Error fetching bill:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
     }
 
-    return await res.json();
-    
-  } catch (error) {
-    console.error("=== ERROR IN getBillDetails ===");
-    console.error('Error:', error);
-    return null; 
-  }
-}
+    if (congress && billType && billNumber) {
+      fetchBill();
+    }
+  }, [congress, billType, billNumber]);
 
-export default async function BillDetailPage({ params }: { params: { congress: string; billType: string; billNumber: string } }) {
-  // Await the params before using them in Next.js 15+
-  const { congress, billType, billNumber } = await params;
-  
-  const bill = await getBillDetails(congress, billType, billNumber);
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="text-lg">Loading bill details...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center text-red-500">
+            <div>Error loading bill: {error}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!bill) {
-    notFound();
+    return (
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div>Bill not found</div>
+          </div>
+        </div>
+      </div>
+    );
   }
   
   return (

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Newspaper, Flame, Library } from 'lucide-react';
 
 export default async function BillsOverviewPage({ params }: { params: { congress: string } }) {
-  const { congress } = params;
+  const { congress } = await params;
 
   const features = [
     {

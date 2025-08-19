@@ -285,7 +285,7 @@ export async function GET(req: NextRequest) {
             billDetails = await fetchBillDetails(bill.congress, bill.type, parseInt(bill.number, 10), API_KEY);
           } catch (error) {
             console.warn(`Failed to fetch details for bill ${bill.type} ${bill.number}:`, error);
-            billDetails = { sponsors: [], subjects: ['General Legislation'], summary: undefined };
+            billDetails = { sponsors: [], subjects: ['General Legislation'], summary: '' };
           }
           
           let sponsorImageUrl: string | null = null;
@@ -356,9 +356,19 @@ export async function GET(req: NextRequest) {
                 const billId = `${bill.congress}-${bill.type}-${bill.number}`;
                 const docRef = doc(cacheCollection, billId);
                 console.log(`📝 Adding bill ${index + 1}/${feedBills.length} to cache: ${billId}`);
+                // Sanitize bill data to remove undefined values
+                const sanitizedBill = {
+                    ...bill,
+                    summary: bill.summary || '',
+                    sponsorImageUrl: bill.sponsorImageUrl || null,
+                    sponsorFullName: bill.sponsorFullName || 'Unknown',
+                    sponsorParty: bill.sponsorParty || 'N/A',
+                    committeeName: bill.committeeName || 'General Legislation'
+                };
+                
                 batch.set(docRef, {
                     billId: billId,
-                    billData: bill,
+                    billData: sanitizedBill,
                     importanceScore: bill.importanceScore,
                     cachedAt: Timestamp.now(),
                     source: 'congress_api'

@@ -126,31 +126,31 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div>
                     <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" name="firstName" value={profile.firstName} onChange={handleInputChange} />
+                    <Input id="firstName" name="firstName" value={profile.firstName || ''} onChange={handleInputChange} />
                 </div>
                 <div>
                     <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" name="lastName" value={profile.lastName} onChange={handleInputChange} />
+                    <Input id="lastName" name="lastName" value={profile.lastName || ''} onChange={handleInputChange} />
                 </div>
                 <div>
                     <Label htmlFor="address">Address</Label>
-                    <Input id="address" name="address" value={profile.address} onChange={handleInputChange} />
+                    <Input id="address" name="address" value={profile.address || ''} onChange={handleInputChange} />
                 </div>
                  <div>
                     <Label htmlFor="city">City</Label>
-                    <Input id="city" name="city" value={profile.city} onChange={handleInputChange} />
+                    <Input id="city" name="city" value={profile.city || ''} onChange={handleInputChange} />
                 </div>
                  <div>
                     <Label htmlFor="state">State</Label>
-                    <Input id="state" name="state" value={profile.state} onChange={handleInputChange} />
+                    <Input id="state" name="state" value={profile.state || ''} onChange={handleInputChange} />
                 </div>
                 <div>
                     <Label htmlFor="zipCode">Zip Code</Label>
-                    <Input id="zipCode" name="zipCode" value={profile.zipCode} onChange={handleInputChange} />
+                    <Input id="zipCode" name="zipCode" value={profile.zipCode || ''} onChange={handleInputChange} />
                 </div>
                 <div>
                     <Label htmlFor="congressionalDistrict">Congressional District</Label>
-                    <Input id="congressionalDistrict" name="congressionalDistrict" value={profile.congressionalDistrict} onChange={handleInputChange} placeholder="e.g., 5" />
+                    <Input id="congressionalDistrict" name="congressionalDistrict" value={profile.congressionalDistrict || ''} onChange={handleInputChange} placeholder="e.g., 5" />
                 </div>
                  <div>
                     <Label htmlFor="birthYear">Birth Year</Label>
@@ -172,7 +172,7 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
                 </div>
                 <div>
                     <Label htmlFor="gender">Gender</Label>
-                    <Select value={profile.gender} onValueChange={(value) => handleSelectChange('gender', value)}>
+                    <Select value={profile.gender || ''} onValueChange={(value) => handleSelectChange('gender', value)}>
                         <SelectTrigger id="gender"><SelectValue placeholder="Select gender"/></SelectTrigger>
                         <SelectContent>
                             {genderOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
@@ -181,7 +181,7 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
                 </div>
                 <div>
                     <Label htmlFor="politicalAffiliation">Party Affiliation</Label>
-                    <Select value={profile.politicalAffiliation} onValueChange={(value) => handleSelectChange('politicalAffiliation', value)}>
+                    <Select value={profile.politicalAffiliation || ''} onValueChange={(value) => handleSelectChange('politicalAffiliation', value)}>
                         <SelectTrigger id="politicalAffiliation"><SelectValue placeholder="Select party"/></SelectTrigger>
                         <SelectContent>
                              {partyOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
@@ -190,7 +190,7 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
                 </div>
                 <div>
                     <Label htmlFor="education">Education</Label>
-                    <Select value={profile.education} onValueChange={(value) => handleSelectChange('education', value)}>
+                    <Select value={profile.education || ''} onValueChange={(value) => handleSelectChange('education', value)}>
                         <SelectTrigger id="education"><SelectValue placeholder="Select education level"/></SelectTrigger>
                         <SelectContent>
                            {educationOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
@@ -199,7 +199,7 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
                 </div>
                  <div>
                     <Label htmlFor="profession">Profession</Label>
-                    <Select value={profile.profession} onValueChange={(value) => handleSelectChange('profession', value)}>
+                    <Select value={profile.profession || ''} onValueChange={(value) => handleSelectChange('profession', value)}>
                          <SelectTrigger id="profession"><SelectValue placeholder="Select profession"/></SelectTrigger>
                         <SelectContent>
                            {professionOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
@@ -209,7 +209,7 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
                  <div>
                     <Label htmlFor="militaryService">Military Service</Label>
                      <Select
-                        value={profile.militaryService?.toString()}
+                        value={profile.militaryService?.toString() || ''}
                         onValueChange={(value) => handleSelectChange('militaryService', value)}
                     >
                         <SelectTrigger id="militaryService"><SelectValue placeholder="Select status"/></SelectTrigger>
