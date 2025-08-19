@@ -332,22 +332,72 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                 <>
                   <Separator className="my-6" />
                   <div>
-                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                      <Star className="h-5 w-5" />
+                    <h3 className="font-semibold text-xl mb-6 flex items-center gap-2">
+                      <Star className="h-6 w-6 text-amber-500" />
                       Leadership Positions
                     </h3>
-                    <div className="space-y-3">
-                      {leadershipHistory.map((leadership, index) => (
-                        <div key={index} className="bg-muted/30 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium">{leadership.title}</h4>
-                            <Badge variant="outline">Congress {leadership.congress}</Badge>
+                    <div className="space-y-4">
+                      {leadershipHistory.map((leadership, index) => {
+                        const isHighRanking = leadership.type && (
+                          leadership.type.toLowerCase().includes('speaker') ||
+                          leadership.type.toLowerCase().includes('majority leader') ||
+                          leadership.type.toLowerCase().includes('minority leader')
+                        );
+                        
+                        return (
+                          <div 
+                            key={index} 
+                            className={`relative rounded-xl border transition-all duration-200 hover:shadow-md ${
+                              isHighRanking 
+                                ? 'bg-gradient-to-r from-amber-50/80 via-amber-25/40 to-transparent border-amber-200/60 shadow-sm' 
+                                : 'bg-muted/20 border-muted/40'
+                            }`}
+                          >
+                            <div className="p-5">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <h4 className={`font-semibold text-base leading-tight ${
+                                    isHighRanking ? 'text-amber-900' : 'text-foreground'
+                                  }`}>
+                                    {leadership.title || leadership.type}
+                                  </h4>
+                                  {leadership.title && leadership.type && leadership.title !== leadership.type && (
+                                    <p className="text-sm text-muted-foreground mt-1">{leadership.type}</p>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 ml-4">
+                                  {isHighRanking && (
+                                    <div className="flex items-center text-amber-600">
+                                      <Star className="h-4 w-4 fill-current" />
+                                    </div>
+                                  )}
+                                  <Badge 
+                                    variant={isHighRanking ? "default" : "secondary"} 
+                                    className={isHighRanking ? "bg-amber-600 hover:bg-amber-700" : ""}
+                                  >
+                                    Congress {leadership.congress}
+                                  </Badge>
+                                </div>
+                              </div>
+                              
+                              {/* Add visual indicator for Speaker/High-ranking positions */}
+                              {isHighRanking && (
+                                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-amber-100">
+                                  <div className="h-2 w-2 rounded-full bg-amber-500"></div>
+                                  <span className="text-xs font-medium text-amber-700 uppercase tracking-wide">
+                                    High-Ranking Position
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Subtle accent border for important positions */}
+                            {isHighRanking && (
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600 rounded-l-xl"></div>
+                            )}
                           </div>
-                          {leadership.type && (
-                            <p className="text-sm text-muted-foreground">Type: {leadership.type}</p>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </>
