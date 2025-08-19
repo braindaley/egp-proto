@@ -19,11 +19,13 @@ import { BillAmendments } from './bill-amendments';
 import { SummaryDisplay } from './bill-summary-display';
 import { UserVerificationModal } from '@/components/user-verification-modal';
 import { useAuth } from '@/hooks/use-auth';
+import { useZipCode } from '@/hooks/use-zip-code';
 
 export function BillDetailClient({ bill }: { bill: Bill }) {
   const [isWatched, setIsWatched] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const { user } = useAuth();
+  const { saveZipCode } = useZipCode();
   const router = useRouter();
   
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
@@ -63,6 +65,12 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   const handleVerificationComplete = (userInfo: any) => {
     // Store verification info in session storage for the advocacy page
     sessionStorage.setItem('verifiedUser', JSON.stringify(userInfo));
+    
+    // Update the global zip code with the verified user's zip code
+    if (userInfo.zipCode) {
+      saveZipCode(userInfo.zipCode);
+    }
+    
     setShowVerificationModal(false);
     router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}&verified=true`);
   };

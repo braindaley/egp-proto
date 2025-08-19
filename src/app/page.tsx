@@ -1,49 +1,14 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
 import { BillFeedCard } from '@/components/BillFeedCard';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useBills } from '@/hooks/use-bills';
 
 export default function Home() {
-  const [bills, setBills] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const fetchBills = async () => {
-    console.log('🚀 fetchBills called');
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('🔄 Fetching bills...');
-      
-      const response = await fetch('/api/feed/bills', {
-        cache: 'no-cache',
-      });
-
-      console.log('📨 Response status:', response.status);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch bills: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Got bills:', result.bills?.length);
-      setBills(result.bills || []);
-    } catch (err) {
-      console.error('❌ Error fetching bills:', err);
-      setError(err?.message || 'Unknown error');
-    } finally {
-      setLoading(false);
-      console.log('✨ Loading complete');
-    }
-  };
-
-  useEffect(() => {
-    console.log('🎯 Component mounted, fetching bills...');
-    fetchBills();
-  }, []);
+  const { data: bills = [], isLoading: loading, error, refetch } = useBills();
 
   if (loading) {
     return (
@@ -58,7 +23,7 @@ export default function Home() {
                   <p className="text-sm text-muted-foreground">
                     Fetching the most recent congressional activity...
                   </p>
-                  <Button onClick={fetchBills} className="mt-4">
+                  <Button onClick={() => refetch()} className="mt-4">
                     Click to Load Manually
                   </Button>
                 </div>
@@ -78,8 +43,8 @@ export default function Home() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Error loading bills: {error}
-                <Button onClick={fetchBills} className="mt-2">
+                Error loading bills: {error?.message || 'Unknown error'}
+                <Button onClick={() => refetch()} className="mt-2">
                   Retry
                 </Button>
               </AlertDescription>

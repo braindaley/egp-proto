@@ -67,70 +67,6 @@ interface PersonalDataField {
   available: boolean;
 }
 
-// Component for unauthenticated users
-const UnauthenticatedMessage: React.FC = () => {
-  const searchParams = useSearchParams();
-  const currentPath = '/advocacy-message';
-  
-  let returnUrl = currentPath;
-  try {
-    const queryString = searchParams.toString();
-    returnUrl = queryString ? `${currentPath}?${queryString}` : currentPath;
-  } catch (error) {
-    console.error('Error building return URL:', error);
-  }
-  
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-background px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Voice Your Opinion</CardTitle>
-          <CardDescription>To voice your opinion, login or sign up</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <h3 className="font-medium text-sm text-muted-foreground text-center">Benefits:</h3>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <span>Receive responses from messages you send</span>
-              </li>
-              <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <span>Track your impact on bills you care about</span>
-              </li>
-              <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <span>Ensure your messages reach the correct representatives</span>
-              </li>
-              <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <span>Streamline contacting multiple representatives about the same issue</span>
-              </li>
-            </ul>
-          </div>
-          
-          <div className="space-y-4">
-            <Button className="w-full" size="lg" asChild>
-              <Link href={`/login?returnTo=${encodeURIComponent(returnUrl)}`}>
-                Login
-              </Link>
-            </Button>
-            <Button className="w-full" size="lg" variant="outline" asChild>
-              <Link href={`/signup?returnTo=${encodeURIComponent(returnUrl)}`}>
-                Sign Up
-              </Link>
-            </Button>
-          </div>
-          
-          <div className="text-center text-sm text-muted-foreground">
-            After logging in, you'll return to this page to complete your message.
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
 
 const AdvocacyMessageContent: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -257,20 +193,34 @@ const AdvocacyMessageContent: React.FC = () => {
       ];
     }
     
-    // Otherwise use logged in user profile
-    const addressParts = [user?.address, user?.city, user?.state, user?.zipCode].filter(Boolean);
-    const addressValue = addressParts.join(', ');
-    const addressAvailable = addressParts.length > 0;
+    // Use logged in user profile if available
+    if (user) {
+      const addressParts = [user?.address, user?.city, user?.state, user?.zipCode].filter(Boolean);
+      const addressValue = addressParts.join(', ');
+      const addressAvailable = addressParts.length > 0;
+      
+      return [
+        { key: 'fullName', label: 'Full Name', value: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(), available: !!(user?.firstName || user?.lastName) },
+        { key: 'fullAddress', label: 'Full Address', value: addressValue, available: addressAvailable },
+        { key: 'birthYear', label: 'Birth Year', value: user?.birthYear, available: !!user?.birthYear },
+        { key: 'gender', label: 'Gender', value: user?.gender, available: !!user?.gender },
+        { key: 'politicalAffiliation', label: 'Political Affiliation', value: user?.politicalAffiliation, available: !!user?.politicalAffiliation },
+        { key: 'education', label: 'Education', value: user?.education, available: !!user?.education },
+        { key: 'profession', label: 'Profession', value: user?.profession, available: !!user?.profession },
+        { key: 'militaryService', label: 'Military Service', value: user?.militaryService ? 'Yes' : 'No', available: user?.militaryService !== undefined },
+      ];
+    }
     
+    // For anonymous users, return minimal available fields
     return [
-      { key: 'fullName', label: 'Full Name', value: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(), available: !!(user?.firstName || user?.lastName) },
-      { key: 'fullAddress', label: 'Full Address', value: addressValue, available: addressAvailable },
-      { key: 'birthYear', label: 'Birth Year', value: user?.birthYear, available: !!user?.birthYear },
-      { key: 'gender', label: 'Gender', value: user?.gender, available: !!user?.gender },
-      { key: 'politicalAffiliation', label: 'Political Affiliation', value: user?.politicalAffiliation, available: !!user?.politicalAffiliation },
-      { key: 'education', label: 'Education', value: user?.education, available: !!user?.education },
-      { key: 'profession', label: 'Profession', value: user?.profession, available: !!user?.profession },
-      { key: 'militaryService', label: 'Military Service', value: user?.militaryService ? 'Yes' : 'No', available: user?.militaryService !== undefined },
+      { key: 'fullName', label: 'Full Name', value: 'Your Name', available: false },
+      { key: 'fullAddress', label: 'Full Address', value: 'Your Address', available: false },
+      { key: 'birthYear', label: 'Birth Year', value: null, available: false },
+      { key: 'gender', label: 'Gender', value: null, available: false },
+      { key: 'politicalAffiliation', label: 'Political Affiliation', value: null, available: false },
+      { key: 'education', label: 'Education', value: null, available: false },
+      { key: 'profession', label: 'Profession', value: null, available: false },
+      { key: 'militaryService', label: 'Military Service', value: null, available: false },
     ];
   };
 
@@ -368,7 +318,7 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Handle send message
   const handleSend = async () => {
-    if ((!user && !verifiedUserInfo) || !bill) return;
+    if (!bill) return;
     
     try {
       // Import Firebase functions
@@ -378,8 +328,9 @@ const AdvocacyMessageContent: React.FC = () => {
       
       // Save message activity to Firestore
       const messageActivity = {
-        userId: user?.uid || 'verified-' + Date.now(),
+        userId: user?.uid || (verifiedUserInfo ? 'verified-' + Date.now() : 'guest-' + Date.now()),
         isVerifiedUser: !!verifiedUserInfo,
+        isGuestUser: !user && !verifiedUserInfo,
         verifiedUserInfo: verifiedUserInfo ? {
           fullName: verifiedUserInfo.fullName,
           address: verifiedUserInfo.address,
@@ -426,11 +377,11 @@ const AdvocacyMessageContent: React.FC = () => {
     }
   };
 
-  // Step 1: Select Outreach
+  // Step 2: Select Outreach
   const renderStep1 = () => (
     <Card>
       <CardHeader>
-        <CardTitle>Step 1: Select Outreach</CardTitle>
+        <CardTitle>Step 2: Select Outreach</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Your Representatives */}
@@ -567,9 +518,12 @@ const AdvocacyMessageContent: React.FC = () => {
           )}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-between">
+          <Button variant="outline" onClick={() => setStep(1)}>
+            Back
+          </Button>
           <Button 
-            onClick={() => setStep(2)}
+            onClick={() => setStep(3)}
             disabled={selectedMembers.length === 0}
           >
             Next
@@ -579,68 +533,13 @@ const AdvocacyMessageContent: React.FC = () => {
     </Card>
   );
 
-  // Step 2: Include Personal Information
+  // Step 1: Compose Your Message
   const renderStep2 = () => (
     <Card>
       <CardHeader>
-        <CardTitle>Step 2: Include Personal Information</CardTitle>
+        <CardTitle>Step 1: Compose your message</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Available fields */}
-        {availableFields.length > 0 && (
-          <div>
-            <h3 className="font-semibold mb-3">Available Information</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {availableFields.map(field => (
-                <div key={field.key} className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={selectedPersonalData.includes(field.key)}
-                    onCheckedChange={() => togglePersonalData(field.key)}
-                    disabled={field.key === 'fullName'}
-                  />
-                  <Label className="cursor-pointer">
-                    <span>{field.label}</span>
-                    {field.value && (
-                      <span className="text-sm text-muted-foreground ml-2">({field.value})</span>
-                    )}
-                  </Label>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center space-x-2 mt-4 mb-4">
-              <Switch
-                id="save-default"
-                checked={saveAsDefault}
-                onCheckedChange={setSaveAsDefault}
-              />
-              <Label htmlFor="save-default" className="cursor-pointer">
-                Save as default for all future mailings
-              </Label>
-            </div>
-          </div>
-        )}
-
-        {/* Unavailable fields */}
-        {unavailableFields.length > 0 && (
-          <div>
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Some information is missing from your profile. 
-                <Link href="/dashboard" className="ml-2 text-primary underline">
-                  Update your profile
-                </Link>
-                {' '}to include:
-                <ul className="mt-2 list-disc list-inside">
-                  {unavailableFields.map(field => (
-                    <li key={field.key} className="text-sm">{field.label}</li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
-
         {/* Stance selection */}
         <div>
           <h3 className="font-semibold mb-3">Your Position</h3>
@@ -701,12 +600,82 @@ const AdvocacyMessageContent: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={() => setStep(1)}>
-            Back
-          </Button>
+        {/* Available fields */}
+        {availableFields.length > 0 && (
+          <div>
+            <h3 className="font-semibold mb-3">Select information you'd like to include about yourself</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {availableFields.map(field => (
+                <div key={field.key} className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={selectedPersonalData.includes(field.key)}
+                    onCheckedChange={() => togglePersonalData(field.key)}
+                    disabled={field.key === 'fullName'}
+                  />
+                  <Label className="cursor-pointer">
+                    <span>{field.label}</span>
+                    {field.value && (
+                      <span className="text-sm text-muted-foreground ml-2">({field.value})</span>
+                    )}
+                  </Label>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center space-x-2 mt-4 mb-4">
+              <Switch
+                id="save-default"
+                checked={saveAsDefault}
+                onCheckedChange={setSaveAsDefault}
+              />
+              <Label htmlFor="save-default" className="cursor-pointer">
+                Save as default for all future mailings
+              </Label>
+            </div>
+          </div>
+        )}
+
+        {/* Anonymous user message */}
+        {availableFields.length === 0 && !user && !verifiedUserInfo && (
+          <div>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <p className="font-medium mb-2">No personal information available</p>
+                <p className="text-sm">
+                  Your message will be sent anonymously. For a more personalized message that includes your name and address, consider creating an account after sending your message.
+                </p>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* Unavailable fields */}
+        {unavailableFields.length > 0 && (
+          <div>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                To include additional information,{' '}
+                <Link href="/signup" className="text-primary underline">
+                  Sign up
+                </Link>
+                {' '}or{' '}
+                <Link href="/login" className="text-primary underline">
+                  Sign in
+                </Link>
+                <ul className="mt-2 list-disc list-inside">
+                  {unavailableFields.map(field => (
+                    <li key={field.key} className="text-sm">{field.label}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        <div className="flex justify-end">
           <Button 
-            onClick={() => setStep(3)}
+            onClick={() => setStep(2)}
             disabled={!message || !userStance}
           >
             Next
@@ -716,7 +685,7 @@ const AdvocacyMessageContent: React.FC = () => {
     </Card>
   );
 
-  // Step 3: Review and Send
+  // Step 3: Review Message
   const renderStep3 = () => {
     const selectedPersonalFields = personalDataFields.filter(f => selectedPersonalData.includes(f.key));
     
@@ -734,7 +703,7 @@ const AdvocacyMessageContent: React.FC = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Step 3: Review and Send</CardTitle>
+          <CardTitle>Step 3: Review Message</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Recipients */}
@@ -767,12 +736,20 @@ const AdvocacyMessageContent: React.FC = () => {
             <h3 className="font-semibold mb-3">Signature</h3>
             <div className="bg-muted rounded-lg p-4">
               <p className="font-medium">Sincerely,</p>
-              <p className="mt-2">{personalDataFields.find(f => f.key === 'fullName')?.value || 'Your Name'}</p>
+              <p className="mt-2">
+                {personalDataFields.find(f => f.key === 'fullName')?.value || 
+                 (user || verifiedUserInfo ? 'Your Name' : 'A Concerned Constituent')}
+              </p>
               {selectedPersonalFields.filter(f => f.key !== 'fullName').map(field => (
                 <p key={field.key} className="text-sm text-muted-foreground">
                   {field.label}: {field.value}
                 </p>
               ))}
+              {(!user && !verifiedUserInfo) && (
+                <p className="text-xs text-muted-foreground mt-2 italic">
+                  Message sent anonymously
+                </p>
+              )}
             </div>
           </div>
 
@@ -780,12 +757,245 @@ const AdvocacyMessageContent: React.FC = () => {
             <Button variant="outline" onClick={() => setStep(2)}>
               Back
             </Button>
-            <Button onClick={handleSend}>
-              Send Message
+            <Button onClick={() => setStep(4)}>
+              Send message
             </Button>
           </div>
         </CardContent>
       </Card>
+    );
+  };
+
+  // Step 4: Create Account
+  const renderStep4 = () => {
+    // Skip this step if user is already authenticated or verified
+    if (user || verifiedUserInfo) {
+      return renderStep5();
+    }
+    
+    return (
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader className="text-center pb-8">
+          <CardTitle className="text-3xl font-bold text-primary mb-2">Create your account!</CardTitle>
+          <CardDescription className="text-lg">
+            To keep track of your sent messages, login or sign up
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {/* Benefits Section */}
+          <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-6 space-y-6">
+            <h3 className="font-semibold text-lg text-center text-primary">Benefits of creating an account</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start space-x-4 p-4 bg-white/60 rounded-lg">
+                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-foreground">Track Your Messages</h4>
+                  <p className="text-sm text-muted-foreground mt-1">Keep all your sent messages organized in one place</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-4 p-4 bg-white/60 rounded-lg">
+                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-foreground">Receive Responses</h4>
+                  <p className="text-sm text-muted-foreground mt-1">Get replies from representatives directly</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-4 p-4 bg-white/60 rounded-lg">
+                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-foreground">Save Preferences</h4>
+                  <p className="text-sm text-muted-foreground mt-1">Set defaults for faster future messaging</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-4 p-4 bg-white/60 rounded-lg">
+                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-foreground">Monitor Impact</h4>
+                  <p className="text-sm text-muted-foreground mt-1">Track your advocacy efforts and their results</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="space-y-4">
+            <Button 
+              className="w-full h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200" 
+              size="lg" 
+              onClick={() => {
+                // Save message data to session storage before redirect
+                const messageData = {
+                  bill,
+                  selectedMembers,
+                  userStance,
+                  message,
+                  selectedPersonalData,
+                  verifiedUserInfo
+                };
+                sessionStorage.setItem('pendingMessage', JSON.stringify(messageData));
+                router.push(`/signup?returnTo=${encodeURIComponent('/advocacy-message/send')}`);
+              }}
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              Sign Up - It's Free!
+            </Button>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-muted" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Already have an account?</span>
+              </div>
+            </div>
+            
+            <Button 
+              className="w-full h-12 text-base font-medium" 
+              size="lg" 
+              variant="outline"
+              onClick={() => {
+                // Save message data to session storage before redirect
+                const messageData = {
+                  bill,
+                  selectedMembers,
+                  userStance,
+                  message,
+                  selectedPersonalData,
+                  verifiedUserInfo
+                };
+                sessionStorage.setItem('pendingMessage', JSON.stringify(messageData));
+                router.push(`/login?returnTo=${encodeURIComponent('/advocacy-message/send')}`);
+              }}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
+              Login
+            </Button>
+          </div>
+          
+          {/* Navigation */}
+          <div className="flex justify-center items-center pt-4 border-t">
+            <Button variant="outline" onClick={() => setStep(3)} className="px-6">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Step 5: Send Message
+  const renderStep5 = () => {
+    // If user is not authenticated or verified, show sign up/sign in CTA instead
+    if (!user && !verifiedUserInfo) {
+      return renderStep4();
+    }
+    
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Step 5: Send Message</CardTitle>
+          <CardDescription>
+            Ready to send your message to {selectedMembers.length} representative{selectedMembers.length !== 1 ? 's' : ''}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+        {/* Message Summary */}
+        <div className="bg-muted rounded-lg p-4">
+          <h3 className="font-semibold mb-3">Message Summary</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="flex items-center space-x-2">
+              <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a3 3 0 01-3-3v-1" />
+              </svg>
+              <div>
+                <p className="font-medium">Position:</p>
+                <p className="text-muted-foreground capitalize">{userStance}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+              <div>
+                <p className="font-medium">Recipients:</p>
+                <p className="text-muted-foreground">{selectedMembers.length} representative{selectedMembers.length !== 1 ? 's' : ''}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <div>
+                <p className="font-medium">Length:</p>
+                <p className="text-muted-foreground">{message.split(' ').length} words</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bill Information */}
+        {bill && (
+          <div className="bg-muted rounded-lg p-4">
+            <h4 className="font-medium mb-2 flex items-center">
+              <svg className="w-4 h-4 mr-2 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Regarding Legislation
+            </h4>
+            <p className="text-sm text-muted-foreground">{bill.shortTitle || bill.title}</p>
+          </div>
+        )}
+        
+        {/* Send Button */}
+        <div className="text-center">
+          <Button 
+            onClick={handleSend}
+            size="lg"
+            className="w-48"
+          >
+            Send Message
+          </Button>
+        </div>
+        
+        {/* Back Button */}
+        <div className="flex justify-center">
+          <Button 
+            variant="outline" 
+            onClick={() => setStep(user || verifiedUserInfo ? 3 : 4)}
+          >
+            Back
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
     );
   };
 
@@ -798,23 +1008,8 @@ const AdvocacyMessageContent: React.FC = () => {
     );
   }
 
-  // Show login prompt for unauthenticated users who are not verified
-  if (!user && !verifiedUserInfo) {
-    try {
-      return <UnauthenticatedMessage />;
-    } catch (error) {
-      console.error('Error rendering unauthenticated message:', error);
-      return (
-        <div className="container mx-auto p-8 max-w-2xl">
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p>Please <Link href="/login" className="text-primary underline">login</Link> to continue.</p>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-  }
+  // Allow all users (authenticated, verified, and anonymous) to proceed
+  // We'll handle login/signup after message composition
 
   return (
     <div className="container mx-auto p-8 max-w-4xl">
@@ -844,21 +1039,29 @@ const AdvocacyMessageContent: React.FC = () => {
       <div className="mb-8">
         <Stepper>
           <Step active={step === 1}>
-            <StepLabel>Select Outreach</StepLabel>
+            <StepLabel>Compose Message</StepLabel>
           </Step>
           <Step active={step === 2}>
-            <StepLabel>Include Personal Information</StepLabel>
+            <StepLabel>Select Outreach</StepLabel>
           </Step>
           <Step active={step === 3}>
-            <StepLabel>Review & Send</StepLabel>
+            <StepLabel>Review Message</StepLabel>
+          </Step>
+          <Step active={step === 4}>
+            <StepLabel>Create Account</StepLabel>
+          </Step>
+          <Step active={step === 5}>
+            <StepLabel>Send Message</StepLabel>
           </Step>
         </Stepper>
       </div>
 
       {/* Step Content */}
-      {step === 1 && renderStep1()}
-      {step === 2 && renderStep2()}
-      {step === 3 && renderStep3()}
+      {step === 1 && renderStep2()} {/* Personal Information */}
+      {step === 2 && renderStep1()} {/* Select Outreach */}
+      {step === 3 && renderStep3()} {/* Review Message */}
+      {step === 4 && renderStep4()} {/* Create Account */}
+      {step === 5 && renderStep5()} {/* Send Message */}
     </div>
   );
 };

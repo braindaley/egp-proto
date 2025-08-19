@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { ArrowRight, ThumbsUp, ThumbsDown, Eye, Share2 } from 'lucide-react';
 import { UserVerificationModal } from '@/components/user-verification-modal';
 import { useAuth } from '@/hooks/use-auth';
+import { useZipCode } from '@/hooks/use-zip-code';
 
 interface AdvocacyBillCardProps {
     bill: Bill | Partial<Bill>;
@@ -27,6 +28,7 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
     const [isWatched, setIsWatched] = useState(false);
     const [showVerificationModal, setShowVerificationModal] = useState(false);
     const { user } = useAuth();
+    const { saveZipCode } = useZipCode();
     const router = useRouter();
     if (!bill.type || !bill.number || !bill.congress) {
       return (
@@ -60,6 +62,12 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
     const handleVerificationComplete = (userInfo: any) => {
         // Store verification info in session storage for the advocacy page
         sessionStorage.setItem('verifiedUser', JSON.stringify(userInfo));
+        
+        // Update the global zip code with the verified user's zip code
+        if (userInfo.zipCode) {
+            saveZipCode(userInfo.zipCode);
+        }
+        
         setShowVerificationModal(false);
         router.push(`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}&verified=true`);
     };
@@ -92,7 +100,7 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
             </CardHeader>
             <CardContent className="flex-grow flex flex-col">
                 <div 
-                    className="prose prose-sm max-w-none text-muted-foreground prose-h3:font-semibold prose-h3:text-lg prose-h3:mb-2 prose-ul:list-disc prose-ul:pl-5 mb-4 flex-grow" 
+                    className="text-muted-foreground mb-4 flex-grow [&>h3]:font-semibold [&>h3]:text-lg [&>h3]:mb-6 [&>h3]:mt-0 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:space-y-6 [&>li]:leading-relaxed [&>p]:mb-4 [&>strong]:font-semibold [&>em]:italic" 
                     dangerouslySetInnerHTML={{ __html: reasoning }} 
                 />
                 <div className="mt-auto pt-4 border-t">

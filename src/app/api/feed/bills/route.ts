@@ -100,7 +100,7 @@ async function fetchMemberDetails(bioguideId: string, API_KEY: string): Promise<
     
     // Add timeout to prevent hanging requests
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
     
     const response = await fetch(memberUrl, { 
       signal: controller.signal,
@@ -139,11 +139,11 @@ async function fetchBillDetails(congress: number, type: string, number: number, 
     const billUrl = `https://api.congress.gov/v3/bill/${congress}/${type.toLowerCase()}/${number}?api_key=${API_KEY}`;
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
     
     const response = await Promise.race([
         fetch(billUrl, { signal: controller.signal, next: { revalidate: 3600 } }),
-        new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
+        new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 4000))
     ]);
     clearTimeout(timeoutId);
 
@@ -269,7 +269,7 @@ export async function GET(req: NextRequest) {
       console.log(`Fetched ${billItems.length} bills from Congress API. Now fetching detailed information...`);
 
       const feedBills: FeedBill[] = [];
-      const batchSize = 5;
+      const batchSize = 15;
       
       for (let i = 0; i < billItems.length; i += batchSize) {
         const batch = billItems.slice(i, i + batchSize);

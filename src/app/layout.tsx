@@ -8,6 +8,7 @@ import { Header } from "@/components/header";
 import { ZipCodeBanner } from "@/components/ui/zip-code-banner";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ZipCodeProvider } from "@/hooks/use-zip-code";
+import QueryProvider from "@/providers/query-client-provider";
 import type { Congress } from '@/types';
 
 const inter = Inter({ subsets: ["latin"] });
@@ -77,15 +78,17 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          <ZipCodeProvider>
-            <Header congresses={congresses} />
-            {children}
-            <Toaster />
-            <Footer />
-            <ZipCodeBanner />
-          </ZipCodeProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <ZipCodeProvider>
+              <Header congresses={congresses} />
+              {children}
+              <Toaster />
+              <Footer />
+              <ZipCodeBanner />
+            </ZipCodeProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

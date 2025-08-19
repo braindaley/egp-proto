@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     
     const basicRes = await fetch(basicUrl, {
       next: { revalidate: 3600 },
-      signal: AbortSignal.timeout(15000)
+      signal: AbortSignal.timeout(5000)
     });
 
     if (!basicRes.ok) {
@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     // Fetch all titles and find the best short title
     const titlesUrl = `${baseUrl}/titles?api_key=${API_KEY}`;
     fetchPromises.push(
-        fetch(titlesUrl, { signal: AbortSignal.timeout(10000) })
+        fetch(titlesUrl, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: TitlesResponse | null) => {
                 if (data?.titles && Array.isArray(data.titles)) {
@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
     // Summaries
     if (bill.summaries && 'url' in bill.summaries && bill.summaries.url) {
         fetchPromises.push(
-            fetch(`${bill.summaries.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(10000) })
+            fetch(`${bill.summaries.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null)) // Gracefully handle failed requests
             .then((data: SummariesResponse | null) => {
                 const summaries = data?.summaries;
@@ -148,7 +148,7 @@ export async function GET(req: NextRequest) {
     // Actions
     if (bill.actions && 'url' in bill.actions && bill.actions.url) {
         fetchPromises.push(
-             fetch(`${bill.actions.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(10000) })
+             fetch(`${bill.actions.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: ActionsResponse | null) => {
                 if (data?.actions && Array.isArray(data.actions)) {
@@ -164,7 +164,7 @@ export async function GET(req: NextRequest) {
     // Committees
     if (bill.committees && 'url' in bill.committees && bill.committees.url) {
         fetchPromises.push(
-             fetch(`${bill.committees.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(10000) })
+             fetch(`${bill.committees.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: CommitteesResponse | null) => {
                 if (data?.committees && Array.isArray(data.committees)) {
@@ -180,7 +180,7 @@ export async function GET(req: NextRequest) {
     // Cosponsors
     if (bill.cosponsors && 'url' in bill.cosponsors && bill.cosponsors.url) {
         fetchPromises.push(
-             fetch(`${bill.cosponsors.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(10000) })
+             fetch(`${bill.cosponsors.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: any) => {
                 if (data?.cosponsors && Array.isArray(data.cosponsors)) {
@@ -196,7 +196,7 @@ export async function GET(req: NextRequest) {
     // Text Versions  
     if (bill.textVersions && 'url' in bill.textVersions && bill.textVersions.url) {
         fetchPromises.push(
-             fetch(`${bill.textVersions.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(10000) })
+             fetch(`${bill.textVersions.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: any) => {
                 if (data?.textVersions && Array.isArray(data.textVersions)) {
@@ -212,7 +212,7 @@ export async function GET(req: NextRequest) {
     // Related Bills
     if (bill.relatedBills && 'url' in bill.relatedBills && bill.relatedBills.url) {
         fetchPromises.push(
-             fetch(`${bill.relatedBills.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(10000) })
+             fetch(`${bill.relatedBills.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: any) => {
                 if (data?.relatedBills && Array.isArray(data.relatedBills)) {
@@ -233,7 +233,7 @@ export async function GET(req: NextRequest) {
             
             while (nextUrl) {
                 try {
-                    const res: Response = await fetch(nextUrl, { signal: AbortSignal.timeout(10000) });
+                    const res: Response = await fetch(nextUrl, { signal: AbortSignal.timeout(4000) });
                     if (!res.ok) break;
                     const data: SubjectsResponse = await res.json();
                     

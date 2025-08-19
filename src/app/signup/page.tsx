@@ -69,8 +69,8 @@ function SignupForm() {
     <div className="flex items-center justify-center min-h-screen bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Create an Account</CardTitle>
-          <CardDescription>Enter your email and password to sign up</CardDescription>
+          <CardTitle className="text-2xl font-bold">Create your account!</CardTitle>
+          <CardDescription>To keep track of your sent messages, login or sign up</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>

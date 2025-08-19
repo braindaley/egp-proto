@@ -1,128 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BillFeedCard } from './BillFeedCard';
 import { Loader2, AlertCircle, RefreshCw, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useBills } from '@/hooks/use-bills';
+import { useSearchBills } from '@/hooks/use-search-bills';
 import type { FeedBill } from '@/types';
 
-interface BillsFeedData {
-  bills: FeedBill[];
-  error?: string;
-  total?: number;
-  searched?: number;
-}
-
 export default function BillsFeed() {
-  const [data, setData] = useState<BillsFeedData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<BillsFeedData | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-
-  const fetchBills = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      console.log('🔄 Fetching main bills feed...'); // Debug log
-      
-      const response = await fetch('/api/feed/bills', {
-        cache: 'no-cache',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('📨 Main feed API response status:', response.status); // Debug log
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('❌ Main feed API error:', errorData); // Debug log
-        throw new Error(`Failed to fetch bills: ${response.status} - ${errorData}`);
-      }
-
-      const result: BillsFeedData = await response.json();
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      console.log('✅ Main feed loaded successfully:', result.bills?.length, 'bills'); // Debug log
-      setData(result);
-    } catch (err) {
-      console.error('🚨 Error fetching main bills:', err); // Debug log
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const searchBills = async (term: string) => {
-    if (!term || term.trim().length < 2) {
-      setSearchResults(null);
-      return;
-    }
-
-    console.log('🔍 Starting search for:', term); // Debug log
-
-    try {
-      setIsSearching(true);
-      const searchUrl = `/api/search/bills?q=${encodeURIComponent(term)}`;
-      console.log('📡 Calling search API:', searchUrl); // Debug log
-      
-      const response = await fetch(searchUrl, {
-        cache: 'no-cache',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('📨 Search API response status:', response.status); // Debug log
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Search API error:', errorText); // Debug log
-        throw new Error(`Search failed: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Search results:', result); // Debug log
-      setSearchResults(result);
-    } catch (err) {
-      console.error('🚨 Search error:', err); // Debug log
-      // Don't set error state for search failures, just clear results
-      setSearchResults({ bills: [] });
-    } finally {
-      setIsSearching(false);
-    }
-  };
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  
+  const { data, isLoading, error, refetch } = useBills();
+  const { data: searchResults, isLoading: isSearching, error: searchError } = useSearchBills(debouncedSearchTerm);
 
   // Debounce search to avoid too many API calls
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (searchTerm.trim().length >= 2) {
-        searchBills(searchTerm);
-      } else {
-        setSearchResults(null);
-      }
+      setDebouncedSearchTerm(searchTerm);
     }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
 
   // Get the bills to display (search results or regular feed)
-  const displayBills = searchResults?.bills || data?.bills || [];
-  const isShowingSearchResults = searchResults !== null && searchTerm.trim().length >= 2;
-
-  useEffect(() => {
-    fetchBills();
-  }, []);
+  const displayBills = (debouncedSearchTerm.trim().length >= 2 && searchResults) ? searchResults.bills : (data || []);
+  const isShowingSearchResults = debouncedSearchTerm.trim().length >= 2;
 
   const handleRetry = () => {
-    fetchBills();
+    refetch();
   };
 
   if (isLoading) {
@@ -171,7 +79,7 @@ export default function BillsFeed() {
     );
   }
 
-  if (!data || !data.bills || data.bills.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="space-y-4">
@@ -227,7 +135,7 @@ export default function BillsFeed() {
               `Found ${searchResults.bills.length} bills${searchResults.total ? ` of ${searchResults.searched} total cached bills` : ''} matching "${searchTerm}"` :
               `Searching for "${searchTerm}"...`
           ) : (
-            `Showing ${data?.bills.length || 0} most recent bills from the 119th Congress, updated in the last 30 days and ranked by importance`
+            `Showing ${data?.length || 0} most recent bills from the 119th Congress, updated in the last 30 days and ranked by importance`
           )}
         </p>
       </div>
