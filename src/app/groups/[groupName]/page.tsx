@@ -209,6 +209,7 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
                                     actionButtonText={item.actionButtonText}
                                     supportCount={item.supportCount}
                                     opposeCount={item.opposeCount}
+                                    groupSlug={groupName}
                                 />
                             ))}
                         </div>

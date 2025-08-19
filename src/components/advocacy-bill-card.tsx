@@ -8,7 +8,7 @@ import Link from 'next/link';
 import type { Bill } from '@/types';
 import { getBillTypeSlug } from '@/lib/utils';
 import { useState } from 'react';
-import { ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
+import { ArrowRight, ThumbsUp, ThumbsDown, Eye, Share2 } from 'lucide-react';
 
 interface AdvocacyBillCardProps {
     bill: Bill | Partial<Bill>;
@@ -17,9 +17,10 @@ interface AdvocacyBillCardProps {
     actionButtonText: string;
     supportCount: number;
     opposeCount: number;
+    groupSlug?: string;
 }
 
-const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning, actionButtonText, supportCount, opposeCount }) => {
+const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning, actionButtonText, supportCount, opposeCount, groupSlug }) => {
     const [isWatched, setIsWatched] = useState(false);
     if (!bill.type || !bill.number || !bill.congress) {
       return (
@@ -97,6 +98,19 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                           <Eye className={`h-4 w-4 ${isWatched ? 'text-blue-600' : ''}`} />
                           {isWatched ? 'Watching' : 'Watch'}
                         </Button>
+                        {groupSlug && (
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="flex items-center gap-2 text-muted-foreground"
+                          >
+                            <Link href={`/groups/${groupSlug}/${bill.type?.toLowerCase()}-${bill.number}`}>
+                              <Share2 className="h-4 w-4" />
+                              Share
+                            </Link>
+                          </Button>
+                        )}
                     </div>
                 </div>
             </CardContent>
