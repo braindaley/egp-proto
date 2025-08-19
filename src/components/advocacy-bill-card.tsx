@@ -5,10 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { Bill } from '@/types';
 import { getBillTypeSlug } from '@/lib/utils';
 import { useState } from 'react';
 import { ArrowRight, ThumbsUp, ThumbsDown, Eye, Share2 } from 'lucide-react';
+import { UserVerificationModal } from '@/components/user-verification-modal';
+import { useAuth } from '@/hooks/use-auth';
 
 interface AdvocacyBillCardProps {
     bill: Bill | Partial<Bill>;
@@ -22,6 +25,9 @@ interface AdvocacyBillCardProps {
 
 const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning, actionButtonText, supportCount, opposeCount, groupSlug }) => {
     const [isWatched, setIsWatched] = useState(false);
+    const [showVerificationModal, setShowVerificationModal] = useState(false);
+    const { user } = useAuth();
+    const router = useRouter();
     if (!bill.type || !bill.number || !bill.congress) {
       return (
         <Card className="flex flex-col h-full items-center justify-center text-center">
@@ -43,7 +49,30 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
     const badgeVariant = isSupport ? 'default' : 'destructive';
     const PositionIcon = isSupport ? ThumbsUp : ThumbsDown;
 
+    const handleVoiceOpinionClick = () => {
+        if (!user) {
+            setShowVerificationModal(true);
+        } else {
+            router.push(`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}`);
+        }
+    };
+
+    const handleVerificationComplete = (userInfo: any) => {
+        // Store verification info in session storage for the advocacy page
+        sessionStorage.setItem('verifiedUser', JSON.stringify(userInfo));
+        setShowVerificationModal(false);
+        router.push(`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}&verified=true`);
+    };
+
+    const handleVerificationSkip = () => {
+        setShowVerificationModal(false);
+        // Redirect to login page with return URL
+        const returnUrl = `/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}`;
+        router.push(`/login?returnTo=${encodeURIComponent(returnUrl)}`);
+    };
+
     return (
+        <>
         <Card className="flex flex-col h-full shadow-md hover:shadow-lg transition-shadow">
             <CardHeader>
                 <div className="flex justify-between items-start gap-4">
@@ -68,10 +97,8 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                 />
                 <div className="mt-auto pt-4 border-t">
                     <div className="flex gap-2 flex-wrap justify-center mt-4">
-                        <Button asChild size="sm">
-                            <Link href={`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}`}>
-                                {actionButtonText}
-                            </Link>
+                        <Button size="sm" onClick={handleVoiceOpinionClick}>
+                            {actionButtonText}
                         </Button>
                         <Button 
                           variant="outline" 
@@ -115,6 +142,14 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                 </div>
             </CardContent>
         </Card>
+        
+        <UserVerificationModal
+            open={showVerificationModal}
+            onClose={() => setShowVerificationModal(false)}
+            onVerified={handleVerificationComplete}
+            onSkip={handleVerificationSkip}
+        />
+        </>
     );
 };
 

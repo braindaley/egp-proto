@@ -145,6 +145,7 @@ const AdvocacyMessageContent: React.FC = () => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [additionalMembers, setAdditionalMembers] = useState<any[]>([]);
+  const [verifiedUserInfo, setVerifiedUserInfo] = useState<any>(null);
   const [availableMembers, setAvailableMembers] = useState<{
     representatives: any[];
     committeeLeadership: any[];
@@ -164,6 +165,19 @@ const AdvocacyMessageContent: React.FC = () => {
   const congress = searchParams.get('congress');
   const billType = searchParams.get('type');
   const billNumber = searchParams.get('number');
+  const isVerified = searchParams.get('verified') === 'true';
+
+  // Check for verified user from session storage
+  useEffect(() => {
+    if (isVerified) {
+      const storedInfo = sessionStorage.getItem('verifiedUser');
+      if (storedInfo) {
+        setVerifiedUserInfo(JSON.parse(storedInfo));
+        // Clear the session storage item after use
+        sessionStorage.removeItem('verifiedUser');
+      }
+    }
+  }, [isVerified]);
 
   // Fetch bill details
   useEffect(() => {
@@ -226,8 +240,24 @@ const AdvocacyMessageContent: React.FC = () => {
     fetchMembers();
   }, [bill, congressionalReps, congress]);
 
-  // Get personal data fields from user profile
+  // Get personal data fields from user profile or verified info
   const getPersonalDataFields = (): PersonalDataField[] => {
+    // Use verified user info if available
+    if (verifiedUserInfo) {
+      const addressValue = `${verifiedUserInfo.address}, ${verifiedUserInfo.city}, ${verifiedUserInfo.state} ${verifiedUserInfo.zipCode}`;
+      return [
+        { key: 'fullName', label: 'Full Name', value: verifiedUserInfo.fullName, available: true },
+        { key: 'fullAddress', label: 'Full Address', value: addressValue, available: true },
+        { key: 'birthYear', label: 'Birth Year', value: null, available: false },
+        { key: 'gender', label: 'Gender', value: null, available: false },
+        { key: 'politicalAffiliation', label: 'Political Affiliation', value: null, available: false },
+        { key: 'education', label: 'Education', value: null, available: false },
+        { key: 'profession', label: 'Profession', value: null, available: false },
+        { key: 'militaryService', label: 'Military Service', value: null, available: false },
+      ];
+    }
+    
+    // Otherwise use logged in user profile
     const addressParts = [user?.address, user?.city, user?.state, user?.zipCode].filter(Boolean);
     const addressValue = addressParts.join(', ');
     const addressAvailable = addressParts.length > 0;
@@ -338,7 +368,7 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Handle send message
   const handleSend = async () => {
-    if (!user || !bill) return;
+    if ((!user && !verifiedUserInfo) || !bill) return;
     
     try {
       // Import Firebase functions
@@ -348,7 +378,15 @@ const AdvocacyMessageContent: React.FC = () => {
       
       // Save message activity to Firestore
       const messageActivity = {
-        userId: user.uid,
+        userId: user?.uid || 'verified-' + Date.now(),
+        isVerifiedUser: !!verifiedUserInfo,
+        verifiedUserInfo: verifiedUserInfo ? {
+          fullName: verifiedUserInfo.fullName,
+          address: verifiedUserInfo.address,
+          city: verifiedUserInfo.city,
+          state: verifiedUserInfo.state,
+          zipCode: verifiedUserInfo.zipCode
+        } : null,
         billNumber: billNumber,
         billType: billType,
         congress: congress,
@@ -760,8 +798,8 @@ const AdvocacyMessageContent: React.FC = () => {
     );
   }
 
-  // Show login prompt for unauthenticated users
-  if (!user) {
+  // Show login prompt for unauthenticated users who are not verified
+  if (!user && !verifiedUserInfo) {
     try {
       return <UnauthenticatedMessage />;
     } catch (error) {
@@ -780,6 +818,17 @@ const AdvocacyMessageContent: React.FC = () => {
 
   return (
     <div className="container mx-auto p-8 max-w-4xl">
+      {/* Verification Notice */}
+      {verifiedUserInfo && !user && (
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <p className="font-medium">You're verified as {verifiedUserInfo.fullName}</p>
+            <p className="text-sm mt-1">Your message will be delivered to your representatives. For additional features like tracking responses and managing your messages, consider <Link href={`/signup?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`} className="text-primary underline">creating an account</Link>.</p>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {/* Bill Context */}
       {bill && (
         <Card className="mb-6 bg-secondary/50">

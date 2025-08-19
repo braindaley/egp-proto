@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { Bill, RelatedBill } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
@@ -16,9 +17,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BillTracker } from '@/components/bill-tracker';
 import { BillAmendments } from './bill-amendments';
 import { SummaryDisplay } from './bill-summary-display';
+import { UserVerificationModal } from '@/components/user-verification-modal';
+import { useAuth } from '@/hooks/use-auth';
 
 export function BillDetailClient({ bill }: { bill: Bill }) {
   const [isWatched, setIsWatched] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const { user } = useAuth();
+  const router = useRouter();
+  
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
   const hasCosponsors = bill.cosponsors?.items && bill.cosponsors.items.length > 0;
   const hasCommittees = bill.committees?.items && bill.committees.items.length > 0;
@@ -45,6 +52,28 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                 bill.shortTitle !== bill.title && 
                                 bill.shortTitle.trim().length > 0;
 
+  const handleVoiceOpinionClick = () => {
+    if (!user) {
+      setShowVerificationModal(true);
+    } else {
+      router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`);
+    }
+  };
+
+  const handleVerificationComplete = (userInfo: any) => {
+    // Store verification info in session storage for the advocacy page
+    sessionStorage.setItem('verifiedUser', JSON.stringify(userInfo));
+    setShowVerificationModal(false);
+    router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}&verified=true`);
+  };
+
+  const handleVerificationSkip = () => {
+    setShowVerificationModal(false);
+    // Redirect to login page with return URL
+    const returnUrl = `/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`;
+    router.push(`/login?returnTo=${encodeURIComponent(returnUrl)}`);
+  };
+
   return (
     <div className="bg-background min-h-screen">
       <main className="container mx-auto px-4 py-8 md:py-12">
@@ -60,10 +89,8 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
               </p>
             )}
              <div className="mt-4 flex gap-3 items-center">
-                 <Button asChild size="lg">
-                    <Link href={`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`}>
-                        Voice your opinion
-                    </Link>
+                <Button size="lg" onClick={handleVoiceOpinionClick}>
+                    Voice your opinion
                 </Button>
                 <Button 
                   variant="outline" 
@@ -435,6 +462,13 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
       <footer className="text-center py-6 text-sm text-muted-foreground mt-8 border-t">
         <p>Data provided by the <a href="https://www.congress.gov/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">U.S. Congress</a> via <a href="https://api.congress.gov/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">api.congress.gov</a>.</p>
       </footer>
+      
+      <UserVerificationModal
+        open={showVerificationModal}
+        onClose={() => setShowVerificationModal(false)}
+        onVerified={handleVerificationComplete}
+        onSkip={handleVerificationSkip}
+      />
     </div>
   );
 }
