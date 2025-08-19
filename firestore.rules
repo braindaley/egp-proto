@@ -21,6 +21,15 @@ service cloud.firestore {
         allow read, write: if true; // In production, you'd likely restrict write access
     }
     
+    // Allow read/write access to census data collections
+    match /state_census/{stateId} {
+        allow read, write: if true; // Public census data
+    }
+    
+    match /district_census/{districtId} {
+        allow read, write: if true; // Public census data
+    }
+    
     // Fallback rule to deny all other access
     match /{document=**} {
       allow read, write: if false;

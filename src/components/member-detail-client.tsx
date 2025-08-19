@@ -287,7 +287,89 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
           <Card>
             <CardHeader> <CardTitle className="flex items-center gap-2"><History /> Service History</CardTitle> </CardHeader>
             <CardContent>
-                {/* ... content remains the same ... */}
+              <div className="space-y-4">
+                {allTerms.map((term, index) => (
+                  <div key={index} className="border-l-2 border-primary pl-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-lg">
+                        {term.chamber} - {term.startYear}
+                        {term.endYear && term.endYear !== term.startYear ? `-${term.endYear}` : ''}
+                      </h3>
+                      <Badge variant={currentlyServing && index === 0 ? "default" : "secondary"}>
+                        {currentlyServing && index === 0 ? "Current" : "Completed"}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                      {term.memberType && (
+                        <div>
+                          <span className="text-muted-foreground">Type: </span>
+                          <span className="font-medium">{term.memberType}</span>
+                        </div>
+                      )}
+                      {term.stateCode && (
+                        <div>
+                          <span className="text-muted-foreground">State: </span>
+                          <span className="font-medium">{term.stateCode}</span>
+                        </div>
+                      )}
+                      {term.district && (
+                        <div>
+                          <span className="text-muted-foreground">District: </span>
+                          <span className="font-medium">{term.district}</span>
+                        </div>
+                      )}
+                      {term.party && (
+                        <div>
+                          <span className="text-muted-foreground">Party: </span>
+                          <span className="font-medium">{term.party}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {leadershipHistory.length > 0 && (
+                <>
+                  <Separator className="my-6" />
+                  <div>
+                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                      <Star className="h-5 w-5" />
+                      Leadership Positions
+                    </h3>
+                    <div className="space-y-3">
+                      {leadershipHistory.map((leadership, index) => (
+                        <div key={index} className="bg-muted/30 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium">{leadership.title}</h4>
+                            <Badge variant="outline">Congress {leadership.congress}</Badge>
+                          </div>
+                          {leadership.type && (
+                            <p className="text-sm text-muted-foreground">Type: {leadership.type}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              {member.partyHistory && member.partyHistory.length > 1 && (
+                <>
+                  <Separator className="my-6" />
+                  <div>
+                    <h3 className="font-semibold text-lg mb-4">Party History</h3>
+                    <div className="space-y-2">
+                      {member.partyHistory.map((party, index) => (
+                        <div key={index} className="flex justify-between items-center py-2 border-b border-muted last:border-0">
+                          <span className="font-medium">{party.partyName}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {party.startYear} - {party.endYear || 'Present'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         )}

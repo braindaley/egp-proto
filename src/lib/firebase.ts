@@ -1,6 +1,7 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 // IMPORTANT: Replace the placeholder values with your actual Firebase project configuration.
 // You can find this in your project's settings in the Firebase console.
@@ -17,6 +18,7 @@ const firebaseConfig = {
 
 let app: FirebaseApp;
 let auth: Auth;
+let firestore: Firestore;
 
 // Initialize Firebase only if it hasn't been initialized yet.
 if (getApps().length === 0) {
@@ -30,5 +32,6 @@ if (getApps().length === 0) {
 }
 
 auth = getAuth(app);
+firestore = getFirestore(app);
 
-export { app, auth };
+export { app, auth, firestore };

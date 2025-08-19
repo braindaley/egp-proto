@@ -1,46 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
+import path from 'path';
+import fs from 'fs';
 
 interface DistrictCensusData {
   GEOID: string;
   NAME: string;
   state_name: string;
-  total_pop: string;
-  pct_female: string;
-  pct_male: string;
-  pct_white: string;
-  pct_black: string;
-  pct_am_indian: string;
-  pct_asian: string;
-  pct_pacificI: string;
-  pct_other: string;
-  pct_two_or_more: string;
-  pct_divorced: string;
-  pct_hs_or_higher: string;
-  pct_ba_or_higher: string;
-  pct_doctorate: string;
-  pct_uninsured: string;
-  med_household_income: string;
+  total_pop: number;
+  pct_female: number;
+  pct_male: number;
+  pct_white: number;
+  pct_black: number;
+  pct_am_indian: number;
+  pct_asian: number;
+  pct_pacificI: number;
+  pct_other: number;
+  pct_two_or_more: number;
+  pct_divorced: number;
+  pct_hs_or_higher: number;
+  pct_ba_or_higher: number;
+  pct_doctorate: number;
+  pct_uninsured: number;
+  med_household_income: number;
 }
 
-function parseCSV(csvText: string): DistrictCensusData[] {
-  const lines = csvText.trim().split('\n');
-  if (lines.length < 2) return [];
-  
-  const headers = lines[0].split(',').map(h => h.replace(/"/g, ''));
-  const data: DistrictCensusData[] = [];
-  
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.replace(/"/g, ''));
-    if (values.length === headers.length) {
-      const row: any = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index];
-      });
-      data.push(row as DistrictCensusData);
-    }
+let districtDataCache: DistrictCensusData[] | null = null;
+
+function loadDistrictData(): DistrictCensusData[] {
+  if (districtDataCache) {
+    return districtDataCache;
   }
   
-  return data;
+  try {
+    const dataPath = path.join(process.cwd(), 'data', 'district_census_data.json');
+    const fileContent = fs.readFileSync(dataPath, 'utf8');
+    districtDataCache = JSON.parse(fileContent);
+    return districtDataCache || [];
+  } catch (error) {
+    console.error('Error loading district census data:', error);
+    return [];
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -49,23 +48,7 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state');
     const district = searchParams.get('district');
     
-    const response = await fetch(
-      'https://api.github.com/repos/annikamore11/census_data/contents/data/attribute/congressional_district_level_census_data.csv',
-      {
-        headers: {
-          'Accept': 'application/vnd.github.v3.raw',
-        },
-        next: { revalidate: 3600 } // Cache for 1 hour
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`GitHub API returned ${response.status}`);
-    }
-
-    const csvData = await response.text();
-    const parsedData = parseCSV(csvData);
-    
+    const parsedData = loadDistrictData();
     let filteredData = parsedData;
     
     // Filter by state if provided
@@ -89,7 +72,46 @@ export async function GET(request: NextRequest) {
         'delaware': '10',
         'florida': '12',
         'georgia': '13',
-        // Add more states as needed
+        'hawaii': '15',
+        'idaho': '16',
+        'illinois': '17',
+        'indiana': '18',
+        'iowa': '19',
+        'kansas': '20',
+        'kentucky': '21',
+        'louisiana': '22',
+        'maine': '23',
+        'maryland': '24',
+        'massachusetts': '25',
+        'michigan': '26',
+        'minnesota': '27',
+        'mississippi': '28',
+        'missouri': '29',
+        'montana': '30',
+        'nebraska': '31',
+        'nevada': '32',
+        'new hampshire': '33',
+        'new jersey': '34',
+        'new mexico': '35',
+        'new york': '36',
+        'north carolina': '37',
+        'north dakota': '38',
+        'ohio': '39',
+        'oklahoma': '40',
+        'oregon': '41',
+        'pennsylvania': '42',
+        'rhode island': '44',
+        'south carolina': '45',
+        'south dakota': '46',
+        'tennessee': '47',
+        'texas': '48',
+        'utah': '49',
+        'vermont': '50',
+        'virginia': '51',
+        'washington': '53',
+        'west virginia': '54',
+        'wisconsin': '55',
+        'wyoming': '56'
       };
       
       const stateFips = stateFipsMap[state.toLowerCase()];
@@ -105,7 +127,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: filteredData,
       total: filteredData.length,
-      source: 'https://github.com/annikamore11/census_data'
+      source: 'Local census data parsed from https://github.com/annikamore11/census_data'
     });
   } catch (error) {
     console.error('Error fetching congressional district census data:', error);

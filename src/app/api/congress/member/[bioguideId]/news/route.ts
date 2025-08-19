@@ -11,7 +11,7 @@ function extractImageUrl(content: string): string | null {
 }
 
 export async function GET(req: NextRequest, { params }: { params: { bioguideId: string } }) {
-  const { bioguideId } = params;
+  const { bioguideId } = await params;
   const API_KEY = process.env.CONGRESS_API_KEY;
 
   if (!API_KEY) {

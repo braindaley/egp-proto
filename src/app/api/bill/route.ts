@@ -92,9 +92,9 @@ export async function GET(req: NextRequest) {
     bill.committees = bill.committees || { count: 0, items: [] };
     bill.actions = bill.actions || { count: 0, items: [] };
     bill.amendments = bill.amendments || { count: 0, items: [] };
+    bill.textVersions = bill.textVersions || { count: 0, items: [] };
     bill.relatedBills = bill.relatedBills || { count: 0, items: [] };
     bill.subjects = bill.subjects || { count: 0, items: [] };
-    bill.textVersions = bill.textVersions || { count: 0, items: [] };
     bill.summaries = { ...bill.summaries, count: 0, items: [] }; // Ensure items is an array
     bill.allSummaries = []; // Start with an empty array
 
@@ -173,6 +173,54 @@ export async function GET(req: NextRequest) {
             }).catch((e: unknown) => {
                 const errorMessage = e instanceof Error ? e.message : 'Unknown error';
                 console.log('Committees fetch failed:', errorMessage);
+            })
+        );
+    }
+
+    // Cosponsors
+    if (bill.cosponsors && 'url' in bill.cosponsors && bill.cosponsors.url) {
+        fetchPromises.push(
+             fetch(`${bill.cosponsors.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(10000) })
+            .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
+            .then((data: any) => {
+                if (data?.cosponsors && Array.isArray(data.cosponsors)) {
+                    bill.cosponsors.items = data.cosponsors as any[];
+                }
+            }).catch((e: unknown) => {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+                console.log('Cosponsors fetch failed:', errorMessage);
+            })
+        );
+    }
+
+    // Text Versions  
+    if (bill.textVersions && 'url' in bill.textVersions && bill.textVersions.url) {
+        fetchPromises.push(
+             fetch(`${bill.textVersions.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(10000) })
+            .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
+            .then((data: any) => {
+                if (data?.textVersions && Array.isArray(data.textVersions)) {
+                    bill.textVersions.items = data.textVersions as any[];
+                }
+            }).catch((e: unknown) => {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+                console.log('Text versions fetch failed:', errorMessage);
+            })
+        );
+    }
+
+    // Related Bills
+    if (bill.relatedBills && 'url' in bill.relatedBills && bill.relatedBills.url) {
+        fetchPromises.push(
+             fetch(`${bill.relatedBills.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(10000) })
+            .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
+            .then((data: any) => {
+                if (data?.relatedBills && Array.isArray(data.relatedBills)) {
+                    bill.relatedBills.items = data.relatedBills as any[];
+                }
+            }).catch((e: unknown) => {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+                console.log('Related bills fetch failed:', errorMessage);
             })
         );
     }

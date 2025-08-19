@@ -19,7 +19,7 @@ interface CandidateTotals {
 }
 
 export async function GET(req: NextRequest, { params }: { params: { fecId: string } }) {
-    const { fecId } = params;
+    const { fecId } = await params;
     const API_KEY = process.env.FEC_API_KEY;
 
     if (!fecId) {

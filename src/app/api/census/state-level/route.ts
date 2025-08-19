@@ -1,22 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import path from 'path';
+import fs from 'fs';
 
-function parseCsvData(csvString: string) {
-  const lines = csvString.trim().split('\n');
-  if (lines.length < 2) return [];
-  
-  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-  const rows = [];
-  
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-    const row: any = {};
-    headers.forEach((header, index) => {
-      row[header] = values[index] || '';
-    });
-    rows.push(row);
+let stateDataCache: any[] | null = null;
+
+function loadStateData() {
+  if (stateDataCache) {
+    return stateDataCache;
   }
   
-  return rows;
+  try {
+    const dataPath = path.join(process.cwd(), 'data', 'state_census_data.json');
+    const fileContent = fs.readFileSync(dataPath, 'utf8');
+    stateDataCache = JSON.parse(fileContent);
+    return stateDataCache;
+  } catch (error) {
+    console.error('Error loading state census data:', error);
+    return [];
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -24,21 +25,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const state = searchParams.get('state');
 
-    const response = await fetch(
-      'https://api.github.com/repos/annikamore11/census_data/contents/data/attribute/state_level_census_data.csv',
-      {
-        headers: {
-          'Accept': 'application/vnd.github.v3.raw',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`GitHub API returned ${response.status}`);
-    }
-
-    const csvData = await response.text();
-    const parsedData = parseCsvData(csvData);
+    const parsedData = loadStateData();
     
     let filteredData = parsedData;
     if (state) {
@@ -52,7 +39,7 @@ export async function GET(request: NextRequest) {
       data: filteredData,
       totalRecords: parsedData.length,
       filteredRecords: filteredData.length,
-      source: 'https://github.com/annikamore11/census_data'
+      source: 'Local census data parsed from https://github.com/annikamore11/census_data'
     });
   } catch (error) {
     console.error('Error fetching state-level census data:', error);
