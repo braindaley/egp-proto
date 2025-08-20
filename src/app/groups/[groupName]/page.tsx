@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getAdvocacyGroupData } from '@/lib/advocacy-groups';
+import { campaignsService } from '@/lib/campaigns';
 import AdvocacyBillCard from '@/components/advocacy-bill-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -178,14 +179,33 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
         notFound();
     }
     
-    // Fetch full bill details and process markdown for each priority bill
-    const priorityBillsWithData = await Promise.all(
+    // Get campaigns for this group from the new campaigns system
+    const campaigns = campaignsService.getCampaignsByGroup(groupName);
+    
+    // Fetch full bill details and process markdown for each campaign
+    const campaignsWithData = await Promise.all(
+        campaigns.map(async (campaign) => {
+            const billDetails = await getBillDetails(campaign.bill.congress, campaign.bill.type, campaign.bill.number);
+            const processedReasoning = await processMarkdown(campaign.reasoning);
+            return {
+                bill: billDetails || campaign.bill,
+                position: campaign.position,
+                reasoning: processedReasoning,
+                actionButtonText: campaign.actionButtonText,
+                supportCount: campaign.supportCount,
+                opposeCount: campaign.opposeCount,
+            };
+        })
+    );
+    
+    // Fallback to legacy data if no campaigns exist
+    const priorityBillsWithData = campaigns.length > 0 ? campaignsWithData : await Promise.all(
         (groupData.priorityBills || []).map(async (item) => {
             const billDetails = await getBillDetails(item.bill.congress!, item.bill.type!, item.bill.number!);
             const processedReasoning = await processMarkdown(item.reasoning);
             return {
                 ...item,
-                bill: billDetails || item.bill, // Fallback to partial data if fetch fails
+                bill: billDetails || item.bill,
                 reasoning: processedReasoning,
             };
         })

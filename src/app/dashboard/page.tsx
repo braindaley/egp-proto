@@ -36,7 +36,7 @@ export default function DashboardPage() {
     }
     
     return (
-        <div className="container mx-auto p-4 md:p-8">
+        <div className="container mx-auto p-4 md:p-8 max-w-[672px]">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold font-headline">
@@ -45,6 +45,11 @@ export default function DashboardPage() {
                     <p className="text-muted-foreground mt-1">
                         Here is an overview of your advocacy efforts and tools.
                     </p>
+                    {user.role === 'Wholesale' && (
+                        <Button asChild className="mt-3">
+                            <Link href="/dashboard/campaigns">Manage campaigns</Link>
+                        </Button>
+                    )}
                 </div>
                 <div className="flex gap-2 mt-4 md:mt-0">
                     <Button onClick={() => setShowEditProfile(!showEditProfile)} variant="outline">

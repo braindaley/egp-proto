@@ -119,11 +119,11 @@ const MessageHistory: React.FC = () => {
 
   if (!user) {
     return (
-      <Card>
-        <CardHeader>
+      <Card className="border-0 shadow-none">
+        <CardHeader className="px-0">
           <CardTitle>Your Sent Messages</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0">
           <p>Please log in to view your message history.</p>
         </CardContent>
       </Card>
@@ -131,11 +131,11 @@ const MessageHistory: React.FC = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="border-0 shadow-none">
+      <CardHeader className="px-0">
         <CardTitle>Your Sent Messages</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0">
         {loading ? (
           <p>Loading your message history...</p>
         ) : groupedMessages.length === 0 ? (
@@ -175,37 +175,34 @@ const MessageHistory: React.FC = () => {
                       </Avatar>
                       
                       <div className="flex-1 min-w-0">
-                        {/* Line One: To recipients, RE badge, Bill # title, date */}
-                        <div className="flex items-center justify-between gap-4 mb-1">
-                          <div className="flex items-center gap-4 min-w-0 flex-1">
-                            <div className="flex items-center gap-1">
+                        {/* First Line: Recipients and Bill Title */}
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm text-muted-foreground">To:</span>
-                              <span className="text-sm font-medium truncate">{displayRecipients}</span>
+                              <span className="text-sm font-medium">{displayRecipients}</span>
+                              <span className="text-sm text-muted-foreground ml-2">RE:</span>
+                              <span className="text-sm font-medium">{group.billShortTitle}</span>
                             </div>
-                            <Badge 
-                              variant="outline" 
-                              className="text-xs py-0 px-2 flex-shrink-0 bg-gray-50"
-                            >
-                              RE: {group.billShortTitle}
-                            </Badge>
-                            <Badge 
-                              variant={latestActivity?.userStance === 'support' ? 'default' : 'destructive'} 
-                              className="text-xs py-0 px-1 flex-shrink-0"
-                            >
-                              {latestActivity?.userStance === 'support' ? 'Support' : 'Oppose'}
-                            </Badge>
+                          </div>
+                          <Badge 
+                            variant={latestActivity?.userStance === 'support' ? 'default' : 'destructive'} 
+                            className="text-xs px-2 py-0.5 flex-shrink-0"
+                          >
+                            {latestActivity?.userStance === 'support' ? 'Support' : 'Oppose'}
+                          </Badge>
+                        </div>
+                        
+                        {/* Second Line: Bill Number and Status */}
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs text-muted-foreground">
+                            Status: {group.billCurrentStatus}
+                          </div>
+                          <div className="flex items-center gap-3">
                             <span className="text-sm font-semibold">
                               {group.billType} {group.billNumber}
                             </span>
                           </div>
-                          <div className="text-xs text-muted-foreground flex-shrink-0">
-                            {lastSentDate && format(lastSentDate, 'MMM d, yyyy')}
-                          </div>
-                        </div>
-                        
-                        {/* Line Two: Bill Status */}
-                        <div className="text-xs text-muted-foreground">
-                          Status: {group.billCurrentStatus}
                         </div>
                       </div>
                     </div>
@@ -218,11 +215,8 @@ const MessageHistory: React.FC = () => {
                         <div className="p-4 border-b bg-gray-50/50">
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center gap-2">
-                              <Badge variant={activity.userStance === 'support' ? 'default' : 'destructive'} className="text-xs">
-                                RE: {activity.userStance === 'support' ? 'Support' : 'Oppose'}
-                              </Badge>
-                              <span className="text-sm font-semibold">
-                                {group.billType} {group.billNumber}: {group.billShortTitle}
+                              <span className="text-sm">
+                                <span className="font-semibold">RE:</span> {group.billType} {group.billNumber}: {group.billShortTitle}
                               </span>
                             </div>
                             <div className="text-sm text-muted-foreground">

@@ -24,6 +24,7 @@ import type { Congress } from '@/types';
 // Data fetching for congresses is now handled by server components.
 
 export interface User extends FirebaseUser {
+  role?: string;
   firstName?: string;
   lastName?: string;
   address?: string;
@@ -40,6 +41,18 @@ export interface User extends FirebaseUser {
   education?: string;
   profession?: string;
   militaryService?: boolean;
+  constituentDescription?: string;
+  policyInterests?: {
+    ageGenerations?: number;
+    economyWork?: number;
+    familyRelationships?: number;
+    immigrationMigration?: number;
+    internationalAffairs?: number;
+    politicsPolicy?: number;
+    raceEthnicity?: number;
+    religion?: number;
+    science?: number;
+  };
   createdAt?: Date;
   updatedAt?: Date;
 }

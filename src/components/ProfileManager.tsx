@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Slider } from './ui/slider';
+import { Textarea } from './ui/textarea';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
 
@@ -30,6 +32,7 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
   useEffect(() => {
     if (user) {
       setProfile({
+        role: user.role || 'Retail',
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         address: user.address || '',
@@ -43,6 +46,18 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
         education: user.education || '',
         profession: user.profession || '',
         militaryService: user.militaryService || false,
+        constituentDescription: user.constituentDescription || '',
+        policyInterests: user.policyInterests || {
+          ageGenerations: 2,
+          economyWork: 2,
+          familyRelationships: 2,
+          immigrationMigration: 2,
+          internationalAffairs: 2,
+          politicsPolicy: 2,
+          raceEthnicity: 2,
+          religion: 2,
+          science: 2,
+        },
       });
     }
   }, [user, cookieZipCode]);
@@ -63,8 +78,10 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
     }
   }, [representatives, profile.congressionalDistrict]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const target = e.target as HTMLInputElement;
+    const { name, value, type } = target;
+    const checked = (target as HTMLInputElement).checked;
     setProfile(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
@@ -74,6 +91,16 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
         finalValue = value === 'true';
     }
     setProfile(prev => ({ ...prev, [name]: finalValue }));
+  };
+
+  const handlePolicyInterestChange = (policyKey: string, value: number[]) => {
+    setProfile(prev => ({
+      ...prev,
+      policyInterests: {
+        ...prev.policyInterests,
+        [policyKey]: value[0]
+      }
+    }));
   };
 
 
@@ -110,19 +137,47 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
     'Science & Research', 'Government & Public Service', 'Business & Management', 'Student', 'Homemaker', 'Retired', 'Other'
   ];
    const militaryOptions = [{label: 'Yes', value: 'true'}, {label: 'No', value: 'false'}];
+  const roleOptions = ['Wholesale', 'Retail'];
+
+  const policyIssues = [
+    { key: 'ageGenerations', label: 'Age & Generations' },
+    { key: 'economyWork', label: 'Economy & Work' },
+    { key: 'familyRelationships', label: 'Family & Relationships' },
+    { key: 'immigrationMigration', label: 'Immigration & Migration' },
+    { key: 'internationalAffairs', label: 'International Affairs' },
+    { key: 'politicsPolicy', label: 'Politics & Policy' },
+    { key: 'raceEthnicity', label: 'Race & Ethnicity' },
+    { key: 'religion', label: 'Religion' },
+    { key: 'science', label: 'Science' },
+  ];
+
+  const interestLevels = ['No', 'Low', 'Neutral', 'Medium', 'High'];
 
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="border-0 shadow-none">
+      <CardHeader className="px-0">
         <CardTitle>{showEditForm ? 'Edit Profile' : 'My Profile'}</CardTitle>
         <CardDescription>
           This information helps tailor your advocacy messages.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0">
         {isEditing ? (
           <div className="space-y-4">
+            <div className="mb-6">
+              <Label htmlFor="role">Role</Label>
+              <Select value={profile.role || ''} onValueChange={(value) => handleSelectChange('role', value)}>
+                <SelectTrigger id="role" className="w-full">
+                  <SelectValue placeholder="Select your role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleOptions.map(option => (
+                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div>
                     <Label htmlFor="firstName">First Name</Label>
@@ -219,7 +274,52 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
                     </Select>
                 </div>
             </div>
-            <div className="flex justify-end gap-2">
+            
+            <div className="mt-6">
+              <Label htmlFor="constituentDescription">Describe yourself as a constituent</Label>
+              <Textarea
+                id="constituentDescription"
+                name="constituentDescription"
+                value={profile.constituentDescription || ''}
+                onChange={handleInputChange}
+                placeholder="Share your background, values, and what matters most to you as a constituent..."
+                className="min-h-[120px] mt-2"
+              />
+            </div>
+            
+            <div className="mt-8 pt-6 border-t">
+              <h3 className="text-lg font-semibold mb-4">Policy Issue Interest</h3>
+              <div className="space-y-4">
+                {policyIssues.map((issue) => (
+                  <div key={issue.key} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor={issue.key}>{issue.label}</Label>
+                      <span className="text-sm text-muted-foreground">
+                        {interestLevels[profile.policyInterests?.[issue.key as keyof typeof profile.policyInterests] || 2]}
+                      </span>
+                    </div>
+                    <Slider
+                      id={issue.key}
+                      min={0}
+                      max={4}
+                      step={1}
+                      value={[profile.policyInterests?.[issue.key as keyof typeof profile.policyInterests] || 2]}
+                      onValueChange={(value) => handlePolicyInterestChange(issue.key, value)}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>No</span>
+                      <span>Low</span>
+                      <span>Neutral</span>
+                      <span>Medium</span>
+                      <span>High</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={handleCancel}>Cancel</Button>
               <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
             </div>
@@ -227,6 +327,7 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
         ) : (
           <div>
             <ul className="space-y-2">
+              <li><strong>Role:</strong> {profile.role || 'N/A'}</li>
               <li><strong>Full Name:</strong> {profile.firstName} {profile.lastName}</li>
               <li><strong>Address:</strong> {profile.address}, {profile.city}, {profile.state} {profile.zipCode}</li>
               <li><strong>Congressional District:</strong> {profile.congressionalDistrict || 'N/A'}</li>
@@ -237,6 +338,28 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
               <li><strong>Profession:</strong> {profile.profession || 'N/A'}</li>
               <li><strong>Military Service:</strong> {profile.militaryService ? 'Yes' : 'No'}</li>
             </ul>
+            
+            {profile.constituentDescription && (
+              <div className="mt-6 pt-4 border-t">
+                <h4 className="font-semibold mb-2">About Me as a Constituent</h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{profile.constituentDescription}</p>
+              </div>
+            )}
+            
+            <div className="mt-6 pt-4 border-t">
+              <h4 className="font-semibold mb-3">Policy Issue Interest</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                {policyIssues.map((issue) => (
+                  <div key={issue.key} className="flex justify-between">
+                    <span>{issue.label}:</span>
+                    <span className="font-medium">
+                      {interestLevels[profile.policyInterests?.[issue.key as keyof typeof profile.policyInterests] || 2]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
              <p className="text-sm text-muted-foreground mt-4">Voting precinct is inferred from your zip code.</p>
             <div className="flex justify-end mt-4">
               <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
