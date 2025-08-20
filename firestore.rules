@@ -9,11 +9,18 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Allow logged-in users to create messages, but only admin to read all
+    // Allow both authenticated users and verified users to create messages
     match /user_messages/{messageId} {
-       allow create: if request.auth != null;
+       allow create: if request.auth != null || 
+                        (resource == null && 
+                         request.resource.data.keys().hasAny(['isVerifiedUser', 'isGuestUser']) && 
+                         (request.resource.data.isVerifiedUser == true || request.resource.data.isGuestUser == true));
        // For a real app, you would restrict read access, e.g. to an admin role
-       allow read: if true; 
+       allow read: if true;
+       // Allow authenticated users to update their own messages (for linking accounts)
+       allow update: if request.auth != null && 
+                        (resource.data.userId == request.auth.uid || 
+                         request.resource.data.userId == request.auth.uid);
     }
     
     // Allow server-side processes to read and write to the cache

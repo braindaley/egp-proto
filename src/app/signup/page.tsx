@@ -48,11 +48,32 @@ function SignupForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      await signup(values.email, values.password);
-      toast({
-        title: 'Account Created',
-        description: "You've been successfully signed up!",
-      });
+      const userCredential = await signup(values.email, values.password);
+      
+      // Check if we need to link a pending message
+      const linkMessage = searchParams.get('linkMessage') === 'true';
+      if (linkMessage && userCredential.user) {
+        const { linkPendingMessageToUser } = await import('@/lib/link-pending-message');
+        const linked = await linkPendingMessageToUser(userCredential.user.uid);
+        
+        if (linked) {
+          toast({
+            title: 'Account Created',
+            description: "Your account has been created and your message history has been saved!",
+          });
+        } else {
+          toast({
+            title: 'Account Created',
+            description: "You've been successfully signed up!",
+          });
+        }
+      } else {
+        toast({
+          title: 'Account Created',
+          description: "You've been successfully signed up!",
+        });
+      }
+      
       router.push(returnTo || '/dashboard');
     } catch (error: any) {
       toast({

@@ -50,34 +50,57 @@ export default function SendMessagePage() {
       const db = getFirestore(app);
       
       // Save message activity to Firestore
-      const messageActivity = {
+      const messageActivity: any = {
         userId: user.uid,
         isVerifiedUser: !!messageData.verifiedUserInfo,
-        verifiedUserInfo: messageData.verifiedUserInfo ? {
-          fullName: messageData.verifiedUserInfo.fullName,
-          address: messageData.verifiedUserInfo.address,
-          city: messageData.verifiedUserInfo.city,
-          state: messageData.verifiedUserInfo.state,
-          zipCode: messageData.verifiedUserInfo.zipCode
-        } : null,
-        billNumber: messageData.bill?.billNumber,
-        billType: messageData.bill?.type,
-        congress: messageData.bill?.congress,
-        billShortTitle: messageData.bill?.shortTitle || messageData.bill?.title || 'Unknown Bill',
-        billCurrentStatus: messageData.bill?.latestAction?.text || 'Status Unknown',
-        userStance: messageData.userStance,
-        messageContent: messageData.message,
-        recipients: messageData.selectedMembers.map((member: any) => ({
+        userStance: messageData.userStance || '',
+        messageContent: messageData.message || '',
+        recipients: messageData.selectedMembers?.map((member: any) => ({
           name: member.fullName || member.name || 'Unknown',
           bioguideId: member.bioguideId || '',
           email: member.email || '',
           party: member.party || member.partyName || '',
           role: member.role || 'Representative'
-        })),
-        personalDataIncluded: messageData.selectedPersonalData,
+        })) || [],
+        personalDataIncluded: messageData.selectedPersonalData || [],
         sentAt: Timestamp.now(),
         deliveryStatus: 'sent'
       };
+      
+      // Add verified user info if available
+      if (messageData.verifiedUserInfo) {
+        messageActivity.verifiedUserInfo = {
+          fullName: messageData.verifiedUserInfo.fullName,
+          address: messageData.verifiedUserInfo.address,
+          city: messageData.verifiedUserInfo.city,
+          state: messageData.verifiedUserInfo.state,
+          zipCode: messageData.verifiedUserInfo.zipCode
+        };
+      }
+      
+      // Add bill information if available and valid
+      if (messageData.bill) {
+        // Check different possible bill data structures
+        const billNumber = messageData.bill.billNumber || messageData.bill.number;
+        const billType = messageData.bill.billType || messageData.bill.type;
+        const congress = messageData.bill.congress;
+        
+        if (billNumber && billType && congress) {
+          messageActivity.billNumber = billNumber;
+          messageActivity.billType = billType;
+          messageActivity.congress = congress;
+          messageActivity.billShortTitle = messageData.bill.shortTitle || messageData.bill.title || 'Unknown Bill';
+          messageActivity.billCurrentStatus = messageData.bill.latestAction?.text || messageData.bill.currentStatus || 'Status Unknown';
+        } else {
+          // Mark as general advocacy if bill info is incomplete
+          messageActivity.isGeneralAdvocacy = true;
+          messageActivity.topic = messageData.bill.title || 'General Advocacy';
+        }
+      } else {
+        // No bill data at all
+        messageActivity.isGeneralAdvocacy = true;
+        messageActivity.topic = 'General Advocacy';
+      }
       
       await addDoc(collection(db, 'user_messages'), messageActivity);
       
