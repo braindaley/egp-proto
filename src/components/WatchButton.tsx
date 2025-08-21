@@ -3,6 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 import { useWatchedGroups } from '@/hooks/use-watched-groups';
+import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 interface WatchButtonProps {
@@ -21,12 +23,24 @@ export function WatchButton({
   className 
 }: WatchButtonProps) {
   const { isWatched, toggleWatch } = useWatchedGroups();
+  const { user } = useAuth();
+  const router = useRouter();
   const watched = isWatched(groupSlug);
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    if (!user) {
+      // Redirect to login with return URL
+      const currentUrl = window.location.pathname;
+      router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
+      return;
+    }
+    
+    console.log('WatchButton clicked for:', groupSlug, 'current watched state:', watched);
     toggleWatch(groupSlug);
+    console.log('toggleWatch called');
   };
 
   return (

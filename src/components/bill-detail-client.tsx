@@ -58,7 +58,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
     if (!user) {
       setShowVerificationModal(true);
     } else {
-      router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`);
+      router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}&verified=true`);
     }
   };
 
@@ -119,7 +119,14 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 <Button 
                   variant={isWatched ? 'secondary' : 'outline'}
                   size="lg"
-                  onClick={() => setIsWatched(prev => !prev)}
+                  onClick={() => {
+                    if (!user) {
+                      const currentUrl = window.location.pathname;
+                      router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
+                      return;
+                    }
+                    setIsWatched(prev => !prev);
+                  }}
                   className="flex items-center gap-2 text-muted-foreground"
                 >
                   <Eye className={`h-4 w-4 ${isWatched ? 'text-blue-600' : ''}`} />

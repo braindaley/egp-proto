@@ -35,7 +35,7 @@ const SelectBill: React.FC = () => {
   const handleSelectBill = () => {
     if (selectedBill) {
       const [congress, type, number] = selectedBill.split('-');
-      router.push(`/advocacy-message?congress=${congress}&type=${type}&number=${number}`);
+      router.push(`/advocacy-message?congress=${congress}&type=${type}&number=${number}&verified=true`);
     }
   };
 

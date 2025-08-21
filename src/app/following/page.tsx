@@ -11,13 +11,58 @@ import { getAdvocacyGroupData } from '@/lib/advocacy-groups';
 import { campaignsService } from '@/lib/campaigns';
 import { useBills } from '@/hooks/use-bills';
 import Link from 'next/link';
-import { useMemo } from 'react';
-import type { FeedBill } from '@/types';
+import { useMemo, useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
+import type { FeedBill, Bill } from '@/types';
+
+async function fetchBill(congress: number, type: string, number: string): Promise<Bill | null> {
+  try {
+    const response = await fetch(`/api/bill?congress=${congress}&billType=${type.toLowerCase()}&billNumber=${number}`);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching bill:', error);
+    return null;
+  }
+}
+
+function convertBillToFeedBill(bill: Bill): FeedBill {
+  return {
+    ...bill,
+    billNumber: `${bill.type} ${bill.number}`,
+    shortTitle: bill.shortTitle || bill.title,
+    sponsorFullName: bill.sponsors?.[0]?.fullName || 'Unknown',
+    sponsorParty: bill.sponsors?.[0]?.party || 'Unknown',
+    sponsorImageUrl: null,
+    committeeName: bill.committees?.items?.[0]?.name || 'Unknown',
+    summary: bill.allSummaries?.[0]?.text || '',
+    latestAction: bill.actions?.items?.[0] ? {
+      actionDate: bill.actions.items[0].actionDate,
+      text: bill.actions.items[0].text
+    } : {
+      actionDate: '',
+      text: 'No actions'
+    },
+    importanceScore: 0,
+    status: 'Unknown'
+  };
+}
 
 export default function FollowingPage() {
+  const { user, loading: authLoading, isInitialLoadComplete } = useAuth();
+  const router = useRouter();
   const { watchedGroups } = useWatchedGroups();
   const { watchedBills } = useWatchedBills();
   const { data: allBills = [], isLoading: loading, error, refetch } = useBills();
+  const [additionalBills, setAdditionalBills] = useState<FeedBill[]>([]);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (isInitialLoadComplete && !authLoading && !user) {
+      router.push('/login?returnTo=/following');
+    }
+  }, [user, authLoading, isInitialLoadComplete, router]);
 
   console.log('Debug Following Page:', {
     watchedGroups,
@@ -26,10 +71,73 @@ export default function FollowingPage() {
     loading,
     error
   });
+  
+  if (allBills.length > 0) {
+    console.log('Sample bills in feed:', allBills.slice(0, 5).map(b => ({
+      congress: b.congress,
+      type: b.type,
+      number: b.number,
+      title: b.shortTitle
+    })));
+  }
+
+  // Fetch additional bills that aren't in the main feed
+  useEffect(() => {
+    if (!allBills.length || !watchedGroups.length) return;
+
+    const fetchAdditionalBills = async () => {
+      const billsToFetch = new Set<string>();
+      
+      // Collect bills from watched groups
+      for (const groupSlug of watchedGroups) {
+        const groupData = getAdvocacyGroupData(groupSlug);
+        if (!groupData) continue;
+
+        const campaigns = campaignsService.getCampaignsByGroup(groupSlug);
+        for (const campaign of campaigns) {
+          const billKey = `${campaign.bill.congress}-${campaign.bill.type}-${campaign.bill.number}`;
+          const existsInFeed = allBills.some(bill => 
+            bill.congress === campaign.bill.congress &&
+            bill.type === campaign.bill.type &&
+            bill.number === campaign.bill.number
+          );
+          
+          if (!existsInFeed) {
+            billsToFetch.add(billKey);
+          }
+        }
+      }
+
+      if (billsToFetch.size === 0) {
+        setAdditionalBills([]);
+        return;
+      }
+
+      console.log('Fetching additional bills:', Array.from(billsToFetch));
+      
+      const fetchedBills: FeedBill[] = [];
+      for (const billKey of billsToFetch) {
+        const [congress, type, number] = billKey.split('-');
+        const bill = await fetchBill(parseInt(congress), type, number);
+        if (bill) {
+          fetchedBills.push(convertBillToFeedBill(bill));
+        }
+      }
+      
+      console.log('Successfully fetched additional bills:', fetchedBills);
+      setAdditionalBills(fetchedBills);
+    };
+
+    fetchAdditionalBills();
+  }, [allBills, watchedGroups]);
 
   // Filter bills to show only those from watched groups or individually watched
   const followingBills = useMemo(() => {
     if (!allBills.length) return [];
+
+    // Combine main feed bills with additional bills
+    const combinedBills = [...allBills, ...additionalBills];
+    console.log('Combined bills count:', combinedBills.length, '(main:', allBills.length, 'additional:', additionalBills.length, ')');
 
     // Get bills from watched groups (campaigns)
     const groupBills: FeedBill[] = [];
@@ -38,11 +146,16 @@ export default function FollowingPage() {
       console.log('Group data for', groupSlug, ':', groupData);
       if (!groupData) continue;
 
-      // Get campaigns for this group and match with bills from feed
+      // Get campaigns for this group and match with bills from combined feed
       const campaigns = campaignsService.getCampaignsByGroup(groupSlug);
       console.log('Campaigns for', groupSlug, ':', campaigns);
       for (const campaign of campaigns) {
-        const matchingBill = allBills.find(bill => 
+        console.log('Looking for campaign bill:', {
+          congress: campaign.bill.congress,
+          type: campaign.bill.type,
+          number: campaign.bill.number
+        });
+        const matchingBill = combinedBills.find(bill => 
           bill.congress === campaign.bill.congress &&
           bill.type === campaign.bill.type &&
           bill.number === campaign.bill.number
@@ -50,6 +163,8 @@ export default function FollowingPage() {
         if (matchingBill) {
           groupBills.push(matchingBill);
           console.log('Found matching bill from campaign:', matchingBill);
+        } else {
+          console.log('No matching bill found for campaign bill:', campaign.bill);
         }
       }
 
@@ -57,7 +172,7 @@ export default function FollowingPage() {
       if (campaigns.length === 0 && groupData.priorityBills) {
         console.log('Using legacy priority bills for', groupSlug);
         for (const priorityBill of groupData.priorityBills) {
-          const matchingBill = allBills.find(bill => 
+          const matchingBill = combinedBills.find(bill => 
             bill.congress === priorityBill.bill.congress &&
             bill.type === priorityBill.bill.type &&
             bill.number === priorityBill.bill.number
@@ -72,7 +187,7 @@ export default function FollowingPage() {
 
     // Get individually watched bills
     const individualBills = watchedBills.map(watchedBill => {
-      const found = allBills.find(bill => 
+      const found = combinedBills.find(bill => 
         bill.congress === watchedBill.congress &&
         bill.type === watchedBill.type &&
         bill.number === watchedBill.number
@@ -86,8 +201,8 @@ export default function FollowingPage() {
     console.log('Group bills:', groupBills.length, 'Individual bills:', individualBills.length);
 
     // Combine and deduplicate
-    const combinedBills = [...groupBills, ...individualBills];
-    const uniqueBills = combinedBills.filter((bill, index, array) => 
+    const allFollowingBills = [...groupBills, ...individualBills];
+    const uniqueBills = allFollowingBills.filter((bill, index, array) => 
       array.findIndex(b => 
         b.congress === bill.congress && 
         b.type === bill.type && 
@@ -99,7 +214,35 @@ export default function FollowingPage() {
 
     // Sort by importance score (same as homepage)
     return uniqueBills.sort((a, b) => b.importanceScore - a.importanceScore);
-  }, [allBills, watchedGroups, watchedBills]);
+  }, [allBills, additionalBills, watchedGroups, watchedBills]);
+
+  // Show loading while checking authentication
+  if (authLoading || !isInitialLoadComplete) {
+    return (
+      <div className="bg-secondary/30 flex-1">
+        <div className="container mx-auto px-4 py-8 md:py-12">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center space-y-4">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                <div className="space-y-2">
+                  <p className="text-lg font-medium">Loading...</p>
+                  <p className="text-sm text-muted-foreground">
+                    Checking authentication...
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Return early if user is not authenticated (redirect will happen in useEffect)
+  if (!user) {
+    return null;
+  }
 
   if (loading) {
     return (

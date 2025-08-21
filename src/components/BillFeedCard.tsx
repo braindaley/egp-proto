@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
 import { getBillSupportData } from '@/lib/bill-support-data';
 import { useWatchedBills } from '@/hooks/use-watched-bills';
+import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
 
 const BillStatusIndicator = ({ status }: { status: string }) => {
     const steps: string[] = ['Introduced', 'In Committee', 'Passed House', 'Passed Senate', 'To President', 'Became Law'];
@@ -86,6 +88,8 @@ const ImportanceBadge = ({ score }: { score: number }) => {
 export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }) {
     const [supportStatus, setSupportStatus] = useState<'none' | 'supported' | 'opposed'>('none');
     const { isWatchedBill, toggleWatchBill } = useWatchedBills();
+    const { user } = useAuth();
+    const router = useRouter();
     const isWatched = isWatchedBill(bill.congress, bill.type, bill.number);
 
     const billTypeSlug = getBillTypeSlug(bill.type);
@@ -115,6 +119,12 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
     
     const handleWatch = (e: React.MouseEvent) => {
         handleInteractionClick(e);
+        if (!user) {
+            // Redirect to login with return URL
+            const currentUrl = window.location.pathname;
+            router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
+            return;
+        }
         toggleWatchBill(bill.congress, bill.type, bill.number, bill.shortTitle);
     };
 
@@ -176,9 +186,11 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                 <Button 
                     size="sm"
                     className="bg-black text-white hover:bg-gray-800"
-                    onClick={handleInteractionClick}
+                    asChild
                 >
-                    Voice your opinion
+                    <Link href={`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}&verified=true`}>
+                        Voice your opinion
+                    </Link>
                 </Button>
                 <Button 
                     variant="outline" 

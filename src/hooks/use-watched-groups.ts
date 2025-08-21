@@ -1,39 +1,85 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
 const STORAGE_KEY = 'egp-watched-groups';
 
 export function useWatchedGroups() {
+  const { user } = useAuth();
   const [watchedGroups, setWatchedGroups] = useState<string[]>([]);
   const isUpdatingRef = useRef(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const db = getFirestore();
 
-  // Load watched groups from localStorage on mount
+  // Load watched groups from Firestore (user account) or localStorage (fallback)
   useEffect(() => {
-    if (typeof window !== 'undefined' && !isInitialized) {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored && stored !== 'null' && stored !== 'undefined') {
-        try {
-          const parsed = JSON.parse(stored);
-          const result = Array.isArray(parsed) ? parsed : [];
-          setWatchedGroups(result);
-        } catch (e) {
-          setWatchedGroups([]);
+    if (!isInitialized) {
+      const loadWatchedGroups = async () => {
+        if (user) {
+          // Load from user's Firestore document
+          try {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              const watched = userData?.watchedGroups || [];
+              setWatchedGroups(Array.isArray(watched) ? watched : []);
+            } else {
+              setWatchedGroups([]);
+            }
+          } catch (e) {
+            console.error('Error loading watched groups from Firestore:', e);
+            setWatchedGroups([]);
+          }
+        } else {
+          // Fallback to localStorage for non-authenticated users
+          if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored && stored !== 'null' && stored !== 'undefined') {
+              try {
+                const parsed = JSON.parse(stored);
+                const result = Array.isArray(parsed) ? parsed : [];
+                setWatchedGroups(result);
+              } catch (e) {
+                setWatchedGroups([]);
+              }
+            } else {
+              setWatchedGroups([]);
+            }
+          }
         }
-      } else {
-        setWatchedGroups([]);
-      }
-      setIsInitialized(true);
+        setIsInitialized(true);
+      };
+      
+      loadWatchedGroups();
     }
-  }, [isInitialized]);
+  }, [user, isInitialized, db]);
 
-  // Save to localStorage whenever watchedGroups changes (but only after initialization)
+  // Save to Firestore (user account) or localStorage (fallback) whenever watchedGroups changes
   useEffect(() => {
-    if (typeof window !== 'undefined' && isInitialized) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(watchedGroups));
+    if (isInitialized && !isUpdatingRef.current) {
+      const saveWatchedGroups = async () => {
+        if (user) {
+          // Save to user's Firestore document
+          try {
+            const userDocRef = doc(db, 'users', user.uid);
+            await setDoc(userDocRef, { watchedGroups }, { merge: true });
+          } catch (e) {
+            console.error('Error saving watched groups to Firestore:', e);
+          }
+        } else {
+          // Fallback to localStorage for non-authenticated users
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(watchedGroups));
+          }
+        }
+      };
+      
+      saveWatchedGroups();
     }
-  }, [watchedGroups, isInitialized]);
+  }, [watchedGroups, isInitialized, user, db]);
 
   const watchGroup = useCallback((groupSlug: string) => {
     setWatchedGroups(prev => {
@@ -49,10 +95,13 @@ export function useWatchedGroups() {
   }, []);
 
   const toggleWatch = useCallback((groupSlug: string) => {
+    console.log('toggleWatch called with:', groupSlug);
     setWatchedGroups(prev => {
-      return prev.includes(groupSlug) 
+      const newState = prev.includes(groupSlug) 
         ? prev.filter(slug => slug !== groupSlug)
         : [...prev, groupSlug];
+      console.log('watchedGroups updating from:', prev, 'to:', newState);
+      return newState;
     });
   }, []);
 
