@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
 import { getBillSupportData } from '@/lib/bill-support-data';
+import { useWatchedBills } from '@/hooks/use-watched-bills';
 
 const BillStatusIndicator = ({ status }: { status: string }) => {
     const steps: string[] = ['Introduced', 'In Committee', 'Passed House', 'Passed Senate', 'To President', 'Became Law'];
@@ -84,7 +85,8 @@ const ImportanceBadge = ({ score }: { score: number }) => {
 
 export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }) {
     const [supportStatus, setSupportStatus] = useState<'none' | 'supported' | 'opposed'>('none');
-    const [isWatched, setIsWatched] = useState(false);
+    const { isWatchedBill, toggleWatchBill } = useWatchedBills();
+    const isWatched = isWatchedBill(bill.congress, bill.type, bill.number);
 
     const billTypeSlug = getBillTypeSlug(bill.type);
     const detailUrl = `/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
@@ -113,7 +115,7 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
     
     const handleWatch = (e: React.MouseEvent) => {
         handleInteractionClick(e);
-        setIsWatched(prev => !prev);
+        toggleWatchBill(bill.congress, bill.type, bill.number, bill.shortTitle);
     };
 
     return (

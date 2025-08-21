@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Users, Calendar, BarChart, Mic, Edit, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { WatchButton } from '@/components/WatchButton';
 import type { Bill, ApiCollection, Sponsor, Cosponsor, Committee, Summary, TextVersion, RelatedBill, Subject, PolicyArea } from '@/types';
 import { getBillTypeSlug } from '@/lib/utils';
 import { remark } from 'remark';
@@ -104,7 +105,10 @@ function OrganizationHeader({ group }: { group: any }) {
                         </div>
                     )}
                     <div className="flex-1">
-                        <h1 className="text-3xl font-bold font-headline text-primary">{group.name}</h1>
+                        <div className="flex items-center gap-4 mb-2">
+                            <h1 className="text-3xl font-bold font-headline text-primary">{group.name}</h1>
+                            <WatchButton groupSlug={group.slug} groupName={group.name} />
+                        </div>
                         <p className="mt-2 text-muted-foreground">{group.description}</p>
                         <a href={group.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-4">
                             Visit Website <ExternalLink className="h-4 w-4"/>
