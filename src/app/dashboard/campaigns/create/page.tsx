@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,7 +54,7 @@ const advocacyGroups = [
     { name: 'No Labels', slug: 'no-labels' },
 ].sort((a, b) => a.name.localeCompare(b.name));
 
-export default function CreateCampaignPage() {
+function CreateCampaignPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, loading: authLoading } = useAuth();
@@ -323,5 +324,13 @@ export default function CreateCampaignPage() {
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+export default function CreateCampaignPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <CreateCampaignPageContent />
+        </Suspense>
     );
 }
