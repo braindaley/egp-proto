@@ -333,7 +333,6 @@ function IssuesClient({ congress }: { congress: string }) {
   );
 }
 
-export default async function IssuesPage({ params }: { params: { congress: string } }) {
-  const { congress } = await params;
-  return <IssuesClient congress={congress} />;
+export default function IssuesPage({ params }: { params: { congress: string } }) {
+  return <IssuesClient congress={params.congress} />;
 }

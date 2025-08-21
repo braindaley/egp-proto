@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
@@ -128,6 +128,9 @@ const AdvocacyMessagesAdminPage = () => {
                     <DialogContent className="max-w-3xl">
                       <DialogHeader>
                         <DialogTitle>Message Details</DialogTitle>
+                        <DialogDescription>
+                          View the full details of this advocacy message including content and delivery information.
+                        </DialogDescription>
                       </DialogHeader>
                       <div>
                         <p><strong>Message:</strong></p>

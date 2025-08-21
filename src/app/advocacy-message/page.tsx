@@ -1370,6 +1370,7 @@ const AdvocacyMessageContent: React.FC = () => {
                 placeholder="Create a password"
                 minLength={6}
                 required
+                autoComplete="new-password"
               />
             </div>
 
