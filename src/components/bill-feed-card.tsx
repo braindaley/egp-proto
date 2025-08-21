@@ -7,10 +7,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { getBillTypeSlug, formatDate } from '@/lib/utils';
-import { Check, Dot, Users, Library, ArrowRight, ThumbsUp, ThumbsDown, Eye, Flame, TrendingUp, Award, ClipboardCheck } from 'lucide-react';
+import { Check, Dot, Users, Library, ArrowRight, ThumbsUp, ThumbsDown, Eye, Flame, TrendingUp, Award, ClipboardCheck, Tags, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
+import { getBillSupportData } from '@/lib/bill-support-data';
 
 const BillStatusIndicator = ({ status }: { status: string }) => {
     const steps: string[] = ['Introduced', 'In Committee', 'Passed House', 'Passed Senate', 'To President', 'Became Law'];
@@ -87,6 +88,9 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
 
     const billTypeSlug = getBillTypeSlug(bill.type);
     const detailUrl = `/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
+    
+    // Get consistent mock support data
+    const { supportCount, opposeCount } = getBillSupportData(bill.congress, bill.type, bill.number);
 
     const partyColor = bill.sponsorParty === 'R' ? 'bg-red-100 text-red-800' 
                      : bill.sponsorParty === 'D' ? 'bg-blue-100 text-blue-800'
@@ -120,10 +124,10 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                 <Badge variant="outline" className="shrink-0 font-semibold">{bill.billNumber}</Badge>
             </div>
             
-            {/* 2. Subjects/Issues - MOVED AFTER BILL NUMBER */}
+            {/* 2. Issues - MOVED AFTER BILL NUMBER */}
             <div className="mb-3">
                 <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Library className="h-4 w-4" />
+                    <Tags className="h-4 w-4" />
                     {bill.committeeName}
                 </span>
             </div>
@@ -161,37 +165,50 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
             </p>
              <BillStatusIndicator status={bill.status} />
         </CardContent>
-        <CardFooter className="flex justify-between items-center pt-4 border-t">
-            <div className="flex items-center gap-2">
-                <Button 
-                    variant={supportStatus === 'supported' ? 'secondary' : 'outline'}
-                    size="sm"
-                    onClick={handleSupport}
-                    className="flex items-center gap-1.5"
-                >
-                    <ThumbsUp className={cn("h-4 w-4", supportStatus === 'supported' && "text-green-600")} />
-                    Support
-                </Button>
-                <Button 
-                    variant={supportStatus === 'opposed' ? 'secondary' : 'outline'}
-                    size="sm"
-                    onClick={handleOppose}
-                    className="flex items-center gap-1.5"
-                >
-                    <ThumbsDown className={cn("h-4 w-4", supportStatus === 'opposed' && "text-red-600")} />
-                    Oppose
-                </Button>
-                <Button 
-                    variant={isWatched ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={handleWatch}
-                    className="flex items-center gap-1.5 text-muted-foreground"
-                >
-                    <Eye className={cn("h-4 w-4", isWatched && "text-blue-600")} />
-                    {isWatched ? 'Watching' : 'Watch'}
-                </Button>
-            </div>
-            <ImportanceBadge score={bill.importanceScore} />
+        <CardFooter className="flex items-center gap-2 pt-4 border-t">
+            <Button 
+                size="sm"
+                className="bg-black text-white hover:bg-gray-800"
+                onClick={handleInteractionClick}
+            >
+                Voice your opinion
+            </Button>
+            <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-1.5 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                onClick={handleSupport}
+            >
+                <ThumbsUp className="h-4 w-4" />
+                {supportCount.toLocaleString()}
+            </Button>
+            <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                onClick={handleOppose}
+            >
+                <ThumbsDown className="h-4 w-4" />
+                {opposeCount.toLocaleString()}
+            </Button>
+            <Button 
+                variant="outline"
+                size="sm"
+                onClick={handleWatch}
+                className="flex items-center gap-1.5 text-muted-foreground"
+            >
+                <Eye className={cn("h-4 w-4", isWatched && "text-blue-600")} />
+                Watch
+            </Button>
+            <Button 
+                variant="outline"
+                size="sm"
+                onClick={handleInteractionClick}
+                className="flex items-center gap-1.5 text-muted-foreground"
+            >
+                <Share className="h-4 w-4" />
+                Share
+            </Button>
         </CardFooter>
       </Card>
     );

@@ -9,113 +9,97 @@ import { useWatchedGroups } from '@/hooks/use-watched-groups';
 import { useWatchedBills } from '@/hooks/use-watched-bills';
 import { getAdvocacyGroupData } from '@/lib/advocacy-groups';
 import { campaignsService } from '@/lib/campaigns';
+import { useBills } from '@/hooks/use-bills';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import type { FeedBill, Bill } from '@/types';
-
-// Function to convert campaign bill or Bill to FeedBill for display
-function convertToFeedBill(bill: any, groupName: string): FeedBill {
-  // Handle campaign bill format (simpler) vs full Bill format
-  const congress = bill.congress || 119;
-  const type = bill.type || 'HR';
-  const number = bill.number || '1';
-  const title = bill.title || bill.shortTitle || `${type} ${number}`;
-  
-  return {
-    congress,
-    type,
-    number,
-    billNumber: `${type} ${number}`,
-    shortTitle: title,
-    summary: bill.summary || `Bill ${type} ${number} supported by ${groupName}`,
-    status: bill.latestAction?.text || 'Introduced',
-    latestAction: {
-      text: bill.latestAction?.text || 'Introduced',
-      actionDate: bill.latestAction?.actionDate || new Date().toISOString()
-    },
-    sponsorFullName: 'Unknown',
-    sponsorParty: 'I',
-    sponsorImageUrl: '',
-    committeeName: `Supported by ${groupName}`,
-    importanceScore: 5,
-    subjects: bill.subjects || []
-  };
-}
+import { useMemo } from 'react';
+import type { FeedBill } from '@/types';
 
 export default function FollowingPage() {
   const { watchedGroups } = useWatchedGroups();
   const { watchedBills } = useWatchedBills();
-  const [bills, setBills] = useState<FeedBill[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: allBills = [], isLoading: loading, error, refetch } = useBills();
 
-  useEffect(() => {
-    const loadWatchedContent = async () => {
-      try {
-        setLoading(true);
-        const allBills: FeedBill[] = [];
+  console.log('Debug Following Page:', {
+    watchedGroups,
+    watchedBills,
+    allBillsCount: allBills.length,
+    loading,
+    error
+  });
 
-        // Add bills from watched groups
-        for (const groupSlug of watchedGroups) {
-          const groupData = getAdvocacyGroupData(groupSlug);
-          if (!groupData) continue;
+  // Filter bills to show only those from watched groups or individually watched
+  const followingBills = useMemo(() => {
+    if (!allBills.length) return [];
 
-          // Get campaigns for this group
-          const campaigns = campaignsService.getCampaignsByGroup(groupSlug);
-          
-          // Convert campaigns to feed bills
-          for (const campaign of campaigns) {
-            const feedBill = convertToFeedBill(campaign.bill, groupData.name);
-            allBills.push(feedBill);
-          }
+    // Get bills from watched groups (campaigns)
+    const groupBills: FeedBill[] = [];
+    for (const groupSlug of watchedGroups) {
+      const groupData = getAdvocacyGroupData(groupSlug);
+      console.log('Group data for', groupSlug, ':', groupData);
+      if (!groupData) continue;
 
-          // Fallback to legacy priority bills if no campaigns
-          if (campaigns.length === 0 && groupData.priorityBills) {
-            for (const priorityBill of groupData.priorityBills) {
-              const feedBill = convertToFeedBill(priorityBill.bill, groupData.name);
-              allBills.push(feedBill);
-            }
-          }
+      // Get campaigns for this group and match with bills from feed
+      const campaigns = campaignsService.getCampaignsByGroup(groupSlug);
+      console.log('Campaigns for', groupSlug, ':', campaigns);
+      for (const campaign of campaigns) {
+        const matchingBill = allBills.find(bill => 
+          bill.congress === campaign.bill.congress &&
+          bill.type === campaign.bill.type &&
+          bill.number === campaign.bill.number
+        );
+        if (matchingBill) {
+          groupBills.push(matchingBill);
+          console.log('Found matching bill from campaign:', matchingBill);
         }
-
-        // Add individually watched bills
-        for (const watchedBill of watchedBills) {
-          // Check if this bill is already in the list from groups
-          const alreadyExists = allBills.some(bill => 
-            bill.congress === watchedBill.congress && 
-            bill.type === watchedBill.type && 
-            bill.number === watchedBill.number
-          );
-
-          if (!alreadyExists) {
-            const feedBill = convertToFeedBill(watchedBill, 'Individually Watched');
-            allBills.push(feedBill);
-          }
-        }
-
-        // Sort by most recently watched (bills from groups don't have watchedAt, so they'll be first)
-        allBills.sort((a, b) => {
-          const aTime = watchedBills.find(wb => 
-            wb.congress === a.congress && wb.type === a.type && wb.number === a.number
-          )?.watchedAt || '2000-01-01';
-          const bTime = watchedBills.find(wb => 
-            wb.congress === b.congress && wb.type === b.type && wb.number === b.number
-          )?.watchedAt || '2000-01-01';
-          return new Date(bTime).getTime() - new Date(aTime).getTime();
-        });
-
-        setBills(allBills);
-        setError(null);
-      } catch (err) {
-        console.error('Error loading bills:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load bills');
-      } finally {
-        setLoading(false);
       }
-    };
 
-    loadWatchedContent();
-  }, [watchedGroups, watchedBills]);
+      // Fallback to legacy priority bills if no campaigns
+      if (campaigns.length === 0 && groupData.priorityBills) {
+        console.log('Using legacy priority bills for', groupSlug);
+        for (const priorityBill of groupData.priorityBills) {
+          const matchingBill = allBills.find(bill => 
+            bill.congress === priorityBill.bill.congress &&
+            bill.type === priorityBill.bill.type &&
+            bill.number === priorityBill.bill.number
+          );
+          if (matchingBill) {
+            groupBills.push(matchingBill);
+            console.log('Found matching bill from priority:', matchingBill);
+          }
+        }
+      }
+    }
+
+    // Get individually watched bills
+    const individualBills = watchedBills.map(watchedBill => {
+      const found = allBills.find(bill => 
+        bill.congress === watchedBill.congress &&
+        bill.type === watchedBill.type &&
+        bill.number === watchedBill.number
+      );
+      if (found) {
+        console.log('Found individually watched bill:', found);
+      }
+      return found;
+    }).filter(Boolean) as FeedBill[];
+
+    console.log('Group bills:', groupBills.length, 'Individual bills:', individualBills.length);
+
+    // Combine and deduplicate
+    const combinedBills = [...groupBills, ...individualBills];
+    const uniqueBills = combinedBills.filter((bill, index, array) => 
+      array.findIndex(b => 
+        b.congress === bill.congress && 
+        b.type === bill.type && 
+        b.number === bill.number
+      ) === index
+    );
+
+    console.log('Final following bills:', uniqueBills);
+
+    // Sort by importance score (same as homepage)
+    return uniqueBills.sort((a, b) => b.importanceScore - a.importanceScore);
+  }, [allBills, watchedGroups, watchedBills]);
 
   if (loading) {
     return (
@@ -128,7 +112,7 @@ export default function FollowingPage() {
                 <div className="space-y-2">
                   <p className="text-lg font-medium">Loading Following Feed</p>
                   <p className="text-sm text-muted-foreground">
-                    Fetching bills from groups you're watching...
+                    Fetching bills you're following...
                   </p>
                 </div>
               </div>
@@ -147,7 +131,10 @@ export default function FollowingPage() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Error loading following feed: {error}
+                Error loading bills: {error?.message || 'Unknown error'}
+                <Button onClick={() => refetch()} className="mt-2">
+                  Retry
+                </Button>
               </AlertDescription>
             </Alert>
           </div>
@@ -197,23 +184,16 @@ export default function FollowingPage() {
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-2xl mx-auto">
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">Following ({bills.length})</h1>
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/groups">
-                  Manage Groups
-                </Link>
-              </Button>
-            </div>
-            {bills.length > 0 ? (
-              bills.map((bill, index) => (
+            <h1 className="text-2xl font-bold">Following ({followingBills.length})</h1>
+            {followingBills.length > 0 ? (
+              followingBills.map((bill, index) => (
                 <BillFeedCard key={`${bill.congress}-${bill.type}-${bill.number}`} bill={bill} index={index} />
               ))
             ) : (
               <Card>
                 <CardContent className="py-8 text-center">
                   <p className="text-muted-foreground">
-                    The groups you're following don't have any priority bills yet.
+                    No bills to show. Watch individual bills or follow groups to see content here.
                   </p>
                 </CardContent>
               </Card>
