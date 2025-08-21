@@ -5,6 +5,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { billTitle, billSummary, userStance, tone, personalData } = body;
 
+    // Validate required fields
+    if (!billTitle || !billSummary || !userStance || !tone) {
+      return NextResponse.json(
+        { error: 'Missing required fields: billTitle, billSummary, userStance, and tone are required' },
+        { status: 400 }
+      );
+    }
+
     // Use Google AI Gemini API directly
     const apiKey = process.env.GOOGLE_GENAI_API_KEY;
     if (!apiKey) {
