@@ -11,7 +11,6 @@ import { Switch } from './ui/switch';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Mail, Send, ThumbsUp, ThumbsDown, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { generateAdvocacyMessage } from '@/ai/flows/generate-advocacy-message-flow';
 
 interface PersonalData {
   fullName: boolean;
@@ -72,17 +71,33 @@ const MessageComposition: React.FC<MessageCompositionProps> = ({
         const capitalizedStance = userStance.charAt(0).toUpperCase() + userStance.slice(1);
         const capitalizedTone = tone.charAt(0).toUpperCase() + tone.slice(1);
 
-        const result = await generateAdvocacyMessage({
+        const response = await fetch('/api/ai/generate-advocacy-message', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             billTitle,
             billSummary,
             userStance: capitalizedStance as 'Support' | 'Oppose',
             tone: capitalizedTone as 'Formal' | 'Passionate' | 'Personal',
             personalData: {
-                fullName: personalData.fullName,
-                address: personalData.address,
+              fullName: personalData.fullName,
+              address: personalData.address,
             }
+          }),
         });
-        setMessage(result);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        setMessage(data.message);
     } catch(e) {
         console.error("Error generating message", e);
         setValidationErrors(['There was an error generating the message. Please try again.']);

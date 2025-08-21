@@ -8,7 +8,7 @@ import { notFound } from 'next/navigation';
 async function getBills(congress: string): Promise<Bill[]> {
   // This assumes the app is running on localhost, which is fine for dev.
   // In a real deployment, you'd use a relative URL or an env var for the base URL.
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3006';
   const url = `${baseUrl}/api/bills/${congress}`;
 
   try {

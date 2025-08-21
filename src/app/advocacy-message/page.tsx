@@ -15,7 +15,6 @@ import { Sparkles, Loader2, AlertCircle, User, Search, X, CheckCircle, Mail, Shi
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
-import { generateAdvocacyMessage } from '@/ai/flows/generate-advocacy-message-flow';
 import Link from 'next/link';
 import type { Member, Bill, Sponsor } from '@/types';
 
@@ -259,19 +258,37 @@ const AdvocacyMessageContent: React.FC = () => {
     setIsGenerating(true);
 
     try {
-      const result = await generateAdvocacyMessage({
-        billTitle: bill?.shortTitle || bill?.title || 'this legislation',
-        billSummary: bill?.summaries?.summary?.text || 'This bill addresses important issues.',
-        userStance: userStance.charAt(0).toUpperCase() + userStance.slice(1) as 'Support' | 'Oppose',
-        tone: 'Formal',
-        personalData: {
-          fullName: selectedPersonalData.includes('fullName'),
-          address: selectedPersonalData.includes('fullAddress'),
-        }
+      const response = await fetch('/api/ai/generate-advocacy-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          billTitle: bill?.shortTitle || bill?.title || 'this legislation',
+          billSummary: bill?.summaries?.summary?.text || 'This bill addresses important issues.',
+          userStance: userStance.charAt(0).toUpperCase() + userStance.slice(1) as 'Support' | 'Oppose',
+          tone: 'Formal',
+          personalData: {
+            fullName: selectedPersonalData.includes('fullName'),
+            address: selectedPersonalData.includes('fullAddress'),
+          }
+        }),
       });
-      setMessage(result);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setMessage(data.message);
     } catch(e) {
       console.error("Error generating message", e);
+      // Show user-friendly error
+      alert('Failed to generate AI message. Please try again or write your message manually.');
     } finally {
       setIsGenerating(false);
     }

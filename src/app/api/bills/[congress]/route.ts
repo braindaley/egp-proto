@@ -2,8 +2,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export async function GET(req: NextRequest, { params }: { params: { congress: string } }) {
-  const { congress } = params;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ congress: string }> }) {
+  const { congress } = await params;
   const API_KEY = process.env.CONGRESS_API_KEY;
   const { searchParams } = new URL(req.url);
   const subject = searchParams.get('subject');
