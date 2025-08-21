@@ -439,6 +439,7 @@ export interface FeedBill {
   sponsorFullName: string;
   sponsorImageUrl: string | null;
   committeeName: string;
+  subjects?: string[];
   status: string;
   importanceScore: number;
   summary?: string;

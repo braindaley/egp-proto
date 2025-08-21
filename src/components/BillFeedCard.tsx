@@ -153,10 +153,23 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                 {/* Bill number and issues on same line */}
                 <div className="flex items-center gap-3 mb-3 flex-wrap">
                     <Badge variant="outline" className="shrink-0 font-semibold">{bill.billNumber}</Badge>
-                    <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                         <Tags className="h-4 w-4 shrink-0" />
-                        <span>{bill.committeeName}</span>
-                    </span>
+                        <div className="flex flex-wrap gap-1">
+                            {bill.subjects && bill.subjects.length > 0 ? (
+                                bill.subjects.slice(0, 2).map((subject, index) => (
+                                    <Badge key={index} variant="secondary" className="text-xs">
+                                        {subject}
+                                    </Badge>
+                                ))
+                            ) : (
+                                <span>General Legislation</span>
+                            )}
+                            {bill.subjects && bill.subjects.length > 2 && (
+                                <span className="text-xs text-muted-foreground">+{bill.subjects.length - 2} more</span>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Bill title */}

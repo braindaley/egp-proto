@@ -103,7 +103,9 @@ const API_SUBJECT_MAPPINGS: Record<string, string> = {
   'Research and development': 'Science',
   'Water Resources Development': 'Science',
   'Water policy': 'Science',
-  'Water management': 'Science'
+  'Water management': 'Science',
+  'Advanced technology and technological innovations': 'Science',
+  'Computers and information technology': 'Science'
 };
 
 // API subject structure interfaces

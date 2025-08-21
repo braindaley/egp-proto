@@ -15,6 +15,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import type { FeedBill, Bill } from '@/types';
+import { mapApiSubjectToAllowed } from '@/lib/subjects';
 
 async function fetchBill(congress: number, type: string, number: string): Promise<Bill | null> {
   try {
@@ -28,6 +29,20 @@ async function fetchBill(congress: number, type: string, number: string): Promis
 }
 
 function convertBillToFeedBill(bill: Bill): FeedBill {
+  // Extract subjects from the bill 
+  const rawSubjects = bill.subjects?.items?.map(subject => 
+    typeof subject === 'string' ? subject : subject?.name
+  ).filter(name => name && typeof name === 'string') || ['General Legislation'];
+
+  // Map API subjects to our standardized categories
+  const mappedSubjects = rawSubjects
+    .map(subject => mapApiSubjectToAllowed(subject))
+    .filter(Boolean) as string[];
+  
+  // Remove duplicates and ensure we have at least one subject
+  const finalSubjects = [...new Set(mappedSubjects)];
+  const subjects = finalSubjects.length > 0 ? finalSubjects : ['General Legislation'];
+
   return {
     ...bill,
     billNumber: `${bill.type} ${bill.number}`,
@@ -36,6 +51,7 @@ function convertBillToFeedBill(bill: Bill): FeedBill {
     sponsorParty: bill.sponsors?.[0]?.party || 'Unknown',
     sponsorImageUrl: null,
     committeeName: bill.committees?.items?.[0]?.name || 'Unknown',
+    subjects: subjects,
     summary: bill.allSummaries?.[0]?.text || '',
     latestAction: bill.actions?.items?.[0] ? {
       actionDate: bill.actions.items[0].actionDate,
@@ -52,17 +68,42 @@ function convertBillToFeedBill(bill: Bill): FeedBill {
 export default function FollowingPage() {
   const { user, loading: authLoading, isInitialLoadComplete } = useAuth();
   const router = useRouter();
+  
+  // Early redirect check - redirect immediately if we know user is not authenticated
+  useEffect(() => {
+    if (isInitialLoadComplete && !authLoading && !user) {
+      router.push('/login?returnTo=/following');
+      return;
+    }
+  }, [user, authLoading, isInitialLoadComplete, router]);
+
+  // Early return if user is definitely not authenticated to prevent unnecessary hook calls
+  if (isInitialLoadComplete && !authLoading && !user) {
+    return (
+      <div className="bg-secondary/30 flex-1">
+        <div className="container mx-auto px-4 py-8 md:py-12">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center space-y-4">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                <div className="space-y-2">
+                  <p className="text-lg font-medium">Redirecting...</p>
+                  <p className="text-sm text-muted-foreground">
+                    Taking you to login...
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const { watchedGroups } = useWatchedGroups();
   const { watchedBills } = useWatchedBills();
   const { data: allBills = [], isLoading: loading, error, refetch } = useBills();
   const [additionalBills, setAdditionalBills] = useState<FeedBill[]>([]);
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (isInitialLoadComplete && !authLoading && !user) {
-      router.push('/login?returnTo=/following');
-    }
-  }, [user, authLoading, isInitialLoadComplete, router]);
 
   console.log('Debug Following Page:', {
     watchedGroups,
@@ -237,11 +278,6 @@ export default function FollowingPage() {
         </div>
       </div>
     );
-  }
-
-  // Return early if user is not authenticated (redirect will happen in useEffect)
-  if (!user) {
-    return null;
   }
 
   if (loading) {

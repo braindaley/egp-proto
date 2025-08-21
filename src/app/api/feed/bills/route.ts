@@ -4,6 +4,7 @@ import type { Bill, CongressApiResponse, FeedBill, Sponsor, Summary, Cosponsor, 
 import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, doc, where } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { convert } from 'html-to-text';
+import { mapApiSubjectToAllowed } from '@/lib/subjects';
 
 // This function determines a simplified status of the bill
 function getBillStatus(latestActionText: string): string {
@@ -172,9 +173,10 @@ async function fetchBillDetails(congress: number, type: string, number: number, 
         }
     }
 
-    // Extract subjects
+    // Extract subjects - fetch from separate endpoint if needed
     let subjects: string[] = [];
     try {
+      // Check if we have embedded subjects data
       if (bill.subjects?.policyArea?.name) {
         subjects.push(bill.subjects.policyArea.name);
       }
@@ -185,6 +187,29 @@ async function fetchBillDetails(congress: number, type: string, number: number, 
           .slice(0, 3);
         subjects.push(...legSubjects);
       }
+      
+      // If no embedded subjects but we have a subjects URL, fetch them
+      if (subjects.length === 0 && bill.subjects?.url) {
+        try {
+          const subjectsRes = await fetch(`${bill.subjects.url}&api_key=${API_KEY}`);
+          if (subjectsRes.ok) {
+            const subjectsData = await subjectsRes.json();
+            
+            if (subjectsData.subjects?.policyArea?.name) {
+              subjects.push(subjectsData.subjects.policyArea.name);
+            }
+            if (subjectsData.subjects?.legislativeSubjects && Array.isArray(subjectsData.subjects.legislativeSubjects)) {
+              const legSubjects = subjectsData.subjects.legislativeSubjects
+                .map((s: any) => s?.name)
+                .filter(Boolean)
+                .slice(0, 3);
+              subjects.push(...legSubjects);
+            }
+          }
+        } catch (fetchError) {
+          console.warn(`Failed to fetch subjects for ${bill.type} ${bill.number}:`, fetchError);
+        }
+      }
     } catch (subjectError) {
       console.warn('Error parsing subjects:', subjectError);
     }
@@ -193,11 +218,19 @@ async function fetchBillDetails(congress: number, type: string, number: number, 
       subjects = ['General Legislation'];
     }
     
+    // Map API subjects to our standardized categories
+    const mappedSubjects = subjects
+      .map(subject => mapApiSubjectToAllowed(subject))
+      .filter(Boolean) as string[];
+    
+    // Remove duplicates and ensure we have at least one subject
+    const finalSubjects = [...new Set(mappedSubjects)];
+    
     return {
       sponsors: bill.sponsors || [],
       cosponsors: bill.cosponsors,
       title: bill.title,
-      subjects,
+      subjects: finalSubjects.length > 0 ? finalSubjects : ['General Legislation'],
       summary: summaryText,
     };
   } catch (error: unknown) {
@@ -254,9 +287,9 @@ export async function GET(req: NextRequest) {
 
       console.log(`Cache is stale or empty for Congress ${latestCongress}. Fetching new data from Congress API.`);
 
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const updatedSince = thirtyDaysAgo.toISOString().split('T')[0];
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const updatedSince = ninetyDaysAgo.toISOString().split('T')[0];
       const listUrl = `https://api.congress.gov/v3/bill/${latestCongress}?updatedSince=${updatedSince}&limit=50&sort=updateDate+desc&api_key=${API_KEY}`;
       
       const listRes = await fetch(listUrl, { next: { revalidate: 600 } });
@@ -323,6 +356,7 @@ export async function GET(req: NextRequest) {
               sponsorFullName,
               sponsorImageUrl,
               committeeName: Array.isArray(billDetails.subjects) ? billDetails.subjects.join(', ') : 'General Legislation',
+              subjects: Array.isArray(billDetails.subjects) ? billDetails.subjects : ['General Legislation'],
               status: status,
               importanceScore,
               summary: billDetails.summary,
@@ -363,7 +397,8 @@ export async function GET(req: NextRequest) {
                     sponsorImageUrl: bill.sponsorImageUrl || null,
                     sponsorFullName: bill.sponsorFullName || 'Unknown',
                     sponsorParty: bill.sponsorParty || 'N/A',
-                    committeeName: bill.committeeName || 'General Legislation'
+                    committeeName: bill.committeeName || 'General Legislation',
+                    subjects: (bill.subjects && bill.subjects.length > 0) ? bill.subjects : ['General Legislation']
                 };
                 
                 batch.set(docRef, {
