@@ -5,31 +5,24 @@ import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
+// Use ISR with 1 hour revalidation
+export const revalidate = 3600; // revalidate every hour
+
 async function getBills(congress: string): Promise<Bill[]> {
-  // This assumes the app is running on localhost, which is fine for dev.
-  // In a real deployment, you'd use a relative URL or an env var for the base URL.
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3006';
-  const url = `${baseUrl}/api/bills/${congress}`;
-
+  // For server components, we can use the cache directly
+  const { fetchBillsWithCache } = await import('@/lib/bills-cache');
+  
   try {
-    const res = await fetch(url, { next: { revalidate: 3600 } });
+    const { bills, fromCache, cacheAge } = await fetchBillsWithCache(congress, {
+      limit: 20,
+      sort: 'updateDate+desc'
+    });
     
-    if (!res.ok) {
-      console.error(`Internal API request for bills failed: ${res.status}`);
-      // If the congress doesn't exist, the API returns a 404
-      if (res.status === 404) {
-        notFound();
-      }
-      throw new Error(`Failed to fetch bill list: ${res.statusText}`);
-    }
+    console.log(`[Recent Bills Page] Congress ${congress} - Cache: ${fromCache ? 'HIT' : 'MISS'}, Age: ${cacheAge}s`);
     
-    const data: CongressApiResponse = await res.json();
-    return data.bills || [];
-
+    return bills;
   } catch (error) {
-    if (error.name !== 'NotFoundError') {
-        console.error(`Error fetching bills for congress ${congress}:`, error);
-    }
+    console.error(`Error fetching bills for congress ${congress}:`, error);
     // Return empty array on error to prevent crashes, the UI will show a message.
     return [];
   }

@@ -1,0 +1,35 @@
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Increase Node.js memory for builds
+  NODE_OPTIONS = "--max_old_space_size=4096"
+
+# Scheduled function to warm cache every hour
+# Note: Scheduled functions require Netlify Pro or above
+# For free tier, you can use external cron services to trigger the function
+[[functions]]
+  schedule = "@hourly"
+  # Alternative cron syntax: "0 * * * *" (every hour)
+
+[functions."warm-cache"]
+  schedule = "@hourly"
+
+# Environment variables for cache revalidation
+[context.production.environment]
+  CACHE_REVALIDATION_SECRET = "your-secret-key-here"
+
+# Headers for better caching
+[[headers]]
+  for = "/api/bills/*"
+  [headers.values]
+    Cache-Control = "public, s-maxage=3600, stale-while-revalidate=7200"
+    
+[[headers]]
+  for = "/bill/*/recent"
+  [headers.values]
+    Cache-Control = "public, s-maxage=3600, stale-while-revalidate=7200"
