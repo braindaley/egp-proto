@@ -23,7 +23,7 @@ describe('UserVerificationModal Component', () => {
   const mockOnClose = jest.fn();
 
   const defaultProps = {
-    isOpen: true,
+    open: true,
     onClose: mockOnClose,
     onVerified: mockOnVerified
   };
@@ -33,15 +33,15 @@ describe('UserVerificationModal Component', () => {
   });
 
   describe('initial render', () => {
-    it('should render modal when isOpen is true', () => {
+    it('should render modal when open is true', () => {
       render(<UserVerificationModal {...defaultProps} />);
       
       expect(screen.getByText('Verify Your Identity')).toBeInTheDocument();
       expect(screen.getByText('Please provide your information to verify your identity with your representatives.')).toBeInTheDocument();
     });
 
-    it('should not render modal when isOpen is false', () => {
-      render(<UserVerificationModal {...defaultProps} isOpen={false} />);
+    it('should not render modal when open is false', () => {
+      render(<UserVerificationModal {...defaultProps} open={false} />);
       
       expect(screen.queryByText('Verify Your Identity')).not.toBeInTheDocument();
     });

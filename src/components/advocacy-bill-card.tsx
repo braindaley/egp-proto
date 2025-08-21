@@ -155,7 +155,7 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
             open={showVerificationModal}
             onClose={() => setShowVerificationModal(false)}
             onVerified={handleVerificationComplete}
-            onSkip={handleVerificationSkip}
+            onLogin={handleVerificationSkip}
         />
         </>
     );

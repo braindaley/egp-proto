@@ -280,7 +280,7 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
             open={showVerificationModal}
             onClose={() => setShowVerificationModal(false)}
             onVerified={handleVerificationComplete}
-            onSkip={handleVerificationSkip}
+            onLogin={handleVerificationSkip}
         />
         </>
     );

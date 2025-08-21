@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2, AlertCircle, Check, ChevronLeft } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
 
 interface VerificationMatch {
   id: string;
@@ -23,15 +24,16 @@ interface UserVerificationModalProps {
   open: boolean;
   onClose: () => void;
   onVerified: (userInfo: VerificationMatch) => void;
-  onSkip?: () => void;
+  onLogin?: () => void;
 }
 
 export function UserVerificationModal({ 
   open, 
   onClose, 
   onVerified,
-  onSkip 
+  onLogin 
 }: UserVerificationModalProps) {
+  const router = useRouter();
   const [step, setStep] = useState<'initial' | 'selection' | 'manual'>('initial');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -159,6 +161,14 @@ export function UserVerificationModal({
     setError('');
   };
 
+  const handleLogin = () => {
+    if (onLogin) {
+      onLogin();
+    } else {
+      router.push('/login?returnTo=' + encodeURIComponent(window.location.pathname));
+    }
+  };
+
   const renderInitialStep = () => (
     <>
       <DialogHeader>
@@ -222,11 +232,9 @@ export function UserVerificationModal({
         </div>
         
         <div className="flex justify-between pt-4">
-          {onSkip && (
-            <Button variant="ghost" onClick={onSkip}>
-              Skip Verification
-            </Button>
-          )}
+          <Button variant="ghost" onClick={handleLogin}>
+            Already have an account? Login
+          </Button>
           <Button 
             onClick={handleInitialSubmit}
             disabled={isLoading}

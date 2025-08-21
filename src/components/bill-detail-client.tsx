@@ -482,7 +482,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
         open={showVerificationModal}
         onClose={() => setShowVerificationModal(false)}
         onVerified={handleVerificationComplete}
-        onSkip={handleVerificationSkip}
+        onLogin={handleVerificationSkip}
       />
     </div>
   );
