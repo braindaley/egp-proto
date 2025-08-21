@@ -19,6 +19,9 @@ import { Loader2, ArrowLeft, Download, Filter, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { campaignsService, type Campaign } from '@/lib/campaigns';
 
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic';
+
 export default function EditCampaignPage({ params }: { params: { id: string } }) {
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();

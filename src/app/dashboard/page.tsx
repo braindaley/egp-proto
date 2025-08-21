@@ -9,6 +9,9 @@ import Link from 'next/link';
 import MessageHistory from '@/components/dashboard/MessageHistory';
 import ProfileManager from '@/components/ProfileManager';
 
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic';
+
 export default function DashboardPage() {
     const { user, loading, logout } = useAuth();
     const [showEditProfile, setShowEditProfile] = useState(false);

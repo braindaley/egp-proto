@@ -16,6 +16,9 @@ import Link from 'next/link';
 import { campaignsService, type Campaign } from '@/lib/campaigns';
 import { ExternalLink, Edit2, Trash2, Loader2 } from 'lucide-react';
 
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic';
+
 const advocacyGroups = [
     { name: 'League of Women Voters', slug: 'league-of-women-voters' },
     { name: 'Brennan Center for Justice', slug: 'brennan-center-for-justice' },

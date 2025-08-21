@@ -21,6 +21,9 @@ import { campaignsService } from '@/lib/campaigns';
 import type { Bill } from '@/types';
 import debounce from 'lodash/debounce';
 
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic';
+
 const advocacyGroups = [
     { name: 'League of Women Voters', slug: 'league-of-women-voters' },
     { name: 'Brennan Center for Justice', slug: 'brennan-center-for-justice' },
