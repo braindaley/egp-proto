@@ -34,11 +34,24 @@ export default function BillDetailPage() {
   }
 
   if (error) {
+    const isTemporaryError = error?.message?.includes('technical difficulties') || 
+                            error?.message?.includes('try again later');
+    
     return (
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="flex items-center justify-center py-12">
-          <div className="text-center text-red-500">
-            <div>Error loading bill: {error?.message || 'Unknown error'}</div>
+          <div className="text-center max-w-md">
+            <div className={`text-lg font-medium mb-4 ${isTemporaryError ? 'text-yellow-600' : 'text-red-500'}`}>
+              {isTemporaryError ? 'Service Temporarily Unavailable' : 'Error Loading Bill'}
+            </div>
+            <div className="text-gray-600 mb-4">
+              {error?.message || 'Unknown error occurred while loading the bill details.'}
+            </div>
+            {isTemporaryError && (
+              <div className="text-sm text-gray-500">
+                This is a temporary issue with the Congress.gov data service. Please try refreshing the page in a few minutes.
+              </div>
+            )}
           </div>
         </div>
       </div>

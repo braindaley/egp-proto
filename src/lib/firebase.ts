@@ -3,17 +3,14 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
-// IMPORTANT: Replace the placeholder values with your actual Firebase project configuration.
-// You can find this in your project's settings in the Firebase console.
+// Firebase configuration using environment variables
 const firebaseConfig = {
-  "projectId": "egut-with-api",
-  "appId": "1:891405266254:web:c03357060ea337cb1e421f",
-  "storageBucket": "egut-with-api.firebasestorage.app",
-  "apiKey": "AIzaSyDpn3QKPct12ZUwFwbLEQolbd4aGD-eyto",
-  "authDomain": "egut-with-api.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "891405266254",
-  "databaseURL": "https://egut-with-api.firebaseio.com"
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
 };
 
 let app: FirebaseApp;

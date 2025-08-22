@@ -28,6 +28,11 @@ service cloud.firestore {
         allow read, write: if true; // In production, you'd likely restrict write access
     }
     
+    // Allow read/write access to cache metadata
+    match /cache_metadata/{docId} {
+        allow read, write: if true; // Metadata about cache refresh status
+    }
+    
     // Allow public read access to campaigns, but only authenticated users can write
     match /campaigns/{campaignId} {
       allow read: if true;  // Public read access for campaigns

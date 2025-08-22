@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import { BillCard } from '@/components/bill-card';
 import { getAllowedSubjectsForFilter } from '@/lib/subjects';
 import type { Bill } from '@/types';
@@ -333,6 +333,7 @@ function IssuesClient({ congress }: { congress: string }) {
   );
 }
 
-export default function IssuesPage({ params }: { params: { congress: string } }) {
-  return <IssuesClient congress={params.congress} />;
+export default function IssuesPage({ params }: { params: Promise<{ congress: string }> }) {
+  const resolvedParams = use(params);
+  return <IssuesClient congress={resolvedParams.congress} />;
 }

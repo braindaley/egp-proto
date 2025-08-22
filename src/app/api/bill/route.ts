@@ -2,10 +2,31 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Bill, Subject, PolicyArea } from '@/types';
 import { filterAllowedSubjects, mapApiSubjectToAllowed } from '@/lib/subjects';
+import { adminDb } from '@/lib/firebase-admin';
 
 // Type for API responses
 interface ApiResponse {
   [key: string]: any;
+}
+
+// Interface for cached bill data
+interface CachedBill {
+  id: string;
+  congress: number;
+  number: string;
+  type: string;
+  title: string;
+  url: string;
+  updateDate: string;
+  originChamber: string;
+  originChamberCode: string;
+  latestAction: {
+    actionDate: string;
+    text: string;
+  };
+  subjects: string[];
+  apiSubjects: string[];
+  lastCached: string;
 }
 
 interface TitlesResponse {
@@ -53,6 +74,90 @@ interface SubjectsResponse {
   };
 }
 
+// Transform cached bill to full Bill format
+function transformCachedBillToBill(cachedBillDoc: any): Bill {
+  // Handle the nested structure from cache
+  const billData = cachedBillDoc.billData || cachedBillDoc;
+  const subjects = cachedBillDoc.subjects || [];
+  const type = billData.type || '';
+  const latestAction = billData.latestAction || { actionDate: '', text: '' };
+  const sponsor = billData.sponsorFullName ? [{
+    fullName: billData.sponsorFullName,
+    party: billData.sponsorParty || '',
+    state: billData.sponsorState || '',
+    bioguideId: billData.sponsorBioguideId || '',
+    imageUrl: billData.sponsorImageUrl || ''
+  }] : [];
+  
+  return {
+    congress: billData.congress || 0,
+    number: billData.number || '',
+    type: type,
+    title: billData.shortTitle || '',
+    shortTitle: billData.shortTitle || `${type.toUpperCase()} ${billData.number}`,
+    url: cachedBillDoc.url || '',
+    latestAction: latestAction,
+    updateDate: cachedBillDoc.updateDate || '',
+    originChamber: cachedBillDoc.originChamber || '',
+    introducedDate: cachedBillDoc.updateDate || latestAction.actionDate || '',
+    originChamberCode: cachedBillDoc.originChamberCode || '',
+    sponsors: sponsor,
+    cosponsors: { count: 0, items: [], url: '' },
+    committees: { count: 0, items: [] },
+    subjects: { 
+      count: subjects.length, 
+      items: subjects.map((name: string) => ({ name }))
+    },
+    summaries: { count: 0 },
+    allSummaries: [],
+    actions: { count: 1, items: [latestAction] },
+    relatedBills: { count: 0, items: [] },
+    amendments: { count: 0, items: [] },
+    textVersions: { count: 0, items: [] }
+  };
+}
+
+// Try to get bill from cache
+async function tryGetBillFromCache(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
+  try {
+    const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
+    console.log(`🔍 Checking cache for bill: ${billId}`);
+    
+    const doc = await adminDb.collection('cached_bills').doc(billId).get();
+    
+    if (doc.exists) {
+      const cachedBill = doc.data() as CachedBill;
+      console.log(`✅ Found cached bill: ${billId}`);
+      return transformCachedBillToBill(cachedBill);
+    }
+    
+    console.log(`❌ No cached bill found: ${billId}`);
+    
+    // For development, let's list available cached bills to see what we have
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        // Check specifically for Senate bills
+        const senateBills = await adminDb.collection('cached_bills').where('__name__', '>=', `${congress}-S-`).where('__name__', '<', `${congress}-S-\uf8ff`).limit(10).get();
+        const senateIds = senateBills.docs.map(doc => doc.id);
+        if (senateIds.length > 0) {
+          console.log(`🏛️ Available Senate bills: ${senateIds.join(', ')}`);
+        }
+        
+        const billsSnapshot = await adminDb.collection('cached_bills').limit(5).get();
+        const availableBills = billsSnapshot.docs.map(doc => doc.id);
+        console.log(`📋 Sample cached bills: ${availableBills.join(', ')}`);
+      } catch (listError) {
+        console.log('❌ Could not list cached bills:', listError);
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching from cache:', error);
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const congress = searchParams.get('congress');
@@ -61,25 +166,99 @@ export async function GET(req: NextRequest) {
 
   const API_KEY = process.env.CONGRESS_API_KEY;
 
-  if (!congress || !billType || !billNumber || !API_KEY) {
+  if (!congress || !billType || !billNumber) {
     return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+  }
+
+  // Try cache first for faster response
+  console.log(`🔍 Attempting to fetch bill: ${congress}-${billType}-${billNumber}`);
+  const cachedBill = await tryGetBillFromCache(congress, billType, billNumber);
+  
+  if (cachedBill) {
+    console.log('✅ Serving from cache');
+    const response = NextResponse.json(cachedBill);
+    response.headers.set('X-Data-Source', 'cache');
+    return response;
+  }
+
+  if (!API_KEY) {
+    return NextResponse.json({ 
+      error: 'Congress API key not configured and no cached data available' 
+    }, { status: 503 });
   }
   
   const baseUrl = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}`;
 
   try {
-    const basicUrl = `${baseUrl}?embed=sponsors&api_key=${API_KEY}`;
+    const basicUrl = `${baseUrl}?api_key=${API_KEY}`;
+    console.log(`📡 Fetching from Congress API: ${basicUrl.replace(API_KEY, '[REDACTED]')}`);
+    console.log(`📡 API Key length: ${API_KEY.length}, starts with: ${API_KEY.substring(0, 4)}...`);
     
-    const basicRes = await fetch(basicUrl, {
+    let basicRes = await fetch(basicUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; Next.js)'
+      },
+      redirect: 'manual',
       next: { revalidate: 3600 },
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(10000)
     });
+
+    // Handle redirect manually to avoid infinite redirect loops
+    let redirectCount = 0;
+    while (basicRes.status >= 300 && basicRes.status < 400 && redirectCount < 3) {
+      const redirectUrl = basicRes.headers.get('Location');
+      if (redirectUrl) {
+        redirectCount++;
+        console.log(`📡 Following redirect ${redirectCount} to: ${redirectUrl.replace(API_KEY, '[REDACTED]')}`);
+        basicRes = await fetch(redirectUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; Next.js)'
+          },
+          redirect: 'manual',
+          signal: AbortSignal.timeout(10000)
+        });
+      } else {
+        break;
+      }
+    }
 
     if (!basicRes.ok) {
         console.error(`Basic API request failed: ${basicRes.status}`);
+        const errorText = await basicRes.text().catch(() => 'Unknown error');
+        console.error(`Response status: ${basicRes.status}, headers:`, Object.fromEntries(basicRes.headers));
+        console.error('Congress API Error Response:', errorText);
+        
+        // Check if it's a known Congress API database error
+        if (errorText.includes('column law.law_passage_type_id does not exist') || 
+            errorText.includes('ProgrammingError')) {
+            
+            // Try to get from cache as fallback
+            console.log('🔄 Congress API down, trying cache fallback...');
+            const cachedBill = await tryGetBillFromCache(congress, billType, billNumber);
+            
+            if (cachedBill) {
+                console.log('✅ Serving cached bill data');
+                const response = NextResponse.json(cachedBill);
+                response.headers.set('X-Data-Source', 'cache-fallback');
+                response.headers.set('X-Cache-Warning', 'Congress API temporarily unavailable');
+                return response;
+            }
+            
+            return NextResponse.json({ 
+                error: 'The Congress.gov API is currently experiencing technical difficulties. Please try again later.',
+                details: 'Congress API database error',
+                temporary: true
+            }, { status: 503 });
+        }
+        
         return NextResponse.json({ error: 'Failed to fetch bill details' }, { status: basicRes.status });
     }
 
+    console.log(`✅ Congress API responded with status: ${basicRes.status}`);
     const basicData: ApiResponse = await basicRes.json();
     const bill: Bill = basicData.bill;
     
@@ -126,7 +305,7 @@ export async function GET(req: NextRequest) {
     // Summaries
     if (bill.summaries && 'url' in bill.summaries && bill.summaries.url) {
         fetchPromises.push(
-            fetch(`${bill.summaries.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(4000) })
+            fetch(`${bill.summaries.url}`, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null)) // Gracefully handle failed requests
             .then((data: SummariesResponse | null) => {
                 const summaries = data?.summaries;
@@ -148,7 +327,7 @@ export async function GET(req: NextRequest) {
     // Actions
     if (bill.actions && 'url' in bill.actions && bill.actions.url) {
         fetchPromises.push(
-             fetch(`${bill.actions.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(4000) })
+             fetch(`${bill.actions.url}`, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: ActionsResponse | null) => {
                 if (data?.actions && Array.isArray(data.actions)) {
@@ -164,7 +343,7 @@ export async function GET(req: NextRequest) {
     // Committees
     if (bill.committees && 'url' in bill.committees && bill.committees.url) {
         fetchPromises.push(
-             fetch(`${bill.committees.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(4000) })
+             fetch(`${bill.committees.url}`, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: CommitteesResponse | null) => {
                 if (data?.committees && Array.isArray(data.committees)) {
@@ -180,7 +359,7 @@ export async function GET(req: NextRequest) {
     // Cosponsors
     if (bill.cosponsors && 'url' in bill.cosponsors && bill.cosponsors.url) {
         fetchPromises.push(
-             fetch(`${bill.cosponsors.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(4000) })
+             fetch(`${bill.cosponsors.url}`, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: any) => {
                 if (data?.cosponsors && Array.isArray(data.cosponsors)) {
@@ -196,7 +375,7 @@ export async function GET(req: NextRequest) {
     // Text Versions  
     if (bill.textVersions && 'url' in bill.textVersions && bill.textVersions.url) {
         fetchPromises.push(
-             fetch(`${bill.textVersions.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(4000) })
+             fetch(`${bill.textVersions.url}`, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: any) => {
                 if (data?.textVersions && Array.isArray(data.textVersions)) {
@@ -212,7 +391,7 @@ export async function GET(req: NextRequest) {
     // Related Bills
     if (bill.relatedBills && 'url' in bill.relatedBills && bill.relatedBills.url) {
         fetchPromises.push(
-             fetch(`${bill.relatedBills.url}&api_key=${API_KEY}`, { signal: AbortSignal.timeout(4000) })
+             fetch(`${bill.relatedBills.url}`, { signal: AbortSignal.timeout(4000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: any) => {
                 if (data?.relatedBills && Array.isArray(data.relatedBills)) {
@@ -229,7 +408,7 @@ export async function GET(req: NextRequest) {
     if (bill.subjects && 'url' in bill.subjects && bill.subjects.url) {
         const fetchAllSubjects = async (): Promise<void> => {
             let allSubjects: (Subject | PolicyArea)[] = [];
-            let nextUrl: string | undefined = `${bill.subjects.url}&api_key=${API_KEY}&limit=250`;
+            let nextUrl: string | undefined = `${bill.subjects.url}&limit=250`;
             
             while (nextUrl) {
                 try {
@@ -243,7 +422,7 @@ export async function GET(req: NextRequest) {
                     allSubjects.push(...legislativeSubjects, ...policyArea);
                     
                     // Check for pagination.next property
-                    nextUrl = data.pagination?.next ? `${data.pagination.next}&api_key=${API_KEY}` : undefined;
+                    nextUrl = data.pagination?.next ? data.pagination.next : undefined;
                 } catch (e: unknown) {
                     const errorMessage = e instanceof Error ? e.message : 'Unknown error';
                     console.log('A subject page fetch failed:', errorMessage);
@@ -296,6 +475,26 @@ export async function GET(req: NextRequest) {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error('Server API Error in bill detail route:', errorMessage);
-    return NextResponse.json({ error: 'Failed to fetch bill details' }, { status: 500 });
+    console.error('Full error details:', error);
+    
+    // Last resort: try cache again in case of API failures
+    console.log('🔄 API failed, trying cache fallback one more time...');
+    const fallbackBill = await tryGetBillFromCache(congress, billType, billNumber);
+    
+    if (fallbackBill) {
+      console.log('✅ Serving cached fallback data');
+      const response = NextResponse.json(fallbackBill);
+      response.headers.set('X-Data-Source', 'cache-fallback');
+      response.headers.set('X-API-Status', 'failed');
+      return response;
+    }
+    
+    // If nothing else works, return a structured error with helpful information
+    return NextResponse.json({ 
+      error: 'Failed to fetch bill details',
+      details: 'Both Congress API and cached data are unavailable',
+      billId: `${congress}-${billType.toUpperCase()}-${billNumber}`,
+      suggestion: 'This bill may not exist or may not be cached yet. Try again later.'
+    }, { status: 503 });
   }
 }

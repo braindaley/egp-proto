@@ -5,7 +5,23 @@ async function fetchBillDetail(congress: string, billType: string, billNumber: s
   const response = await fetch(`/api/bill?congress=${congress}&billType=${billType}&billNumber=${billNumber}`);
   
   if (!response.ok) {
-    throw new Error(`Failed to fetch bill: ${response.status}`);
+    let errorMessage = `Failed to fetch bill: ${response.status}`;
+    
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+      
+      // Handle specific 503 errors from Congress API
+      if (response.status === 503 && errorData.temporary) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // If we can't parse the error response, use the default message
+    }
+    
+    throw new Error(errorMessage);
   }
   
   return await response.json();

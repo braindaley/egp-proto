@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { Bill, Subject, PolicyArea } from '@/types';
-import { mapApiSubjectToAllowed, ALLOWED_SUBJECTS } from '@/lib/subjects';
+import { mapApiSubjectToAllowed, ALLOWED_SUBJECTS, getApiSubjectsForCategory } from '@/lib/subjects';
 
 interface CongressBill {
   congress: number;
@@ -82,62 +82,32 @@ function billMatchesSubjects(bill: CongressBill, requestedSubjects: string[]): {
   console.log(`   Requested: [${requestedSubjects.join(', ')}]`);
   console.log(`   Bill subjects: [${billSubjects.join(', ')}]`);
 
-  // Check for matches
+  // Check for matches by mapping API subjects to our categories
   for (const requestedSubject of requestedSubjects) {
+    let found = false;
+    
     for (const billSubject of billSubjects) {
-      // Exact match
-      if (billSubject === requestedSubject) {
-        console.log(`   ✅ EXACT MATCH: "${requestedSubject}"`);
+      // First try to map the bill's API subject to our category
+      const mappedCategory = mapApiSubjectToAllowed(billSubject);
+      
+      if (mappedCategory === requestedSubject) {
+        console.log(`   ✅ MAPPED MATCH: "${billSubject}" -> "${mappedCategory}" matches "${requestedSubject}"`);
         matchedSubjects.push(requestedSubject);
+        found = true;
         break;
       }
-      // Case insensitive match
-      else if (billSubject.toLowerCase() === requestedSubject.toLowerCase()) {
-        console.log(`   ✅ CASE MATCH: "${requestedSubject}"`);
+      
+      // Fallback to exact/case-insensitive matching
+      if (billSubject === requestedSubject || billSubject.toLowerCase() === requestedSubject.toLowerCase()) {
+        console.log(`   ✅ DIRECT MATCH: "${requestedSubject}"`);
         matchedSubjects.push(requestedSubject);
+        found = true;
         break;
       }
-      // Contains match
-      else if (billSubject.toLowerCase().includes(requestedSubject.toLowerCase()) ||
-               requestedSubject.toLowerCase().includes(billSubject.toLowerCase())) {
-        console.log(`   ⚠️ PARTIAL MATCH: "${requestedSubject}" <-> "${billSubject}"`);
-        matchedSubjects.push(requestedSubject);
-        break;
-      }
-      // Enhanced keyword matching for new categories
-      else if (requestedSubject.toLowerCase() === 'science' && 
-               (billSubject.toLowerCase().includes('animal') || 
-                billSubject.toLowerCase().includes('wildlife') ||
-                billSubject.toLowerCase().includes('energy') ||
-                billSubject.toLowerCase().includes('environment') ||
-                billSubject.toLowerCase().includes('technology') ||
-                billSubject.toLowerCase().includes('research'))) {
-        console.log(`   🔬 SCIENCE KEYWORD MATCH: "${requestedSubject}" found in "${billSubject}"`);
-        matchedSubjects.push(requestedSubject);
-        break;
-      }
-      else if (requestedSubject.toLowerCase() === 'economy & work' && 
-               (billSubject.toLowerCase().includes('economic') || 
-                billSubject.toLowerCase().includes('employment') ||
-                billSubject.toLowerCase().includes('labor') ||
-                billSubject.toLowerCase().includes('finance') ||
-                billSubject.toLowerCase().includes('commerce') ||
-                billSubject.toLowerCase().includes('agriculture'))) {
-        console.log(`   💼 ECONOMY KEYWORD MATCH: "${requestedSubject}" found in "${billSubject}"`);
-        matchedSubjects.push(requestedSubject);
-        break;
-      }
-      else if (requestedSubject.toLowerCase() === 'politics & policy' && 
-               (billSubject.toLowerCase().includes('government') || 
-                billSubject.toLowerCase().includes('congress') ||
-                billSubject.toLowerCase().includes('law') ||
-                billSubject.toLowerCase().includes('defense') ||
-                billSubject.toLowerCase().includes('security') ||
-                billSubject.toLowerCase().includes('crime'))) {
-        console.log(`   🏛️ POLITICS KEYWORD MATCH: "${requestedSubject}" found in "${billSubject}"`);
-        matchedSubjects.push(requestedSubject);
-        break;
-      }
+    }
+    
+    if (!found) {
+      console.log(`   ❌ NO MATCH for "${requestedSubject}"`);
     }
   }
 
@@ -234,83 +204,92 @@ export async function GET(request: Request) {
       for (const subject of subjectList) {
         console.log(`🔍 Getting candidates for subject: "${subject}"`);
 
-        // Try policyArea search
-        try {
-          const policyUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=100&sort=updateDate+desc&policyArea=${encodeURIComponent(subject)}`;
-          
-          console.log(`🔍 Searching policyArea for "${subject}"`);
-          
-          const response = await fetch(policyUrl, {
-            headers: { 'User-Agent': 'BillTracker/1.0' },
-          });
+        // Get the actual API subjects that map to this category
+        const apiSubjects = getApiSubjectsForCategory(subject);
+        console.log(`🔍 API subjects for "${subject}": [${apiSubjects.join(', ')}]`);
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.bills && data.bills.length > 0) {
-              console.log(`📋 Found ${data.bills.length} candidates for "${subject}" via policyArea`);
-              
-              // Add to candidates (remove duplicates by bill key)
-              data.bills.forEach((bill: CongressBill) => {
-                const key = `${bill.type}-${bill.number}`;
-                if (!candidateBills.find(b => `${b.type}-${b.number}` === key)) {
-                  candidateBills.push(bill);
-                }
-              });
+        // If we have mapped API subjects, search for those
+        const searchTerms = apiSubjects.length > 0 ? apiSubjects : [subject];
 
-              debugInfo.searchAttempts.push({
-                subject,
-                method: 'policyArea',
-                found: data.bills.length,
-                success: true
-              });
-              
-              continue; // Found candidates, try next subject
+        for (const searchTerm of searchTerms) {
+          // Try policyArea search
+          try {
+            const policyUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=100&sort=updateDate+desc&policyArea=${encodeURIComponent(searchTerm)}`;
+            
+            console.log(`🔍 Searching policyArea for "${searchTerm}"`);
+            
+            const response = await fetch(policyUrl, {
+              headers: { 'User-Agent': 'BillTracker/1.0' },
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.bills && data.bills.length > 0) {
+                console.log(`📋 Found ${data.bills.length} candidates for "${searchTerm}" via policyArea`);
+                
+                // Add to candidates (remove duplicates by bill key)
+                data.bills.forEach((bill: CongressBill) => {
+                  const key = `${bill.type}-${bill.number}`;
+                  if (!candidateBills.find(b => `${b.type}-${b.number}` === key)) {
+                    candidateBills.push(bill);
+                  }
+                });
+
+                debugInfo.searchAttempts.push({
+                  subject: `${subject} -> ${searchTerm}`,
+                  method: 'policyArea',
+                  found: data.bills.length,
+                  success: true
+                });
+                
+                continue; // Found candidates, try next search term
+              }
             }
+          } catch (error) {
+            console.log(`❌ policyArea search failed for "${searchTerm}":`, error);
           }
-        } catch (error) {
-          console.log(`❌ policyArea search failed for "${subject}":`, error);
-        }
 
-        // Try subject parameter search
-        try {
-          const subjectUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=100&sort=updateDate+desc&subject=${encodeURIComponent(subject)}`;
-          
-          console.log(`🔍 Searching subject param for "${subject}"`);
-          
-          const response = await fetch(subjectUrl, {
-            headers: { 'User-Agent': 'BillTracker/1.0' },
-          });
+          // Try subject parameter search
+          try {
+            const subjectUrl = `https://api.congress.gov/v3/bill/${congress}?api_key=${API_KEY}&format=json&limit=100&sort=updateDate+desc&subject=${encodeURIComponent(searchTerm)}`;
+            
+            console.log(`🔍 Searching subject param for "${searchTerm}"`);
+            
+            const response = await fetch(subjectUrl, {
+              headers: { 'User-Agent': 'BillTracker/1.0' },
+            });
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.bills && data.bills.length > 0) {
-              console.log(`📋 Found ${data.bills.length} candidates for "${subject}" via subject param`);
-              
-              // Add to candidates (remove duplicates)
-              data.bills.forEach((bill: CongressBill) => {
-                const key = `${bill.type}-${bill.number}`;
-                if (!candidateBills.find(b => `${b.type}-${b.number}` === key)) {
-                  candidateBills.push(bill);
-                }
-              });
+            if (response.ok) {
+              const data = await response.json();
+              if (data.bills && data.bills.length > 0) {
+                console.log(`📋 Found ${data.bills.length} candidates for "${searchTerm}" via subject param`);
+                
+                // Add to candidates (remove duplicates)
+                data.bills.forEach((bill: CongressBill) => {
+                  const key = `${bill.type}-${bill.number}`;
+                  if (!candidateBills.find(b => `${b.type}-${b.number}` === key)) {
+                    candidateBills.push(bill);
+                  }
+                });
 
-              debugInfo.searchAttempts.push({
-                subject,
-                method: 'subject',
-                found: data.bills.length,
-                success: true
-              });
+                debugInfo.searchAttempts.push({
+                  subject: `${subject} -> ${searchTerm}`,
+                  method: 'subject',
+                  found: data.bills.length,
+                  success: true
+                });
+              }
             }
+          } catch (error) {
+            console.log(`❌ subject search failed for "${searchTerm}":`, error);
+            debugInfo.searchAttempts.push({
+              subject: `${subject} -> ${searchTerm}`,
+              method: 'subject',
+              found: 0,
+              success: false,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
           }
-        } catch (error) {
-          console.log(`❌ subject search failed for "${subject}":`, error);
-          debugInfo.searchAttempts.push({
-            subject,
-            method: 'subject',
-            found: 0,
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error'
-          });
         }
       }
 
@@ -320,7 +299,7 @@ export async function GET(request: Request) {
       // Step 2: Fetch actual subjects for candidates and verify matches
       let verifiedBills: { bill: CongressBill, subjects: string[] }[] = [];
 
-      for (const candidate of candidateBills.slice(0, 50)) { // Limit to prevent timeouts
+      for (const candidate of candidateBills.slice(0, 25)) { // Limit to prevent timeouts
         debugInfo.candidatesChecked++;
         
         try {
@@ -382,7 +361,7 @@ export async function GET(request: Request) {
       const processedBills = verifiedBills
         .map(({ bill, subjects: assignedSubjects }) => transformApiBillToBill(bill, assignedSubjects));
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         bills: processedBills,
         pagination: {
           count: processedBills.length,
@@ -392,6 +371,11 @@ export async function GET(request: Request) {
         },
         debug: debugInfo
       });
+      
+      // Cache for 10 minutes since this is live data from Congress API
+      response.headers.set('Cache-Control', 'public, max-age=600, s-maxage=600');
+      response.headers.set('CDN-Cache-Control', 'public, max-age=600');
+      return response;
     }
 
   } catch (error) {

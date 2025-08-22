@@ -87,6 +87,12 @@ const API_SUBJECT_MAPPINGS: Record<string, string> = {
   
   // Religion
   'Arts, Culture, Religion': 'Religion',
+  'Religion': 'Religion',
+  'Religious liberty': 'Religion',
+  'Religious freedom': 'Religion',
+  'Faith-based': 'Religion',
+  'Church': 'Religion',
+  'Religious institutions': 'Religion',
   
   // Science
   'Animals': 'Science',
@@ -223,6 +229,9 @@ export function findMatchingAllowedSubject(subjectName: string): string | null {
     'religion': 'Religion',
     'faith': 'Religion',
     'church': 'Religion',
+    'antisemitism': 'Religion',
+    'religious': 'Religion',
+    'chaplain': 'Religion',
     'science': 'Science',
     'research': 'Science',
     'technology': 'Science',
@@ -256,4 +265,17 @@ export function mapApiSubjectToAllowed(apiSubjectName: string): string | null {
   
   // Try fuzzy matching
   return findMatchingAllowedSubject(apiSubjectName);
+}
+
+// Function to get API subject names that map to a given allowed category
+export function getApiSubjectsForCategory(category: string): string[] {
+  const apiSubjects: string[] = [];
+  
+  for (const [apiSubject, mappedCategory] of Object.entries(API_SUBJECT_MAPPINGS)) {
+    if (mappedCategory === category) {
+      apiSubjects.push(apiSubject);
+    }
+  }
+  
+  return apiSubjects;
 }

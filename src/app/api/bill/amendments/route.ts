@@ -29,7 +29,10 @@ export async function GET(request: NextRequest) {
     const url = `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}/amendments?api_key=${apiKey}&limit=250`;
 
     try {
-        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const res = await fetch(url, { 
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(5000)
+        });
 
         if (!res.ok) {
             if (res.status === 404) {
@@ -47,7 +50,14 @@ export async function GET(request: NextRequest) {
 
     } catch (error) {
         console.error('Error fetching bill amendments:', error);
-        return NextResponse.json({ error: 'Failed to fetch bill amendments' }, { status: 500 });
+        
+        // Return empty amendments for fetch failures rather than 500
+        // This prevents the UI from breaking when amendments can't be fetched
+        return NextResponse.json({ 
+            amendments: [], 
+            count: 0,
+            error: 'Amendments temporarily unavailable'
+        });
     }
 }
 

@@ -276,12 +276,16 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                               <ul className="space-y-2">
                                   {bill.sponsors.map((sponsor, index) => (
                                       <li key={index} className="flex items-center justify-between p-2 bg-secondary/50 rounded-md">
-                                          <span className="font-semibold text-sm">{sponsor.fullName} ({sponsor.party}-{sponsor.state})</span>
-                                           <Button asChild variant="link" size="sm" className="h-auto p-0">
-                                              <Link href={`/congress/${bill.congress}/${sponsor.state.toLowerCase()}/${sponsor.bioguideId}`}>
-                                                  View Member <ArrowRight className="ml-1 h-3 w-3" />
-                                              </Link>
-                                          </Button>
+                                          <span className="font-semibold text-sm">{sponsor.fullName} ({sponsor.party}{sponsor.state ? `-${sponsor.state}` : ''})</span>
+                                          {sponsor.state && sponsor.bioguideId ? (
+                                              <Button asChild variant="link" size="sm" className="h-auto p-0">
+                                                  <Link href={`/congress/${bill.congress}/${sponsor.state.toLowerCase()}/${sponsor.bioguideId}`}>
+                                                      View Member <ArrowRight className="ml-1 h-3 w-3" />
+                                                  </Link>
+                                              </Button>
+                                          ) : (
+                                              <span className="text-xs text-muted-foreground">Member details not available</span>
+                                          )}
                                       </li>
                                   ))}
                               </ul>
