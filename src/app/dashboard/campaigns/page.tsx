@@ -15,6 +15,9 @@ import {
 import Link from 'next/link';
 import { campaignsService, type Campaign } from '@/lib/campaigns';
 import { ExternalLink, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
+import { app } from '@/lib/firebase';
+import CampaignMigration from '@/components/CampaignMigration';
 
 // Force dynamic rendering to prevent prerendering issues
 export const dynamic = 'force-dynamic';
@@ -64,15 +67,49 @@ export default function CampaignsPage() {
 
     // Save selected group to localStorage and load campaigns
     useEffect(() => {
-        if (selectedGroup) {
-            localStorage.setItem('dashboard-selected-group', selectedGroup);
-            const groupCampaigns = campaignsService.getCampaignsByGroup(selectedGroup);
-            setCampaigns(groupCampaigns);
-        } else {
-            localStorage.removeItem('dashboard-selected-group');
-            setCampaigns([]);
-        }
-    }, [selectedGroup]);
+        const loadCampaigns = async () => {
+            if (!user) return;
+            
+            if (selectedGroup) {
+                localStorage.setItem('dashboard-selected-group', selectedGroup);
+                
+                try {
+                    // Use client-side Firestore queries
+                    const db = getFirestore(app);
+                    const campaignsQuery = query(
+                        collection(db, 'campaigns'),
+                        where('userId', '==', user.uid),
+                        where('groupSlug', '==', selectedGroup)
+                    );
+                    
+                    const querySnapshot = await getDocs(campaignsQuery);
+                    const campaignsData = querySnapshot.docs.map(doc => ({
+                        id: doc.id,
+                        bill: {
+                            type: doc.data().billType,
+                            number: doc.data().billNumber,
+                            title: doc.data().billTitle
+                        },
+                        position: doc.data().position,
+                        reasoning: doc.data().reasoning,
+                        supportCount: doc.data().supportCount || 0,
+                        opposeCount: doc.data().opposeCount || 0,
+                        ...doc.data()
+                    }));
+                    
+                    setCampaigns(campaignsData);
+                } catch (error) {
+                    console.error('Error fetching campaigns:', error);
+                    setCampaigns([]);
+                }
+            } else {
+                localStorage.removeItem('dashboard-selected-group');
+                setCampaigns([]);
+            }
+        };
+        
+        loadCampaigns();
+    }, [selectedGroup, user]);
 
     const handleDeleteCampaign = async (campaignId: string) => {
         if (!window.confirm('Are you sure you want to delete this campaign? This action cannot be undone.')) {
@@ -91,9 +128,34 @@ export default function CampaignsPage() {
             }
 
             // Refresh campaigns list
-            if (selectedGroup) {
-                const groupCampaigns = campaignsService.getCampaignsByGroup(selectedGroup);
-                setCampaigns(groupCampaigns);
+            if (selectedGroup && user) {
+                try {
+                    const db = getFirestore(app);
+                    const campaignsQuery = query(
+                        collection(db, 'campaigns'),
+                        where('userId', '==', user.uid),
+                        where('groupSlug', '==', selectedGroup)
+                    );
+                    
+                    const querySnapshot = await getDocs(campaignsQuery);
+                    const campaignsData = querySnapshot.docs.map(doc => ({
+                        id: doc.id,
+                        bill: {
+                            type: doc.data().billType,
+                            number: doc.data().billNumber,
+                            title: doc.data().billTitle
+                        },
+                        position: doc.data().position,
+                        reasoning: doc.data().reasoning,
+                        supportCount: doc.data().supportCount || 0,
+                        opposeCount: doc.data().opposeCount || 0,
+                        ...doc.data()
+                    }));
+                    
+                    setCampaigns(campaignsData);
+                } catch (error) {
+                    console.error('Error refreshing campaigns:', error);
+                }
             }
         } catch (error) {
             console.error('Error deleting campaign:', error);
@@ -132,6 +194,11 @@ export default function CampaignsPage() {
                 <p className="text-muted-foreground mt-2 mb-4">
                     Manage and monitor your advocacy campaigns.
                 </p>
+            </header>
+
+            <CampaignMigration />
+
+            <div className="mb-6">
                 <h2 className="text-xl font-semibold mb-3">You are managing:</h2>
                 <div className="w-full max-w-sm">
                     <Select value={selectedGroup} onValueChange={setSelectedGroup}>
@@ -147,7 +214,7 @@ export default function CampaignsPage() {
                         </SelectContent>
                     </Select>
                 </div>
-            </header>
+            </div>
 
             <div className="grid gap-6">
                 {selectedGroup ? (

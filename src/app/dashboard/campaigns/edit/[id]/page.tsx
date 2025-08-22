@@ -36,19 +36,24 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
 
     useEffect(() => {
         async function loadCampaign() {
+            if (!user) return;
+            
             try {
                 const { id } = await params;
-                const foundCampaign = campaignsService.getCampaign(id);
+                const response = await fetch(`/api/campaigns/${id}`);
                 
-                if (!foundCampaign) {
+                if (!response.ok) {
                     setError('Campaign not found');
                     return;
                 }
                 
+                const data = await response.json();
+                const foundCampaign = data.campaign;
+                
                 setCampaign(foundCampaign);
-                setPosition(foundCampaign.position);
-                setReasoning(foundCampaign.reasoning);
-                setActionButtonText(foundCampaign.actionButtonText);
+                setPosition(foundCampaign.position || foundCampaign.stance === 'support' ? 'Support' : 'Oppose');
+                setReasoning(foundCampaign.reasoning || '');
+                setActionButtonText(foundCampaign.actionButtonText || 'Voice your opinion');
             } catch (err) {
                 setError('Failed to load campaign');
                 console.error('Error loading campaign:', err);
@@ -58,7 +63,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
         }
 
         loadCampaign();
-    }, [params]);
+    }, [params, user]);
 
     const handleSave = async () => {
         if (!campaign || !reasoning) {

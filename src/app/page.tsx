@@ -2,13 +2,20 @@
 'use client';
 
 import { BillFeedCard } from '@/components/BillFeedCard';
+import RecentMessages from '@/components/RecentMessages';
+import CongressMembers from '@/components/CongressMembers';
+import WatchedGroups from '@/components/WatchedGroups';
+import Campaigns from '@/components/Campaigns';
+import NavigationCard from '@/components/NavigationCard';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useBills } from '@/hooks/use-bills';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function Home() {
   const { data: bills = [], isLoading: loading, error, refetch } = useBills();
+  const { user } = useAuth();
 
   if (loading) {
     return (
@@ -57,17 +64,36 @@ export default function Home() {
 
   return (
     <div className="bg-secondary/30 flex-1">
-      <div className="container mx-auto px-4 py-8 md:py-12">
-        <div className="max-w-2xl mx-auto">
-          <div className="space-y-4">
-            <h1 className="text-2xl font-bold">Latest Bills ({bills.length})</h1>
-            {bills.map((bill, index) => (
-              <BillFeedCard key={`${bill.congress}-${bill.type}-${bill.number}`} bill={bill} />
-            ))}
-            {bills.length === 0 && (
-              <p className="text-center text-muted-foreground">No bills found</p>
-            )}
+      <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
+        <div className="flex gap-6">
+          {/* Left sidebar - Navigation Card */}
+          {user && (
+            <div className="w-64 flex-shrink-0 space-y-4">
+              <NavigationCard />
+              <Campaigns />
+            </div>
+          )}
+          
+          {/* Center - Bills Feed */}
+          <div className="flex-1 max-w-[672px]">
+            <div className="space-y-4">
+              {bills.map((bill, index) => (
+                <BillFeedCard key={`${bill.congress}-${bill.type}-${bill.number}`} bill={bill} />
+              ))}
+              {bills.length === 0 && (
+                <p className="text-center text-muted-foreground">No bills found</p>
+              )}
+            </div>
           </div>
+          
+          {/* Right sidebar - Recent Messages Card */}
+          {user && (
+            <div className="w-64 flex-shrink-0 space-y-4">
+              <RecentMessages />
+              <CongressMembers />
+              <WatchedGroups />
+            </div>
+          )}
         </div>
       </div>
     </div>

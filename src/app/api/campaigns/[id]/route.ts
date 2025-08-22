@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { campaignsService } from '@/lib/campaigns';
+import { getFirestore, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { app } from '@/lib/firebase';
 
 export async function GET(
   request: Request,
@@ -7,14 +8,21 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const campaign = campaignsService.getCampaign(id);
+    const db = getFirestore(app);
+    const docRef = doc(db, 'campaigns', id);
+    const docSnap = await getDoc(docRef);
     
-    if (!campaign) {
+    if (!docSnap.exists()) {
       return NextResponse.json(
         { error: 'Campaign not found' },
         { status: 404 }
       );
     }
+
+    const campaign = {
+      id: docSnap.id,
+      ...docSnap.data()
+    };
 
     return NextResponse.json({ campaign });
   } catch (error) {
@@ -33,29 +41,31 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { position, reasoning, actionButtonText } = body;
-
-    // Validate required fields
-    if (!position || !reasoning) {
-      return NextResponse.json(
-        { error: 'Position and reasoning are required' },
-        { status: 400 }
-      );
-    }
-
-    // Update the campaign
-    const updatedCampaign = campaignsService.updateCampaign(id, {
-      position,
-      reasoning,
-      actionButtonText: actionButtonText || 'Voice your opinion'
-    });
-
-    if (!updatedCampaign) {
+    const db = getFirestore(app);
+    const docRef = doc(db, 'campaigns', id);
+    
+    // Check if campaign exists
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) {
       return NextResponse.json(
         { error: 'Campaign not found' },
         { status: 404 }
       );
     }
+    
+    // Update the campaign
+    const updateData = {
+      ...body,
+      updatedAt: new Date()
+    };
+    
+    await updateDoc(docRef, updateData);
+    
+    const updatedCampaign = {
+      id: id,
+      ...docSnap.data(),
+      ...updateData
+    };
 
     return NextResponse.json({ campaign: updatedCampaign });
   } catch (error) {
@@ -73,14 +83,20 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const success = campaignsService.deleteCampaign(id);
+    const db = getFirestore(app);
+    const docRef = doc(db, 'campaigns', id);
     
-    if (!success) {
+    // Check if campaign exists
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) {
       return NextResponse.json(
         { error: 'Campaign not found' },
         { status: 404 }
       );
     }
+    
+    // Delete the campaign
+    await deleteDoc(docRef);
 
     return NextResponse.json({ message: 'Campaign deleted successfully' });
   } catch (error) {

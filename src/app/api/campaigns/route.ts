@@ -1,73 +1,99 @@
 import { NextResponse } from 'next/server';
-import { campaignsService } from '@/lib/campaigns';
+import { getFirestore, collection, query, where, getDocs, orderBy, addDoc, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { app } from '@/lib/firebase';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const groupSlug = searchParams.get('group');
-
-  try {
-    if (groupSlug) {
-      const campaigns = campaignsService.getCampaignsByGroup(groupSlug);
-      return NextResponse.json({ campaigns });
-    } else {
-      const campaigns = campaignsService.getAllCampaigns();
-      return NextResponse.json({ campaigns });
-    }
-  } catch (error) {
-    console.error('Error fetching campaigns:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch campaigns' }, 
-      { status: 500 }
-    );
-  }
+  // For now, return a simplified response until Firebase auth is properly configured
+  // The dashboard will handle campaign fetching client-side
+  return NextResponse.json({ 
+    campaigns: [],
+    message: 'Use client-side fetching for now'
+  });
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
+      userId,
       groupSlug,
       groupName,
       bill,
       position,
       reasoning,
-      actionButtonText = 'Voice your opinion'
+      actionButtonText = 'Voice your opinion',
+      name,
+      billTitle,
+      billType,
+      billNumber,
+      congress,
+      stance
     } = body;
 
-    // Validate required fields
-    if (!groupSlug || !groupName || !bill || !position || !reasoning) {
+    // Get userId if not provided
+    const effectiveUserId = userId;
+    
+    if (!effectiveUserId) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Handle both old format (from campaigns service) and new format (from dashboard)
+    const campaignData: any = {
+      userId: effectiveUserId,
+      groupSlug: groupSlug || '',
+      groupName: groupName || '',
+      name: name || `${bill?.title || billTitle || 'Campaign'}`,
+      billNumber: billNumber || bill?.number,
+      billType: billType || bill?.type,
+      congress: congress || bill?.congress || '119',
+      billTitle: billTitle || bill?.title || '',
+      stance: stance || position?.toLowerCase() || 'support',
+      position: position || (stance === 'support' ? 'Support' : 'Oppose'),
+      reasoning: reasoning || '',
+      actionButtonText: actionButtonText || 'Voice your opinion',
+      supportCount: 0,
+      opposeCount: 0,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    // Validate required fields
+    if (!campaignData.billNumber || !campaignData.billType) {
+      return NextResponse.json(
+        { error: 'Missing required bill information' },
         { status: 400 }
       );
     }
 
-    // Check if campaign already exists for this group and bill
-    const existingCampaign = campaignsService.getCampaignByGroupAndBill(
-      groupSlug, 
-      bill.type, 
-      bill.number
+    const db = getFirestore(app);
+
+    // Check if campaign already exists for this user and bill
+    const existingQuery = query(
+      collection(db, 'campaigns'),
+      where('userId', '==', effectiveUserId),
+      where('billType', '==', campaignData.billType),
+      where('billNumber', '==', campaignData.billNumber)
     );
 
-    if (existingCampaign) {
+    const existingSnapshot = await getDocs(existingQuery);
+    if (!existingSnapshot.empty) {
       return NextResponse.json(
-        { error: 'Campaign already exists for this bill and group' },
+        { error: 'Campaign already exists for this bill' },
         { status: 409 }
       );
     }
 
-    // Create the campaign
-    const campaign = campaignsService.createCampaign({
-      groupSlug,
-      groupName,
-      bill,
-      position,
-      reasoning,
-      actionButtonText,
-      supportCount: 0,
-      opposeCount: 0,
-      isActive: true
-    });
+    // Create the campaign in Firestore
+    const docRef = await addDoc(collection(db, 'campaigns'), campaignData);
+    
+    const campaign = {
+      id: docRef.id,
+      ...campaignData
+    };
 
     return NextResponse.json({ campaign }, { status: 201 });
   } catch (error) {
