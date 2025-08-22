@@ -50,6 +50,8 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                 const data = await response.json();
                 const foundCampaign = data.campaign;
                 
+                console.log('Campaign data:', foundCampaign); // Debug log
+                
                 setCampaign(foundCampaign);
                 setPosition(foundCampaign.position || foundCampaign.stance === 'support' ? 'Support' : 'Oppose');
                 setReasoning(foundCampaign.reasoning || '');
@@ -157,7 +159,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                 </div>
                 <h1 className="text-3xl font-bold font-headline">Edit Campaign</h1>
                 <p className="text-muted-foreground mt-2">
-                    Edit campaign for {campaign.bill.type} {campaign.bill.number}
+                    {campaign.bill ? `Edit campaign for ${campaign.bill.type} ${campaign.bill.number}` : 'Edit campaign'}
                 </p>
             </header>
 
@@ -176,16 +178,18 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                     <div className="space-y-2">
                         <Label>Bill</Label>
                         <Input 
-                            value={`${campaign.bill.type} ${campaign.bill.number}${campaign.bill.title ? ` - ${campaign.bill.title}` : ''}`} 
+                            value={campaign.bill ? `${campaign.bill.type} ${campaign.bill.number}${campaign.bill.title ? ` - ${campaign.bill.title}` : ''}` : 'Bill information not available'} 
                             disabled 
                         />
-                        <Link 
-                            href={`/bill/${campaign.bill.congress}/${campaign.bill.type.toLowerCase()}/${campaign.bill.number}`}
-                            target="_blank"
-                            className="text-sm text-primary hover:underline inline-block"
-                        >
-                            View bill details →
-                        </Link>
+                        {campaign.bill && (
+                            <Link 
+                                href={`/bill/${campaign.bill.congress}/${campaign.bill.type.toLowerCase()}/${campaign.bill.number}`}
+                                target="_blank"
+                                className="text-sm text-primary hover:underline inline-block"
+                            >
+                                View bill details →
+                            </Link>
+                        )}
                     </div>
 
                     {/* Editable fields */}
@@ -246,14 +250,16 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                         <Button variant="outline" asChild>
                             <Link href="/dashboard/campaigns">Cancel</Link>
                         </Button>
-                        <Button variant="outline" asChild>
-                            <Link 
-                                href={`/groups/${campaign.groupSlug}/${campaign.bill.type.toLowerCase()}-${campaign.bill.number}`}
-                                target="_blank"
-                            >
-                                View Live Campaign
-                            </Link>
-                        </Button>
+                        {campaign.bill && campaign.groupSlug && (
+                            <Button variant="outline" asChild>
+                                <Link 
+                                    href={`/groups/${campaign.groupSlug}/${campaign.bill.type.toLowerCase()}-${campaign.bill.number}`}
+                                    target="_blank"
+                                >
+                                    View Live Campaign
+                                </Link>
+                            </Button>
+                        )}
                     </div>
                 </CardContent>
             </Card>
@@ -294,19 +300,19 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border">
                                 <div className="text-2xl font-bold text-green-700 dark:text-green-300">
-                                    {campaign.supportCount.toLocaleString()}
+                                    {(campaign.supportCount || 0).toLocaleString()}
                                 </div>
                                 <div className="text-sm text-green-600 dark:text-green-400">Support</div>
                             </div>
                             <div className="p-4 bg-red-50 dark:bg-red-950 rounded-lg border">
                                 <div className="text-2xl font-bold text-red-700 dark:text-red-300">
-                                    {campaign.opposeCount.toLocaleString()}
+                                    {(campaign.opposeCount || 0).toLocaleString()}
                                 </div>
                                 <div className="text-sm text-red-600 dark:text-red-400">Oppose</div>
                             </div>
                         </div>
                         <div className="text-sm text-muted-foreground">
-                            Total votes: {(campaign.supportCount + campaign.opposeCount).toLocaleString()}
+                            Total votes: {((campaign.supportCount || 0) + (campaign.opposeCount || 0)).toLocaleString()}
                         </div>
                     </div>
 
@@ -681,7 +687,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                         <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                             <div>
                                 <div className="text-2xl font-bold">
-                                    {Math.floor((campaign.supportCount + campaign.opposeCount) * 0.75).toLocaleString()}
+                                    {Math.floor(((campaign.supportCount || 0) + (campaign.opposeCount || 0)) * 0.75).toLocaleString()}
                                 </div>
                                 <div className="text-sm text-muted-foreground">Total emails sent</div>
                             </div>

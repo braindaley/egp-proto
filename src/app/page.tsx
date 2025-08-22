@@ -7,7 +7,9 @@ import CongressMembers from '@/components/CongressMembers';
 import WatchedGroups from '@/components/WatchedGroups';
 import Campaigns from '@/components/Campaigns';
 import NavigationCard from '@/components/NavigationCard';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { LoggedOutCard } from '@/components/LoggedOutCard';
+import { Loader2, AlertCircle, MessageSquare, Megaphone, Users } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useBills } from '@/hooks/use-bills';
@@ -16,6 +18,11 @@ import { useAuth } from '@/hooks/use-auth';
 export default function Home() {
   const { data: bills = [], isLoading: loading, error, refetch } = useBills();
   const { user } = useAuth();
+  const router = useRouter();
+
+  const handleFindOfficials = (zipCode: string) => {
+    router.push(`/congress/119/states?zip=${zipCode}`);
+  };
 
   if (loading) {
     return (
@@ -66,13 +73,21 @@ export default function Home() {
     <div className="bg-secondary/30 flex-1">
       <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
         <div className="flex gap-6">
-          {/* Left sidebar - Navigation Card */}
-          {user && (
-            <div className="w-64 flex-shrink-0 space-y-4">
-              <NavigationCard />
+          {/* Left sidebar */}
+          <div className="w-64 flex-shrink-0 space-y-4">
+            <NavigationCard />
+            {user ? (
               <Campaigns />
-            </div>
-          )}
+            ) : (
+              <LoggedOutCard 
+                headline="Activate your advocacy group"
+                helperText="Use our advanced technology to amplify voter intent."
+                buttonText="Get started"
+                useTextLink={true}
+                icon={Megaphone}
+              />
+            )}
+          </div>
           
           {/* Center - Bills Feed */}
           <div className="flex-1 max-w-[672px]">
@@ -86,14 +101,41 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Right sidebar - Recent Messages Card */}
-          {user && (
-            <div className="w-64 flex-shrink-0 space-y-4">
-              <RecentMessages />
-              <CongressMembers />
-              <WatchedGroups />
-            </div>
-          )}
+          {/* Right sidebar */}
+          <div className="w-64 flex-shrink-0 space-y-4">
+            {user ? (
+              <>
+                <RecentMessages />
+                <CongressMembers />
+                <WatchedGroups />
+              </>
+            ) : (
+              <>
+                <LoggedOutCard 
+                  headline="Voice your opinion"
+                  helperText="Easily send your opinions to officials and make a difference."
+                  icon={MessageSquare}
+                  showAsLink={true}
+                  buttonHref="/dashboard/messages"
+                />
+                <LoggedOutCard 
+                  headline="Find your officials"
+                  helperText="Enter your zip code to find your officials."
+                  buttonText="Find your officials"
+                  showZipCodeField={true}
+                  onFindOfficials={handleFindOfficials}
+                />
+                <LoggedOutCard 
+                  headline="Groups"
+                  helperText="Find out what your favorite advocacy group supports and opposes."
+                  buttonText="Browse groups"
+                  buttonHref="/groups"
+                  useTextLink={true}
+                  icon={Users}
+                />
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

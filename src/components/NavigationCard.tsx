@@ -2,10 +2,14 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Home, MessageSquare, Users, User, FileText, Building } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 const NavigationCard: React.FC = () => {
+  const { user } = useAuth();
+  
   const navItems = [
     { href: '/', label: 'Home', icon: Home },
     { href: '/dashboard', label: 'Profile', icon: User },
@@ -35,6 +39,14 @@ const NavigationCard: React.FC = () => {
             </Link>
           );
         })}
+        
+        {!user && (
+          <div className="mt-4 pt-4 border-t">
+            <Link href="/login">
+              <Button className="w-full" variant="outline">Sign in</Button>
+            </Link>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
