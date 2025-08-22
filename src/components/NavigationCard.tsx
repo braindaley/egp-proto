@@ -9,7 +9,7 @@ const NavigationCard: React.FC = () => {
   const navItems = [
     { href: '/', label: 'Home', icon: Home },
     { href: '/dashboard', label: 'Profile', icon: User },
-    { href: '/dashboard', label: 'Messages', icon: MessageSquare },
+    { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare },
     { href: '/bills', label: 'Bills', icon: FileText },
     { href: '/congress/119/states', label: 'Congress Members', icon: Users },
     { href: '/congress/119/committees', label: 'Committees', icon: Building },

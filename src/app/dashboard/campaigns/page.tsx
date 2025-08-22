@@ -17,7 +17,6 @@ import { campaignsService, type Campaign } from '@/lib/campaigns';
 import { ExternalLink, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
-import CampaignMigration from '@/components/CampaignMigration';
 
 // Force dynamic rendering to prevent prerendering issues
 export const dynamic = 'force-dynamic';
@@ -195,8 +194,6 @@ export default function CampaignsPage() {
                     Manage and monitor your advocacy campaigns.
                 </p>
             </header>
-
-            <CampaignMigration />
 
             <div className="mb-6">
                 <h2 className="text-xl font-semibold mb-3">You are managing:</h2>
