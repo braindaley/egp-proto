@@ -80,24 +80,30 @@ const Campaigns: React.FC = () => {
       setLoading(true);
       
       try {
-        // Use client-side Firestore queries
-        const { getFirestore, collection, query, where, getDocs } = await import('firebase/firestore');
-        const { app } = await import('@/lib/firebase');
+        // Fetch campaigns from database API
+        const response = await fetch(`/api/campaigns/public?groupSlug=${selectedGroup}&limit=10`);
         
-        const db = getFirestore(app);
-        const campaignsQuery = query(
-          collection(db, 'campaigns'),
-          where('userId', '==', user.uid),
-          where('groupSlug', '==', selectedGroup)
-        );
-        
-        const querySnapshot = await getDocs(campaignsQuery);
-        const campaignsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Campaign[];
-        
-        setCampaigns(campaignsData);
+        if (response.ok) {
+          const { campaigns: dbCampaigns } = await response.json();
+          
+          const formattedCampaigns: Campaign[] = dbCampaigns.map((campaign: any) => ({
+            id: campaign.id,
+            name: campaign.billTitle || `${campaign.billType} ${campaign.billNumber}`,
+            billNumber: campaign.billNumber || '',
+            billType: campaign.billType || '',
+            congress: String(campaign.congress || 119),
+            billTitle: campaign.billTitle || '',
+            stance: campaign.position?.toLowerCase() as 'support' | 'oppose',
+            position: campaign.position,
+            groupSlug: campaign.groupSlug,
+            groupName: campaign.groupName,
+            createdAt: new Date(campaign.createdAt || Date.now())
+          }));
+          
+          setCampaigns(formattedCampaigns);
+        } else {
+          setCampaigns([]);
+        }
       } catch (error) {
         console.error('Error fetching campaigns:', error);
         setCampaigns([]);

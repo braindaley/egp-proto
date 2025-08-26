@@ -124,12 +124,14 @@ function billMatchesSubjects(bill: CongressBill, requestedSubjects: string[]): {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const subjects = searchParams.get('subjects');
+  const query = searchParams.get('q'); // Add support for general text search
   const congress = searchParams.get('congress') || '119';
   const limit = parseInt(searchParams.get('limit') || '20');
   const offset = parseInt(searchParams.get('offset') || '0');
 
   console.log(`🚀 API called with:`, {
     subjects: subjects,
+    query: query,
     congress: congress,
     limit: limit,
     offset: offset
@@ -142,6 +144,83 @@ export async function GET(request: Request) {
 
   try {
     let debugInfo: any = {};
+    
+    // Handle text search query (e.g., "HR 14" or "14")
+    if (query && query.trim().length > 0) {
+      console.log(`🔎 Text search for: "${query}"`);
+      
+      // Parse the query to extract bill type and number if provided
+      const upperQuery = query.toUpperCase().trim();
+      const billPattern = /^(HR|S|HJRES|SJRES|HCONRES|SCONRES|HRES|SRES)?\s*(\d+)$/i;
+      const match = upperQuery.match(billPattern);
+      
+      if (match) {
+        const billType = match[1] || ''; // Could be empty
+        const billNumber = match[2];
+        
+        console.log(`📋 Detected bill search: type="${billType}", number="${billNumber}"`);
+        
+        // If we have a specific bill type and number, try to fetch it directly
+        if (billType && billNumber) {
+          try {
+            const directUrl = `https://api.congress.gov/v3/bill/${congress}/${billType.toLowerCase()}/${billNumber}?api_key=${API_KEY}&format=json`;
+            const directResponse = await fetch(directUrl, {
+              headers: { 'User-Agent': 'BillTracker/1.0' },
+            });
+            
+            if (directResponse.ok) {
+              const directData = await directResponse.json();
+              if (directData.bill) {
+                return NextResponse.json({
+                  bills: [transformApiBillToBill(directData.bill, [])],
+                  pagination: { count: 1, offset: 0, hasMore: false, total: 1 },
+                  debug: { mode: 'direct_lookup', query }
+                });
+              }
+            }
+          } catch (error) {
+            console.error('Direct lookup failed:', error);
+          }
+        }
+        
+        // If no type provided or direct lookup failed, search all types with that number
+        if (billNumber) {
+          const billTypes = billType ? [billType.toLowerCase()] : ['hr', 's', 'hjres', 'sjres', 'hconres', 'sconres', 'hres', 'sres'];
+          const foundBills: Bill[] = [];
+          
+          for (const type of billTypes) {
+            try {
+              const searchUrl = `https://api.congress.gov/v3/bill/${congress}/${type}/${billNumber}?api_key=${API_KEY}&format=json`;
+              const response = await fetch(searchUrl, {
+                headers: { 'User-Agent': 'BillTracker/1.0' },
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                if (data.bill) {
+                  foundBills.push(transformApiBillToBill(data.bill, []));
+                }
+              }
+            } catch (error) {
+              // Continue searching other types
+            }
+          }
+          
+          if (foundBills.length > 0) {
+            return NextResponse.json({
+              bills: foundBills,
+              pagination: { count: foundBills.length, offset: 0, hasMore: false, total: foundBills.length },
+              debug: { mode: 'number_search', query, billNumber }
+            });
+          }
+        }
+      }
+      
+      // If not a bill number search, fall back to getting recent bills
+      // This could be enhanced to search bill titles in the future
+      console.log('📝 Falling back to recent bills for text search');
+    }
+    
     const hasSubjectsFilter = subjects && subjects.trim().length > 0;
     
     console.log(`🔍 hasSubjectsFilter: ${hasSubjectsFilter}`);

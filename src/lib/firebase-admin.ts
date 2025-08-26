@@ -29,12 +29,12 @@ if (!getApps().length) {
         projectId: 'egut-with-api',
       });
     } else {
-      // Local development - use emulator or service account if available
+      // Local development - use service account if available
       if (serviceAccountKey) {
         const serviceAccount = JSON.parse(serviceAccountKey);
         initializeApp({
           credential: cert(serviceAccount),
-          projectId: 'egut-with-api',
+          projectId: serviceAccount.project_id || 'egut-with-api',
         });
       } else {
         // For local development without service account, 
@@ -55,11 +55,3 @@ if (!getApps().length) {
 }
 
 export const adminDb = getFirestore();
-
-// Configure Firestore emulator for local development
-if (process.env.NODE_ENV === 'development' && !process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-  adminDb.settings({
-    host: 'localhost:8080',
-    ssl: false
-  });
-}

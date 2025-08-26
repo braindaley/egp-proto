@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Bill } from '@/types';
+import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 import { getBillTypeSlug } from '@/lib/utils';
 import { useState } from 'react';
 import { ArrowRight, ThumbsUp, ThumbsDown, Eye, Share2 } from 'lucide-react';
@@ -86,11 +87,16 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                 <div className="flex justify-between items-start gap-4">
                     <div className="flex-1">
                         <p className="text-sm font-medium text-primary mb-1">{billId} &bull; {bill.congress}th Congress</p>
-                        <CardTitle className="text-lg font-bold">
+                        <CardTitle className="text-lg font-bold mb-2">
                             <Link href={`/bill/${bill.congress}/${billTypeSlug}/${bill.number}`} className="hover:underline">
                                 {billTitle}
                             </Link>
                         </CardTitle>
+                        {bill.subjects?.policyArea?.name && (
+                            <Badge variant="outline" className="text-xs">
+                                {mapPolicyAreaToSiteCategory(bill.subjects.policyArea.name) || bill.subjects.policyArea.name}
+                            </Badge>
+                        )}
                     </div>
                      <Badge variant={badgeVariant} className="flex items-center gap-2 text-base px-3 py-1.5">
                         <PositionIcon className="h-4 w-4" />

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getFirestore, collection, query, where, getDocs, orderBy, addDoc, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 
 export async function GET(request: Request) {
   // For now, return a simplified response until Firebase auth is properly configured
@@ -69,26 +68,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const db = getFirestore(app);
+    // Check if campaign already exists for this GROUP and bill
+    // (allowing different groups to campaign for the same bill)
+    if (campaignData.groupSlug) {
+      const existingSnapshot = await adminDb
+        .collection('campaigns')
+        .where('groupSlug', '==', campaignData.groupSlug)
+        .where('billType', '==', campaignData.billType)
+        .where('billNumber', '==', campaignData.billNumber)
+        .get();
 
-    // Check if campaign already exists for this user and bill
-    const existingQuery = query(
-      collection(db, 'campaigns'),
-      where('userId', '==', effectiveUserId),
-      where('billType', '==', campaignData.billType),
-      where('billNumber', '==', campaignData.billNumber)
-    );
-
-    const existingSnapshot = await getDocs(existingQuery);
-    if (!existingSnapshot.empty) {
-      return NextResponse.json(
-        { error: 'Campaign already exists for this bill' },
-        { status: 409 }
-      );
+      if (!existingSnapshot.empty) {
+        return NextResponse.json(
+          { error: 'This organization already has a campaign for this bill' },
+          { status: 409 }
+        );
+      }
     }
 
     // Create the campaign in Firestore
-    const docRef = await addDoc(collection(db, 'campaigns'), campaignData);
+    const docRef = await adminDb.collection('campaigns').add(campaignData);
     
     const campaign = {
       id: docRef.id,

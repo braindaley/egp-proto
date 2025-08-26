@@ -126,6 +126,7 @@ interface PolicyArea {
 
 interface ApiSubjects {
   legislativeSubjects?: LegislativeSubject[];
+  items?: LegislativeSubject[];  // Bill API returns 'items' instead of 'legislativeSubjects'
   policyArea?: PolicyArea;
 }
 
@@ -162,9 +163,11 @@ export function filterAllowedSubjects(subjects: any[]): string[] {
 export function extractSubjectsFromApiResponse(apiSubjects: ApiSubjects): string[] {
   const allSubjects: string[] = [];
   
-  // Add legislative subjects
+  // Add legislative subjects (try both 'legislativeSubjects' and 'items')
   if (apiSubjects.legislativeSubjects) {
     allSubjects.push(...apiSubjects.legislativeSubjects.map(s => s.name));
+  } else if (apiSubjects.items) {
+    allSubjects.push(...apiSubjects.items.map(s => s.name));
   }
   
   // Add policy area

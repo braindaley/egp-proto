@@ -13,10 +13,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import Link from 'next/link';
-import { campaignsService, type Campaign } from '@/lib/campaigns';
+import { getAdvocacyGroupData, type PriorityBill } from '@/lib/advocacy-groups';
 import { ExternalLink, Edit2, Trash2, Loader2 } from 'lucide-react';
-import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
 
 // Force dynamic rendering to prevent prerendering issues
 export const dynamic = 'force-dynamic';
@@ -50,6 +48,19 @@ const advocacyGroups = [
     { name: 'No Labels', slug: 'no-labels' },
 ].sort((a, b) => a.name.localeCompare(b.name));
 
+interface Campaign {
+    id: string;
+    bill: {
+        type: string;
+        number: string;
+        title?: string;
+    };
+    position: string;
+    reasoning: string;
+    supportCount: number;
+    opposeCount: number;
+}
+
 export default function CampaignsPage() {
     const { user, loading } = useAuth();
     const [selectedGroup, setSelectedGroup] = useState<string>('');
@@ -74,6 +85,9 @@ export default function CampaignsPage() {
                 
                 try {
                     // Use client-side Firestore queries
+                    const { getFirestore, collection, query, where, getDocs } = await import('firebase/firestore');
+                    const { app } = await import('@/lib/firebase');
+                    
                     const db = getFirestore(app);
                     const campaignsQuery = query(
                         collection(db, 'campaigns'),
@@ -129,6 +143,9 @@ export default function CampaignsPage() {
             // Refresh campaigns list
             if (selectedGroup && user) {
                 try {
+                    const { getFirestore, collection, query, where, getDocs } = await import('firebase/firestore');
+                    const { app } = await import('@/lib/firebase');
+                    
                     const db = getFirestore(app);
                     const campaignsQuery = query(
                         collection(db, 'campaigns'),
@@ -256,7 +273,7 @@ export default function CampaignsPage() {
                                                         asChild
                                                     >
                                                         <Link 
-                                                            href={`/groups/${selectedGroup}/${campaign.bill.type.toLowerCase()}-${campaign.bill.number}`}
+                                                            href={`/groups/${selectedGroup}/${campaign.bill.type?.toLowerCase()}-${campaign.bill.number}`}
                                                             target="_blank"
                                                         >
                                                             <ExternalLink className="h-4 w-4" />

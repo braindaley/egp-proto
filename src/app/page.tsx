@@ -1,17 +1,21 @@
 'use client';
 
-import AdvocacyBillCard from '@/components/advocacy-bill-card';
 import { useState, useEffect } from 'react';
-import { getAdvocacyGroupData } from '@/lib/advocacy-groups';
+import AdvocacyBillCard from '@/components/advocacy-bill-card';
+import { ALLOWED_SUBJECTS, extractSubjectsFromApiResponse } from '@/lib/subjects';
+import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
+import { Checkbox } from '@/components/ui/checkbox';
+import { remark } from 'remark';
+import html from 'remark-html';
 
-interface CampaignBill {
+async function processMarkdown(markdown: string) {
+  const result = await remark().use(html).process(markdown);
+  return result.toString();
+}
+
+interface Campaign {
   id: string;
-  bill: {
-    number: string;
-    type: string;
-    congress: number;
-    title: string;
-  };
+  bill: any;
   position: string;
   actionButtonText: string;
   reasoning: string;
@@ -19,163 +23,254 @@ interface CampaignBill {
   opposeCount: number;
   groupSlug: string;
   groupName: string;
-  lastUpdated: Date;
-  url?: string;
+  url: string;
+  policyIssues: string[];
 }
 
 export default function Home() {
-  const [campaignBills, setCampaignBills] = useState<CampaignBill[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set());
+  
   useEffect(() => {
-    const fetchCampaigns = async () => {
+    async function fetchCampaigns() {
+      setLoading(true);
+      
       try {
-        const localCampaigns: CampaignBill[] = [];
-        // List of all group slugs we want to show campaigns from
-        const groupSlugs = [
-          'league-of-women-voters',
-          'brennan-center-for-justice',
-          'common-cause',
-          'fair-elections-center',
-          'fairvote',
-          'voteriders',
-          'rock-the-vote',
-          'mi-familia-vota',
-          'black-voters-matter',
-          'when-we-all-vote'
-        ];
-        
-        // Collect campaigns from each group
-        for (const slug of groupSlugs) {
-          const groupData = getAdvocacyGroupData(slug);
-          if (groupData && groupData.priorityBills) {
-            for (const priorityBill of groupData.priorityBills) {
-              localCampaigns.push({
-                id: `${slug}-${priorityBill.bill.type}-${priorityBill.bill.number}`,
-                bill: {
-                  number: priorityBill.bill.number || '',
-                  type: priorityBill.bill.type || '',
-                  congress: priorityBill.bill.congress || 119,
-                  title: priorityBill.bill.title || `${priorityBill.bill.type} ${priorityBill.bill.number}`
-                },
-                position: priorityBill.position,
-                actionButtonText: priorityBill.actionButtonText,
-                reasoning: priorityBill.reasoning,
-                supportCount: priorityBill.supportCount,
-                opposeCount: priorityBill.opposeCount,
-                groupSlug: slug,
-                groupName: groupData.name,
-                lastUpdated: new Date(),
-                url: `/groups/${slug}/${priorityBill.bill.type?.toLowerCase()}-${priorityBill.bill.number}`
-              });
-            }
-          }
-        }
-        
-        // Sort by support/oppose counts for most engaging content first
-        localCampaigns.sort((a, b) => {
-          const aTotal = a.supportCount + a.opposeCount;
-          const bTotal = b.supportCount + b.opposeCount;
-          return bTotal - aTotal;
+        const response = await fetch('/api/campaigns/public?limit=50', {
+          cache: 'no-cache'
         });
         
-        // Take top 20 campaigns
-        setCampaignBills(localCampaigns.slice(0, 20));
-        
-        // If still no campaigns, show mock data as fallback
-        if (localCampaigns.length === 0) {
-          const mockBills: CampaignBill[] = [
-            {
-              id: 'mock-1',
-              bill: {
-                number: '22',
-                type: 'HR',
-                congress: 119,
-                title: 'SAVE Act'
-              },
-              position: 'Oppose',
-              actionButtonText: 'Voice your opinion',
-              reasoning: `
-                <h3>Why LWV Opposes the SAVE Act (H.R. 22)</h3>
-                <ul>
-                  <li><strong>It creates unnecessary barriers to voting.</strong> Although voters are already required to affirm citizenship when registering, the SAVE Act adds redundant requirements, such as presenting documentary proof of U.S. citizenship in person every time you update your registration. This puts an unfair burden on many eligible voters.</li>
-                  <li><strong>It disproportionately impacts marginalized groups.</strong> The League highlights how the SAVE Act harms rural voters, voters of color, military families who move frequently, those recovering from disasters, and especially married women who've changed their names and may struggle to match documentation.</li>
-                  <li><strong>It addresses a problem that doesn't exist.</strong> Noncitizen voting is already illegal and extremely rare. The League warns that the SAVE Act is rooted in fear, misinformation, and divisive rhetoric—not real threats to democracy.</li>
-                  <li><strong>It undermines voter access and overloads election infrastructure.</strong> Requiring in-person registrations and strict document checks could overwhelm local election offices and undermine the League's century-long mission of encouraging broad participation.</li>
-                </ul>
-              `,
-              supportCount: 3100,
-              opposeCount: 15600,
-              groupSlug: 'league-of-women-voters',
-              groupName: 'League of Women Voters',
-              lastUpdated: new Date('2025-01-24'),
-              url: '/groups/league-of-women-voters/hr-22'
-            },
-            {
-              id: 'mock-2',
-              bill: {
-                number: '14',
-                type: 'HR',
-                congress: 119,
-                title: 'John R. Lewis Voting Rights Advancement Act'
-              },
-              position: 'Support',
-              actionButtonText: 'Voice your opinion',
-              reasoning: `
-                <h3>Why LWV Supports the John R. Lewis Voting Rights Advancement Act</h3>
-                <ul>
-                  <li><strong>It restores protections weakened by court decisions.</strong> After the 2013 <em>Shelby County v. Holder</em> ruling gutted key provisions of the Voting Rights Act, this legislation is seen as essential to reestablish federal oversight and guard against discriminatory changes in voting laws.</li>
-                  <li><strong>It defends democracy and honors the VRA's legacy.</strong> Named for civil rights hero John Lewis, the bill is framed as much-needed defense of voting rights—particularly amid renewed state-level attacks on fair representation and redistricting.</li>
-                  <li><strong>It aligns with LWV's mission.</strong> The League has a long history of fighting to make elections fair, inclusive, and accessible. This act fits squarely within that mission by preventing racial discrimination and ensuring every voter is heard.</li>
-                </ul>
-              `,
-              supportCount: 9850,
-              opposeCount: 1520,
-              groupSlug: 'league-of-women-voters',
-              groupName: 'League of Women Voters',
-              lastUpdated: new Date('2025-01-23'),
-              url: '/groups/league-of-women-voters/hr-14'
-            }
-          ];
+        if (response.ok) {
+          const { campaigns: rawCampaigns } = await response.json();
           
-          setCampaignBills(mockBills);
+          // Process each campaign
+          const campaignPromises = rawCampaigns.map(async (campaign: any) => {
+            try {
+              const [processedReasoning, billDetails] = await Promise.all([
+                processMarkdown(campaign.reasoning),
+                getBillDetails(
+                  campaign.congress || 119,
+                  campaign.billType || '',
+                  campaign.billNumber || ''
+                )
+              ]);
+              
+              // Extract policy issues using the same priority logic as bill detail page
+              let policyIssues = [];
+              if (billDetails?.subjects) {
+                const extractedSubjects = extractSubjectsFromApiResponse(billDetails.subjects);
+                const mappedFromPolicyArea = billDetails.subjects.policyArea?.name 
+                  ? mapPolicyAreaToSiteCategory(billDetails.subjects.policyArea.name) 
+                  : null;
+                
+                // Use same priority logic: policy area mapping first, then extracted subjects
+                if (mappedFromPolicyArea) {
+                  // Policy area mapping exists - put it first, then add other subjects
+                  policyIssues = [mappedFromPolicyArea, ...extractedSubjects.filter(s => s !== mappedFromPolicyArea)];
+                } else {
+                  // No policy area mapping, use extracted subjects as-is
+                  policyIssues = extractedSubjects;
+                }
+              }
+              
+              // Merge bill data, ensuring subjects are preserved
+              const fullBill = {
+                congress: campaign.congress || 119,
+                type: campaign.billType || '',
+                number: campaign.billNumber || '',
+                title: campaign.billTitle || `${campaign.billType} ${campaign.billNumber}`,
+                ...(billDetails || {}),
+                subjects: billDetails?.subjects
+              };
+              
+              return {
+                id: campaign.id,
+                bill: fullBill,
+                position: campaign.position,
+                actionButtonText: campaign.actionButtonText || 'Voice your opinion',
+                reasoning: processedReasoning,
+                supportCount: campaign.supportCount || 0,
+                opposeCount: campaign.opposeCount || 0,
+                groupSlug: campaign.groupSlug,
+                groupName: campaign.groupName,
+                url: `/groups/${campaign.groupSlug}/${campaign.billType?.toLowerCase()}-${campaign.billNumber}`,
+                policyIssues
+              };
+            } catch (error) {
+              console.error('Error processing campaign:', campaign.id, error);
+              // Return a fallback campaign with minimal data
+              return {
+                id: campaign.id,
+                bill: {
+                  congress: campaign.congress || 119,
+                  type: campaign.billType || '',
+                  number: campaign.billNumber || '',
+                  title: campaign.billTitle || `${campaign.billType} ${campaign.billNumber}`,
+                  subjects: null
+                },
+                position: campaign.position,
+                actionButtonText: campaign.actionButtonText || 'Voice your opinion',
+                reasoning: await processMarkdown(campaign.reasoning),
+                supportCount: campaign.supportCount || 0,
+                opposeCount: campaign.opposeCount || 0,
+                groupSlug: campaign.groupSlug,
+                groupName: campaign.groupName,
+                url: `/groups/${campaign.groupSlug}/${campaign.billType?.toLowerCase()}-${campaign.billNumber}`,
+                policyIssues: []
+              };
+            }
+          });
+          
+          const processedCampaigns = await Promise.all(campaignPromises);
+          
+          // Sort by support/oppose counts for most engaging content first
+          processedCampaigns.sort((a, b) => {
+            const aTotal = a.supportCount + a.opposeCount;
+            const bTotal = b.supportCount + b.opposeCount;
+            return bTotal - aTotal;
+          });
+          
+          setCampaigns(processedCampaigns);
         }
       } catch (error) {
         console.error('Error fetching campaigns:', error);
-        // Fallback to empty list if error occurs
-        setCampaignBills([]);
       } finally {
         setLoading(false);
       }
-    };
+    }
     
     fetchCampaigns();
   }, []);
+
+  // Helper function to get bill details using our internal API
+  async function getBillDetails(congress: number, billType: string, billNumber: string) {
+    try {
+      const url = `/api/bill?congress=${congress}&billType=${billType.toLowerCase()}&billNumber=${billNumber}`;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.log(`Bill not found: ${billType.toUpperCase()} ${billNumber} (${congress})`);
+        }
+        return null;
+      }
+      
+      const bill = await response.json();
+      return bill;
+    } catch (error) {
+      console.error(`Error fetching bill details for ${billType.toUpperCase()} ${billNumber}:`, error);
+      return null;
+    }
+  }
+
+  // Filter campaigns based on selected policy issues
+  const filteredCampaigns = selectedFilters.size === 0 
+    ? campaigns
+    : campaigns.filter(campaign => 
+        campaign.policyIssues.some(issue => selectedFilters.has(issue))
+      );
+
+  const topCampaigns = filteredCampaigns.slice(0, 20);
+
+  if (loading) {
+    return (
+      <div className="bg-secondary/30 flex-1">
+        <div className="container mx-auto px-4 py-8 md:py-12">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold mb-2">Active Campaigns</h1>
+            <p className="text-muted-foreground mb-8">
+              Organizations are mobilizing support around these bills
+            </p>
+            <div className="text-center py-12">Loading campaigns...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-secondary/30 flex-1">
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-2">Active Campaigns</h1>
-          <p className="text-muted-foreground mb-8">
+          <p className="text-muted-foreground mb-6">
             Organizations are mobilizing support around these bills
           </p>
           
-          {loading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading campaigns...</p>
+          {/* Policy Issue Filter */}
+          <div className="mb-8">
+            <div className="space-y-4">
+              <label className="text-sm font-medium">
+                Filter by policy issue:
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {ALLOWED_SUBJECTS.map((subject) => (
+                  <div key={subject} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`filter-${subject}`}
+                      checked={selectedFilters.has(subject)}
+                      onCheckedChange={(checked) => {
+                        const newFilters = new Set(selectedFilters);
+                        if (checked) {
+                          newFilters.add(subject);
+                        } else {
+                          newFilters.delete(subject);
+                        }
+                        setSelectedFilters(newFilters);
+                      }}
+                    />
+                    <label
+                      htmlFor={`filter-${subject}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {subject}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Show active filters */}
+              {selectedFilters.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    Showing campaigns for: 
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {Array.from(selectedFilters).map(filter => (
+                      <span key={filter} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
+                        {filter}
+                      </span>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setSelectedFilters(new Set())}
+                    className="text-xs text-muted-foreground hover:text-foreground underline ml-2"
+                  >
+                    Clear all
+                  </button>
+                  {filteredCampaigns.length === 0 && (
+                    <span className="text-sm text-muted-foreground ml-2">(No campaigns found)</span>
+                  )}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="space-y-6">
-              {campaignBills.map((campaign) => (
-                <div key={campaign.id}>
-                  <div className="mb-3">
-                    <p className="text-sm text-muted-foreground">
-                      Campaign by <span className="font-medium">{campaign.groupName}</span>
-                      {' • '}
-                      Updated {campaign.lastUpdated.toLocaleDateString()}
+          </div>
+          
+          <div className="space-y-8">
+            {topCampaigns.map((campaign) => (
+              <div key={campaign.id} className="max-w-3xl mx-auto">
+                <div className="mb-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Campaign by <span className="font-medium">{campaign.groupName}</span>
+                    {campaign.policyIssues.length > 0 && (
+                      <span className="ml-2">
+                        • Policy issues: {campaign.policyIssues.join(', ')}
+                      </span>
+                    )}
                   </p>
                 </div>
+                
                 <AdvocacyBillCard 
                   bill={campaign.bill}
                   position={campaign.position}
@@ -188,13 +283,18 @@ export default function Home() {
               </div>
             ))}
             
-              {campaignBills.length === 0 && (
-                <p className="text-center text-muted-foreground py-12">
-                  No active campaigns at this time
-                </p>
-              )}
-            </div>
-          )}
+            {topCampaigns.length === 0 && selectedFilters.size === 0 && (
+              <p className="text-center text-muted-foreground py-12">
+                No active campaigns at this time
+              </p>
+            )}
+            
+            {topCampaigns.length === 0 && selectedFilters.size > 0 && (
+              <p className="text-center text-muted-foreground py-12">
+                No campaigns found for the selected policy issues
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

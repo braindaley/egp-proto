@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getFirestore, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 
 export async function GET(
   request: Request,
@@ -8,11 +7,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const db = getFirestore(app);
-    const docRef = doc(db, 'campaigns', id);
-    const docSnap = await getDoc(docRef);
+    const docRef = adminDb.collection('campaigns').doc(id);
+    const docSnap = await docRef.get();
     
-    if (!docSnap.exists()) {
+    if (!docSnap.exists) {
       return NextResponse.json(
         { error: 'Campaign not found' },
         { status: 404 }
@@ -41,12 +39,11 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const db = getFirestore(app);
-    const docRef = doc(db, 'campaigns', id);
+    const docRef = adminDb.collection('campaigns').doc(id);
     
     // Check if campaign exists
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) {
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
       return NextResponse.json(
         { error: 'Campaign not found' },
         { status: 404 }
@@ -59,7 +56,7 @@ export async function PUT(
       updatedAt: new Date()
     };
     
-    await updateDoc(docRef, updateData);
+    await docRef.update(updateData);
     
     const updatedCampaign = {
       id: id,
@@ -77,18 +74,18 @@ export async function PUT(
   }
 }
 
+// DELETE endpoint for campaign deletion
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
     const { id } = await params;
-    const db = getFirestore(app);
-    const docRef = doc(db, 'campaigns', id);
+    const docRef = adminDb.collection('campaigns').doc(id);
     
     // Check if campaign exists
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) {
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
       return NextResponse.json(
         { error: 'Campaign not found' },
         { status: 404 }
@@ -96,7 +93,7 @@ export async function DELETE(
     }
     
     // Delete the campaign
-    await deleteDoc(docRef);
+    await docRef.delete();
 
     return NextResponse.json({ message: 'Campaign deleted successfully' });
   } catch (error) {

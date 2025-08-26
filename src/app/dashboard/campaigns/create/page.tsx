@@ -79,7 +79,7 @@ function CreateCampaignPageContent() {
 
             setIsSearching(true);
             try {
-                const response = await fetch(`/api/bills/search?congress=119&limit=10`);
+                const response = await fetch(`/api/bills/search?congress=119&q=${encodeURIComponent(query)}&limit=10`);
                 if (response.ok) {
                     const data = await response.json();
                     setSearchResults(data.bills || []);

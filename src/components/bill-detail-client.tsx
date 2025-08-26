@@ -20,6 +20,8 @@ import { SummaryDisplay } from './bill-summary-display';
 import { UserVerificationModal } from '@/components/user-verification-modal';
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
+import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
+import { extractSubjectsFromApiResponse } from '@/lib/subjects';
 
 export function BillDetailClient({ bill }: { bill: Bill }) {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
@@ -38,12 +40,23 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   // Get consistent mock support data
   const { supportCount, opposeCount } = getBillSupportData(bill.congress!, bill.type!, bill.number!);
   
-  // Extract subject names from the API response (now properly mapped by the API)
-  const subjectNames = bill.subjects?.items?.map(subject => 
-    typeof subject === 'string' ? subject : subject?.name
-  ).filter(name => name && typeof name === 'string') || [];
+  // Extract all subjects using the same logic as homepage
+  const allPolicyIssues = bill.subjects ? extractSubjectsFromApiResponse(bill.subjects) : [];
   
-  const hasSubjects = subjectNames.length > 0;
+  // Step 1: Look up primary issue (Congress.gov policy area) and map it to our categories
+  const policyAreaName = bill.subjects?.policyArea?.name;
+  const primaryMappedCategory = policyAreaName ? mapPolicyAreaToSiteCategory(policyAreaName) : null;
+  
+  // Step 2: Extract and map secondary issues from subjects
+  const secondaryIssues = allPolicyIssues.filter(issue => issue !== primaryMappedCategory);
+  
+  // Step 3: Apply primary category (policy area mapping takes precedence)
+  let sitePolicyCategory = primaryMappedCategory;
+  
+  // Fallback: If no primary mapping exists, use first extracted subject
+  if (!sitePolicyCategory && allPolicyIssues.length > 0) {
+    sitePolicyCategory = allPolicyIssues[0];
+  }
   
   // Improved title logic - prioritize title over shortTitle for main heading
   // and show shortTitle as subtitle if it exists and is different
@@ -204,7 +217,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 </Card>
             )}
 
-            {(hasSubjects || bill.subjects?.policyArea) && (
+            {(sitePolicyCategory || bill.subjects?.policyArea) && (
               <Card>
                   <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
@@ -213,29 +226,32 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                       </CardTitle>
                   </CardHeader>
                   <CardContent>
+                     {sitePolicyCategory && (
+                       <div>
+                         <p className="text-sm font-medium text-muted-foreground mb-1">Primary Issue Category</p>
+                         <Badge variant="default" className="text-sm">
+                             {sitePolicyCategory}
+                         </Badge>
+                         {secondaryIssues.length > 0 && (
+                           <div className="mt-2">
+                             <p className="text-sm font-medium text-muted-foreground mb-1">Additional Issues</p>
+                             <div className="flex flex-wrap gap-1">
+                               {secondaryIssues.map(issue => (
+                                 <Badge key={issue} variant="outline" className="text-xs">
+                                   {issue}
+                                 </Badge>
+                               ))}
+                             </div>
+                           </div>
+                         )}
+                       </div>
+                     )}
                      {bill.subjects?.policyArea && (
-                        <div className="mb-3">
-                            <p className="text-sm font-medium text-muted-foreground mb-1">Primary Policy Area</p>
-                            <Badge variant="default" className="text-sm">
+                        <div className={`${sitePolicyCategory ? 'mt-3 pt-3 border-t border-border' : ''}`}>
+                            <p className="text-sm font-medium text-muted-foreground mb-1">Congress.gov Policy Area</p>
+                            <Badge variant="secondary" className="text-sm">
                                 {bill.subjects.policyArea.name}
                             </Badge>
-                        </div>
-                     )}
-                     {hasSubjects && (
-                        <div>
-                            <p className="text-sm font-medium text-muted-foreground mb-2">Related Issues</p>
-                            <div className="flex flex-wrap gap-2">
-                                {subjectNames.map((subject, index) => (
-                                    <Badge key={index} variant="secondary" className="text-sm">
-                                        {subject}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                     )}
-                     {!hasSubjects && bill.subjects?.count > 0 && (
-                        <div className="text-sm text-muted-foreground italic mt-2">
-                            Loading {bill.subjects.count} related issues...
                         </div>
                      )}
                   </CardContent>
