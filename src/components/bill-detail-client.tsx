@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Bill, RelatedBill } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
 import { getBillSupportData } from '@/lib/bill-support-data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -97,7 +97,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   return (
     <div className="bg-background min-h-screen">
       <main className="container mx-auto px-4 py-8 md:py-12">
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-[672px] mx-auto space-y-8">
           <header>
             <p className="text-lg text-muted-foreground font-medium mb-1">{bill.type} {bill.number} &bull; {bill.congress}th Congress</p>
             <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary">
@@ -108,38 +108,100 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 {bill.shortTitle}
               </p>
             )}
-             <div className="mt-4">
-                <Button size="lg" onClick={handleVoiceOpinionClick}>
+             <div className="flex gap-2 flex-wrap justify-start mt-4">
+                <Button size="sm" onClick={handleVoiceOpinionClick}>
                     Voice your opinion
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                >
+                  <ThumbsUp className="h-4 w-4" />
+                  <span className="font-semibold">{supportCount.toLocaleString()}</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                >
+                  <ThumbsDown className="h-4 w-4" />
+                  <span className="font-semibold">{opposeCount.toLocaleString()}</span>
+                </Button>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 text-muted-foreground"
+                >
+                  <Eye className="h-4 w-4" />
+                  Watch
                 </Button>
             </div>
           </header>
-          
-          {/* Support/Oppose counts */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Public Sentiment</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-around text-center py-4">
-                <div className="flex items-center gap-3 text-green-600">
-                  <ThumbsUp className="h-6 w-6" />
-                  <div>
-                    <p className="font-bold text-2xl">{supportCount.toLocaleString()}</p>
-                    <p className="text-sm font-medium text-muted-foreground">Supporters</p>
-                  </div>
-                </div>
-                <div className="h-12 w-px bg-border"></div>
-                <div className="flex items-center gap-3 text-red-600">
-                  <ThumbsDown className="h-6 w-6" />
-                  <div>
-                    <p className="font-bold text-2xl">{opposeCount.toLocaleString()}</p>
-                    <p className="text-sm font-medium text-muted-foreground">Opponents</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+
+          {(hasAllSummaries || bill.summaries?.count > 0 || bill.title || bill.shortTitle) && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <FileText className="text-primary" />
+                            {hasAllSummaries ? `All Summaries (${bill.allSummaries.length})` : 'Summary'}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {hasAllSummaries ? (
+                            <>
+                                {/* Show first summary normally */}
+                                <SummaryDisplay summary={bill.allSummaries[0]} showPoliticalPerspectives={false} />
+                                
+                                {/* Show additional summaries in accordions */}
+                                {bill.allSummaries.length > 1 && (
+                                    <div className="space-y-2">
+                                        {bill.allSummaries.slice(1).map((summary, index) => (
+                                            <Collapsible key={index + 1}>
+                                                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-secondary/30 rounded-md hover:bg-secondary/50 transition-colors">
+                                                    <div className="flex items-center gap-2 text-left">
+                                                        <FileText className="h-4 w-4 text-primary" />
+                                                        <span className="font-medium text-sm">{summary.actionDesc} ({summary.versionCode})</span>
+                                                        <span className="text-xs text-muted-foreground">{formatDate(summary.updateDate)}</span>
+                                                    </div>
+                                                    <ArrowRight className="h-4 w-4 transition-transform duration-200" />
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent className="pt-2">
+                                                    <SummaryDisplay summary={summary} showPoliticalPerspectives={false} />
+                                                </CollapsibleContent>
+                                            </Collapsible>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className="text-sm">
+                                {bill.summaries?.count > 0 ? (
+                                    <p className="text-muted-foreground italic">
+                                        Summary is being processed. Please check back later.
+                                    </p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div>
+                                            <p className="font-medium text-muted-foreground mb-1">Official Title</p>
+                                            <p className="text-foreground">{bill.title || displayTitle}</p>
+                                        </div>
+                                        {bill.shortTitle && bill.shortTitle !== bill.title && (
+                                            <div>
+                                                <p className="font-medium text-muted-foreground mb-1">Short Title</p>
+                                                <p className="text-foreground">{bill.shortTitle}</p>
+                                            </div>
+                                        )}
+                                        <p className="text-muted-foreground italic mt-4">
+                                            Official congressional summary not yet available. Visit Congress.gov for the latest information.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 <CardHeader>
@@ -175,47 +237,6 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
 
             {bill.latestAction && <BillTracker latestAction={bill.latestAction} originChamber={bill.originChamber} />}
 
-            {(hasAllSummaries || bill.summaries?.count > 0 || bill.title || bill.shortTitle) && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <FileText className="text-primary" />
-                            {hasAllSummaries ? `All Summaries (${bill.allSummaries.length})` : 'Summary'}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {hasAllSummaries ? (
-                            bill.allSummaries.map((summary, index) => (
-                               <SummaryDisplay key={index} summary={summary} showPoliticalPerspectives={index === 0} />
-                            ))
-                        ) : (
-                            <div className="text-sm">
-                                {bill.summaries?.count > 0 ? (
-                                    <p className="text-muted-foreground italic">
-                                        Summary is being processed. Please check back later.
-                                    </p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        <div>
-                                            <p className="font-medium text-muted-foreground mb-1">Official Title</p>
-                                            <p className="text-foreground">{bill.title || displayTitle}</p>
-                                        </div>
-                                        {bill.shortTitle && bill.shortTitle !== bill.title && (
-                                            <div>
-                                                <p className="font-medium text-muted-foreground mb-1">Short Title</p>
-                                                <p className="text-foreground">{bill.shortTitle}</p>
-                                            </div>
-                                        )}
-                                        <p className="text-muted-foreground italic mt-4">
-                                            Official congressional summary not yet available. Visit Congress.gov for the latest information.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
 
             {(sitePolicyCategory || bill.subjects?.policyArea) && (
               <Card>

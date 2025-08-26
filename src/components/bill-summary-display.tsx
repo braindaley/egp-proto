@@ -127,28 +127,6 @@ export const SummaryDisplay = ({ summary, showPoliticalPerspectives = false }: {
             <p className="prose prose-sm max-w-none text-muted-foreground mt-1">{aiSummary}</p>
           </div>
 
-          {(democraticView || republicanView) && showPoliticalPerspectives && (
-            <div className="mb-4 space-y-3">
-              <p className="text-sm text-muted-foreground font-medium flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                Political perspectives:
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {democraticView && (
-                  <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border-l-4 border-blue-600">
-                    <div className="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-line">{democraticView}</div>
-                  </div>
-                )}
-                
-                {republicanView && (
-                  <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-md border-l-4 border-red-600">
-                    <div className="text-sm text-red-800 dark:text-red-200 whitespace-pre-line">{republicanView}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </>
       )}
 
