@@ -172,16 +172,46 @@ export default function IssuePage({ params }: { params: { issueSlug: string } })
         if (response.ok) {
           const { campaigns: rawCampaigns } = await response.json();
           
-          // Process each campaign
+          // Group campaigns by unique bills to avoid duplicate API calls
+          const billMap = new Map<string, any[]>();
+          rawCampaigns.forEach((campaign: any) => {
+            const billKey = `${campaign.congress || 119}-${campaign.billType || ''}-${campaign.billNumber || ''}`;
+            if (!billMap.has(billKey)) {
+              billMap.set(billKey, []);
+            }
+            billMap.get(billKey)!.push(campaign);
+          });
+          
+          // Fetch unique bills in parallel (batch of 10 at a time to avoid overwhelming API)
+          const billEntries = Array.from(billMap.entries());
+          const batchSize = 10;
+          const billDetailsMap = new Map<string, any>();
+          
+          for (let i = 0; i < billEntries.length; i += batchSize) {
+            const batch = billEntries.slice(i, i + batchSize);
+            const batchPromises = batch.map(async ([billKey, campaigns]) => {
+              const campaign = campaigns[0]; // Use first campaign for bill details
+              const billDetails = await getBillDetails(
+                campaign.congress || 119,
+                campaign.billType || '',
+                campaign.billNumber || ''
+              );
+              return { billKey, billDetails };
+            });
+            
+            const batchResults = await Promise.all(batchPromises);
+            batchResults.forEach(({ billKey, billDetails }) => {
+              billDetailsMap.set(billKey, billDetails);
+            });
+          }
+          
+          // Process campaigns with cached bill details
           const campaignPromises = rawCampaigns.map(async (campaign: any) => {
             try {
+              const billKey = `${campaign.congress || 119}-${campaign.billType || ''}-${campaign.billNumber || ''}`;
               const [processedReasoning, billDetails] = await Promise.all([
                 processMarkdown(campaign.reasoning),
-                getBillDetails(
-                  campaign.congress || 119,
-                  campaign.billType || '',
-                  campaign.billNumber || ''
-                )
+                Promise.resolve(billDetailsMap.get(billKey))
               ]);
               
               // Extract policy issues using the same priority logic as homepage

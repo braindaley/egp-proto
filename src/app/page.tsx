@@ -27,6 +27,14 @@ interface Campaign {
   policyIssues: string[];
 }
 
+function convertTitleToSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+}
+
 export default function Home() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,16 +52,46 @@ export default function Home() {
         if (response.ok) {
           const { campaigns: rawCampaigns } = await response.json();
           
-          // Process each campaign
+          // Group campaigns by unique bills to avoid duplicate API calls
+          const billMap = new Map<string, any[]>();
+          rawCampaigns.forEach((campaign: any) => {
+            const billKey = `${campaign.congress || 119}-${campaign.billType || ''}-${campaign.billNumber || ''}`;
+            if (!billMap.has(billKey)) {
+              billMap.set(billKey, []);
+            }
+            billMap.get(billKey)!.push(campaign);
+          });
+          
+          // Fetch unique bills in parallel (batch of 10 at a time to avoid overwhelming API)
+          const billEntries = Array.from(billMap.entries());
+          const batchSize = 10;
+          const billDetailsMap = new Map<string, any>();
+          
+          for (let i = 0; i < billEntries.length; i += batchSize) {
+            const batch = billEntries.slice(i, i + batchSize);
+            const batchPromises = batch.map(async ([billKey, campaigns]) => {
+              const campaign = campaigns[0]; // Use first campaign for bill details
+              const billDetails = await getBillDetails(
+                campaign.congress || 119,
+                campaign.billType || '',
+                campaign.billNumber || ''
+              );
+              return { billKey, billDetails };
+            });
+            
+            const batchResults = await Promise.all(batchPromises);
+            batchResults.forEach(({ billKey, billDetails }) => {
+              billDetailsMap.set(billKey, billDetails);
+            });
+          }
+          
+          // Process campaigns with cached bill details
           const campaignPromises = rawCampaigns.map(async (campaign: any) => {
             try {
+              const billKey = `${campaign.congress || 119}-${campaign.billType || ''}-${campaign.billNumber || ''}`;
               const [processedReasoning, billDetails] = await Promise.all([
                 processMarkdown(campaign.reasoning),
-                getBillDetails(
-                  campaign.congress || 119,
-                  campaign.billType || '',
-                  campaign.billNumber || ''
-                )
+                Promise.resolve(billDetailsMap.get(billKey))
               ]);
               
               // Extract policy issues using the same priority logic as bill detail page
@@ -164,14 +202,35 @@ export default function Home() {
     }
   }
 
-  // Filter campaigns based on selected policy issues
-  const filteredCampaigns = selectedFilters.size === 0 
-    ? campaigns
-    : campaigns.filter(campaign => 
-        campaign.policyIssues.some(issue => selectedFilters.has(issue))
-      );
+  // Group campaigns by primary policy issue first
+  const campaignsByIssue = new Map<string, Campaign[]>();
+  
+  campaigns.forEach(campaign => {
+    // Use the first policy issue as the primary one
+    const primaryIssue = campaign.policyIssues[0];
+    if (primaryIssue) {
+      if (!campaignsByIssue.has(primaryIssue)) {
+        campaignsByIssue.set(primaryIssue, []);
+      }
+      campaignsByIssue.get(primaryIssue)!.push(campaign);
+    }
+  });
 
-  const topCampaigns = filteredCampaigns.slice(0, 20);
+  // Filter issue groups based on selected filters
+  const filteredIssueGroups = selectedFilters.size === 0 
+    ? Array.from(campaignsByIssue.entries())
+    : Array.from(campaignsByIssue.entries()).filter(([issue]) => selectedFilters.has(issue));
+
+  // Sort issue groups alphabetically
+  const sortedIssueGroups = filteredIssueGroups
+    .map(([issue, campaigns]) => {
+      const totalEngagement = campaigns.reduce((sum, campaign) => 
+        sum + campaign.supportCount + campaign.opposeCount, 0
+      );
+      return { issue, campaigns, totalEngagement };
+    })
+    .sort((a, b) => a.issue.localeCompare(b.issue));
+
 
   if (loading) {
     return (
@@ -249,7 +308,7 @@ export default function Home() {
                   >
                     Clear all
                   </button>
-                  {filteredCampaigns.length === 0 && (
+                  {sortedIssueGroups.length === 0 && (
                     <span className="text-sm text-muted-foreground ml-2">(No campaigns found)</span>
                   )}
                 </div>
@@ -257,39 +316,52 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="space-y-8">
-            {topCampaigns.map((campaign) => (
-              <div key={campaign.id} className="max-w-3xl mx-auto">
-                <div className="mb-4">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Campaign by <span className="font-medium">{campaign.groupName}</span>
-                    {campaign.policyIssues.length > 0 && (
-                      <span className="ml-2">
-                        • Policy issues: {campaign.policyIssues.join(', ')}
-                      </span>
-                    )}
-                  </p>
+          <div className="space-y-12">
+            {sortedIssueGroups.map(({ issue, campaigns }) => (
+              <div key={issue} className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-2xl font-semibold text-primary">
+                    {issue}
+                  </h2>
+                  <a 
+                    href={`/campaigns/issues/${convertTitleToSlug(issue)}`}
+                    className="text-sm text-muted-foreground hover:text-primary underline"
+                  >
+                    View all {issue.toLowerCase()} campaigns →
+                  </a>
                 </div>
                 
-                <AdvocacyBillCard 
-                  bill={campaign.bill}
-                  position={campaign.position}
-                  reasoning={campaign.reasoning}
-                  actionButtonText={campaign.actionButtonText}
-                  supportCount={campaign.supportCount}
-                  opposeCount={campaign.opposeCount}
-                  groupSlug={campaign.groupSlug}
-                />
+                <div className="space-y-6">
+                  {campaigns.map((campaign) => (
+                    <div key={campaign.id} className="max-w-3xl mx-auto">
+                      <div className="mb-4">
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Campaign by <span className="font-medium">{campaign.groupName}</span>
+                        </p>
+                      </div>
+                      
+                      <AdvocacyBillCard 
+                        bill={campaign.bill}
+                        position={campaign.position}
+                        reasoning={campaign.reasoning}
+                        actionButtonText={campaign.actionButtonText}
+                        supportCount={campaign.supportCount}
+                        opposeCount={campaign.opposeCount}
+                        groupSlug={campaign.groupSlug}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
             
-            {topCampaigns.length === 0 && selectedFilters.size === 0 && (
+            {sortedIssueGroups.length === 0 && selectedFilters.size === 0 && (
               <p className="text-center text-muted-foreground py-12">
                 No active campaigns at this time
               </p>
             )}
             
-            {topCampaigns.length === 0 && selectedFilters.size > 0 && (
+            {sortedIssueGroups.length === 0 && selectedFilters.size > 0 && (
               <p className="text-center text-muted-foreground py-12">
                 No campaigns found for the selected policy issues
               </p>
