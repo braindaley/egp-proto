@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Bill, RelatedBill } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { getBillSupportData } from '@/lib/bill-support-data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 
 export function BillDetailClient({ bill }: { bill: Bill }) {
-  const [isWatched, setIsWatched] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const { user } = useAuth();
   const { saveZipCode } = useZipCode();
@@ -96,45 +95,38 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 {bill.shortTitle}
               </p>
             )}
-             <div className="mt-4 flex gap-3 items-center">
+             <div className="mt-4">
                 <Button size="lg" onClick={handleVoiceOpinionClick}>
                     Voice your opinion
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
-                >
-                  <ThumbsUp className="h-4 w-4" />
-                  <span className="font-semibold">{supportCount.toLocaleString()}</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                >
-                  <ThumbsDown className="h-4 w-4" />
-                  <span className="font-semibold">{opposeCount.toLocaleString()}</span>
-                </Button>
-                <Button 
-                  variant={isWatched ? 'secondary' : 'outline'}
-                  size="lg"
-                  onClick={() => {
-                    if (!user) {
-                      const currentUrl = window.location.pathname;
-                      router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
-                      return;
-                    }
-                    setIsWatched(prev => !prev);
-                  }}
-                  className="flex items-center gap-2 text-muted-foreground"
-                >
-                  <Eye className={`h-4 w-4 ${isWatched ? 'text-blue-600' : ''}`} />
-                  {isWatched ? 'Watching' : 'Watch'}
                 </Button>
             </div>
           </header>
           
+          {/* Support/Oppose counts */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Public Sentiment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-around text-center py-4">
+                <div className="flex items-center gap-3 text-green-600">
+                  <ThumbsUp className="h-6 w-6" />
+                  <div>
+                    <p className="font-bold text-2xl">{supportCount.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Supporters</p>
+                  </div>
+                </div>
+                <div className="h-12 w-px bg-border"></div>
+                <div className="flex items-center gap-3 text-red-600">
+                  <ThumbsDown className="h-6 w-6" />
+                  <div>
+                    <p className="font-bold text-2xl">{opposeCount.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Opponents</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
             <Card>
                 <CardHeader>
@@ -170,36 +162,82 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
 
             {bill.latestAction && <BillTracker latestAction={bill.latestAction} originChamber={bill.originChamber} />}
 
-            {hasAllSummaries && (
+            {(hasAllSummaries || bill.summaries?.count > 0 || bill.title || bill.shortTitle) && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
                             <FileText className="text-primary" />
-                            All Summaries ({bill.allSummaries.length})
+                            {hasAllSummaries ? `All Summaries (${bill.allSummaries.length})` : 'Summary'}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {bill.allSummaries.map((summary, index) => (
-                           <SummaryDisplay key={index} summary={summary} showPoliticalPerspectives={index === 0} />
-                        ))}
+                        {hasAllSummaries ? (
+                            bill.allSummaries.map((summary, index) => (
+                               <SummaryDisplay key={index} summary={summary} showPoliticalPerspectives={index === 0} />
+                            ))
+                        ) : (
+                            <div className="text-sm">
+                                {bill.summaries?.count > 0 ? (
+                                    <p className="text-muted-foreground italic">
+                                        Summary is being processed. Please check back later.
+                                    </p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div>
+                                            <p className="font-medium text-muted-foreground mb-1">Official Title</p>
+                                            <p className="text-foreground">{bill.title || displayTitle}</p>
+                                        </div>
+                                        {bill.shortTitle && bill.shortTitle !== bill.title && (
+                                            <div>
+                                                <p className="font-medium text-muted-foreground mb-1">Short Title</p>
+                                                <p className="text-foreground">{bill.shortTitle}</p>
+                                            </div>
+                                        )}
+                                        <p className="text-muted-foreground italic mt-4">
+                                            Official congressional summary not yet available. Visit Congress.gov for the latest information.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}
 
-            {hasSubjects && (
+            {(hasSubjects || bill.subjects?.policyArea) && (
               <Card>
                   <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                           <Tags className="text-primary" />
-                          Issues
+                          Policy Area & Issues
                       </CardTitle>
                   </CardHeader>
-                  <CardContent className="flex flex-wrap gap-2">
-                     {subjectNames.map((subject, index) => (
-                        <Badge key={index} variant="secondary" className="text-sm">
-                            {subject}
-                        </Badge>
-                     ))}
+                  <CardContent>
+                     {bill.subjects?.policyArea && (
+                        <div className="mb-3">
+                            <p className="text-sm font-medium text-muted-foreground mb-1">Primary Policy Area</p>
+                            <Badge variant="default" className="text-sm">
+                                {bill.subjects.policyArea.name}
+                            </Badge>
+                        </div>
+                     )}
+                     {hasSubjects && (
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-2">Related Issues</p>
+                            <div className="flex flex-wrap gap-2">
+                                {subjectNames.map((subject, index) => (
+                                    <Badge key={index} variant="secondary" className="text-sm">
+                                        {subject}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                     )}
+                     {!hasSubjects && bill.subjects?.count > 0 && (
+                        <div className="text-sm text-muted-foreground italic mt-2">
+                            Loading {bill.subjects.count} related issues...
+                        </div>
+                     )}
                   </CardContent>
               </Card>
             )}
@@ -276,16 +314,12 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                               <ul className="space-y-2">
                                   {bill.sponsors.map((sponsor, index) => (
                                       <li key={index} className="flex items-center justify-between p-2 bg-secondary/50 rounded-md">
-                                          <span className="font-semibold text-sm">{sponsor.fullName} ({sponsor.party}{sponsor.state ? `-${sponsor.state}` : ''})</span>
-                                          {sponsor.state && sponsor.bioguideId ? (
-                                              <Button asChild variant="link" size="sm" className="h-auto p-0">
-                                                  <Link href={`/congress/${bill.congress}/${sponsor.state.toLowerCase()}/${sponsor.bioguideId}`}>
-                                                      View Member <ArrowRight className="ml-1 h-3 w-3" />
-                                                  </Link>
-                                              </Button>
-                                          ) : (
-                                              <span className="text-xs text-muted-foreground">Member details not available</span>
-                                          )}
+                                          <span className="font-semibold text-sm">{sponsor.fullName} ({sponsor.party}-{sponsor.state})</span>
+                                          <Button asChild variant="link" size="sm" className="h-auto p-0">
+                                              <Link href={`/congress/${bill.congress}/${sponsor.state.toLowerCase()}/${sponsor.bioguideId}`}>
+                                                  View Member <ArrowRight className="ml-1 h-3 w-3" />
+                                              </Link>
+                                          </Button>
                                       </li>
                                   ))}
                               </ul>

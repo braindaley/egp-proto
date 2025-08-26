@@ -36,11 +36,11 @@ const advocacyGroupSlugs = [
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, createAsTemplate = false } = body;
+    const { userId, createAsTemplate = false, migrateAllAsTemplates = false } = body;
 
-    if (!userId && !createAsTemplate) {
+    if (!userId && !createAsTemplate && !migrateAllAsTemplates) {
       return NextResponse.json(
-        { error: 'userId is required unless creating as template' },
+        { error: 'userId is required unless creating as template or migrating all as templates' },
         { status: 400 }
       );
     }
@@ -103,10 +103,11 @@ export async function POST(request: Request) {
               supportCount: priorityBill.supportCount || 0,
               opposeCount: priorityBill.opposeCount || 0,
               isActive: true,
-              isTemplate: createAsTemplate, // Mark as template if creating templates
+              isTemplate: createAsTemplate || migrateAllAsTemplates, // Mark as template if creating templates
               createdAt: new Date(),
               updatedAt: new Date(),
-              migratedFrom: 'advocacy-groups' // Track migration source
+              migratedFrom: 'advocacy-groups', // Track migration source
+              url: `/groups/${groupData.slug}/${priorityBill.bill.type.toLowerCase()}-${priorityBill.bill.number}` // Add URL for easy access
             };
 
             const docRef = await addDoc(collection(db, 'campaigns'), campaignData);
@@ -135,7 +136,7 @@ export async function POST(request: Request) {
       migratedCount: migratedCampaigns.length,
       migratedCampaigns,
       errors: errors.length > 0 ? errors : undefined,
-      message: `Successfully migrated ${migratedCampaigns.length} campaigns${createAsTemplate ? ' as templates' : ` for user ${userId}`}`
+      message: `Successfully migrated ${migratedCampaigns.length} campaigns${createAsTemplate || migrateAllAsTemplates ? ' as templates' : ` for user ${userId}`}`
     });
 
   } catch (error) {

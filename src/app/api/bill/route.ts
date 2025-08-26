@@ -192,7 +192,6 @@ export async function GET(req: NextRequest) {
   try {
     const basicUrl = `${baseUrl}?api_key=${API_KEY}`;
     console.log(`📡 Fetching from Congress API: ${basicUrl.replace(API_KEY, '[REDACTED]')}`);
-    console.log(`📡 API Key length: ${API_KEY.length}, starts with: ${API_KEY.substring(0, 4)}...`);
     
     let basicRes = await fetch(basicUrl, {
       method: 'GET',
@@ -276,6 +275,11 @@ export async function GET(req: NextRequest) {
     bill.subjects = bill.subjects || { count: 0, items: [] };
     bill.summaries = { ...bill.summaries, count: 0, items: [] }; // Ensure items is an array
     bill.allSummaries = []; // Start with an empty array
+    
+    // Preserve policyArea if it exists in the basic response
+    if (basicData.bill?.policyArea) {
+        bill.subjects.policyArea = basicData.bill.policyArea;
+    }
 
     const fetchPromises: Promise<void>[] = [];
 
@@ -304,9 +308,10 @@ export async function GET(req: NextRequest) {
 
     // Summaries
     if (bill.summaries && 'url' in bill.summaries && bill.summaries.url) {
+        const summariesUrl = bill.summaries.url.includes('api_key') ? bill.summaries.url : `${bill.summaries.url}&api_key=${API_KEY}`;
         fetchPromises.push(
-            fetch(`${bill.summaries.url}`, { signal: AbortSignal.timeout(4000) })
-            .then((res: Response) => res.ok ? res.json() : Promise.resolve(null)) // Gracefully handle failed requests
+            fetch(summariesUrl, { signal: AbortSignal.timeout(8000) })
+            .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: SummariesResponse | null) => {
                 const summaries = data?.summaries;
                 if (summaries && Array.isArray(summaries) && summaries.length > 0) {
@@ -326,8 +331,9 @@ export async function GET(req: NextRequest) {
     
     // Actions
     if (bill.actions && 'url' in bill.actions && bill.actions.url) {
+        const actionsUrl = bill.actions.url.includes('api_key') ? bill.actions.url : `${bill.actions.url}&api_key=${API_KEY}`;
         fetchPromises.push(
-             fetch(`${bill.actions.url}`, { signal: AbortSignal.timeout(4000) })
+             fetch(actionsUrl, { signal: AbortSignal.timeout(8000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: ActionsResponse | null) => {
                 if (data?.actions && Array.isArray(data.actions)) {
@@ -342,9 +348,12 @@ export async function GET(req: NextRequest) {
     
     // Committees
     if (bill.committees && 'url' in bill.committees && bill.committees.url) {
+        const committeesUrl = bill.committees.url.includes('api_key') ? bill.committees.url : `${bill.committees.url}&api_key=${API_KEY}`;
         fetchPromises.push(
-             fetch(`${bill.committees.url}`, { signal: AbortSignal.timeout(4000) })
-            .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
+             fetch(committeesUrl, { signal: AbortSignal.timeout(8000) })
+            .then((res: Response) => {
+    return res.ok ? res.json() : Promise.resolve(null);
+            })
             .then((data: CommitteesResponse | null) => {
                 if (data?.committees && Array.isArray(data.committees)) {
                     bill.committees.items = data.committees as any[]; // Cast to avoid type issues with API response structure
@@ -358,24 +367,31 @@ export async function GET(req: NextRequest) {
 
     // Cosponsors
     if (bill.cosponsors && 'url' in bill.cosponsors && bill.cosponsors.url) {
+        const cosponsorsUrl = bill.cosponsors.url.includes('api_key') ? bill.cosponsors.url : `${bill.cosponsors.url}&api_key=${API_KEY}`;
         fetchPromises.push(
-             fetch(`${bill.cosponsors.url}`, { signal: AbortSignal.timeout(4000) })
-            .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
+             fetch(cosponsorsUrl, { signal: AbortSignal.timeout(8000) })
+            .then((res: Response) => {
+                console.log('👥 Cosponsors response status:', res.status);
+                return res.ok ? res.json() : Promise.resolve(null);
+            })
             .then((data: any) => {
+                console.log('👥 Cosponsors data received:', data?.cosponsors ? data.cosponsors.length : 0);
                 if (data?.cosponsors && Array.isArray(data.cosponsors)) {
                     bill.cosponsors.items = data.cosponsors as any[];
+                    console.log('👥 Set cosponsors with', data.cosponsors.length, 'items');
                 }
             }).catch((e: unknown) => {
                 const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-                console.log('Cosponsors fetch failed:', errorMessage);
+                console.log('👥 Cosponsors fetch failed:', errorMessage);
             })
         );
     }
 
     // Text Versions  
     if (bill.textVersions && 'url' in bill.textVersions && bill.textVersions.url) {
+        const textVersionsUrl = bill.textVersions.url.includes('api_key') ? bill.textVersions.url : `${bill.textVersions.url}&api_key=${API_KEY}`;
         fetchPromises.push(
-             fetch(`${bill.textVersions.url}`, { signal: AbortSignal.timeout(4000) })
+             fetch(textVersionsUrl, { signal: AbortSignal.timeout(8000) })
             .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
             .then((data: any) => {
                 if (data?.textVersions && Array.isArray(data.textVersions)) {
@@ -390,16 +406,22 @@ export async function GET(req: NextRequest) {
 
     // Related Bills
     if (bill.relatedBills && 'url' in bill.relatedBills && bill.relatedBills.url) {
+        const relatedBillsUrl = bill.relatedBills.url.includes('api_key') ? bill.relatedBills.url : `${bill.relatedBills.url}&api_key=${API_KEY}`;
         fetchPromises.push(
-             fetch(`${bill.relatedBills.url}`, { signal: AbortSignal.timeout(4000) })
-            .then((res: Response) => res.ok ? res.json() : Promise.resolve(null))
+             fetch(relatedBillsUrl, { signal: AbortSignal.timeout(8000) })
+            .then((res: Response) => {
+                console.log('🗗 Related bills response status:', res.status);
+                return res.ok ? res.json() : Promise.resolve(null);
+            })
             .then((data: any) => {
+                console.log('🗗 Related bills data received:', data?.relatedBills ? data.relatedBills.length : 0);
                 if (data?.relatedBills && Array.isArray(data.relatedBills)) {
                     bill.relatedBills.items = data.relatedBills as any[];
+                    console.log('🗗 Set related bills with', data.relatedBills.length, 'items');
                 }
             }).catch((e: unknown) => {
                 const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-                console.log('Related bills fetch failed:', errorMessage);
+                console.log('🗗 Related bills fetch failed:', errorMessage);
             })
         );
     }
@@ -408,7 +430,9 @@ export async function GET(req: NextRequest) {
     if (bill.subjects && 'url' in bill.subjects && bill.subjects.url) {
         const fetchAllSubjects = async (): Promise<void> => {
             let allSubjects: (Subject | PolicyArea)[] = [];
-            let nextUrl: string | undefined = `${bill.subjects.url}&limit=250`;
+            const baseSubjectsUrl = bill.subjects.url.includes('api_key') ? bill.subjects.url : `${bill.subjects.url}&api_key=${API_KEY}`;
+            let nextUrl: string | undefined = `${baseSubjectsUrl}&limit=250`;
+            console.log('🏷️ Fetching subjects from:', nextUrl.replace(API_KEY, '[REDACTED]'));
             
             while (nextUrl) {
                 try {

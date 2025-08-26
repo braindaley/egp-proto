@@ -1,141 +1,200 @@
-
 'use client';
 
-import { BillFeedCard } from '@/components/BillFeedCard';
-import RecentMessages from '@/components/RecentMessages';
-import CongressMembers from '@/components/CongressMembers';
-import WatchedGroups from '@/components/WatchedGroups';
-import Campaigns from '@/components/Campaigns';
-import NavigationCard from '@/components/NavigationCard';
-import { LoggedOutCard } from '@/components/LoggedOutCard';
-import { Loader2, AlertCircle, MessageSquare, Megaphone, Users } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useBills } from '@/hooks/use-bills';
-import { useAuth } from '@/hooks/use-auth';
+import AdvocacyBillCard from '@/components/advocacy-bill-card';
+import { useState, useEffect } from 'react';
+import { getAdvocacyGroupData } from '@/lib/advocacy-groups';
+
+interface CampaignBill {
+  id: string;
+  bill: {
+    number: string;
+    type: string;
+    congress: number;
+    title: string;
+  };
+  position: string;
+  actionButtonText: string;
+  reasoning: string;
+  supportCount: number;
+  opposeCount: number;
+  groupSlug: string;
+  groupName: string;
+  lastUpdated: Date;
+  url?: string;
+}
 
 export default function Home() {
-  const { data: bills = [], isLoading: loading, error, refetch } = useBills();
-  const { user } = useAuth();
-  const router = useRouter();
+  const [campaignBills, setCampaignBills] = useState<CampaignBill[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleFindOfficials = (zipCode: string) => {
-    router.push(`/congress/119/states?zip=${zipCode}`);
-  };
-
-  if (loading) {
-    return (
-      <div className="bg-secondary/30 flex-1">
-        <div className="container mx-auto px-4 py-8 md:py-12">
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center space-y-4">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                <div className="space-y-2">
-                  <p className="text-lg font-medium">Loading Latest Bills</p>
-                  <p className="text-sm text-muted-foreground">
-                    Fetching the most recent congressional activity...
-                  </p>
-                  <Button onClick={() => refetch()} className="mt-4">
-                    Click to Load Manually
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-secondary/30 flex-1">
-        <div className="container mx-auto px-4 py-8 md:py-12">
-          <div className="max-w-2xl mx-auto">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Error loading bills: {error?.message || 'Unknown error'}
-                <Button onClick={() => refetch()} className="mt-2">
-                  Retry
-                </Button>
-              </AlertDescription>
-            </Alert>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      try {
+        const localCampaigns: CampaignBill[] = [];
+        // List of all group slugs we want to show campaigns from
+        const groupSlugs = [
+          'league-of-women-voters',
+          'brennan-center-for-justice',
+          'common-cause',
+          'fair-elections-center',
+          'fairvote',
+          'voteriders',
+          'rock-the-vote',
+          'mi-familia-vota',
+          'black-voters-matter',
+          'when-we-all-vote'
+        ];
+        
+        // Collect campaigns from each group
+        for (const slug of groupSlugs) {
+          const groupData = getAdvocacyGroupData(slug);
+          if (groupData && groupData.priorityBills) {
+            for (const priorityBill of groupData.priorityBills) {
+              localCampaigns.push({
+                id: `${slug}-${priorityBill.bill.type}-${priorityBill.bill.number}`,
+                bill: {
+                  number: priorityBill.bill.number || '',
+                  type: priorityBill.bill.type || '',
+                  congress: priorityBill.bill.congress || 119,
+                  title: priorityBill.bill.title || `${priorityBill.bill.type} ${priorityBill.bill.number}`
+                },
+                position: priorityBill.position,
+                actionButtonText: priorityBill.actionButtonText,
+                reasoning: priorityBill.reasoning,
+                supportCount: priorityBill.supportCount,
+                opposeCount: priorityBill.opposeCount,
+                groupSlug: slug,
+                groupName: groupData.name,
+                lastUpdated: new Date(),
+                url: `/groups/${slug}/${priorityBill.bill.type?.toLowerCase()}-${priorityBill.bill.number}`
+              });
+            }
+          }
+        }
+        
+        // Sort by support/oppose counts for most engaging content first
+        localCampaigns.sort((a, b) => {
+          const aTotal = a.supportCount + a.opposeCount;
+          const bTotal = b.supportCount + b.opposeCount;
+          return bTotal - aTotal;
+        });
+        
+        // Take top 20 campaigns
+        setCampaignBills(localCampaigns.slice(0, 20));
+        
+        // If still no campaigns, show mock data as fallback
+        if (localCampaigns.length === 0) {
+          const mockBills: CampaignBill[] = [
+            {
+              id: 'mock-1',
+              bill: {
+                number: '22',
+                type: 'HR',
+                congress: 119,
+                title: 'SAVE Act'
+              },
+              position: 'Oppose',
+              actionButtonText: 'Voice your opinion',
+              reasoning: `
+                <h3>Why LWV Opposes the SAVE Act (H.R. 22)</h3>
+                <ul>
+                  <li><strong>It creates unnecessary barriers to voting.</strong> Although voters are already required to affirm citizenship when registering, the SAVE Act adds redundant requirements, such as presenting documentary proof of U.S. citizenship in person every time you update your registration. This puts an unfair burden on many eligible voters.</li>
+                  <li><strong>It disproportionately impacts marginalized groups.</strong> The League highlights how the SAVE Act harms rural voters, voters of color, military families who move frequently, those recovering from disasters, and especially married women who've changed their names and may struggle to match documentation.</li>
+                  <li><strong>It addresses a problem that doesn't exist.</strong> Noncitizen voting is already illegal and extremely rare. The League warns that the SAVE Act is rooted in fear, misinformation, and divisive rhetoric—not real threats to democracy.</li>
+                  <li><strong>It undermines voter access and overloads election infrastructure.</strong> Requiring in-person registrations and strict document checks could overwhelm local election offices and undermine the League's century-long mission of encouraging broad participation.</li>
+                </ul>
+              `,
+              supportCount: 3100,
+              opposeCount: 15600,
+              groupSlug: 'league-of-women-voters',
+              groupName: 'League of Women Voters',
+              lastUpdated: new Date('2025-01-24'),
+              url: '/groups/league-of-women-voters/hr-22'
+            },
+            {
+              id: 'mock-2',
+              bill: {
+                number: '14',
+                type: 'HR',
+                congress: 119,
+                title: 'John R. Lewis Voting Rights Advancement Act'
+              },
+              position: 'Support',
+              actionButtonText: 'Voice your opinion',
+              reasoning: `
+                <h3>Why LWV Supports the John R. Lewis Voting Rights Advancement Act</h3>
+                <ul>
+                  <li><strong>It restores protections weakened by court decisions.</strong> After the 2013 <em>Shelby County v. Holder</em> ruling gutted key provisions of the Voting Rights Act, this legislation is seen as essential to reestablish federal oversight and guard against discriminatory changes in voting laws.</li>
+                  <li><strong>It defends democracy and honors the VRA's legacy.</strong> Named for civil rights hero John Lewis, the bill is framed as much-needed defense of voting rights—particularly amid renewed state-level attacks on fair representation and redistricting.</li>
+                  <li><strong>It aligns with LWV's mission.</strong> The League has a long history of fighting to make elections fair, inclusive, and accessible. This act fits squarely within that mission by preventing racial discrimination and ensuring every voter is heard.</li>
+                </ul>
+              `,
+              supportCount: 9850,
+              opposeCount: 1520,
+              groupSlug: 'league-of-women-voters',
+              groupName: 'League of Women Voters',
+              lastUpdated: new Date('2025-01-23'),
+              url: '/groups/league-of-women-voters/hr-14'
+            }
+          ];
+          
+          setCampaignBills(mockBills);
+        }
+      } catch (error) {
+        console.error('Error fetching campaigns:', error);
+        // Fallback to empty list if error occurs
+        setCampaignBills([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCampaigns();
+  }, []);
 
   return (
     <div className="bg-secondary/30 flex-1">
-      <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
-        <div className="flex gap-6">
-          {/* Left sidebar */}
-          <div className="w-64 flex-shrink-0 space-y-4">
-            <NavigationCard />
-            {user ? (
-              <Campaigns />
-            ) : (
-              <LoggedOutCard 
-                headline="Activate your advocacy group"
-                helperText="Use our advanced technology to amplify voter intent."
-                buttonText="Get started"
-                useTextLink={true}
-                icon={Megaphone}
-              />
-            )}
-          </div>
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold mb-2">Active Campaigns</h1>
+          <p className="text-muted-foreground mb-8">
+            Organizations are mobilizing support around these bills
+          </p>
           
-          {/* Center - Bills Feed */}
-          <div className="flex-1 max-w-[672px]">
-            <div className="space-y-4">
-              {bills.map((bill, index) => (
-                <BillFeedCard key={`${bill.congress}-${bill.type}-${bill.number}`} bill={bill} />
-              ))}
-              {bills.length === 0 && (
-                <p className="text-center text-muted-foreground">No bills found</p>
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading campaigns...</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {campaignBills.map((campaign) => (
+                <div key={campaign.id}>
+                  <div className="mb-3">
+                    <p className="text-sm text-muted-foreground">
+                      Campaign by <span className="font-medium">{campaign.groupName}</span>
+                      {' • '}
+                      Updated {campaign.lastUpdated.toLocaleDateString()}
+                  </p>
+                </div>
+                <AdvocacyBillCard 
+                  bill={campaign.bill}
+                  position={campaign.position}
+                  reasoning={campaign.reasoning}
+                  actionButtonText={campaign.actionButtonText}
+                  supportCount={campaign.supportCount}
+                  opposeCount={campaign.opposeCount}
+                  groupSlug={campaign.groupSlug}
+                />
+              </div>
+            ))}
+            
+              {campaignBills.length === 0 && (
+                <p className="text-center text-muted-foreground py-12">
+                  No active campaigns at this time
+                </p>
               )}
             </div>
-          </div>
-          
-          {/* Right sidebar */}
-          <div className="w-64 flex-shrink-0 space-y-4">
-            {user ? (
-              <>
-                <RecentMessages />
-                <CongressMembers />
-                <WatchedGroups />
-              </>
-            ) : (
-              <>
-                <LoggedOutCard 
-                  headline="Voice your opinion"
-                  helperText="Easily send your opinions to officials and make a difference."
-                  icon={MessageSquare}
-                  showAsLink={true}
-                  buttonHref="/dashboard/messages"
-                />
-                <LoggedOutCard 
-                  headline="Find your officials"
-                  helperText="Enter your zip code to find your officials."
-                  buttonText="Find your officials"
-                  showZipCodeField={true}
-                  onFindOfficials={handleFindOfficials}
-                />
-                <LoggedOutCard 
-                  headline="Groups"
-                  helperText="Find out what your favorite advocacy group supports and opposes."
-                  buttonText="Browse groups"
-                  buttonHref="/groups"
-                  useTextLink={true}
-                  icon={Users}
-                />
-              </>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>

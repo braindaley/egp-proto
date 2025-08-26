@@ -8,7 +8,6 @@ import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from './ui/separator';
 import { CongressSelector } from './congress-selector';
-import { FeedNavigation } from './FeedNavigation';
 import { ZipCodeChanger } from './ZipCodeManager';
 import { useState, useEffect } from 'react';
 import type { Congress } from '@/types';
@@ -94,10 +93,6 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
             </Link>
           </div>
           
-          {/* Center Section - Feed Navigation */}
-           <div className="absolute left-1/2 -translate-x-1/2">
-                <FeedNavigation />
-            </div>
 
           {/* Right Section - Auth and Menu */}
           <div className="flex items-center gap-2">
@@ -141,6 +136,24 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                     
                     <Separator />
 
+                    <SheetClose asChild>
+                      <Link href="/for-you" className="block w-full text-left p-2 rounded-md hover:bg-accent">
+                          For You
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/following" className="block w-full text-left p-2 rounded-md hover:bg-accent">
+                          Following
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/issues" className="block w-full text-left p-2 rounded-md hover:bg-accent">
+                          Issues
+                      </Link>
+                    </SheetClose>
+                    
+                    <Separator />
+                    
                     <SheetClose asChild>
                       <Link href={billsHref} className="block w-full text-left p-2 rounded-md hover:bg-accent">
                           Bills
