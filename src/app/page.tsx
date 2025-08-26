@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { campaignsService } from '@/lib/campaigns';
 import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
-import { ThumbsUp, ThumbsDown, ArrowRight, ChevronRight } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, ArrowRight, ChevronRight, Menu } from 'lucide-react';
 import { getBillTypeSlug } from '@/lib/utils';
+import { useState } from 'react';
 
 export default function Home() {
   const campaigns = campaignsService.getAllCampaigns().filter(c => c.isActive);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   function convertTitleToSlug(title: string): string {
     return title
@@ -22,11 +24,49 @@ export default function Home() {
   
   return (
     <div className="bg-secondary/30 flex-1">
-      <div className="container mx-auto px-4 py-8 md:py-12">
-        <div className="flex justify-center">
-          <div className="flex gap-8 w-full max-w-6xl">
-            {/* Left Navigation Panel */}
-            <aside className="w-64 flex-shrink-0">
+      <div className="container mx-auto px-4 py-6 md:py-12">
+        {/* Mobile Menu Button */}
+        <div className="lg:hidden mb-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="flex items-center gap-2"
+          >
+            <Menu className="h-4 w-4" />
+            Policy Categories
+          </Button>
+        </div>
+
+        {/* Mobile Categories Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden mb-6">
+            <Card>
+              <CardContent className="p-0">
+                <nav className="space-y-1">
+                  {SITE_ISSUE_CATEGORIES.map((category) => (
+                    <Link
+                      key={category}
+                      href={`/issues/${convertTitleToSlug(category)}`}
+                      className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted transition-colors group"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <span className="text-muted-foreground group-hover:text-foreground">
+                        {category}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                    </Link>
+                  ))}
+                </nav>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <div className="flex flex-col lg:flex-row lg:justify-center">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full max-w-6xl">
+            {/* Desktop Left Navigation Panel */}
+            <aside className="hidden lg:block w-64 flex-shrink-0">
               <div className="sticky top-8">
                 <Card>
                   <CardHeader>
@@ -53,9 +93,9 @@ export default function Home() {
             </aside>
 
             {/* Main Content - Campaigns */}
-            <div className="max-w-[672px] flex-1">
-              <h1 className="text-3xl font-bold text-center mb-8">Current Campaigns</h1>
-              <div className="space-y-6">
+            <div className="w-full lg:max-w-[672px] lg:flex-1">
+              <h1 className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8">Current Campaigns</h1>
+              <div className="space-y-4 md:space-y-6">
                 {campaigns.map((campaign) => {
                   const isSupport = campaign.position === 'Support';
                   const badgeVariant = isSupport ? 'default' : 'destructive';
@@ -64,39 +104,39 @@ export default function Home() {
                   
                   return (
                     <Card key={campaign.id} className="shadow-md hover:shadow-lg transition-shadow">
-                      <CardHeader>
-                        <div className="flex justify-between items-start gap-4">
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-primary mb-1">
+                      <CardHeader className="pb-4">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm font-medium text-primary mb-1">
                               {campaign.bill.type.toUpperCase()} {campaign.bill.number} • {campaign.bill.congress}th Congress
                             </p>
-                            <CardTitle className="text-lg font-bold mb-2">
+                            <CardTitle className="text-base sm:text-lg font-bold mb-2 leading-tight">
                               <Link 
                                 href={`/bill/${campaign.bill.congress}/${billTypeSlug}/${campaign.bill.number}`} 
-                                className="hover:underline"
+                                className="hover:underline break-words"
                               >
                                 {campaign.bill.title || `Legislation ${campaign.bill.type.toUpperCase()} ${campaign.bill.number}`}
                               </Link>
                             </CardTitle>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               {campaign.groupName}
                             </p>
                           </div>
-                          <Badge variant={badgeVariant} className="flex items-center gap-2 text-base px-3 py-1.5">
-                            <PositionIcon className="h-4 w-4" />
+                          <Badge variant={badgeVariant} className="flex items-center gap-2 text-sm px-2 py-1 sm:text-base sm:px-3 sm:py-1.5 shrink-0">
+                            <PositionIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                             <span>{campaign.position}</span>
                           </Badge>
                         </div>
                       </CardHeader>
-                      <CardContent>
+                      <CardContent className="pt-0">
                         <div 
-                          className="text-muted-foreground mb-4 line-clamp-3 [&>h3]:hidden [&>ul]:list-disc [&>ul]:pl-5 [&>li]:leading-relaxed" 
+                          className="text-muted-foreground mb-4 text-sm leading-relaxed [&>h3]:hidden [&>ul]:list-disc [&>ul]:pl-5 [&>li]:leading-relaxed" 
                           dangerouslySetInnerHTML={{ 
                             __html: campaign.reasoning.replace(/<h3>.*?<\/h3>/gi, '').substring(0, 200) + '...' 
                           }} 
                         />
-                        <div className="flex items-center justify-between pt-4 border-t">
-                          <div className="flex gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t gap-3">
+                          <div className="flex gap-4 justify-center sm:justify-start">
                             <div className="flex items-center gap-1 text-sm text-green-600">
                               <ThumbsUp className="h-4 w-4" />
                               <span className="font-semibold">{campaign.supportCount.toLocaleString()}</span>
@@ -106,7 +146,7 @@ export default function Home() {
                               <span className="font-semibold">{campaign.opposeCount.toLocaleString()}</span>
                             </div>
                           </div>
-                          <Button size="sm" asChild>
+                          <Button size="sm" asChild className="w-full sm:w-auto">
                             <Link href={`/campaigns/groups/${campaign.groupSlug}/${campaign.bill.type.toLowerCase()}-${campaign.bill.number}`}>
                               View Campaign
                               <ArrowRight className="ml-2 h-4 w-4" />

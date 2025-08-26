@@ -11,6 +11,8 @@ import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Slider } from './ui/slider';
+import * as SliderPrimitive from "@radix-ui/react-slider";
+import { cn } from '@/lib/utils';
 import { Textarea } from './ui/textarea';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
@@ -94,13 +96,18 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
   };
 
   const handlePolicyInterestChange = (policyKey: string, value: number[]) => {
-    setProfile(prev => ({
-      ...prev,
-      policyInterests: {
-        ...prev.policyInterests,
-        [policyKey]: value[0]
-      }
-    }));
+    console.log(`handlePolicyInterestChange called: ${policyKey} = ${value[0]}`);
+    setProfile(prev => {
+      const newProfile = {
+        ...prev,
+        policyInterests: {
+          ...prev.policyInterests,
+          [policyKey]: value[0]
+        }
+      };
+      console.log(`Profile updated. ${policyKey} is now:`, newProfile.policyInterests?.[policyKey as keyof typeof newProfile.policyInterests]);
+      return newProfile;
+    });
   };
 
 
@@ -151,7 +158,74 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
     { key: 'science', label: 'Science' },
   ];
 
-  const interestLevels = ['No', 'Low', 'Neutral', 'Medium', 'High'];
+  const interestLevels = ['None', 'Low', 'Neutral', 'Medium', 'High'];
+
+  // Custom PolicySlider component without filled appearance and with clickable labels
+  const PolicySlider = ({ 
+    id, 
+    value, 
+    onValueChange, 
+    label 
+  }: { 
+    id: string; 
+    value: number; 
+    onValueChange: (value: number) => void;
+    label: string;
+  }) => {
+    console.log(`PolicySlider ${label}: value=${value}, interestLevels[${value}]=${interestLevels[value]}`);
+    
+    return (
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <Label htmlFor={id}>{label}</Label>
+          <span className="text-sm text-muted-foreground">
+            {interestLevels[value]}
+          </span>
+        </div>
+        <div className="relative flex w-full touch-none select-none items-center">
+          <div className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary">
+            {/* No fill - this is a settings slider, not a progress indicator */}
+          </div>
+          <SliderPrimitive.Root
+            id={id}
+            min={0}
+            max={4}
+            step={1}
+            value={[value]}
+            onValueChange={(newValue) => {
+              console.log(`Slider ${label} changed to:`, newValue[0]);
+              onValueChange(newValue[0]);
+            }}
+            className="absolute inset-0 flex w-full touch-none select-none items-center"
+          >
+            <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-transparent">
+            </SliderPrimitive.Track>
+            <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
+          </SliderPrimitive.Root>
+        </div>
+        <div className="flex justify-between text-xs">
+          {interestLevels.map((level, index) => (
+            <button
+              key={level}
+              type="button"
+              className={cn(
+                "hover:text-foreground transition-colors cursor-pointer px-2 py-1 rounded border border-transparent hover:border-gray-300",
+                value === index ? "text-foreground font-bold bg-blue-50 border-blue-200" : "text-muted-foreground"
+              )}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log(`Button ${level} (${index}) clicked for ${label}`);
+                onValueChange(index);
+              }}
+            >
+              {level}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
 
   return (
@@ -291,30 +365,13 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
               <h3 className="text-lg font-semibold mb-4">Policy Issue Interest</h3>
               <div className="space-y-4">
                 {policyIssues.map((issue) => (
-                  <div key={issue.key} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label htmlFor={issue.key}>{issue.label}</Label>
-                      <span className="text-sm text-muted-foreground">
-                        {interestLevels[profile.policyInterests?.[issue.key as keyof typeof profile.policyInterests] || 2]}
-                      </span>
-                    </div>
-                    <Slider
-                      id={issue.key}
-                      min={0}
-                      max={4}
-                      step={1}
-                      value={[profile.policyInterests?.[issue.key as keyof typeof profile.policyInterests] || 2]}
-                      onValueChange={(value) => handlePolicyInterestChange(issue.key, value)}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>No</span>
-                      <span>Low</span>
-                      <span>Neutral</span>
-                      <span>Medium</span>
-                      <span>High</span>
-                    </div>
-                  </div>
+                  <PolicySlider
+                    key={issue.key}
+                    id={issue.key}
+                    label={issue.label}
+                    value={profile.policyInterests?.[issue.key as keyof typeof profile.policyInterests] ?? 2}
+                    onValueChange={(value) => handlePolicyInterestChange(issue.key, [value])}
+                  />
                 ))}
               </div>
             </div>
