@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Stepper, Step, StepLabel } from '@/components/ui/stepper';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Loader2, AlertCircle, User, Search, X, CheckCircle, Mail, Shield, UserPlus } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Sparkles, Loader2, AlertCircle, User, Search, X, CheckCircle, Mail, Shield, UserPlus, Upload, File, Image, ChevronLeft, Check, AtSign, Globe } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
@@ -66,6 +67,16 @@ interface PersonalDataField {
   available: boolean;
 }
 
+interface VerificationMatch {
+  id: string;
+  fullName: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  constituentDescription?: string | null;
+}
+
 
 const AdvocacyMessageContent: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -76,6 +87,26 @@ const AdvocacyMessageContent: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedPersonalData, setSelectedPersonalData] = useState<string[]>(['fullName']);
   const [saveAsDefault, setSaveAsDefault] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  
+  // Verification state
+  const [verificationStep, setVerificationStep] = useState<'initial' | 'selection' | 'manual'>('initial');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationError, setVerificationError] = useState('');
+  const [firstInitial, setFirstInitial] = useState('');
+  const [lastNameLetters, setLastNameLetters] = useState('');
+  const [verificationZipCode, setVerificationZipCode] = useState('');
+  const [matches, setMatches] = useState<VerificationMatch[]>([]);
+  const [selectedMatch, setSelectedMatch] = useState<string>('');
+  const [manualFirstName, setManualFirstName] = useState('');
+  const [manualLastName, setManualLastName] = useState('');
+  const [manualAddress, setManualAddress] = useState('');
+  const [manualCity, setManualCity] = useState('');
+  const [manualState, setManualState] = useState('');
+  const [manualZipCode, setManualZipCode] = useState('');
+  const [constituentDescription, setConstituentDescription] = useState('');
+  const [deliveryMethod, setDeliveryMethod] = useState<'egutenberg' | 'email_provider'>('egutenberg');
+  const [notificationEmail, setNotificationEmail] = useState('');
   
   // Step 6 state (sending screen)
   const [isSending, setIsSending] = useState(false);
@@ -250,6 +281,122 @@ const AdvocacyMessageContent: React.FC = () => {
   const availableFields = personalDataFields.filter(f => f.available);
   const unavailableFields = personalDataFields.filter(f => !f.available);
 
+  // Verification functions
+  const handleVerificationSubmit = async () => {
+    setVerificationError('');
+    
+    if (!firstInitial || !lastNameLetters || !verificationZipCode) {
+      setVerificationError('Please fill in all fields');
+      return;
+    }
+    
+    if (firstInitial.length !== 1) {
+      setVerificationError('Please enter only the first initial of your first name');
+      return;
+    }
+    
+    if (lastNameLetters.length < 2 || lastNameLetters.length > 4) {
+      setVerificationError('Please enter 2-4 letters of your last name');
+      return;
+    }
+    
+    if (verificationZipCode.length !== 5 || !/^\d+$/.test(verificationZipCode)) {
+      setVerificationError('Please enter a valid 5-digit ZIP code');
+      return;
+    }
+    
+    setIsVerifying(true);
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockMatches: VerificationMatch[] = [
+        {
+          id: '1',
+          fullName: `${firstInitial.toUpperCase()}. ${lastNameLetters.charAt(0).toUpperCase() + lastNameLetters.slice(1).toLowerCase()}son`,
+          address: '123 Main St',
+          city: 'Springfield',
+          state: 'IL',
+          zipCode: verificationZipCode
+        },
+        {
+          id: '2',
+          fullName: `${firstInitial.toUpperCase()}. ${lastNameLetters.charAt(0).toUpperCase() + lastNameLetters.slice(1).toLowerCase()}man`,
+          address: '456 Oak Ave',
+          city: 'Springfield',
+          state: 'IL',
+          zipCode: verificationZipCode
+        }
+      ];
+      
+      setMatches(mockMatches);
+      setVerificationStep('selection');
+    } catch (err) {
+      setVerificationError('Unable to verify identity. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleMatchSelection = () => {
+    const selected = matches.find(m => m.id === selectedMatch);
+    if (selected) {
+      // Add constituent description to verified user info if provided
+      const verifiedInfo = {
+        ...selected,
+        constituentDescription: constituentDescription || null
+      };
+      setVerifiedUserInfo(verifiedInfo);
+      // Reset verification form
+      setVerificationStep('initial');
+      setFirstInitial('');
+      setLastNameLetters('');
+      setVerificationZipCode('');
+      setMatches([]);
+      setSelectedMatch('');
+    }
+  };
+
+  const handleManualSubmit = () => {
+    setVerificationError('');
+    
+    if (!manualFirstName || !manualLastName || !manualAddress || 
+        !manualCity || !manualState || !manualZipCode) {
+      setVerificationError('Please fill in all fields');
+      return;
+    }
+    
+    const manualInfo: VerificationMatch = {
+      id: 'manual',
+      fullName: `${manualFirstName} ${manualLastName}`,
+      address: manualAddress,
+      city: manualCity,
+      state: manualState,
+      zipCode: manualZipCode,
+      constituentDescription: constituentDescription || null
+    };
+    
+    setVerifiedUserInfo(manualInfo);
+    // Reset verification form
+    setVerificationStep('initial');
+    setManualFirstName('');
+    setManualLastName('');
+    setManualAddress('');
+    setManualCity('');
+    setManualState('');
+    setManualZipCode('');
+  };
+
+  const handleVerificationReset = () => {
+    setVerificationStep('initial');
+    setFirstInitial('');
+    setLastNameLetters('');
+    setVerificationZipCode('');
+    setMatches([]);
+    setSelectedMatch('');
+    setVerificationError('');
+  };
+
   // Generate AI message
   const generateAITemplate = async () => {
     if (!userStance) {
@@ -388,6 +535,7 @@ const AdvocacyMessageContent: React.FC = () => {
           role: member.role || 'Representative'
         })),
         personalDataIncluded: selectedPersonalData,
+        constituentDescription: constituentDescription || null,
         sentAt: Timestamp.now(),
         deliveryStatus: 'sent'
       };
@@ -399,7 +547,8 @@ const AdvocacyMessageContent: React.FC = () => {
           address: verifiedUserInfo.address,
           city: verifiedUserInfo.city,
           state: verifiedUserInfo.state,
-          zipCode: verifiedUserInfo.zipCode
+          zipCode: verifiedUserInfo.zipCode,
+          constituentDescription: verifiedUserInfo.constituentDescription || null
         };
       }
       
@@ -424,6 +573,7 @@ const AdvocacyMessageContent: React.FC = () => {
         sessionStorage.setItem('pendingMessageData', JSON.stringify({
           messageId: docRef.id,
           verifiedUserInfo,
+          constituentDescription,
           billInfo: {
             congress,
             billType,
@@ -672,81 +822,69 @@ const AdvocacyMessageContent: React.FC = () => {
               placeholder="Write your message here, or generate a template to get started..."
               rows={20}
             />
+            
+            {/* Upload Media */}
+            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+              <div className="text-center">
+                <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <h4 className="text-sm font-medium mb-2">Upload Media</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Add images, documents, or other files to support your message
+                </p>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setUploadedFiles(prev => [...prev, ...files]);
+                  }}
+                  className="hidden"
+                  id="media-upload"
+                />
+                <Label htmlFor="media-upload" className="cursor-pointer">
+                  <Button variant="outline" type="button" className="pointer-events-none">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Choose Files
+                  </Button>
+                </Label>
+              </div>
+              
+              {/* Uploaded Files Display */}
+              {uploadedFiles.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-medium">Uploaded Files:</p>
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-2">
+                      <div className="flex items-center space-x-2">
+                        {file.type.startsWith('image/') ? (
+                          <Image className="h-4 w-4 text-blue-500" />
+                        ) : (
+                          <File className="h-4 w-4 text-gray-500" />
+                        )}
+                        <span className="text-sm">{file.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({(file.size / 1024).toFixed(1)} KB)
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+                        }}
+                        className="h-6 w-6 p-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Available fields */}
-        {availableFields.length > 0 && (
-          <div>
-            <h3 className="font-semibold mb-3">Select information you'd like to include about yourself</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {availableFields.map(field => (
-                <div key={field.key} className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={selectedPersonalData.includes(field.key)}
-                    onCheckedChange={() => togglePersonalData(field.key)}
-                    disabled={field.key === 'fullName'}
-                  />
-                  <Label className="cursor-pointer">
-                    <span>{field.label}</span>
-                    {field.value && (
-                      <span className="text-sm text-muted-foreground ml-2">({field.value})</span>
-                    )}
-                  </Label>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center space-x-2 mt-4 mb-4">
-              <Switch
-                id="save-default"
-                checked={saveAsDefault}
-                onCheckedChange={setSaveAsDefault}
-              />
-              <Label htmlFor="save-default" className="cursor-pointer">
-                Save as default for all future mailings
-              </Label>
-            </div>
-          </div>
-        )}
-
-        {/* Anonymous user message */}
-        {availableFields.length === 0 && !user && !verifiedUserInfo && (
-          <div>
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <p className="font-medium mb-2">No personal information available</p>
-                <p className="text-sm">
-                  Your message will be sent anonymously. For a more personalized message that includes your name and address, consider creating an account after sending your message.
-                </p>
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
-
-        {/* Unavailable fields */}
-        {unavailableFields.length > 0 && (
-          <div>
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                To include additional information,{' '}
-                <Link href="/signup" className="text-primary underline">
-                  Sign up
-                </Link>
-                {' '}or{' '}
-                <Link href="/login" className="text-primary underline">
-                  Sign in
-                </Link>
-                <ul className="mt-2 list-disc list-inside">
-                  {unavailableFields.map(field => (
-                    <li key={field.key} className="text-sm">{field.label}</li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
 
         <div className="flex justify-end">
           <Button 
@@ -806,35 +944,444 @@ const AdvocacyMessageContent: React.FC = () => {
             </div>
           </div>
 
-          {/* Signature */}
-          <div>
-            <h3 className="font-semibold mb-3">Signature</h3>
-            <div className="bg-muted rounded-lg p-4">
-              <p className="font-medium">Sincerely,</p>
-              <p className="mt-2">
-                {personalDataFields.find(f => f.key === 'fullName')?.value || 
-                 (user || verifiedUserInfo ? 'Your Name' : 'A Concerned Constituent')}
-              </p>
-              {selectedPersonalFields.filter(f => f.key !== 'fullName').map(field => (
-                <p key={field.key} className="text-sm text-muted-foreground">
-                  {field.label}: {field.value}
+          {/* Verification Section for Non-Logged Users */}
+          {!user && !verifiedUserInfo && (
+            <div>
+              <h3 className="font-semibold mb-3">Before We Deliver Your Message</h3>
+              <div className="bg-muted rounded-lg p-6 space-y-6">
+                <p className="text-sm text-muted-foreground">
+                  To make sure your message reaches the right elected official—whether federal, state, or local—we need to quickly verify who you are. This ensures your opinion is counted and not mistaken for spam.
                 </p>
-              ))}
-              {(!user && !verifiedUserInfo) && (
-                <p className="text-xs text-muted-foreground mt-2 italic">
-                  Message sent anonymously
-                </p>
-              )}
+                
+                {verificationStep === 'initial' && (
+                  <>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="firstInitial">First Initial</Label>
+                        <Input
+                          id="firstInitial"
+                          placeholder="J"
+                          maxLength={1}
+                          value={firstInitial}
+                          onChange={(e) => setFirstInitial(e.target.value.toUpperCase())}
+                          className="mt-1"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="lastNameLetters">First 4 Letters of Last Name</Label>
+                        <Input
+                          id="lastNameLetters"
+                          placeholder="SMIT"
+                          maxLength={4}
+                          value={lastNameLetters}
+                          onChange={(e) => setLastNameLetters(e.target.value.toUpperCase())}
+                          className="mt-1"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="verificationZipCode">ZIP Code</Label>
+                        <Input
+                          id="verificationZipCode"
+                          placeholder="12345"
+                          maxLength={5}
+                          value={verificationZipCode}
+                          onChange={(e) => setVerificationZipCode(e.target.value.replace(/\D/g, ''))}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="bg-secondary/50 rounded-lg p-4 text-sm">
+                      <p className="font-medium mb-2">Your Privacy Matters</p>
+                      <p className="text-muted-foreground">
+                        Your information is only used for verification and is never shared beyond what's required to deliver your letter to your representatives.
+                      </p>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <Button variant="ghost" onClick={() => router.push('/login')}>  
+                        Already have an account? Login
+                      </Button>
+                      <Button 
+                        onClick={handleVerificationSubmit}
+                        disabled={isVerifying}
+                      >
+                        {isVerifying ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Verifying...
+                          </>
+                        ) : (
+                          'Continue'
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+                
+                {verificationStep === 'selection' && (
+                  <>
+                    <div>
+                      <h4 className="font-semibold mb-3">Select Your Record</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        We found the following possible matches. Please select your record to continue.
+                      </p>
+                    </div>
+                    
+                    <RadioGroup value={selectedMatch} onValueChange={setSelectedMatch}>
+                      {matches.map((match) => (
+                        <div key={match.id} className="bg-background border rounded-lg p-4 cursor-pointer hover:bg-accent transition-colors">
+                          <label className="flex items-start space-x-3 cursor-pointer">
+                            <RadioGroupItem value={match.id} className="mt-1" />
+                            <div className="flex-1">
+                              <p className="font-medium">{match.fullName}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {match.address}, {match.city}, {match.state} {match.zipCode}
+                              </p>
+                            </div>
+                          </label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                    
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <p className="font-medium mb-1">Not Listed?</p>
+                        <p>If you don't see yourself, click "Not Me" to enter your full details instead.</p>
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <div className="flex justify-between">
+                      <Button variant="ghost" onClick={handleVerificationReset}>
+                        <ChevronLeft className="mr-2 h-4 w-4" />
+                        Try Again
+                      </Button>
+                      
+                      <div className="space-x-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setVerificationStep('manual')}
+                        >
+                          Not Me
+                        </Button>
+                        <Button 
+                          onClick={handleMatchSelection}
+                          disabled={!selectedMatch}
+                        >
+                          Confirm Selection
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {verificationStep === 'manual' && (
+                  <>
+                    <div>
+                      <h4 className="font-semibold mb-3">Enter Your Information</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Please enter your full details to ensure your message is delivered to your representatives.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="firstName">First Name</Label>
+                          <Input
+                            id="firstName"
+                            placeholder="John"
+                            value={manualFirstName}
+                            onChange={(e) => setManualFirstName(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="lastName">Last Name</Label>
+                          <Input
+                            id="lastName"
+                            placeholder="Smith"
+                            value={manualLastName}
+                            onChange={(e) => setManualLastName(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="address">Street Address</Label>
+                        <Input
+                          id="address"
+                          placeholder="123 Main St"
+                          value={manualAddress}
+                          onChange={(e) => setManualAddress(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="city">City</Label>
+                          <Input
+                            id="city"
+                            placeholder="Springfield"
+                            value={manualCity}
+                            onChange={(e) => setManualCity(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="state">State</Label>
+                          <Input
+                            id="state"
+                            placeholder="IL"
+                            maxLength={2}
+                            value={manualState}
+                            onChange={(e) => setManualState(e.target.value.toUpperCase())}
+                            className="mt-1"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="manualZip">ZIP Code</Label>
+                          <Input
+                            id="manualZip"
+                            placeholder="12345"
+                            maxLength={5}
+                            value={manualZipCode}
+                            onChange={(e) => setManualZipCode(e.target.value.replace(/\D/g, ''))}
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        If our records don't show every variation of your name and address, you can still confirm your information manually to ensure your message is delivered.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <div className="flex justify-between">
+                      <Button variant="ghost" onClick={() => setVerificationStep('selection')}>
+                        <ChevronLeft className="mr-2 h-4 w-4" />
+                        Back to Matches
+                      </Button>
+                      
+                      <Button onClick={handleManualSubmit}>
+                        Verify & Continue
+                      </Button>
+                    </div>
+                  </>
+                )}
+                
+                {verificationError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{verificationError}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Personal Information Selection - for logged in or verified users */}
+          {(user || verifiedUserInfo) && availableFields.length > 0 && (
+            <div>
+              <h3 className="font-semibold mb-3">Select information you'd like to include about yourself</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {availableFields.map(field => (
+                  <div key={field.key} className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={selectedPersonalData.includes(field.key)}
+                      onCheckedChange={() => togglePersonalData(field.key)}
+                      disabled={field.key === 'fullName'}
+                    />
+                    <Label className="cursor-pointer">
+                      <span>{field.label}</span>
+                      {field.value && (
+                        <span className="text-sm text-muted-foreground ml-2">({field.value})</span>
+                      )}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex items-center space-x-2 mt-4 mb-4">
+                <Switch
+                  id="save-default"
+                  checked={saveAsDefault}
+                  onCheckedChange={setSaveAsDefault}
+                />
+                <Label htmlFor="save-default" className="cursor-pointer">
+                  Save as default for all future mailings
+                </Label>
+              </div>
+            </div>
+          )}
+
+          {/* Additional sections for logged in/verified users - show after complete verification */}
+          {(user || verifiedUserInfo) && (
+            <div className="space-y-6">
+              {/* Constituent Description Field */}
+              <div>
+                <Label htmlFor="constituent-description-logged" className="text-sm font-medium">
+                  Describe yourself as a constituent (optional)
+                </Label>
+                <Textarea
+                  id="constituent-description-logged"
+                  placeholder="Share your background, values, and what matters most to you as a constituent..."
+                  value={constituentDescription}
+                  onChange={(e) => setConstituentDescription(e.target.value)}
+                  className="mt-1"
+                  rows={4}
+                />
+              </div>
+
+              {/* Message Delivery Options */}
+              <div>
+                <h3 className="font-semibold mb-3">How would you like to send your message?</h3>
+                <RadioGroup value={deliveryMethod} onValueChange={(value: 'egutenberg' | 'email_provider') => setDeliveryMethod(value)} className="space-y-3">
+                  
+                  {/* Option 1: eGutenbergPress */}
+                  <div className="border rounded-lg p-4">
+                    <label className="flex items-start space-x-3 cursor-pointer">
+                      <RadioGroupItem value="egutenberg" className="mt-1" />
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <AtSign className="h-4 w-4 text-primary" />
+                          <span className="font-medium">eGutenbergPress address</span>
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Recommended</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          We'll send your message from our platform and notify you of any responses
+                        </p>
+                        {deliveryMethod === 'egutenberg' && (
+                          <div>
+                            <Label htmlFor="notification-email-logged" className="text-xs font-medium">
+                              Enter your email for notifications
+                            </Label>
+                            <Input
+                              id="notification-email-logged"
+                              type="email"
+                              placeholder={user?.email || "your@email.com"}
+                              value={notificationEmail || user?.email || ''}
+                              onChange={(e) => setNotificationEmail(e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Option 2: Email Provider */}
+                  <div className="border rounded-lg p-4">
+                    <label className="flex items-start space-x-3 cursor-pointer">
+                      <RadioGroupItem value="email_provider" className="mt-1" />
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Globe className="h-4 w-4 text-primary" />
+                          <span className="font-medium">Sign into your email provider</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Connect with Gmail, Microsoft 365, Outlook, Yahoo, or other email providers
+                        </p>
+                        {deliveryMethod === 'email_provider' && (
+                          <div className="grid grid-cols-2 gap-2 mt-3">
+                            <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                              <div className="w-4 h-4 bg-red-500 rounded-sm flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">G</span>
+                              </div>
+                              <span>Gmail</span>
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                              <div className="w-4 h-4 bg-blue-500 rounded-sm flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">O</span>
+                              </div>
+                              <span>Outlook</span>
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                              <div className="w-4 h-4 bg-purple-600 rounded-sm flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">Y</span>
+                              </div>
+                              <span>Yahoo</span>
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                              <div className="w-4 h-4 bg-blue-600 rounded-sm flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">M</span>
+                              </div>
+                              <span>Microsoft 365</span>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+          )}
+
+
+          {/* Unavailable fields - only show for logged in users */}
+          {user && unavailableFields.length > 0 && (
+            <div>
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  To include additional information, update your profile:
+                  <ul className="mt-2 list-disc list-inside">
+                    {unavailableFields.map(field => (
+                      <li key={field.key} className="text-sm">{field.label}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+
+          {/* Signature - only show when user has completed verification */}
+          {(user || verifiedUserInfo) && (
+            <div>
+              <h3 className="font-semibold mb-3">Signature</h3>
+              <div className="bg-muted rounded-lg p-4">
+                <p className="font-medium">Sincerely,</p>
+                <p className="mt-2">
+                  {personalDataFields.find(f => f.key === 'fullName')?.value || 
+                   (user || verifiedUserInfo ? 'Your Name' : 'A Concerned Constituent')}
+                </p>
+                {selectedPersonalFields.filter(f => f.key !== 'fullName').map(field => (
+                  <p key={field.key} className="text-sm text-muted-foreground">
+                    {field.label}: {field.value}
+                  </p>
+                ))}
+                {(!user && !verifiedUserInfo) && (
+                  <p className="text-xs text-muted-foreground mt-2 italic">
+                    Message sent anonymously
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(2)}>
               Back
             </Button>
-            <Button onClick={() => setStep(6)}>
-              Send message
-            </Button>
+            {/* Send message button - only show when user has completed verification */}
+            {(user || verifiedUserInfo) && (
+              <Button onClick={() => setStep(6)}>
+                Send message
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -1129,6 +1676,7 @@ const AdvocacyMessageContent: React.FC = () => {
               role: member.role || 'Representative'
             })),
             personalDataIncluded: selectedPersonalData,
+            constituentDescription: constituentDescription || null,
             sentAt: Timestamp.now(),
             deliveryStatus: 'sent'
           };
@@ -1140,7 +1688,8 @@ const AdvocacyMessageContent: React.FC = () => {
               address: verifiedUserInfo.address,
               city: verifiedUserInfo.city,
               state: verifiedUserInfo.state,
-              zipCode: verifiedUserInfo.zipCode
+              zipCode: verifiedUserInfo.zipCode,
+              constituentDescription: verifiedUserInfo.constituentDescription || null
             };
           }
           
@@ -1165,6 +1714,7 @@ const AdvocacyMessageContent: React.FC = () => {
             sessionStorage.setItem('pendingMessageData', JSON.stringify({
               messageId: docRef.id,
               verifiedUserInfo,
+              constituentDescription,
               billInfo: {
                 congress,
                 billType,
@@ -1281,6 +1831,13 @@ const AdvocacyMessageContent: React.FC = () => {
     );
   };
 
+  // Auto-fill email when reaching Step 7 if user provided notification email
+  useEffect(() => {
+    if (step === 7 && notificationEmail && !email) {
+      setEmail(notificationEmail);
+    }
+  }, [step, notificationEmail, email]);
+
   // Step 7: Account Creation Form
   const renderStep7 = () => {
     const handleSignup = async (e: React.FormEvent) => {
@@ -1294,6 +1851,34 @@ const AdvocacyMessageContent: React.FC = () => {
         const { app } = await import('@/lib/firebase');
         const auth = getAuth(app);
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        
+        // Save user profile data from Step 3 verification
+        if (verifiedUserInfo) {
+          const { getFirestore, doc, setDoc } = await import('firebase/firestore');
+          const db = getFirestore(app);
+          
+          // Parse name from fullName
+          const nameParts = verifiedUserInfo.fullName.split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+          
+          const userProfile = {
+            uid: userCredential.user.uid,
+            email: email,
+            firstName: firstName,
+            lastName: lastName,
+            address: verifiedUserInfo.address,
+            city: verifiedUserInfo.city,
+            state: verifiedUserInfo.state,
+            zipCode: verifiedUserInfo.zipCode,
+            constituentDescription: constituentDescription || null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
+          await setDoc(doc(db, 'users', userCredential.user.uid), userProfile);
+          console.log('Successfully saved user profile data');
+        }
         
         // Link the pending message to the new account
         const { linkPendingMessageToUser } = await import('@/lib/link-pending-message');
@@ -1463,25 +2048,23 @@ const AdvocacyMessageContent: React.FC = () => {
         </Card>
       )}
 
-      {/* Stepper */}
+      {/* Progress Bar */}
       <div className="mb-8">
-        <Stepper>
-          <Step active={step === 1}>
-            <StepLabel>Compose Message</StepLabel>
-          </Step>
-          <Step active={step === 2}>
-            <StepLabel>Select Outreach</StepLabel>
-          </Step>
-          <Step active={step === 3}>
-            <StepLabel>Review Message</StepLabel>
-          </Step>
-          <Step active={step === 4}>
-            <StepLabel>Create Account</StepLabel>
-          </Step>
-          <Step active={step === 5}>
-            <StepLabel>{user ? 'Send Message' : 'Create Account'}</StepLabel>
-          </Step>
-        </Stepper>
+        <div className="flex justify-between text-xs text-muted-foreground mb-2 px-1">
+          <span className={`text-center ${step === 1 ? 'font-bold text-primary' : ''}`}>
+            Compose Message
+          </span>
+          <span className={`text-center ${step === 2 ? 'font-bold text-primary' : ''}`}>
+            Select Outreach
+          </span>
+          <span className={`text-center ${step === 3 ? 'font-bold text-primary' : ''}`}>
+            Review Message
+          </span>
+          <span className={`text-center ${(step >= 4) ? 'font-bold text-primary' : ''}`}>
+            {user ? 'Send Message' : 'Create Account'}
+          </span>
+        </div>
+        <Progress value={(Math.min(step, 4) / 4) * 100} className="h-2" />
       </div>
 
       {/* Step Content */}

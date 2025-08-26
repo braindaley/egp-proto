@@ -11,9 +11,7 @@ import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 import { getBillTypeSlug } from '@/lib/utils';
 import { useState } from 'react';
 import { ArrowRight, ThumbsUp, ThumbsDown, Eye, Share2 } from 'lucide-react';
-import { UserVerificationModal } from '@/components/user-verification-modal';
 import { useAuth } from '@/hooks/use-auth';
-import { useZipCode } from '@/hooks/use-zip-code';
 
 interface AdvocacyBillCardProps {
     bill: Bill | Partial<Bill>;
@@ -27,9 +25,7 @@ interface AdvocacyBillCardProps {
 
 const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning, actionButtonText, supportCount, opposeCount, groupSlug }) => {
     const [isWatched, setIsWatched] = useState(false);
-    const [showVerificationModal, setShowVerificationModal] = useState(false);
     const { user } = useAuth();
-    const { saveZipCode } = useZipCode();
     const router = useRouter();
     if (!bill.type || !bill.number || !bill.congress) {
       return (
@@ -53,32 +49,10 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
     const PositionIcon = isSupport ? ThumbsUp : ThumbsDown;
 
     const handleVoiceOpinionClick = () => {
-        if (!user) {
-            setShowVerificationModal(true);
-        } else {
-            router.push(`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}&verified=true`);
-        }
+        // Always go directly to advocacy message page - verification is now handled in Step 3
+        router.push(`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}`);
     };
 
-    const handleVerificationComplete = (userInfo: any) => {
-        // Store verification info in session storage for the advocacy page
-        sessionStorage.setItem('verifiedUser', JSON.stringify(userInfo));
-        
-        // Update the global zip code with the verified user's zip code
-        if (userInfo.zipCode) {
-            saveZipCode(userInfo.zipCode);
-        }
-        
-        setShowVerificationModal(false);
-        router.push(`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}&verified=true`);
-    };
-
-    const handleVerificationSkip = () => {
-        setShowVerificationModal(false);
-        // Redirect to login page with return URL
-        const returnUrl = `/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}`;
-        router.push(`/login?returnTo=${encodeURIComponent(returnUrl)}`);
-    };
 
     return (
         <>
@@ -157,12 +131,6 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
             </CardContent>
         </Card>
         
-        <UserVerificationModal
-            open={showVerificationModal}
-            onClose={() => setShowVerificationModal(false)}
-            onVerified={handleVerificationComplete}
-            onLogin={handleVerificationSkip}
-        />
         </>
     );
 };

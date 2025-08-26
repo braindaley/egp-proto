@@ -15,8 +15,6 @@ import { getBillSupportData } from '@/lib/bill-support-data';
 import { useWatchedBills } from '@/hooks/use-watched-bills';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
-import { UserVerificationModal } from '@/components/user-verification-modal';
-import { useZipCode } from '@/hooks/use-zip-code';
 
 const BillStatusIndicator = ({ status }: { status: string }) => {
     const steps: string[] = ['Introduced', 'In Committee', 'Passed House', 'Passed Senate', 'To President', 'Became Law'];
@@ -89,10 +87,8 @@ const ImportanceBadge = ({ score }: { score: number }) => {
 
 export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }) {
     const [supportStatus, setSupportStatus] = useState<'none' | 'supported' | 'opposed'>('none');
-    const [showVerificationModal, setShowVerificationModal] = useState(false);
     const { isWatchedBill, toggleWatchBill } = useWatchedBills();
     const { user } = useAuth();
-    const { saveZipCode } = useZipCode();
     const router = useRouter();
     const isWatched = isWatchedBill(bill.congress, bill.type, bill.number);
 
@@ -134,32 +130,10 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
 
     const handleVoiceOpinionClick = (e: React.MouseEvent) => {
         handleInteractionClick(e);
-        if (!user) {
-            setShowVerificationModal(true);
-        } else {
-            router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}&verified=true`);
-        }
+        // Always go directly to advocacy message page - verification is now handled in Step 3
+        router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`);
     };
 
-    const handleVerificationComplete = (userInfo: any) => {
-        // Store verification info in session storage for the advocacy page
-        sessionStorage.setItem('verifiedUser', JSON.stringify(userInfo));
-        
-        // Update the global zip code with the verified user's zip code
-        if (userInfo.zipCode) {
-            saveZipCode(userInfo.zipCode);
-        }
-        
-        setShowVerificationModal(false);
-        router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}&verified=true`);
-    };
-
-    const handleVerificationSkip = () => {
-        setShowVerificationModal(false);
-        // Redirect to login page with return URL
-        const returnUrl = `/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`;
-        router.push(`/login?returnTo=${encodeURIComponent(returnUrl)}`);
-    };
 
     return (
         <>
@@ -276,12 +250,6 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
             </CardFooter>
         </Card>
         
-        <UserVerificationModal
-            open={showVerificationModal}
-            onClose={() => setShowVerificationModal(false)}
-            onVerified={handleVerificationComplete}
-            onLogin={handleVerificationSkip}
-        />
         </>
     );
 }

@@ -18,7 +18,6 @@ import { getBillTypeSlug, formatDate, constructBillUrl } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BillAmendments } from './bill-amendments';
 import { SummaryDisplay } from './bill-summary-display';
-import { UserVerificationModal } from '@/components/user-verification-modal';
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
@@ -73,10 +72,8 @@ const BillStatusIndicator = ({ status }: { status: string }) => {
 };
 
 export function BillDetailClient({ bill }: { bill: Bill }) {
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [sponsorImageUrl, setSponsorImageUrl] = useState<string | null>(null);
   const { user } = useAuth();
-  const { saveZipCode } = useZipCode();
   const router = useRouter();
   
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
@@ -139,32 +136,10 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                 bill.shortTitle.trim().length > 0;
 
   const handleVoiceOpinionClick = () => {
-    if (!user) {
-      setShowVerificationModal(true);
-    } else {
-      router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}&verified=true`);
-    }
+    // Always go directly to advocacy message page - verification is now handled in Step 3
+    router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`);
   };
 
-  const handleVerificationComplete = (userInfo: any) => {
-    // Store verification info in session storage for the advocacy page
-    sessionStorage.setItem('verifiedUser', JSON.stringify(userInfo));
-    
-    // Update the global zip code with the verified user's zip code
-    if (userInfo.zipCode) {
-      saveZipCode(userInfo.zipCode);
-    }
-    
-    setShowVerificationModal(false);
-    router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}&verified=true`);
-  };
-
-  const handleVerificationSkip = () => {
-    setShowVerificationModal(false);
-    // Redirect to login page with return URL
-    const returnUrl = `/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`;
-    router.push(`/login?returnTo=${encodeURIComponent(returnUrl)}`);
-  };
 
   return (
     <div>
@@ -571,13 +546,6 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
       <footer className="text-center py-6 text-sm text-muted-foreground mt-8 border-t">
         <p>Data provided by the <a href="https://www.congress.gov/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">U.S. Congress</a> via <a href="https://api.congress.gov/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">api.congress.gov</a>.</p>
       </footer>
-      
-      <UserVerificationModal
-        open={showVerificationModal}
-        onClose={() => setShowVerificationModal(false)}
-        onVerified={handleVerificationComplete}
-        onLogin={handleVerificationSkip}
-      />
     </div>
   );
 }
