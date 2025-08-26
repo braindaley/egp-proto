@@ -1,20 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { Bill, RelatedBill } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
 import { getBillSupportData } from '@/lib/bill-support-data';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getBillTypeSlug, formatDate, constructBillUrl } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BillTracker } from '@/components/bill-tracker';
 import { BillAmendments } from './bill-amendments';
 import { SummaryDisplay } from './bill-summary-display';
 import { UserVerificationModal } from '@/components/user-verification-modal';
@@ -23,13 +24,84 @@ import { useZipCode } from '@/hooks/use-zip-code';
 import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 import { extractSubjectsFromApiResponse } from '@/lib/subjects';
 
+const getBillStatus = (latestAction: any): string => {
+    if (!latestAction?.text) return 'Introduced';
+    
+    const actionText = latestAction.text.toLowerCase();
+    
+    if (actionText.includes('became law') || actionText.includes('signed into law')) {
+        return 'Became Law';
+    }
+    if (actionText.includes('to president') || actionText.includes('presented to president')) {
+        return 'To President';
+    }
+    if (actionText.includes('passed senate') || (actionText.includes('passed') && actionText.includes('senate'))) {
+        return 'Passed Senate';
+    }
+    if (actionText.includes('passed house') || (actionText.includes('passed') && actionText.includes('house'))) {
+        return 'Passed House';
+    }
+    if (actionText.includes('committee') || actionText.includes('referred to')) {
+        return 'In Committee';
+    }
+    
+    return 'Introduced';
+};
+
+const BillStatusIndicator = ({ status }: { status: string }) => {
+    const steps: string[] = ['Introduced', 'In Committee', 'Passed House', 'Passed Senate', 'To President', 'Became Law'];
+    let currentStepIndex = steps.indexOf(status);
+
+    if (currentStepIndex === -1) {
+        currentStepIndex = 1; // Default to 'In Committee' if status is not found
+    }
+
+    const progressPercentage = ((currentStepIndex + 1) / steps.length) * 100;
+
+    return (
+        <div>
+            <div className="flex justify-between text-xs text-muted-foreground mb-2 px-1">
+                {steps.map((step, index) => (
+                    <span key={step} className={`text-center ${index === currentStepIndex ? 'font-bold text-primary' : ''}`}>
+                        {step}
+                    </span>
+                ))}
+            </div>
+            <Progress value={progressPercentage} className="h-2" />
+        </div>
+    );
+};
+
 export function BillDetailClient({ bill }: { bill: Bill }) {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [sponsorImageUrl, setSponsorImageUrl] = useState<string | null>(null);
   const { user } = useAuth();
   const { saveZipCode } = useZipCode();
   const router = useRouter();
   
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
+  
+  // Fetch sponsor image when component mounts
+  useEffect(() => {
+    const fetchSponsorImage = async () => {
+      if (hasSponsors && bill.sponsors[0]?.bioguideId) {
+        try {
+          const response = await fetch(`https://api.congress.gov/v3/member/${bill.sponsors[0].bioguideId}?format=json&api_key=Wfxsy1WLgtTWIaKixMUDHz2DtRuaaqAtEZOU0E49`);
+          if (response.ok) {
+            const data = await response.json();
+            const imageUrl = data.member?.depiction?.imageUrl;
+            if (imageUrl) {
+              setSponsorImageUrl(imageUrl);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to fetch sponsor image:', error);
+        }
+      }
+    };
+
+    fetchSponsorImage();
+  }, [bill.sponsors, hasSponsors]);
   const hasCosponsors = bill.cosponsors?.items && bill.cosponsors.items.length > 0;
   const hasCommittees = bill.committees?.items && bill.committees.items.length > 0;
   const hasAllSummaries = bill.allSummaries && Array.isArray(bill.allSummaries) && bill.allSummaries.length > 0;
@@ -95,49 +167,97 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   };
 
   return (
-    <div className="bg-background min-h-screen">
-      <main className="container mx-auto px-4 py-8 md:py-12">
+    <div>
+      <main>
         <div className="max-w-[672px] mx-auto space-y-8">
-          <header>
-            <p className="text-lg text-muted-foreground font-medium mb-1">{bill.type} {bill.number} &bull; {bill.congress}th Congress</p>
-            <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary">
-              {displayTitle}
-            </h1>
-            {hasDistinctShortTitle && (
-              <p className="text-xl text-muted-foreground mt-2 font-medium">
-                {bill.shortTitle}
-              </p>
-            )}
-             <div className="flex gap-2 flex-wrap justify-start mt-4">
-                <Button size="sm" onClick={handleVoiceOpinionClick}>
-                    Voice your opinion
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
-                >
-                  <ThumbsUp className="h-4 w-4" />
-                  <span className="font-semibold">{supportCount.toLocaleString()}</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                >
-                  <ThumbsDown className="h-4 w-4" />
-                  <span className="font-semibold">{opposeCount.toLocaleString()}</span>
-                </Button>
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 text-muted-foreground"
-                >
-                  <Eye className="h-4 w-4" />
-                  Watch
-                </Button>
-            </div>
-          </header>
+          <Card>
+            <CardHeader>
+              {/* Bill number */}
+              <div className="flex items-center gap-3 mb-3 flex-wrap">
+                <Badge variant="outline" className="shrink-0 font-semibold">{bill.type} {bill.number}</Badge>
+              </div>
+
+              {/* Bill title - keeping H1 size */}
+              <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary mb-4">
+                {displayTitle}
+              </h1>
+              {hasDistinctShortTitle && (
+                <p className="text-xl text-muted-foreground mt-2 mb-4 font-medium">
+                  {bill.shortTitle}
+                </p>
+              )}
+
+              {/* Sponsor info under the title */}
+              {hasSponsors && bill.sponsors[0] && (
+                <div className="flex items-center gap-4 mb-0">
+                  {sponsorImageUrl && (
+                    <div className="w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0">
+                      <Image 
+                        src={sponsorImageUrl} 
+                        alt={bill.sponsors[0].fullName}
+                        width={60}
+                        height={60}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <span className={`flex items-center gap-1.5 px-3 py-2 rounded-full ${
+                    bill.sponsors[0].party === 'R' ? 'bg-red-100 text-red-800' 
+                    : bill.sponsors[0].party === 'D' ? 'bg-blue-100 text-blue-800'
+                    : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    <Users className="h-3 w-3" />
+                    {bill.sponsors[0].fullName} ({bill.sponsors[0].party}-{bill.sponsors[0].state})
+                  </span>
+                </div>
+              )}
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              {/* Latest Action */}
+              {bill.latestAction && (
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">Latest Action:</span>{' '}
+                  {bill.latestAction.text} ({formatDate(bill.latestAction.actionDate)})
+                </p>
+              )}
+
+              {/* Status Bar */}
+              {bill.latestAction && (
+                <BillStatusIndicator status={getBillStatus(bill.latestAction)} />
+              )}
+            </CardContent>
+            
+            <CardFooter className="flex items-center gap-2 pt-4 border-t">
+              <Button size="sm" onClick={handleVoiceOpinionClick}>
+                  Voice your opinion
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+              >
+                <ThumbsUp className="h-4 w-4" />
+                <span className="font-semibold">{supportCount.toLocaleString()}</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+              >
+                <ThumbsDown className="h-4 w-4" />
+                <span className="font-semibold">{opposeCount.toLocaleString()}</span>
+              </Button>
+              <Button 
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 text-muted-foreground"
+              >
+                <Eye className="h-4 w-4" />
+                Watch
+              </Button>
+            </CardFooter>
+          </Card>
 
           {(hasAllSummaries || bill.summaries?.count > 0 || bill.title || bill.shortTitle) && (
                 <Card>
@@ -158,7 +278,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                     <div className="space-y-2">
                                         {bill.allSummaries.slice(1).map((summary, index) => (
                                             <Collapsible key={index + 1}>
-                                                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-secondary/30 rounded-md hover:bg-secondary/50 transition-colors">
+                                                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 border rounded-md hover:bg-gray-50 transition-colors">
                                                     <div className="flex items-center gap-2 text-left">
                                                         <FileText className="h-4 w-4 text-primary" />
                                                         <span className="font-medium text-sm">{summary.actionDesc} ({summary.versionCode})</span>
@@ -203,40 +323,108 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 </Card>
             )}
 
-            <Card>
+            {(hasSponsors || hasCosponsors) && (
+              <Card>
+                  <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                          <Users />
+                          Sponsorship
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      {hasSponsors && (
+                          <div className="space-y-3">
+                              <h4 className="font-semibold text-sm flex items-center gap-2">
+                                  <UserSquare2 className="h-4 w-4" />
+                                  Sponsors ({bill.sponsors.length})
+                              </h4>
+                              <ul className="space-y-2">
+                                  {bill.sponsors.map((sponsor, index) => (
+                                      <li key={index} className="flex items-center justify-between p-2 border rounded-md">
+                                          <span className="font-semibold text-sm">{sponsor.fullName} ({sponsor.party}-{sponsor.state})</span>
+                                          <Button asChild variant="link" size="sm" className="h-auto p-0">
+                                              <Link href={`/congress/${bill.congress}/${sponsor.state.toLowerCase()}/${sponsor.bioguideId}`}>
+                                                  View Member <ArrowRight className="ml-1 h-3 w-3" />
+                                              </Link>
+                                          </Button>
+                                      </li>
+                                  ))}
+                              </ul>
+                          </div>
+                      )}
+                      {hasSponsors && hasCosponsors && (
+                          <Separator className="my-4" />
+                      )}
+                      {hasCosponsors && (
+                          <div className="space-y-3">
+                              <h4 className="font-semibold text-sm flex items-center gap-2">
+                                  <Users className="h-4 w-4" />
+                                  Cosponsors ({bill.cosponsors?.items?.length.toLocaleString() || 0})
+                              </h4>
+                                <ul className="space-y-2 max-h-60 overflow-y-auto">
+                                  {bill.cosponsors?.items?.map((cosponsor, index) => (
+                                      <li key={index} className="flex items-center justify-between p-2 border rounded-md">
+                                          <span className="font-semibold text-sm">{cosponsor.fullName} ({cosponsor.party}-{cosponsor.state})</span>
+                                          <Button asChild variant="link" size="sm" className="h-auto p-0">
+                                              <Link href={`/congress/${bill.congress}/${cosponsor.state.toLowerCase()}/${cosponsor.bioguideId}`}>
+                                                   View Member <ArrowRight className="ml-1 h-3 w-3" />
+                                              </Link>
+                                          </Button>
+                                      </li>
+                                  ))}
+                              </ul>
+                          </div>
+                      )}
+                  </CardContent>
+              </Card>
+            )}
+
+            {hasCommittees && (
+              <Card>
                 <CardHeader>
-                    <CardTitle className="text-lg">Details</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                      <Library className="text-primary" />
+                      Committees ({bill.committees.count})
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 text-sm">
-                    <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Chamber</span>
-                         <Badge variant="outline" className="flex items-center gap-1.5">
-                            <Landmark className="h-3 w-3" />
-                            {bill.originChamber}
-                        </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Introduced</span>
-                        <span className="font-medium">{formatDate(bill.introducedDate)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Last Update</span>
-                         <span className="font-medium">{formatDate(bill.updateDate)}</span>
-                    </div>
-                     {bill.latestAction && (
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Latest Action</span>
-                            <div className="text-right">
-                                <span className="font-medium block">{formatDate(bill.latestAction.actionDate)}</span>
-                                <span className="text-muted-foreground text-xs">{bill.latestAction.text}</span>
-                            </div>
-                        </div>
-                    )}
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Committee</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Activity</TableHead>
+                            </TableRow>
+                        </TableHeader>  
+                        <TableBody>
+                            {bill.committees.items.flatMap((committee, committeeIndex) =>
+                                committee.activities
+                                    .filter(activity => activity.name !== 'Unknown')
+                                    .map((activity, activityIndex) => {
+                                        const committeeLink = `/congress/${bill.congress}/committees/${committee.systemCode.toLowerCase()}`;
+                                        // Transform committee name: "Budget Committee" -> "House Budget"
+                                        const displayName = committee.chamber === 'House' && committee.name.includes('Committee')
+                                            ? `House ${committee.name.replace(' Committee', '')}`
+                                            : committee.name;
+                                        
+                                        return (
+                                            <TableRow key={`${committeeIndex}-${activityIndex}`}>
+                                                <TableCell className="font-medium">
+                                                    <Link href={committeeLink} className="hover:underline flex items-center gap-1">
+                                                        {displayName}
+                                                    </Link>
+                                                </TableCell>
+                                                <TableCell>{formatDate(activity.date || '')}</TableCell>
+                                                <TableCell>{activity.name}</TableCell>
+                                            </TableRow>
+                                        )
+                                    })
+                            )}
+                        </TableBody>
+                    </Table>
                 </CardContent>
-            </Card>
-
-            {bill.latestAction && <BillTracker latestAction={bill.latestAction} originChamber={bill.originChamber} />}
-
+              </Card>
+            )}
 
             {(sitePolicyCategory || bill.subjects?.policyArea) && (
               <Card>
@@ -279,155 +467,24 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
               </Card>
             )}
 
-            {hasTextVersions && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <BookText className="text-primary" />
-                            Text Versions ({bill.textVersions.count})
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Tabs defaultValue={bill.textVersions.items[0]?.type} className="w-full">
-                            <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-4 h-auto flex-wrap">
-                                {bill.textVersions.items.map((version) => (
-                                  <TabsTrigger key={version.type} value={version.type} className="flex-1 text-xs px-2 py-1.5 whitespace-normal h-auto">{version.type}</TabsTrigger>
-                                ))}
-                            </TabsList>
-                            {bill.textVersions.items.map((version) => {
-                                const fullText = version.formats.find(f => f.type.toLowerCase().includes('text'))?.url;
-                                const pdfUrl = version.formats.find(f => f.type === 'PDF')?.url;
+            {/* Placeholder cards */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Winners/Losers</CardTitle>
+              </CardHeader>
+            </Card>
 
-                                return (
-                                <TabsContent key={version.type} value={version.type}>
-                                    <div className="p-4 bg-secondary/50 rounded-md">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <p className="text-sm font-medium">Published: {formatDate(version.date)}</p>
-                                            <div className="flex gap-2">
-                                                {fullText && (
-                                                    <Button asChild size="sm" variant="outline">
-                                                        <a href={fullText} target="_blank" rel="noopener noreferrer">
-                                                            View text <ExternalLink className="ml-2 h-4 w-4" />
-                                                        </a>
-                                                    </Button>
-                                                )}
-                                                {pdfUrl && (
-                                                    <Button asChild size="sm">
-                                                        <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
-                                                            <Download className="mr-2 h-4 w-4" />
-                                                            Download PDF
-                                                        </a>
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        {!fullText && !pdfUrl && (
-                                            <p className="text-sm text-muted-foreground italic">Full text not available in this format.</p>
-                                        )}
-                                    </div>
-                                </TabsContent>
-                                )
-                            })}
-                        </Tabs>
-                    </CardContent>
-                </Card>
-            )}
-            
-            {(hasSponsors || hasCosponsors) && (
-              <Card>
-                  <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                          <Users />
-                          Sponsorship
-                      </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                      {hasSponsors && (
-                          <div className="space-y-3">
-                              <h4 className="font-semibold text-sm flex items-center gap-2">
-                                  <UserSquare2 className="h-4 w-4" />
-                                  Sponsors ({bill.sponsors.length})
-                              </h4>
-                              <ul className="space-y-2">
-                                  {bill.sponsors.map((sponsor, index) => (
-                                      <li key={index} className="flex items-center justify-between p-2 bg-secondary/50 rounded-md">
-                                          <span className="font-semibold text-sm">{sponsor.fullName} ({sponsor.party}-{sponsor.state})</span>
-                                          <Button asChild variant="link" size="sm" className="h-auto p-0">
-                                              <Link href={`/congress/${bill.congress}/${sponsor.state.toLowerCase()}/${sponsor.bioguideId}`}>
-                                                  View Member <ArrowRight className="ml-1 h-3 w-3" />
-                                              </Link>
-                                          </Button>
-                                      </li>
-                                  ))}
-                              </ul>
-                          </div>
-                      )}
-                      {hasSponsors && hasCosponsors && (
-                          <Separator className="my-4" />
-                      )}
-                      {hasCosponsors && (
-                          <div className="space-y-3">
-                              <h4 className="font-semibold text-sm flex items-center gap-2">
-                                  <Users className="h-4 w-4" />
-                                  Cosponsors ({bill.cosponsors?.items?.length.toLocaleString() || 0})
-                              </h4>
-                                <ul className="space-y-2 max-h-60 overflow-y-auto">
-                                  {bill.cosponsors?.items?.map((cosponsor, index) => (
-                                      <li key={index} className="flex items-center justify-between p-2 bg-secondary/50 rounded-md">
-                                          <span className="font-semibold text-sm">{cosponsor.fullName} ({cosponsor.party}-{cosponsor.state})</span>
-                                          <Button asChild variant="link" size="sm" className="h-auto p-0">
-                                              <Link href={`/congress/${bill.congress}/${cosponsor.state.toLowerCase()}/${cosponsor.bioguideId}`}>
-                                                   View Member <ArrowRight className="ml-1 h-3 w-3" />
-                                              </Link>
-                                          </Button>
-                                      </li>
-                                  ))}
-                              </ul>
-                          </div>
-                      )}
-                  </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Third party ratings</CardTitle>
+              </CardHeader>
+            </Card>
 
-            {hasCommittees && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                      <Library className="text-primary" />
-                      Committees ({bill.committees.count})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Committee</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Activity</TableHead>
-                            </TableRow>
-                        </TableHeader>  
-                        <TableBody>
-                            {bill.committees.items.flatMap((committee, committeeIndex) =>
-                                committee.activities.map((activity, activityIndex) => {
-                                    const committeeLink = `/congress/${bill.congress}/committees/${committee.systemCode.toLowerCase()}`;
-                                    return (
-                                        <TableRow key={`${committeeIndex}-${activityIndex}`}>
-                                            <TableCell className="font-medium">
-                                                <Link href={committeeLink} className="hover:underline flex items-center gap-1">
-                                                    {committee.name}
-                                                </Link>
-                                            </TableCell>
-                                            <TableCell>{formatDate(activity.date || '')}</TableCell>
-                                            <TableCell>{activity.name}</TableCell>
-                                        </TableRow>
-                                    )
-                                })
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Industry support</CardTitle>
+              </CardHeader>
+            </Card>
 
              {hasRelatedBills && (
                 <Card>
@@ -444,7 +501,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                 const detailUrl = `/bill/${relatedBill.congress}/${billTypeSlug}/${relatedBill.number}`;
 
                                 return (
-                                    <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
+                                    <li key={index} className="text-sm p-3 border rounded-md">
                                         <Link href={detailUrl} className="font-semibold hover:underline">
                                             {relatedBill.type} {relatedBill.number}: {relatedBill.title}
                                         </Link>
@@ -469,7 +526,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                   const billTypeSlug = getBillTypeSlug(relatedBill.type);
                                   const detailUrl = `/bill/${relatedBill.congress}/${billTypeSlug}/${relatedBill.number}`;
                                   return (
-                                      <li key={index + 5} className="text-sm p-3 bg-secondary/50 rounded-md">
+                                      <li key={index + 5} className="text-sm p-3 border rounded-md">
                                           <Link href={detailUrl} className="font-semibold hover:underline">
                                               {relatedBill.type} {relatedBill.number}: {relatedBill.title}
                                           </Link>
@@ -504,44 +561,6 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
               billNumber={bill.number}
             />
 
-            {hasActions && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                      <History className="text-primary" />
-                      Actions ({bill.actions.count})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-4 list-none p-0">
-                    {bill.actions.items.slice(0, 5).map((action, index) => (
-                      <li key={index} className="text-sm p-3 bg-secondary/50 rounded-md">
-                        <p className="font-semibold">{formatDate(action.actionDate)}</p>
-                        <p className="text-muted-foreground mt-1">{action.text}</p>
-                      </li>
-                    ))}
-                    {bill.actions.items.length > 5 && (
-                      <Collapsible>
-                        <CollapsibleContent className="space-y-4 list-none p-0 mt-3">
-                          {bill.actions.items.slice(5).map((action, index) => (
-                            <li key={index + 5} className="text-sm p-3 bg-secondary/50 rounded-md">
-                              <p className="font-semibold">{formatDate(action.actionDate)}</p>
-                              <p className="text-muted-foreground mt-1">{action.text}</p>
-                            </li>
-                          ))}
-                        </CollapsibleContent>
-                        <CollapsibleTrigger asChild>
-                           <Button variant="outline" className="w-full mt-4">
-                            Show all {bill.actions.items.length} actions
-                          </Button>
-                        </CollapsibleTrigger>
-                      </Collapsible>
-                    )}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
-            
             <Button asChild className="w-full">
                 <a href={constructBillUrl(bill)} target="_blank" rel="noopener noreferrer">
                     View on Congress.gov <ExternalLink className="ml-2 h-4 w-4" />
