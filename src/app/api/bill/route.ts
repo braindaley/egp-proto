@@ -175,10 +175,16 @@ export async function GET(req: NextRequest) {
   const cachedBill = await tryGetBillFromCache(congress, billType, billNumber);
   
   if (cachedBill) {
-    console.log('✅ Serving from cache');
-    const response = NextResponse.json(cachedBill);
-    response.headers.set('X-Data-Source', 'cache');
-    return response;
+    // If cached bill has no subjects, try to fetch fresh subjects data
+    if (!cachedBill.subjects || cachedBill.subjects.count === 0) {
+      console.log('⚠️ Cached bill has no subjects, fetching fresh data from Congress API');
+      // Don't return cached data if subjects are missing - fall through to fetch fresh
+    } else {
+      console.log('✅ Serving from cache with subjects');
+      const response = NextResponse.json(cachedBill);
+      response.headers.set('X-Data-Source', 'cache');
+      return response;
+    }
   }
 
   if (!API_KEY) {
@@ -430,6 +436,7 @@ export async function GET(req: NextRequest) {
     if (bill.subjects && 'url' in bill.subjects && bill.subjects.url) {
         const fetchAllSubjects = async (): Promise<void> => {
             let allSubjects: (Subject | PolicyArea)[] = [];
+            let fetchedPolicyArea: PolicyArea | null = null;
             const baseSubjectsUrl = bill.subjects.url.includes('api_key') ? bill.subjects.url : `${bill.subjects.url}&api_key=${API_KEY}`;
             let nextUrl: string | undefined = `${baseSubjectsUrl}&limit=250`;
             console.log('🏷️ Fetching subjects from:', nextUrl.replace(API_KEY, '[REDACTED]'));
@@ -441,9 +448,12 @@ export async function GET(req: NextRequest) {
                     const data: SubjectsResponse = await res.json();
                     
                     const legislativeSubjects = data.subjects?.legislativeSubjects || [];
-                    const policyArea = data.subjects?.policyArea ? [data.subjects.policyArea] : [];
+                    // Store policy area separately to preserve it
+                    if (data.subjects?.policyArea) {
+                        fetchedPolicyArea = data.subjects.policyArea;
+                    }
                     
-                    allSubjects.push(...legislativeSubjects, ...policyArea);
+                    allSubjects.push(...legislativeSubjects);
                     
                     // Check for pagination.next property
                     nextUrl = data.pagination?.next ? data.pagination.next : undefined;
@@ -478,6 +488,11 @@ export async function GET(req: NextRequest) {
                 // Update bill subjects with filtered results
                 bill.subjects.items = filteredSubjects;
                 bill.subjects.count = filteredSubjects.length;
+                
+                // Preserve the policyArea if it was fetched
+                if (fetchedPolicyArea) {
+                    bill.subjects.policyArea = fetchedPolicyArea;
+                }
             }
         };
         fetchPromises.push(fetchAllSubjects());

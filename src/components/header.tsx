@@ -169,11 +169,6 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                         Groups
                       </Link>
                     </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/support-us" className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          Support Us
-                      </Link>
-                    </SheetClose>
 
                     <Separator />
                     

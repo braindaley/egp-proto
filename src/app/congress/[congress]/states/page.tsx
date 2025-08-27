@@ -32,7 +32,7 @@ const states = [
 export default async function CongressByStateListPage({ params }: { params: { congress: string } }) {
     const { congress } = await params;
     return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
+    <div className="container mx-auto px-4 py-8 md:py-12 max-w-2xl">
       <header className="text-center mb-12">
         <p className="text-lg text-muted-foreground font-medium mb-1">{congress}th Congress</p>
         <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
@@ -42,7 +42,7 @@ export default async function CongressByStateListPage({ params }: { params: { co
           Select a state to see its senators and representatives for this session.
         </p>
       </header>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {states.map((state) => (
           <Link
             href={`/congress/${congress}/states/${state.abbr.toLowerCase()}`}

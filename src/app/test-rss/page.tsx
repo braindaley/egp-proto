@@ -63,7 +63,8 @@ export default function TestRSSPage() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
+        <div className="bg-secondary/30 flex-1">
+            <div className="container mx-auto px-4 py-8 max-w-2xl">
             <h1 className="text-3xl font-bold mb-8">RSS Feed Debug Page</h1>
             
             <div className="space-y-4 mb-8">
@@ -108,6 +109,7 @@ export default function TestRSSPage() {
                     <li>• Make sure the rss-parser package is installed: npm install rss-parser</li>
                     <li>• Check if your deployment environment has network restrictions</li>
                 </ul>
+            </div>
             </div>
         </div>
     );

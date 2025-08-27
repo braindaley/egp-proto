@@ -171,7 +171,7 @@ function IssuesClient({ congress }: { congress: string }) {
 
   if (initialLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="text-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Loading recent bills...</p>
@@ -181,7 +181,7 @@ function IssuesClient({ congress }: { congress: string }) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-2xl">
       <header className="text-center mb-8">
         <h1 className="text-4xl font-bold text-primary mb-2">
           Browse Bills by Issue

@@ -2,7 +2,8 @@ import Link from 'next/link';
 
 export default function CampaignsPage() {
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
+    <div className="bg-secondary/30 flex-1">
+      <div className="container mx-auto px-4 py-8 md:py-12">
       <header className="text-center mb-12">
         <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
           Campaigns
@@ -36,6 +37,7 @@ export default function CampaignsPage() {
             </p>
           </div>
         </Link>
+        </div>
       </div>
     </div>
   );

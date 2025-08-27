@@ -27,7 +27,7 @@ export default function HR14DetailPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
+    <div className="container mx-auto px-4 py-8 md:py-12 max-w-2xl">
       <div className="max-w-3xl mx-auto space-y-6">
         <Card>
           <CardHeader className="text-center pb-4">

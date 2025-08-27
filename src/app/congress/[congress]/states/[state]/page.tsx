@@ -50,7 +50,7 @@ export default async function StateCongressPage({
   const representatives = (memberData?.representatives || []).sort((a, b) => getYearsOfService(b) - getYearsOfService(a));
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
+    <div className="container mx-auto px-4 py-8 md:py-12 max-w-2xl">
       <header className="text-center mb-12">
         <p className="text-lg text-muted-foreground font-medium mb-1">{congress}th Congress</p>
         <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">

@@ -291,7 +291,7 @@ export default function IssuePage({ params }: { params: { issueSlug: string } })
 
   if (loading || !issueTitle) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="text-center">Loading...</div>
       </div>
     );
@@ -305,7 +305,7 @@ export default function IssuePage({ params }: { params: { issueSlug: string } })
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
+      <div>
         <div className="mb-6">
           <nav className="text-sm text-muted-foreground mb-4">
             <Link href="/campaigns" className="hover:text-primary">Campaigns</Link> / 

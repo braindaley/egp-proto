@@ -41,11 +41,6 @@ export function Footer() {
                   Groups
                 </Link>
               </li>
-              <li>
-                <Link href="/support-us" className="text-muted-foreground hover:text-primary transition-colors">
-                  Support Us
-                </Link>
-              </li>
             </ul>
           </div>
 

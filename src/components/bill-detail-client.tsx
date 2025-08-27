@@ -144,7 +144,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   return (
     <div>
       <main>
-        <div className="max-w-[672px] mx-auto space-y-8">
+        <div className="max-w-2xl mx-auto space-y-8">
           <Card>
             <CardHeader>
               {/* Bill number */}

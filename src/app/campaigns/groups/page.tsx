@@ -32,7 +32,7 @@ const advocacyGroups = [
 
 export default function VoterAdvocacyGroupsPage() {
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
+    <div className="container mx-auto px-4 py-8 md:py-12 max-w-2xl">
       <header className="text-center mb-12">
           <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">Voter Advocacy Groups</h1>
           <p className="text-lg text-muted-foreground">

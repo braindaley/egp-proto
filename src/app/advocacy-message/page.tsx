@@ -2025,7 +2025,8 @@ const AdvocacyMessageContent: React.FC = () => {
   // We'll handle login/signup after message composition
 
   return (
-    <div className="container mx-auto p-8 max-w-4xl">
+    <div className="bg-secondary/30 flex-1">
+      <div className="container mx-auto p-8 max-w-4xl">
       {/* Verification Notice */}
       {verifiedUserInfo && !user && (
         <Alert className="mb-6">
@@ -2075,6 +2076,7 @@ const AdvocacyMessageContent: React.FC = () => {
       {step === 5 && renderStep5()} {/* Send Message */}
       {step === 6 && renderStep6()} {/* Sending Screen */}
       {step === 7 && renderStep7()} {/* Account Creation Form */}
+      </div>
     </div>
   );
 };

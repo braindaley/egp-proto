@@ -238,7 +238,7 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
     );
     
     return (
-        <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="container mx-auto px-4 py-8 md:py-12 max-w-2xl">
             <div className="max-w-3xl mx-auto space-y-8">
                 <OrganizationHeader group={groupData} />
 

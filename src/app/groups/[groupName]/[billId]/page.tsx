@@ -78,8 +78,8 @@ export default async function CampaignDetailPage({
     };
 
     return (
-        <div className="container mx-auto px-4 py-8 md:py-12">
-            <div className="max-w-3xl mx-auto space-y-6">
+        <div className="container mx-auto px-4 py-8 md:py-12 max-w-2xl">
+            <div className="space-y-6">
                 <Card>
                     <CardHeader className="text-center pb-4">
                         <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center mx-auto mb-4">

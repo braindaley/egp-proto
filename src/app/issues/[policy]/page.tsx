@@ -30,13 +30,13 @@ export default function PolicyPage({ params }: { params: { policy: string } }) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-2xl">
       <h1 className="text-4xl font-bold mb-2 text-center">{policyTitle}</h1>
       <p className="text-center text-muted-foreground mb-8">
         Browse pending {policyTitle.toLowerCase()} legislation
       </p>
       
-      <div className="max-w-[672px] mx-auto mb-12">
+      <div className="mb-12">
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle>Federal Level</CardTitle>
@@ -55,16 +55,16 @@ export default function PolicyPage({ params }: { params: { policy: string } }) {
         </Card>
       </div>
 
-      <div className="max-w-[672px] mx-auto mb-12">
+      <div className="mb-12">
         <USMap />
       </div>
 
-      <div id="states" className="max-w-[672px] mx-auto">
+      <div id="states">
         <h2 className="text-2xl font-bold mb-2">State level</h2>
         <p className="text-muted-foreground mb-6">
           Browse state-by-state policies and initiatives for {policyTitle.toLowerCase()}
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {US_STATES.map((state) => (
             <Link
               key={state}
