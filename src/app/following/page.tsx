@@ -68,8 +68,12 @@ function convertBillToFeedBill(bill: Bill): FeedBill {
 export default function FollowingPage() {
   const { user, loading: authLoading, isInitialLoadComplete } = useAuth();
   const router = useRouter();
+  const { watchedGroups } = useWatchedGroups();
+  const { watchedBills } = useWatchedBills();
+  const { data: allBills = [], isLoading: loading, error, refetch } = useBills();
+  const [additionalBills, setAdditionalBills] = useState<FeedBill[]>([]);
   
-  // Early redirect check - redirect immediately if we know user is not authenticated
+  // Redirect check - redirect if user is not authenticated
   useEffect(() => {
     if (isInitialLoadComplete && !authLoading && !user) {
       router.push('/login?returnTo=/following');
@@ -77,7 +81,7 @@ export default function FollowingPage() {
     }
   }, [user, authLoading, isInitialLoadComplete, router]);
 
-  // Early return if user is definitely not authenticated to prevent unnecessary hook calls
+  // Early return if user is not authenticated (after all hooks are called)
   if (isInitialLoadComplete && !authLoading && !user) {
     return (
       <div className="bg-secondary/30 flex-1">
@@ -100,11 +104,6 @@ export default function FollowingPage() {
     );
   }
 
-  const { watchedGroups } = useWatchedGroups();
-  const { watchedBills } = useWatchedBills();
-  const { data: allBills = [], isLoading: loading, error, refetch } = useBills();
-  const [additionalBills, setAdditionalBills] = useState<FeedBill[]>([]);
-
   console.log('Debug Following Page:', {
     watchedGroups,
     watchedBills,
@@ -124,10 +123,25 @@ export default function FollowingPage() {
 
   // Fetch additional bills that aren't in the main feed
   useEffect(() => {
-    if (!allBills.length || !watchedGroups.length) return;
+    if (!allBills.length || (!watchedGroups.length && !watchedBills.length)) return;
 
     const fetchAdditionalBills = async () => {
       const billsToFetch = new Set<string>();
+      
+      // Collect individually watched bills that aren't in the feed
+      for (const watchedBill of watchedBills) {
+        const billKey = `${watchedBill.congress}-${watchedBill.type}-${watchedBill.number}`;
+        const existsInFeed = allBills.some(bill => 
+          bill.congress === watchedBill.congress &&
+          bill.type === watchedBill.type &&
+          bill.number === watchedBill.number
+        );
+        
+        if (!existsInFeed) {
+          console.log('Watched bill not in feed, will fetch:', billKey);
+          billsToFetch.add(billKey);
+        }
+      }
       
       // Collect bills from watched groups
       for (const groupSlug of watchedGroups) {
@@ -170,7 +184,7 @@ export default function FollowingPage() {
     };
 
     fetchAdditionalBills();
-  }, [allBills, watchedGroups]);
+  }, [allBills, watchedGroups, watchedBills]);
 
   // Filter bills to show only those from watched groups or individually watched
   const followingBills = useMemo(() => {

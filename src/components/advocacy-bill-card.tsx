@@ -13,6 +13,7 @@ import { parseSimpleMarkdown } from '@/lib/markdown-utils';
 import { useState } from 'react';
 import { ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useWatchedBills } from '@/hooks/use-watched-bills';
 
 interface AdvocacyBillCardProps {
     bill: Bill | Partial<Bill>;
@@ -26,9 +27,10 @@ interface AdvocacyBillCardProps {
 }
 
 const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning, actionButtonText, supportCount, opposeCount, groupSlug, groupName }) => {
-    const [isWatched, setIsWatched] = useState(false);
     const { user } = useAuth();
+    const { isWatchedBill, toggleWatchBill } = useWatchedBills();
     const router = useRouter();
+    const isWatched = isWatchedBill(bill.congress!, bill.type!, bill.number!);
     if (!bill.type || !bill.number || !bill.congress) {
       return (
         <Card className="flex flex-col h-full items-center justify-center text-center">
@@ -113,8 +115,21 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                             <Button 
                                 variant={isWatched ? 'secondary' : 'outline'}
                                 size="sm"
-                                onClick={() => setIsWatched(prev => !prev)}
-                                className="flex items-center gap-2 text-muted-foreground"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (!user) {
+                                        const currentUrl = window.location.pathname;
+                                        router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
+                                        return;
+                                    }
+                                    toggleWatchBill(bill.congress!, bill.type!, bill.number!, bill.title || bill.shortTitle);
+                                }}
+                                className={`flex items-center gap-2 ${
+                                    isWatched 
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' 
+                                        : 'text-muted-foreground'
+                                }`}
                             >
                                 <Eye className={`h-4 w-4 ${isWatched ? 'text-blue-600' : ''}`} />
                                 {isWatched ? 'Watching' : 'Watch'}

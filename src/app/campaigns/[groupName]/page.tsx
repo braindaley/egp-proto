@@ -1,4 +1,6 @@
 
+'use client';
+
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -15,6 +17,8 @@ import { getBillTypeSlug } from '@/lib/utils';
 import { parseSimpleMarkdown } from '@/lib/markdown-utils';
 import { remark } from 'remark';
 import html from 'remark-html';
+import { useAuth } from '@/hooks/use-auth';
+import { useState, useEffect } from 'react';
 
 // Interfaces for API responses, to be used internally in this file
 interface ApiResponse {
@@ -176,67 +180,145 @@ function QuickActions() {
     );
 }
 
-export default async function GroupDetailPage({ params }: { params: { groupName: string } }) {
-    const { groupName } = await params;
-    const groupData = getAdvocacyGroupData(groupName);
+export default function GroupDetailPage({ params }: { params: { groupName: string } }) {
+    const { user } = useAuth();
+    const [groupName, setGroupName] = useState<string>('');
+    const [groupData, setGroupData] = useState<any>(null);
+    const [priorityBillsWithData, setPriorityBillsWithData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [userActions, setUserActions] = useState<Record<string, 'support' | 'oppose' | null>>({});
 
-    if (!groupData) {
-        notFound();
-    }
-    
-    // Get campaigns for this group from the database
-    let campaigns = [];
-    try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/campaigns/public?groupSlug=${groupName}`, {
-            cache: 'no-cache'
-        });
-        if (response.ok) {
-            const { campaigns: dbCampaigns } = await response.json();
-            campaigns = dbCampaigns;
-        }
-    } catch (error) {
-        console.error('Error fetching campaigns from database:', error);
-        // Fallback to legacy campaigns service
-        campaigns = campaignsService.getCampaignsByGroup(groupName);
-    }
-    
-    // Fetch full bill details and process markdown for each campaign
-    const campaignsWithData = await Promise.all(
-        campaigns.map(async (campaign: any) => {
-            const billDetails = await getBillDetails(
-                campaign.congress || campaign.bill?.congress, 
-                campaign.billType || campaign.bill?.type, 
-                campaign.billNumber || campaign.bill?.number
-            );
-            // Use raw reasoning for parseSimpleMarkdown processing in template
-            return {
-                bill: billDetails || {
+    useEffect(() => {
+        const loadParams = async () => {
+            const resolvedParams = await params;
+            setGroupName(resolvedParams.groupName);
+        };
+        loadParams();
+    }, [params]);
+
+    useEffect(() => {
+        if (!groupName) return;
+
+        const loadData = async () => {
+            const groupData = getAdvocacyGroupData(groupName);
+            if (!groupData) {
+                notFound();
+                return;
+            }
+            setGroupData(groupData);
+            
+            // Get campaigns for this group from the database
+            let campaigns = [];
+            try {
+                const response = await fetch(`/api/campaigns/public?groupSlug=${groupName}`, {
+                    cache: 'no-cache'
+                });
+                if (response.ok) {
+                    const { campaigns: dbCampaigns } = await response.json();
+                    campaigns = dbCampaigns;
+                }
+            } catch (error) {
+                console.error('Error fetching campaigns from database:', error);
+                // Fallback to legacy campaigns service
+                campaigns = campaignsService.getCampaignsByGroup(groupName);
+            }
+            
+            // Process campaigns with data (simplified for client-side)
+            const campaignsWithData = campaigns.map((campaign: any) => ({
+                id: campaign.id || Math.random().toString(),
+                bill: {
                     congress: campaign.congress || campaign.bill?.congress,
                     type: campaign.billType || campaign.bill?.type,
                     number: campaign.billNumber || campaign.bill?.number,
                     title: campaign.billTitle || campaign.bill?.title
                 },
                 position: campaign.stance === 'support' ? 'Support' : campaign.stance === 'oppose' ? 'Oppose' : campaign.position,
-                reasoning: campaign.reasoning, // Keep raw markdown for template processing
+                reasoning: campaign.reasoning,
                 actionButtonText: campaign.actionButtonText,
-                supportCount: campaign.supportCount,
-                opposeCount: campaign.opposeCount,
-            };
-        })
-    );
-    
-    // Fallback to legacy data if no campaigns exist
-    const priorityBillsWithData = campaigns.length > 0 ? campaignsWithData : await Promise.all(
-        (groupData.priorityBills || []).map(async (item) => {
-            const billDetails = await getBillDetails(item.bill.congress!, item.bill.type!, item.bill.number!);
-            const processedReasoning = await processMarkdown(item.reasoning);
-            return {
+                supportCount: campaign.supportCount || 0,
+                opposeCount: campaign.opposeCount || 0,
+                groupName: groupData.name,
+                groupSlug: groupName,
+            }));
+            
+            // Fallback to legacy data if no campaigns exist
+            const finalData = campaigns.length > 0 ? campaignsWithData : (groupData.priorityBills || []).map((item: any) => ({
                 ...item,
-                bill: billDetails || item.bill,
-                reasoning: processedReasoning,
+                id: Math.random().toString(),
+                groupName: groupData.name,
+                groupSlug: groupName,
+                supportCount: item.supportCount || 0,
+                opposeCount: item.opposeCount || 0,
+            }));
+            
+            setPriorityBillsWithData(finalData);
+            setLoading(false);
+        };
+
+        loadData();
+    }, [groupName]);
+
+    const handleSupportOppose = async (campaign: any, action: 'support' | 'oppose') => {
+        if (!user) {
+            window.location.href = '/login';
+            return;
+        }
+
+        try {
+            // Store action in localStorage as temporary solution
+            const userActions = JSON.parse(localStorage.getItem('userBillActions') || '[]');
+            const newAction = {
+                id: Date.now().toString(),
+                userId: user.uid,
+                userEmail: user.email,
+                campaignId: campaign.id,
+                billNumber: campaign.bill.number,
+                billType: campaign.bill.type,
+                congress: campaign.bill.congress,
+                billTitle: campaign.bill.title,
+                action: action,
+                timestamp: new Date().toISOString(),
+                groupName: campaign.groupName,
+                groupSlug: campaign.groupSlug
             };
-        })
-    );
+            
+            userActions.push(newAction);
+            localStorage.setItem('userBillActions', JSON.stringify(userActions));
+
+            // Update local state to reflect the change immediately
+            setPriorityBillsWithData(prevCampaigns => 
+                prevCampaigns.map(c => 
+                    c.id === campaign.id 
+                        ? { 
+                            ...c, 
+                            [action === 'support' ? 'supportCount' : 'opposeCount']: (c[action === 'support' ? 'supportCount' : 'opposeCount'] || 0) + 1 
+                        }
+                        : c
+                )
+            );
+
+            // Set user action state to show success on button
+            setUserActions(prev => ({ ...prev, [campaign.id]: action }));
+            
+            // Clear the success state after 2 seconds
+            setTimeout(() => {
+                setUserActions(prev => ({ ...prev, [campaign.id]: null }));
+            }, 2000);
+
+        } catch (error) {
+            console.error('Error recording support/oppose action:', error);
+            alert('There was an error recording your action. Please try again.');
+        }
+    };
+
+    if (loading) {
+        return <div className="container mx-auto px-4 py-8 md:py-12 max-w-2xl"><p>Loading...</p></div>;
+    }
+
+    if (!groupData) {
+        notFound();
+        return null;
+    }
     
     return (
         <div className="container mx-auto px-4 py-8 md:py-12 max-w-2xl">
@@ -252,6 +334,8 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
                                 const badgeVariant = isSupport ? 'default' : 'destructive';
                                 const PositionIcon = isSupport ? ThumbsUp : ThumbsDown;
                                 const billTypeSlug = getBillTypeSlug(item.bill.type);
+                                
+                                const currentUserAction = userActions[item.id];
                                 
                                 return (
                                     <Card key={index} className="shadow-md hover:shadow-lg transition-shadow">
@@ -294,18 +378,36 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
                                                     <Button 
                                                         variant="outline" 
                                                         size="sm"
-                                                        className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                                                        className={`flex items-center gap-2 transition-colors ${
+                                                            currentUserAction === 'support'
+                                                                ? 'bg-green-100 text-green-800 border-green-300'
+                                                                : 'text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200'
+                                                        }`}
+                                                        onClick={() => handleSupportOppose(item, 'support')}
+                                                        title={user ? 'Support this bill' : 'Login to support this bill'}
+                                                        disabled={currentUserAction === 'support'}
                                                     >
                                                         <ThumbsUp className="h-4 w-4" />
-                                                        <span className="font-semibold">{item.supportCount.toLocaleString()}</span>
+                                                        <span className="font-semibold">
+                                                            {currentUserAction === 'support' ? 'Supported!' : item.supportCount.toLocaleString()}
+                                                        </span>
                                                     </Button>
                                                     <Button 
                                                         variant="outline" 
                                                         size="sm"
-                                                        className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                                        className={`flex items-center gap-2 transition-colors ${
+                                                            currentUserAction === 'oppose'
+                                                                ? 'bg-red-100 text-red-800 border-red-300'
+                                                                : 'text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200'
+                                                        }`}
+                                                        onClick={() => handleSupportOppose(item, 'oppose')}
+                                                        title={user ? 'Oppose this bill' : 'Login to oppose this bill'}
+                                                        disabled={currentUserAction === 'oppose'}
                                                     >
                                                         <ThumbsDown className="h-4 w-4" />
-                                                        <span className="font-semibold">{item.opposeCount.toLocaleString()}</span>
+                                                        <span className="font-semibold">
+                                                            {currentUserAction === 'oppose' ? 'Opposed!' : item.opposeCount.toLocaleString()}
+                                                        </span>
                                                     </Button>
                                                     <Button 
                                                         variant="outline"

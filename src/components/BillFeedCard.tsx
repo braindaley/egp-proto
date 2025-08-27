@@ -118,14 +118,28 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
     };
     
     const handleWatch = (e: React.MouseEvent) => {
+        console.log('=== WATCH BUTTON CLICKED ===');
         handleInteractionClick(e);
+        console.log('Watch button clicked for bill:', {
+            congress: bill.congress,
+            type: bill.type,
+            number: bill.number,
+            title: bill.shortTitle,
+            currentlyWatched: isWatched,
+            user: user ? 'authenticated' : 'not authenticated'
+        });
+        
         if (!user) {
+            console.log('User not authenticated, redirecting to login');
             // Redirect to login with return URL
             const currentUrl = window.location.pathname;
             router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
             return;
         }
+        
+        console.log('Calling toggleWatchBill');
         toggleWatchBill(bill.congress, bill.type, bill.number, bill.shortTitle);
+        console.log('toggleWatchBill called');
     };
 
     const handleVoiceOpinionClick = (e: React.MouseEvent) => {
@@ -214,29 +228,40 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                 <Button 
                     variant="outline" 
                     size="sm"
-                    className="flex items-center gap-1.5 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                    className={`flex items-center gap-1.5 transition-colors ${
+                        supportStatus === 'supported'
+                            ? 'bg-green-100 text-green-800 border-green-300'
+                            : 'text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200'
+                    }`}
                     onClick={handleSupport}
                 >
                     <ThumbsUp className="h-4 w-4" />
-                    {supportCount.toLocaleString()}
+                    {supportStatus === 'supported' ? 'Supported!' : supportCount.toLocaleString()}
                 </Button>
                 <Button 
                     variant="outline" 
                     size="sm"
-                    className="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                    className={`flex items-center gap-1.5 transition-colors ${
+                        supportStatus === 'opposed'
+                            ? 'bg-red-100 text-red-800 border-red-300'
+                            : 'text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200'
+                    }`}
                     onClick={handleOppose}
                 >
                     <ThumbsDown className="h-4 w-4" />
-                    {opposeCount.toLocaleString()}
+                    {supportStatus === 'opposed' ? 'Opposed!' : opposeCount.toLocaleString()}
                 </Button>
                 <Button 
                     variant="outline"
                     size="sm"
                     onClick={handleWatch}
-                    className="flex items-center gap-1.5 text-muted-foreground"
+                    className={cn(
+                        "flex items-center gap-1.5",
+                        isWatched ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" : "text-muted-foreground"
+                    )}
                 >
                     <Eye className={cn("h-4 w-4", isWatched && "text-blue-600")} />
-                    Watch
+                    {isWatched ? 'Watching' : 'Watch'}
                 </Button>
                 <Button 
                     variant="outline"

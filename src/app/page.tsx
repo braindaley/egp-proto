@@ -10,10 +10,17 @@ import { ThumbsUp, ThumbsDown, ArrowRight, ChevronRight, Menu, Eye } from 'lucid
 import { getBillTypeSlug } from '@/lib/utils';
 import { parseSimpleMarkdown } from '@/lib/markdown-utils';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { useWatchedBills } from '@/hooks/use-watched-bills';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const { isWatchedBill, toggleWatchBill } = useWatchedBills();
   const [campaigns, setCampaigns] = useState<Campaign[]>(campaignsService.getAllCampaigns().filter(c => c.isActive));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userActions, setUserActions] = useState<Record<string, 'support' | 'oppose' | null>>({});
 
   // Load campaigns from Firebase to match admin dashboard
   useEffect(() => {
@@ -61,6 +68,83 @@ export default function Home() {
     
     fetchFirebaseCampaigns();
   }, []);
+
+  const handleSupportOppose = async (campaign: Campaign, action: 'support' | 'oppose') => {
+    if (!user) {
+      // Redirect to login if user is not authenticated
+      window.location.href = '/login';
+      return;
+    }
+
+    // For now, simulate the functionality with local storage until Firebase rules are updated
+    try {
+      // Store action in localStorage as a temporary solution
+      const userActions = JSON.parse(localStorage.getItem('userBillActions') || '[]');
+      const newAction = {
+        id: Date.now().toString(),
+        userId: user.uid,
+        userEmail: user.email,
+        campaignId: campaign.id,
+        billNumber: campaign.bill.number,
+        billType: campaign.bill.type,
+        congress: campaign.bill.congress,
+        billTitle: campaign.bill.title,
+        action: action,
+        timestamp: new Date().toISOString(),
+        groupName: campaign.groupName,
+        groupSlug: campaign.groupSlug
+      };
+      
+      userActions.push(newAction);
+      localStorage.setItem('userBillActions', JSON.stringify(userActions));
+
+      // Update local state to reflect the change immediately
+      setCampaigns(prevCampaigns => 
+        prevCampaigns.map(c => 
+          c.id === campaign.id 
+            ? { 
+                ...c, 
+                [action === 'support' ? 'supportCount' : 'opposeCount']: (c[action === 'support' ? 'supportCount' : 'opposeCount'] || 0) + 1 
+              }
+            : c
+        )
+      );
+
+      // Set user action state to show success on button
+      setUserActions(prev => ({ ...prev, [campaign.id]: action }));
+      
+      // Clear the success state after 2 seconds
+      setTimeout(() => {
+        setUserActions(prev => ({ ...prev, [campaign.id]: null }));
+      }, 2000);
+
+      // TODO: Remove this localStorage approach once Firebase rules are deployed
+      // The real implementation will use Firebase Firestore:
+      /*
+      const { getFirestore, collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+      const { app } = await import('@/lib/firebase');
+      const db = getFirestore(app);
+      
+      await addDoc(collection(db, 'user_bill_actions'), {
+        userId: user.uid,
+        userEmail: user.email,
+        campaignId: campaign.id,
+        billNumber: campaign.bill.number,
+        billType: campaign.bill.type,
+        congress: campaign.bill.congress,
+        billTitle: campaign.bill.title,
+        action: action,
+        timestamp: serverTimestamp(),
+        groupName: campaign.groupName,
+        groupSlug: campaign.groupSlug
+      });
+      */
+
+    } catch (error) {
+      console.error('Error recording support/oppose action:', error);
+      alert('There was an error recording your action. Please try again.');
+    }
+  };
   
   function convertTitleToSlug(title: string): string {
     return title
@@ -123,6 +207,9 @@ export default function Home() {
                   const PositionIcon = isSupport ? ThumbsUp : ThumbsDown;
                   const billTypeSlug = getBillTypeSlug(campaign.bill.type);
                   
+                  const currentUserAction = userActions[campaign.id];
+                  const isWatched = isWatchedBill(campaign.bill.congress, campaign.bill.type, campaign.bill.number);
+                  
                   return (
                     <Card key={campaign.id} className="shadow-md hover:shadow-lg transition-shadow">
                       <CardHeader className="pb-4">
@@ -170,26 +257,69 @@ export default function Home() {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                              className={`flex items-center gap-2 transition-colors ${
+                                currentUserAction === 'support'
+                                  ? 'bg-green-100 text-green-800 border-green-300'
+                                  : 'text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200'
+                              }`}
+                              onClick={() => handleSupportOppose(campaign, 'support')}
+                              title={user ? 'Support this bill' : 'Login to support this bill'}
+                              disabled={currentUserAction === 'support'}
                             >
                               <ThumbsUp className="h-4 w-4" />
-                              <span className="font-semibold">{campaign.supportCount.toLocaleString()}</span>
+                              <span className="font-semibold">
+                                {currentUserAction === 'support' ? 'Supported!' : campaign.supportCount.toLocaleString()}
+                              </span>
                             </Button>
                             <Button 
                               variant="outline" 
                               size="sm"
-                              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                              className={`flex items-center gap-2 transition-colors ${
+                                currentUserAction === 'oppose'
+                                  ? 'bg-red-100 text-red-800 border-red-300'
+                                  : 'text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200'
+                              }`}
+                              onClick={() => handleSupportOppose(campaign, 'oppose')}
+                              title={user ? 'Oppose this bill' : 'Login to oppose this bill'}
+                              disabled={currentUserAction === 'oppose'}
                             >
                               <ThumbsDown className="h-4 w-4" />
-                              <span className="font-semibold">{campaign.opposeCount.toLocaleString()}</span>
+                              <span className="font-semibold">
+                                {currentUserAction === 'oppose' ? 'Opposed!' : campaign.opposeCount.toLocaleString()}
+                              </span>
                             </Button>
                             <Button 
-                              variant="outline"
+                              variant={isWatched ? 'secondary' : 'outline'}
                               size="sm"
-                              className="flex items-center gap-2 text-muted-foreground"
+                              className={`flex items-center gap-2 ${
+                                isWatched 
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' 
+                                  : 'text-muted-foreground'
+                              }`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log('Watch button clicked for campaign:', {
+                                  congress: campaign.bill.congress,
+                                  type: campaign.bill.type,
+                                  number: campaign.bill.number,
+                                  title: campaign.bill.title,
+                                  isWatched
+                                });
+                                
+                                if (!user) {
+                                  console.log('User not authenticated, redirecting to login');
+                                  const currentUrl = window.location.pathname;
+                                  router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
+                                  return;
+                                }
+                                
+                                console.log('Calling toggleWatchBill');
+                                toggleWatchBill(campaign.bill.congress, campaign.bill.type, campaign.bill.number, campaign.bill.title);
+                              }}
                             >
-                              <Eye className="h-4 w-4" />
-                              Watch
+                              <Eye className={`h-4 w-4 ${isWatched ? 'text-blue-600' : ''}`} />
+                              {isWatched ? 'Watching' : 'Watch'}
                             </Button>
                           </div>
                           <Button size="sm" asChild className="w-full sm:w-auto">

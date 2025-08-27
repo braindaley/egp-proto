@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import type { Bill, RelatedBill } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 import { getBillSupportData } from '@/lib/bill-support-data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +19,6 @@ import { getBillTypeSlug, formatDate, constructBillUrl } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BillAmendments } from './bill-amendments';
 import { SummaryDisplay } from './bill-summary-display';
-import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 import { extractSubjectsFromApiResponse } from '@/lib/subjects';
@@ -76,6 +76,12 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   const { user } = useAuth();
   const router = useRouter();
   
+  // Get initial support data and set up state
+  const initialSupportData = getBillSupportData(bill.congress!, bill.type!, bill.number!);
+  const [supportCount, setSupportCount] = useState(initialSupportData.supportCount);
+  const [opposeCount, setOpposeCount] = useState(initialSupportData.opposeCount);
+  const [userAction, setUserAction] = useState<'support' | 'oppose' | null>(null);
+  
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
   
   // Fetch sponsor image when component mounts
@@ -106,8 +112,6 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   const hasActions = bill.actions?.items && bill.actions.items.length > 0;
   const hasRelatedBills = bill.relatedBills?.items && bill.relatedBills.items.length > 0;
   
-  // Get consistent mock support data
-  const { supportCount, opposeCount } = getBillSupportData(bill.congress!, bill.type!, bill.number!);
   
   // Extract all subjects using the same logic as homepage
   const allPolicyIssues = bill.subjects ? extractSubjectsFromApiResponse(bill.subjects) : [];
@@ -140,6 +144,54 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   const handleVoiceOpinionClick = () => {
     // Always go directly to advocacy message page - verification is now handled in Step 3
     router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`);
+  };
+
+  const handleSupportOppose = async (action: 'support' | 'oppose') => {
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+
+    try {
+      // Store action in localStorage as temporary solution
+      const userActions = JSON.parse(localStorage.getItem('userBillActions') || '[]');
+      const newAction = {
+        id: Date.now().toString(),
+        userId: user.uid,
+        userEmail: user.email,
+        campaignId: `bill-${bill.congress}-${bill.type}-${bill.number}`,
+        billNumber: bill.number,
+        billType: bill.type,
+        congress: bill.congress,
+        billTitle: bill.title,
+        action: action,
+        timestamp: new Date().toISOString(),
+        groupName: 'Individual Action',
+        groupSlug: 'individual'
+      };
+      
+      userActions.push(newAction);
+      localStorage.setItem('userBillActions', JSON.stringify(userActions));
+
+      // Update local state to reflect the change immediately
+      if (action === 'support') {
+        setSupportCount(prev => prev + 1);
+      } else {
+        setOpposeCount(prev => prev + 1);
+      }
+
+      // Set user action state to show success on button
+      setUserAction(action);
+      
+      // Clear the success state after 2 seconds
+      setTimeout(() => {
+        setUserAction(null);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error recording support/oppose action:', error);
+      alert('There was an error recording your action. Please try again.');
+    }
   };
 
 
@@ -212,18 +264,36 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
               <Button 
                 variant="outline" 
                 size="sm"
-                className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                className={`flex items-center gap-2 transition-colors ${
+                  userAction === 'support' 
+                    ? 'bg-green-100 text-green-800 border-green-300' 
+                    : 'text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200'
+                }`}
+                onClick={() => handleSupportOppose('support')}
+                title={user ? 'Support this bill' : 'Login to support this bill'}
+                disabled={userAction === 'support'}
               >
                 <ThumbsUp className="h-4 w-4" />
-                <span className="font-semibold">{supportCount.toLocaleString()}</span>
+                <span className="font-semibold">
+                  {userAction === 'support' ? 'Supported!' : supportCount.toLocaleString()}
+                </span>
               </Button>
               <Button 
                 variant="outline" 
                 size="sm"
-                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                className={`flex items-center gap-2 transition-colors ${
+                  userAction === 'oppose' 
+                    ? 'bg-red-100 text-red-800 border-red-300' 
+                    : 'text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200'
+                }`}
+                onClick={() => handleSupportOppose('oppose')}
+                title={user ? 'Oppose this bill' : 'Login to oppose this bill'}
+                disabled={userAction === 'oppose'}
               >
                 <ThumbsDown className="h-4 w-4" />
-                <span className="font-semibold">{opposeCount.toLocaleString()}</span>
+                <span className="font-semibold">
+                  {userAction === 'oppose' ? 'Opposed!' : opposeCount.toLocaleString()}
+                </span>
               </Button>
               <Button 
                 variant="outline"

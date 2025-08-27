@@ -49,20 +49,46 @@ export function useUserActivity() {
       const db = getFirestore(app);
       
       try {
+        // Fetch user messages (existing functionality)
         const messagesQuery = query(
           collection(db, 'user_messages'),
           where('userId', '==', user.uid)
         );
         
-        const querySnapshot = await getDocs(messagesQuery);
-        const messagesData = querySnapshot.docs.map(doc => ({ 
+        const messagesSnapshot = await getDocs(messagesQuery);
+        const messagesData = messagesSnapshot.docs.map(doc => ({ 
           id: doc.id, 
           ...doc.data() 
         })) as any[];
 
-        // Group by bill to avoid duplicates (same bill, multiple messages)
+        // Fetch user bill actions from localStorage (temporary solution until Firebase rules are updated)
+        let actionsData: any[] = [];
+        try {
+          const localActions = JSON.parse(localStorage.getItem('userBillActions') || '[]');
+          actionsData = localActions.filter((action: any) => action.userId === user.uid);
+        } catch (localStorageError) {
+          console.warn('Could not read from localStorage:', localStorageError);
+        }
+
+        // TODO: Uncomment this once Firebase rules are deployed
+        /*
+        // Fetch user bill actions (new support/oppose clicks)
+        const actionsQuery = query(
+          collection(db, 'user_bill_actions'),
+          where('userId', '==', user.uid)
+        );
+        
+        const actionsSnapshot = await getDocs(actionsQuery);
+        const actionsData = actionsSnapshot.docs.map(doc => ({ 
+          id: doc.id, 
+          ...doc.data() 
+        })) as any[];
+        */
+
+        // Group by bill to avoid duplicates (same bill, multiple messages/actions)
         const billMap = new Map<string, ActivityBill>();
         
+        // Process messages data
         messagesData.forEach(message => {
           const billKey = `${message.congress}-${message.billType}-${message.billNumber}`;
           
@@ -79,6 +105,36 @@ export function useUserActivity() {
               latestActionText: message.latestActionText || '',
               userStance: message.userStance,
               sentAt: message.sentAt
+            });
+          }
+        });
+
+        // Process actions data (support/oppose clicks)
+        actionsData.forEach(action => {
+          const billKey = `${action.congress}-${action.billType}-${action.billNumber}`;
+          
+          // Handle both localStorage timestamp (string) and Firebase timestamp (object)
+          const actionTime = typeof action.timestamp === 'string' 
+            ? new Date(action.timestamp).getTime() / 1000
+            : action.timestamp?.seconds || 0;
+          const existingTime = billMap.get(billKey)?.sentAt?.seconds || 
+            (typeof billMap.get(billKey)?.sentAt === 'string' 
+              ? new Date(billMap.get(billKey)?.sentAt as string).getTime() / 1000 
+              : 0);
+          
+          // Only keep the most recent action for each bill, or add if not exists
+          if (!billMap.has(billKey) || actionTime > existingTime) {
+            billMap.set(billKey, {
+              billNumber: action.billNumber,
+              billType: action.billType?.toUpperCase() || '',
+              congress: action.congress,
+              billTitle: action.billTitle || `${action.billType?.toUpperCase()} ${action.billNumber}`,
+              billCurrentStatus: 'Active', // Default for action-only entries
+              latestActionDate: typeof action.timestamp === 'string' ? action.timestamp : 
+                (action.timestamp ? new Date(action.timestamp.seconds * 1000).toISOString() : ''),
+              latestActionText: `${action.action === 'support' ? 'Supported' : 'Opposed'} this bill`,
+              userStance: action.action,
+              sentAt: action.timestamp
             });
           }
         });
