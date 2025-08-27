@@ -12,11 +12,13 @@ import * as SliderPrimitive from "@radix-ui/react-slider";
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export const dynamic = 'force-dynamic';
 
 export default function InterestsPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUserData } = useAuth();
+  const { toast } = useToast();
   const [policyInterests, setPolicyInterests] = useState({
     ageGenerations: 2,
     economyWork: 2,
@@ -67,9 +69,24 @@ export default function InterestsPage() {
     try {
       const userRef = doc(db, 'users', user.uid);
       await setDoc(userRef, { policyInterests }, { merge: true });
-      router.push('/dashboard');
+      // Refresh the user data to update the AuthContext
+      await refreshUserData();
+      console.log('Policy interests saved successfully');
+      toast({
+        title: "Success",
+        description: "Your policy interests have been saved.",
+      });
+      // Small delay to show the toast
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1000);
     } catch (error) {
       console.error("Error saving policy interests:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save policy interests. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
     }

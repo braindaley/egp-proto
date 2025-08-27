@@ -30,7 +30,8 @@ export default function PolicyPage({ params }: { params: { policy: string } }) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
+    <div className="bg-secondary/30 flex-1">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
       <h1 className="text-4xl font-bold mb-2 text-center">{policyTitle}</h1>
       <p className="text-center text-muted-foreground mb-8">
         Browse pending {policyTitle.toLowerCase()} legislation
@@ -76,6 +77,7 @@ export default function PolicyPage({ params }: { params: { policy: string } }) {
           ))}
         </div>
       </div>
+    </div>
     </div>
   );
 }

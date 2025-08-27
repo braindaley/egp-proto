@@ -113,7 +113,8 @@ export default function FederalPolicyPage({ params }: { params: Promise<{ policy
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="bg-secondary/30 flex-1">
+      <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <nav className="text-sm text-muted-foreground mb-4">
@@ -158,6 +159,7 @@ export default function FederalPolicyPage({ params }: { params: Promise<{ policy
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }

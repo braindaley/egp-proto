@@ -65,6 +65,7 @@ type AuthContextType = {
   logout: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   isInitialLoadComplete: boolean;
+  refreshUserData: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextType>({
@@ -75,6 +76,7 @@ export const AuthContext = createContext<AuthContextType>({
   logout: async () => {},
   sendPasswordReset: async () => {},
   isInitialLoadComplete: false,
+  refreshUserData: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -121,8 +123,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return sendPasswordResetEmail(auth, email);
   }
 
+  const refreshUserData = async () => {
+    if (auth.currentUser) {
+      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      if (userDoc.exists()) {
+        setUser({ ...auth.currentUser, ...userDoc.data() } as User);
+      }
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, sendPasswordReset, isInitialLoadComplete }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, sendPasswordReset, isInitialLoadComplete, refreshUserData }}>
       {children}
     </AuthContext.Provider>
   );

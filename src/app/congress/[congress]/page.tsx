@@ -22,7 +22,7 @@ export default async function CongressOverviewPage({ params }: { params: { congr
   ];
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-secondary/30 flex-1">
       <div className="container mx-auto px-4 py-8 md:py-12 max-w-2xl">
         <header className="text-center mb-12">
            <p className="text-lg text-muted-foreground font-medium mb-1">{congress}th Congress</p>

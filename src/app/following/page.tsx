@@ -340,7 +340,7 @@ export default function FollowingPage() {
                 </p>
                 <div className="flex gap-3">
                   <Button asChild>
-                    <Link href="/groups">
+                    <Link href="/campaigns/groups">
                       Browse Groups
                     </Link>
                   </Button>

@@ -255,9 +255,14 @@ export default function DashboardPage() {
                                                     </CardHeader>
                                                     <CardContent className="p-0 flex flex-col justify-between flex-1">
                                                         <div>
-                                                            <p className="text-sm text-muted-foreground">
+                                                            <p className="text-sm text-muted-foreground mb-2">
                                                                 Set your interest levels for different policy areas.
                                                             </p>
+                                                            {user.policyInterests && (
+                                                                <p className="text-xs text-green-600">
+                                                                    ✓ Interests configured
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </CardContent>
                                                 </Card>

@@ -37,7 +37,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/groups" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/campaigns/groups" className="text-muted-foreground hover:text-primary transition-colors">
                   Groups
                 </Link>
               </li>
@@ -48,19 +48,9 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-3">Bills</h4>
             <ul className="space-y-2 text-sm">
-               <li>
-                <Link href={`${billsHref}/recent`} className="text-muted-foreground hover:text-primary transition-colors">
-                    Recent Updates
-                </Link>
-              </li>
               <li>
-                <Link href={`${billsHref}/popular`} className="text-muted-foreground hover:text-primary transition-colors">
-                    Popular Bills
-                </Link>
-              </li>
-              <li>
-                <Link href={`${billsHref}/issues`} className="text-muted-foreground hover:text-primary transition-colors">
-                    Browse by Issue
+                <Link href={billsHref} className="text-muted-foreground hover:text-primary transition-colors">
+                    Browse Bills
                 </Link>
               </li>
             </ul>

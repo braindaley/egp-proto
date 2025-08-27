@@ -304,7 +304,8 @@ export default function IssuePage({ params }: { params: { issueSlug: string } })
   });
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="bg-secondary/30 flex-1">
+      <div className="container mx-auto px-4 py-8">
       <div>
         <div className="mb-6">
           <nav className="text-sm text-muted-foreground mb-4">
@@ -389,6 +390,7 @@ export default function IssuePage({ params }: { params: { issueSlug: string } })
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }

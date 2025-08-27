@@ -4,10 +4,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Newspaper, Flame, Library } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Menu } from 'lucide-react';
 import { ALLOWED_SUBJECTS, extractSubjectsFromApiResponse } from '@/lib/subjects';
 import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 import { Checkbox } from '@/components/ui/checkbox';
+import { PopularBillsNav } from '@/components/PopularBillsNav';
 import type { Bill } from '@/types';
 
 function convertTitleToSlug(title: string): string {
@@ -63,6 +65,7 @@ export default function BillsOverviewPage({ params }: { params: Promise<{ congre
   const [billsByIssue, setBillsByIssue] = useState<Map<string, Bill[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set());
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   useEffect(() => {
     async function getParams() {
@@ -132,171 +135,153 @@ export default function BillsOverviewPage({ params }: { params: Promise<{ congre
     .map(([issue, bills]) => ({ issue, bills }))
     .sort((a, b) => a.issue.localeCompare(b.issue));
 
-  const features = [
-    {
-      title: 'Recent Bills',
-      description: 'View the most recently updated bills for this session.',
-      href: `/bill/${congress}/recent`,
-      icon: <Newspaper className="h-8 w-8 text-primary" />,
-    },
-    {
-      title: 'Popular Bills',
-      description: 'See which bills are getting the most attention.',
-      href: `/bill/${congress}/popular`,
-      icon: <Flame className="h-8 w-8 text-primary" />,
-    },
-    {
-      title: 'Bills by Issue',
-      description: 'Browse bills by policy area and subject.',
-      href: `/bill/${congress}/issues`,
-      icon: <Library className="h-8 w-8 text-primary" />,
-    },
-  ];
+  // Features removed - Popular Bills now in sidebar, Recent Bills page removed
 
   return (
-    <div className="bg-background min-h-screen">
-      <div className="container mx-auto px-4 py-8 md:py-12 max-w-2xl">
-        <header className="text-center mb-12">
-          <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
-            Bills in the {congress}th Congress
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Explore legislation from the selected session.
-          </p>
-        </header>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {features.map((feature) => (
-            <Link href={feature.href} key={feature.title}>
-                <Card className="h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer flex flex-col items-center text-center">
-                    <CardHeader className="items-center">
-                        {feature.icon}
-                        <CardTitle className="mt-4">{feature.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground">{feature.description}</p>
-                    </CardContent>
-                </Card>
-            </Link>
-          ))}
+    <div className="bg-secondary/30 flex-1">
+      <div className="container mx-auto px-4 py-6 md:py-12">
+        {/* Mobile Menu Button */}
+        <div className="lg:hidden mb-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="flex items-center gap-2"
+          >
+            <Menu className="h-4 w-4" />
+            Popular Bills
+          </Button>
         </div>
-        
-        {/* Latest Legislation Section - moved from homepage */}
-        <div className="mt-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-2">Latest Legislation</h2>
-            <p className="text-muted-foreground mb-8">
-              Browse recent bills by policy area
-            </p>
+
+        {/* Mobile Popular Bills Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden mb-6">
+            <PopularBillsNav congress={congress} />
           </div>
-          
-          {loading ? (
-            <div className="text-center py-12">Loading bills...</div>
-          ) : (
-            <>
-              {/* Policy Issue Filter */}
-              <div className="mb-8">
-                <div className="space-y-4">
-                  <label className="text-sm font-medium">
-                    Filter by policy issue:
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {ALLOWED_SUBJECTS.map((subject) => (
-                      <div key={subject} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`filter-${subject}`}
-                          checked={selectedFilters.has(subject)}
-                          onCheckedChange={(checked) => {
-                            const newFilters = new Set(selectedFilters);
-                            if (checked) {
-                              newFilters.add(subject);
-                            } else {
-                              newFilters.delete(subject);
-                            }
-                            setSelectedFilters(newFilters);
-                          }}
-                        />
-                        <label
-                          htmlFor={`filter-${subject}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                        >
-                          {subject}
+        )}
+
+        <div className="flex flex-col lg:flex-row lg:justify-center">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full max-w-6xl">
+            {/* Desktop Left Navigation Panel */}
+            <PopularBillsNav congress={congress} />
+
+            {/* Main Content */}
+            <div className="w-full lg:max-w-[672px] lg:flex-1">
+              <header className="text-center mb-12">
+                <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
+                  Bills in the {congress}th Congress
+                </h1>
+                <p className="text-lg text-muted-foreground">
+                  Explore legislation from the selected session.
+                </p>
+              </header>
+        
+              {/* Bills filtering and display section */}
+              <div className="mt-16">
+                {loading ? (
+                  <div className="text-center py-12">Loading bills...</div>
+                ) : (
+                  <>
+                    {/* Policy Issue Filter */}
+                    <div className="mb-8">
+                      <div className="space-y-4">
+                        <label className="text-sm font-medium">
+                          Filter by policy issue:
                         </label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {ALLOWED_SUBJECTS.map((subject) => (
+                            <div key={subject} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`filter-${subject}`}
+                                checked={selectedFilters.has(subject)}
+                                onCheckedChange={(checked) => {
+                                  const newFilters = new Set(selectedFilters);
+                                  if (checked) {
+                                    newFilters.add(subject);
+                                  } else {
+                                    newFilters.delete(subject);
+                                  }
+                                  setSelectedFilters(newFilters);
+                                }}
+                              />
+                              <label
+                                htmlFor={`filter-${subject}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              >
+                                {subject}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Show active filters */}
+                        {selectedFilters.size > 0 && (
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-muted-foreground">
+                              Showing bills for: 
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {Array.from(selectedFilters).map(filter => (
+                                <span key={filter} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
+                                  {filter}
+                                </span>
+                              ))}
+                            </div>
+                            <button
+                              onClick={() => setSelectedFilters(new Set())}
+                              className="text-xs text-muted-foreground hover:text-foreground underline ml-2"
+                            >
+                              Clear all
+                            </button>
+                            {sortedIssueGroups.length === 0 && (
+                              <span className="text-sm text-muted-foreground ml-2">(No bills found)</span>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                  
-                  {/* Show active filters */}
-                  {selectedFilters.size > 0 && (
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-muted-foreground">
-                        Showing bills for: 
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {Array.from(selectedFilters).map(filter => (
-                          <span key={filter} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
-                            {filter}
-                          </span>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => setSelectedFilters(new Set())}
-                        className="text-xs text-muted-foreground hover:text-foreground underline ml-2"
-                      >
-                        Clear all
-                      </button>
-                      {sortedIssueGroups.length === 0 && (
-                        <span className="text-sm text-muted-foreground ml-2">(No bills found)</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="space-y-12">
-                {sortedIssueGroups.map(({ issue, bills }) => (
-                  <div key={issue} className="space-y-6">
-                    <div className="flex items-center gap-4">
-                      <h3 className="text-2xl font-semibold text-primary">
-                        {issue}
-                      </h3>
-                      <Link 
-                        href={`/campaigns/issues/${convertTitleToSlug(issue)}`}
-                        className="text-sm text-muted-foreground hover:text-primary underline"
-                      >
-                        View all {issue.toLowerCase()} legislation →
-                      </Link>
                     </div>
                     
-                    <div className="bg-card rounded-lg border">
-                      <div className="p-4 border-b">
-                        <h4 className="text-lg font-semibold">
-                          {bills.length} Bill{bills.length !== 1 ? 's' : ''}
-                        </h4>
-                      </div>
-                      <div className="divide-y divide-gray-200">
-                        {bills.map((bill) => (
-                          <BillRow key={`${bill.type}-${bill.number}`} bill={bill} />
-                        ))}
-                      </div>
+                    <div className="space-y-12">
+                      {sortedIssueGroups.map(({ issue, bills }) => (
+                        <div key={issue} className="space-y-6">
+                          <div className="flex items-center gap-4">
+                            <h3 className="text-2xl font-semibold text-primary">
+                              {issue}
+                            </h3>
+                          </div>
+                          
+                          <div className="bg-card rounded-lg border">
+                            <div className="p-4 border-b">
+                              <h4 className="text-lg font-semibold">
+                                {bills.length} Bill{bills.length !== 1 ? 's' : ''}
+                              </h4>
+                            </div>
+                            <div className="divide-y divide-gray-200">
+                              {bills.map((bill) => (
+                                <BillRow key={`${bill.type}-${bill.number}`} bill={bill} />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {sortedIssueGroups.length === 0 && selectedFilters.size === 0 && (
+                        <p className="text-center text-muted-foreground py-12">
+                          No bills available at this time
+                        </p>
+                      )}
+                      
+                      {sortedIssueGroups.length === 0 && selectedFilters.size > 0 && (
+                        <p className="text-center text-muted-foreground py-12">
+                          No bills found for the selected policy issues
+                        </p>
+                      )}
                     </div>
-                  </div>
-                ))}
-                
-                {sortedIssueGroups.length === 0 && selectedFilters.size === 0 && (
-                  <p className="text-center text-muted-foreground py-12">
-                    No bills available at this time
-                  </p>
-                )}
-                
-                {sortedIssueGroups.length === 0 && selectedFilters.size > 0 && (
-                  <p className="text-center text-muted-foreground py-12">
-                    No bills found for the selected policy issues
-                  </p>
+                  </>
                 )}
               </div>
-            </>
-          )}
+            </div>
+          </div>
         </div>
       </div>
       <footer className="text-center py-6 text-sm text-muted-foreground">
