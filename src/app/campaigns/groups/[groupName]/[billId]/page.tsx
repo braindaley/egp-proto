@@ -48,8 +48,51 @@ export default async function CampaignDetailPage({
         notFound();
     }
 
-    // Get campaign data
-    const campaign = campaignsService.getCampaignByGroupAndBill(groupName, billType, billNumber);
+    // Get campaign data - first check static campaigns service
+    let campaign = campaignsService.getCampaignByGroupAndBill(groupName, billType, billNumber);
+    
+    // If not found in static data, check Firebase
+    if (!campaign) {
+        try {
+            const { getFirestore, collection, query, where, getDocs } = await import('firebase/firestore');
+            const { app } = await import('@/lib/firebase');
+            
+            const db = getFirestore(app);
+            const campaignsQuery = query(
+                collection(db, 'campaigns'),
+                where('groupSlug', '==', groupName),
+                where('billType', '==', billType.toUpperCase()),
+                where('billNumber', '==', billNumber)
+            );
+            
+            const querySnapshot = await getDocs(campaignsQuery);
+            if (!querySnapshot.empty) {
+                const doc = querySnapshot.docs[0];
+                const data = doc.data();
+                campaign = {
+                    id: doc.id,
+                    groupSlug: data.groupSlug,
+                    groupName: data.groupName || groupName,
+                    bill: {
+                        congress: 119, // Default to current congress
+                        type: data.billType,
+                        number: data.billNumber,
+                        title: data.billTitle
+                    },
+                    position: data.position,
+                    reasoning: data.reasoning,
+                    actionButtonText: 'Voice your opinion',
+                    supportCount: data.supportCount || 0,
+                    opposeCount: data.opposeCount || 0,
+                    createdAt: data.createdAt || new Date().toISOString(),
+                    updatedAt: data.updatedAt || new Date().toISOString(),
+                    isActive: true
+                };
+            }
+        } catch (error) {
+            console.error('Error fetching campaign from Firebase:', error);
+        }
+    }
     
     if (!campaign) {
         notFound();

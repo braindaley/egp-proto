@@ -1,22 +1,56 @@
 // List of allowed issue categories
 export const ALLOWED_SUBJECTS = [
-  'Age & Generations',
+  'Climate, Energy & Environment',
+  'Criminal Justice',
+  'Defense & National Security',
+  'Discrimination & Prejudice',
   'Economy & Work',
-  'Family & Relationships',
+  'Education',
+  'Health Policy',
   'Immigration & Migration',
   'International Affairs',
-  'Politics & Policy',
-  'Race & Ethnicity',
-  'Religion',
-  'Science'
+  'National Conditions',
+  'Religion & Government',
+  'Technology'
 ] as const;
 
 // Mapping table from Congress.gov API subjects to our issue categories
 const API_SUBJECT_MAPPINGS: Record<string, string> = {
-  // Age & Generations
-  'Social Welfare': 'Age & Generations',
-  'Social services': 'Age & Generations',
-  'Welfare': 'Age & Generations',
+  // Climate, Energy & Environment
+  'Animals': 'Climate, Energy & Environment',
+  'Energy': 'Climate, Energy & Environment',
+  'Environmental Protection': 'Climate, Energy & Environment',
+  'Environment': 'Climate, Energy & Environment',
+  'Climate change': 'Climate, Energy & Environment',
+  'Public Lands and Natural Resources': 'Climate, Energy & Environment',
+  'Natural resources': 'Climate, Energy & Environment',
+  'Public lands': 'Climate, Energy & Environment',
+  'Water Resources Development': 'Climate, Energy & Environment',
+  'Water policy': 'Climate, Energy & Environment',
+  'Water management': 'Climate, Energy & Environment',
+  'Advanced technology and technological innovations': 'Climate, Energy & Environment',
+  'Computers and information technology': 'Climate, Energy & Environment',
+  
+  // Criminal Justice
+  'Crime and Law Enforcement': 'Criminal Justice',
+  'Criminal justice': 'Criminal Justice',
+  'Law enforcement': 'Criminal Justice',
+  'Law': 'Criminal Justice',
+  'Legal system': 'Criminal Justice',
+  'Judiciary': 'Criminal Justice',
+  
+  // Defense & National Security
+  'Armed Forces and National Security': 'Defense & National Security',
+  'Armed Forces': 'Defense & National Security',
+  'Defense and security': 'Defense & National Security',
+  
+  // Discrimination & Prejudice
+  'Civil Rights and Liberties, Minority Issues': 'Discrimination & Prejudice',
+  'Civil rights': 'Discrimination & Prejudice',
+  'Minority rights': 'Discrimination & Prejudice',
+  'Native Americans': 'Discrimination & Prejudice',
+  'Indian affairs': 'Discrimination & Prejudice',
+  'Tribal affairs': 'Discrimination & Prejudice',
   
   // Economy & Work
   'Agriculture and Food': 'Economy & Work',
@@ -28,19 +62,39 @@ const API_SUBJECT_MAPPINGS: Record<string, string> = {
   'Economics and Public Finance': 'Economy & Work',
   'Economic policy': 'Economy & Work',
   'Public finance': 'Economy & Work',
+  'Families': 'Economy & Work',
+  'Family policy': 'Economy & Work',
   'Finance and Financial Sector': 'Economy & Work',
   'Banking and finance': 'Economy & Work',
   'Financial services': 'Economy & Work',
+  'Housing and Community Development': 'Economy & Work',
+  'Housing policy': 'Economy & Work',
+  'Community development': 'Economy & Work',
   'Labor and Employment': 'Economy & Work',
   'Employment': 'Economy & Work',
   'Workers rights': 'Economy & Work',
+  'Social Welfare': 'Economy & Work',
+  'Social services': 'Economy & Work',
+  'Welfare': 'Economy & Work',
+  'Taxation': 'Economy & Work',
+  'Tax policy': 'Economy & Work',
+  'Revenue': 'Economy & Work',
+  'Transportation and Public Works': 'Economy & Work',
+  'Transportation': 'Economy & Work',
+  'Infrastructure': 'Economy & Work',
   
-  // Family & Relationships
-  'Families': 'Family & Relationships',
-  'Family policy': 'Family & Relationships',
-  'Housing and Community Development': 'Family & Relationships',
-  'Housing policy': 'Family & Relationships',
-  'Community development': 'Family & Relationships',
+  // Education
+  'Education': 'Education',
+  'Education policy': 'Education',
+  'Schools': 'Education',
+  'Higher education': 'Education',
+  
+  // Health Policy
+  'Health': 'Health Policy',
+  'Health policy': 'Health Policy',
+  'Healthcare': 'Health Policy',
+  'Public health': 'Health Policy',
+  
   
   // Immigration & Migration
   'Immigration': 'Immigration & Migration',
@@ -53,65 +107,33 @@ const API_SUBJECT_MAPPINGS: Record<string, string> = {
   'Foreign affairs': 'International Affairs',
   'International relations': 'International Affairs',
   
-  // Politics & Policy
-  'Armed Forces and National Security': 'Politics & Policy',
-  'Armed Forces': 'Politics & Policy',
-  'Defense and security': 'Politics & Policy',
-  'Civil Rights and Liberties, Minority Issues': 'Politics & Policy',
-  'Civil rights': 'Politics & Policy',
-  'Minority rights': 'Politics & Policy',
-  'Congress': 'Politics & Policy',
-  'Crime and Law Enforcement': 'Politics & Policy',
-  'Criminal justice': 'Politics & Policy',
-  'Law enforcement': 'Politics & Policy',
-  'Emergency Management': 'Politics & Policy',
-  'Emergency preparedness': 'Politics & Policy',
-  'Disaster relief': 'Politics & Policy',
-  'Government Operations and Politics': 'Politics & Policy',
-  'Government administration': 'Politics & Policy',
-  'Public administration': 'Politics & Policy',
-  'Law': 'Politics & Policy',
-  'Legal system': 'Politics & Policy',
-  'Judiciary': 'Politics & Policy',
-  'Taxation': 'Politics & Policy',
-  'Tax policy': 'Politics & Policy',
-  'Revenue': 'Politics & Policy',
-  'Transportation and Public Works': 'Politics & Policy',
-  'Transportation': 'Politics & Policy',
-  'Infrastructure': 'Politics & Policy',
+  // National Conditions
+  'Congress': 'National Conditions',
+  'Emergency Management': 'National Conditions',
+  'Emergency preparedness': 'National Conditions',
+  'Disaster relief': 'National Conditions',
+  'Government Operations and Politics': 'National Conditions',
+  'Government administration': 'National Conditions',
+  'Public administration': 'National Conditions',
+  'Sports and Recreation': 'National Conditions',
+  'Sports': 'National Conditions',
+  'Recreation': 'National Conditions',
   
-  // Race & Ethnicity
-  'Native Americans': 'Race & Ethnicity',
-  'Indian affairs': 'Race & Ethnicity',
-  'Tribal affairs': 'Race & Ethnicity',
+  // Religion & Government
+  'Arts, Culture, Religion': 'Religion & Government',
+  'Religion': 'Religion & Government',
+  'Religious liberty': 'Religion & Government',
+  'Religious freedom': 'Religion & Government',
+  'Faith-based': 'Religion & Government',
+  'Church': 'Religion & Government',
+  'Religious institutions': 'Religion & Government',
   
-  // Religion
-  'Arts, Culture, Religion': 'Religion',
-  'Religion': 'Religion',
-  'Religious liberty': 'Religion',
-  'Religious freedom': 'Religion',
-  'Faith-based': 'Religion',
-  'Church': 'Religion',
-  'Religious institutions': 'Religion',
+  // Technology
+  'Science, Technology, Communications': 'Technology',
+  'Technology': 'Technology',
+  'Telecommunications': 'Technology',
+  'Research and development': 'Technology'
   
-  // Science
-  'Animals': 'Science',
-  'Energy': 'Science',
-  'Environmental Protection': 'Science',
-  'Environment': 'Science',
-  'Climate change': 'Science',
-  'Public Lands and Natural Resources': 'Science',
-  'Natural resources': 'Science',
-  'Public lands': 'Science',
-  'Science, Technology, Communications': 'Science',
-  'Technology': 'Science',
-  'Telecommunications': 'Science',
-  'Research and development': 'Science',
-  'Water Resources Development': 'Science',
-  'Water policy': 'Science',
-  'Water management': 'Science',
-  'Advanced technology and technological innovations': 'Science',
-  'Computers and information technology': 'Science'
 };
 
 // API subject structure interfaces

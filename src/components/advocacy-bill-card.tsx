@@ -10,7 +10,7 @@ import type { Bill } from '@/types';
 import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 import { getBillTypeSlug } from '@/lib/utils';
 import { useState } from 'react';
-import { ArrowRight, ThumbsUp, ThumbsDown, Eye, Share2 } from 'lucide-react';
+import { ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
 interface AdvocacyBillCardProps {
@@ -120,9 +120,8 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                             asChild
                             className="flex items-center gap-2 text-muted-foreground"
                           >
-                            <Link href={`/groups/${groupSlug}/${bill.type?.toLowerCase()}-${bill.number}`}>
-                              <Share2 className="h-4 w-4" />
-                              Share
+                            <Link href={`/campaigns/groups/${groupSlug}/${bill.type?.toLowerCase()}-${bill.number}`}>
+                              View Campaign
                             </Link>
                           </Button>
                         )}

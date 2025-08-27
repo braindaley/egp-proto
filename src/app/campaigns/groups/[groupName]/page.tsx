@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getAdvocacyGroupData } from '@/lib/advocacy-groups';
 import { campaignsService } from '@/lib/campaigns';
-import AdvocacyBillCard from '@/components/advocacy-bill-card';
+import { ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Users, Calendar, BarChart, Mic, Edit, CheckCircle } from 'lucide-react';
@@ -245,19 +245,65 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
                 {priorityBillsWithData && priorityBillsWithData.length > 0 ? (
                     <>
                         <h2 className="text-2xl font-bold font-headline text-center">Priority Legislation</h2>
-                        <div className="space-y-6">
-                            {priorityBillsWithData.map((item, index) => (
-                                <AdvocacyBillCard 
-                                    key={index}
-                                    bill={item.bill}
-                                    position={item.position}
-                                    reasoning={item.reasoning}
-                                    actionButtonText={item.actionButtonText}
-                                    supportCount={item.supportCount}
-                                    opposeCount={item.opposeCount}
-                                    groupSlug={groupName}
-                                />
-                            ))}
+                        <div className="space-y-4 md:space-y-6">
+                            {priorityBillsWithData.map((item, index) => {
+                                const isSupport = item.position === 'Support';
+                                const badgeVariant = isSupport ? 'default' : 'destructive';
+                                const PositionIcon = isSupport ? ThumbsUp : ThumbsDown;
+                                const billTypeSlug = getBillTypeSlug(item.bill.type);
+                                
+                                return (
+                                    <Card key={index} className="shadow-md hover:shadow-lg transition-shadow">
+                                        <CardHeader className="pb-4">
+                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs sm:text-sm font-medium text-primary mb-1">
+                                                        {item.bill.type?.toUpperCase()} {item.bill.number} • {item.bill.congress}th Congress
+                                                    </p>
+                                                    <CardTitle className="text-base sm:text-lg font-bold mb-2 leading-tight">
+                                                        <Link 
+                                                            href={`/bill/${item.bill.congress}/${billTypeSlug}/${item.bill.number}`} 
+                                                            className="hover:underline break-words"
+                                                        >
+                                                            {item.bill.title || `Legislation ${item.bill.type?.toUpperCase()} ${item.bill.number}`}
+                                                        </Link>
+                                                    </CardTitle>
+                                                </div>
+                                                <Badge variant={badgeVariant} className="flex items-center gap-2 text-sm px-2 py-1 sm:text-base sm:px-3 sm:py-1.5 shrink-0">
+                                                    <PositionIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                    <span>{item.position}</span>
+                                                </Badge>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="pt-0">
+                                            <div 
+                                                className="text-muted-foreground mb-4 text-sm leading-relaxed [&>h3]:hidden [&>ul]:list-disc [&>ul]:pl-5 [&>li]:leading-relaxed" 
+                                                dangerouslySetInnerHTML={{ 
+                                                    __html: item.reasoning.replace(/<h3>.*?<\/h3>/gi, '').substring(0, 200) + '...' 
+                                                }} 
+                                            />
+                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t gap-3">
+                                                <div className="flex gap-4 justify-center sm:justify-start">
+                                                    <div className="flex items-center gap-1 text-sm text-green-600">
+                                                        <ThumbsUp className="h-4 w-4" />
+                                                        <span className="font-semibold">{item.supportCount.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 text-sm text-red-600">
+                                                        <ThumbsDown className="h-4 w-4" />
+                                                        <span className="font-semibold">{item.opposeCount.toLocaleString()}</span>
+                                                    </div>
+                                                </div>
+                                                <Button size="sm" asChild className="w-full sm:w-auto">
+                                                    <Link href={`/campaigns/groups/${groupName}/${item.bill.type?.toLowerCase()}-${item.bill.number}`}>
+                                                        View Campaign
+                                                        <ArrowRight className="ml-2 h-4 w-4" />
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
                         </div>
                     </>
                 ) : (

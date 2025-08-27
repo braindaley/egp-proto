@@ -4,15 +4,77 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { campaignsService } from '@/lib/campaigns';
+import { campaignsService, type Campaign } from '@/lib/campaigns';
 import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
 import { ThumbsUp, ThumbsDown, ArrowRight, ChevronRight, Menu } from 'lucide-react';
 import { getBillTypeSlug } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
-  const campaigns = campaignsService.getAllCampaigns().filter(c => c.isActive);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(campaignsService.getAllCampaigns().filter(c => c.isActive));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Fetch campaigns from both static data and Firebase
+  useEffect(() => {
+    const fetchAllCampaigns = async () => {
+      try {
+        // Start with static campaigns
+        const staticCampaigns = campaignsService.getAllCampaigns().filter(c => c.isActive);
+        
+        // Fetch campaigns from Firebase
+        const { getFirestore, collection, getDocs } = await import('firebase/firestore');
+        const { app } = await import('@/lib/firebase');
+        
+        const db = getFirestore(app);
+        const campaignsRef = collection(db, 'campaigns');
+        const snapshot = await getDocs(campaignsRef);
+        
+        const firebaseCampaigns: Campaign[] = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            groupSlug: data.groupSlug,
+            groupName: data.groupName || data.groupSlug,
+            bill: {
+              congress: 119, // Default to current congress
+              type: data.billType,
+              number: data.billNumber,
+              title: data.billTitle
+            },
+            position: data.position,
+            reasoning: data.reasoning,
+            actionButtonText: 'Voice your opinion',
+            supportCount: data.supportCount || 0,
+            opposeCount: data.opposeCount || 0,
+            createdAt: data.createdAt || new Date().toISOString(),
+            updatedAt: data.updatedAt || new Date().toISOString(),
+            isActive: true
+          };
+        });
+        
+        // Combine both sets, avoiding duplicates
+        const allCampaigns = [...staticCampaigns];
+        firebaseCampaigns.forEach(fbCampaign => {
+          const exists = staticCampaigns.some(staticCampaign => 
+            staticCampaign.groupSlug === fbCampaign.groupSlug &&
+            staticCampaign.bill.type.toLowerCase() === fbCampaign.bill.type.toLowerCase() &&
+            staticCampaign.bill.number === fbCampaign.bill.number
+          );
+          if (!exists) {
+            allCampaigns.push(fbCampaign);
+          }
+        });
+        
+        setCampaigns(allCampaigns);
+      } catch (error) {
+        console.error('Error fetching campaigns:', error);
+        // Fallback to static campaigns if Firebase fetch fails
+        setCampaigns(campaignsService.getAllCampaigns().filter(c => c.isActive));
+      }
+    };
+    
+    fetchAllCampaigns();
+  }, []);
   
   function convertTitleToSlug(title: string): string {
     return title
@@ -34,7 +96,7 @@ export default function Home() {
             className="flex items-center gap-2"
           >
             <Menu className="h-4 w-4" />
-            Policy Categories
+            Issues
           </Button>
         </div>
 
@@ -70,7 +132,7 @@ export default function Home() {
               <div className="sticky top-8">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Policy Categories</CardTitle>
+                    <CardTitle className="text-lg">Issues</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
                     <nav className="space-y-1">

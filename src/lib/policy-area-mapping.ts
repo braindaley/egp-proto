@@ -2,15 +2,18 @@
 // Based on the standard policy areas from api.congress.gov
 
 export const SITE_ISSUE_CATEGORIES = [
-  'Age & Generations',
-  'Economy & Work', 
-  'Family & Relationships',
+  'Climate, Energy & Environment',
+  'Criminal Justice',
+  'Defense & National Security',
+  'Discrimination & Prejudice',
+  'Economy & Work',
+  'Education',
+  'Health Policy',
   'Immigration & Migration',
   'International Affairs',
-  'Politics & Policy',
-  'Race & Ethnicity',
-  'Religion',
-  'Science'
+  'National Conditions',
+  'Religion & Government',
+  'Technology'
 ] as const;
 
 export type SiteIssueCategory = typeof SITE_ISSUE_CATEGORIES[number];
@@ -18,19 +21,41 @@ export type SiteIssueCategory = typeof SITE_ISSUE_CATEGORIES[number];
 // Map Congress.gov policy areas to our site's issue categories
 // Source: https://www.congress.gov/help/legislative-glossary#glossary_policyarea
 export const POLICY_AREA_TO_SITE_CATEGORY: Record<string, SiteIssueCategory> = {
-  // Age & Generations
-  'Social Welfare': 'Age & Generations',
+  // Climate, Energy & Environment
+  'Animals': 'Climate, Energy & Environment',
+  'Energy': 'Climate, Energy & Environment',
+  'Environmental Protection': 'Climate, Energy & Environment',
+  'Public Lands and Natural Resources': 'Climate, Energy & Environment',
+  'Water Resources Development': 'Climate, Energy & Environment',
+  
+  // Criminal Justice
+  'Crime and Law Enforcement': 'Criminal Justice',
+  'Law': 'Criminal Justice',
+  
+  // Defense & National Security
+  'Armed Forces and National Security': 'Defense & National Security',
+  
+  // Discrimination & Prejudice
+  'Civil Rights and Liberties, Minority Issues': 'Discrimination & Prejudice',
+  'Native Americans': 'Discrimination & Prejudice',
   
   // Economy & Work
   'Agriculture and Food': 'Economy & Work',
   'Commerce': 'Economy & Work',
   'Economics and Public Finance': 'Economy & Work',
+  'Families': 'Economy & Work',
   'Finance and Financial Sector': 'Economy & Work',
+  'Housing and Community Development': 'Economy & Work',
   'Labor and Employment': 'Economy & Work',
+  'Social Welfare': 'Economy & Work',
+  'Taxation': 'Economy & Work',
+  'Transportation and Public Works': 'Economy & Work',
   
-  // Family & Relationships
-  'Families': 'Family & Relationships',
-  'Housing and Community Development': 'Family & Relationships',
+  // Education
+  'Education': 'Education',
+  
+  // Health Policy
+  'Health': 'Health Policy',
   
   // Immigration & Migration
   'Immigration': 'Immigration & Migration',
@@ -39,35 +64,22 @@ export const POLICY_AREA_TO_SITE_CATEGORY: Record<string, SiteIssueCategory> = {
   'Foreign Trade and International Finance': 'International Affairs',
   'International Affairs': 'International Affairs',
   
-  // Politics & Policy
-  'Armed Forces and National Security': 'Politics & Policy',
-  'Civil Rights and Liberties, Minority Issues': 'Politics & Policy',
-  'Congress': 'Politics & Policy',
-  'Crime and Law Enforcement': 'Politics & Policy',
-  'Emergency Management': 'Politics & Policy',
-  'Government Operations and Politics': 'Politics & Policy',
-  'Law': 'Politics & Policy',
-  'Taxation': 'Politics & Policy',
-  'Transportation and Public Works': 'Politics & Policy',
+  // National Conditions
+  'Congress': 'National Conditions',
+  'Emergency Management': 'National Conditions',
+  'Government Operations and Politics': 'National Conditions',
+  'Sports and Recreation': 'National Conditions',
   
-  // Race & Ethnicity
-  'Native Americans': 'Race & Ethnicity',
+  // Religion & Government
+  'Arts, Culture, Religion': 'Religion & Government',
   
-  // Religion
-  'Arts, Culture, Religion': 'Religion',
-  
-  // Science
-  'Animals': 'Science',
-  'Energy': 'Science',
-  'Environmental Protection': 'Science',
-  'Public Lands and Natural Resources': 'Science',
-  'Science, Technology, Communications': 'Science',
-  'Water Resources Development': 'Science'
+  // Technology
+  'Science, Technology, Communications': 'Technology'
 };
 
 /**
  * Maps a Congress.gov policy area to our site's issue categories
- * Returns the mapped category or 'Politics & Policy' as default
+ * Returns the mapped category or 'National Conditions' as default
  */
 export function mapPolicyAreaToSiteCategory(policyArea: string | undefined): SiteIssueCategory | null {
   if (!policyArea) return null;
@@ -76,9 +88,9 @@ export function mapPolicyAreaToSiteCategory(policyArea: string | undefined): Sit
   const mappedCategory = POLICY_AREA_TO_SITE_CATEGORY[policyArea];
   if (mappedCategory) return mappedCategory;
   
-  // Default to Politics & Policy for unmapped areas
-  console.warn(`Unmapped policy area: ${policyArea}, defaulting to Politics & Policy`);
-  return 'Politics & Policy';
+  // Default to National Conditions for unmapped areas
+  console.warn(`Unmapped policy area: ${policyArea}, defaulting to National Conditions`);
+  return 'National Conditions';
 }
 
 /**

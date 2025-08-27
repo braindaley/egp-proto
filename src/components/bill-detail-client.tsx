@@ -122,9 +122,11 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   // Step 3: Apply primary category (policy area mapping takes precedence)
   let sitePolicyCategory = primaryMappedCategory;
   
-  // Fallback: If no primary mapping exists, use first extracted subject
+  // Fallback: If no primary mapping exists, use first extracted subject if it's valid
   if (!sitePolicyCategory && allPolicyIssues.length > 0) {
-    sitePolicyCategory = allPolicyIssues[0];
+    // Since allPolicyIssues comes from extractSubjectsFromApiResponse which filters by ALLOWED_SUBJECTS,
+    // the first item should be a valid SiteIssueCategory
+    sitePolicyCategory = allPolicyIssues[0] as any;
   }
   
   // Improved title logic - prioritize title over shortTitle for main heading
