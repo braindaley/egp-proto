@@ -294,7 +294,7 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
                                                     </div>
                                                 </div>
                                                 <Button size="sm" asChild className="w-full sm:w-auto">
-                                                    <Link href={`/campaigns/groups/${groupName}/${item.bill.type?.toLowerCase()}-${item.bill.number}`}>
+                                                    <Link href={`/campaigns/${groupName}/${item.bill.type?.toLowerCase()}-${item.bill.number}`}>
                                                         View Campaign
                                                         <ArrowRight className="ml-2 h-4 w-4" />
                                                     </Link>

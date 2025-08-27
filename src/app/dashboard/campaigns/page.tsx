@@ -273,7 +273,7 @@ export default function CampaignsPage() {
                                                         asChild
                                                     >
                                                         <Link 
-                                                            href={`/campaigns/groups/${selectedGroup}/${campaign.bill.type?.toLowerCase()}-${campaign.bill.number}`}
+                                                            href={`/campaigns/${selectedGroup}/${campaign.bill.type?.toLowerCase()}-${campaign.bill.number}`}
                                                             target="_blank"
                                                         >
                                                             <ExternalLink className="h-4 w-4" />

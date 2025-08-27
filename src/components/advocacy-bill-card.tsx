@@ -120,7 +120,7 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                             asChild
                             className="flex items-center gap-2 text-muted-foreground"
                           >
-                            <Link href={`/campaigns/groups/${groupSlug}/${bill.type?.toLowerCase()}-${bill.number}`}>
+                            <Link href={`/campaigns/${groupSlug}/${bill.type?.toLowerCase()}-${bill.number}`}>
                               View Campaign
                             </Link>
                           </Button>

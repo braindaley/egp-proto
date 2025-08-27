@@ -84,4 +84,7 @@
   .prose p {
     @apply mt-4;
   }
+  .max-width-container {
+    @apply max-w-2xl;
+  }
 }

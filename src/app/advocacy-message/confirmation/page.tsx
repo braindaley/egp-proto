@@ -191,7 +191,7 @@ const ConfirmationContent: React.FC = () => {
                   )}
                   
                   <Button variant="outline" asChild>
-                    <Link href="/campaigns/groups">
+                    <Link href="/campaigns">
                       Find More Issues
                     </Link>
                   </Button>

@@ -93,6 +93,15 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
             </Link>
           </div>
           
+          {/* Center Section - Main Nav */}
+          <nav className="flex items-center gap-4">
+            <Link href="/issues" className="text-sm font-medium hover:text-primary transition-colors">
+              Issues
+            </Link>
+            <Link href="/campaigns" className="text-sm font-medium hover:text-primary transition-colors">
+              Campaigns
+            </Link>
+          </nav>
 
           {/* Right Section - Auth and Menu */}
           <div className="flex items-center gap-2">
@@ -146,11 +155,6 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                           Following
                       </Link>
                     </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/issues" className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          Issues
-                      </Link>
-                    </SheetClose>
                     
                     <Separator />
                     
@@ -162,11 +166,6 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                     <SheetClose asChild>
                       <Link href={congressHref} className="block w-full text-left p-2 rounded-md hover:bg-accent">
                           Congress
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/campaigns/groups" className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                        Groups
                       </Link>
                     </SheetClose>
 

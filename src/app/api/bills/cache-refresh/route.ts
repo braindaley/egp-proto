@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { mapApiSubjectToAllowed } from '@/lib/subjects';
+import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 
 interface CongressBill {
   congress: number;
@@ -114,9 +114,9 @@ export async function POST(request: Request) {
               });
             }
 
-            // Map API subjects to our allowed categories
+            // Map API subjects to our site categories
             for (const apiSubject of apiSubjects) {
-              const mapped = mapApiSubjectToAllowed(apiSubject);
+              const mapped = mapPolicyAreaToSiteCategory(apiSubject);
               if (mapped && !mappedSubjects.includes(mapped)) {
                 mappedSubjects.push(mapped);
               }

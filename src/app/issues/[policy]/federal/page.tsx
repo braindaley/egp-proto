@@ -77,7 +77,24 @@ export default function FederalPolicyPage({ params }: { params: Promise<{ policy
       setLoading(true);
       
       try {
-        const url = `/api/bills/search-cached?subjects=${encodeURIComponent(policyTitle)}&limit=50&_t=${Date.now()}`;
+        // Temporary mapping for old cached categories until cache is refreshed
+        const categoryMapping: Record<string, string> = {
+          'Climate, Energy & Environment': 'Science',
+          'Criminal Justice': 'Politics & Policy', 
+          'Defense & National Security': 'Politics & Policy',
+          'Discrimination & Prejudice': 'Race & Ethnicity',
+          'Economy & Work': 'Economy & Work',
+          'Education': 'Age & Generations',
+          'Health Policy': 'Age & Generations',
+          'Immigration & Migration': 'Immigration & Migration',
+          'International Affairs': 'International Affairs',
+          'National Conditions': 'Politics & Policy',
+          'Religion & Government': 'Religion',
+          'Technology': 'Science'
+        };
+        
+        const searchSubject = categoryMapping[policyTitle] || policyTitle;
+        const url = `/api/bills/search-cached?subjects=${encodeURIComponent(searchSubject)}&limit=50&_t=${Date.now()}`;
         const response = await fetch(url, {
           cache: 'no-cache',
           headers: {
@@ -114,12 +131,10 @@ export default function FederalPolicyPage({ params }: { params: Promise<{ policy
 
   return (
     <div className="bg-secondary/30 flex-1">
-      <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="mb-6">
           <nav className="text-sm text-muted-foreground mb-4">
-            <Link href="/campaigns" className="hover:text-primary">Campaigns</Link> / 
-            <Link href="/campaigns/issues" className="hover:text-primary ml-1">Issues</Link> / 
+            <Link href="/issues" className="hover:text-primary">Issues</Link> / 
             <Link href={`/issues/${resolvedParams.policy}`} className="hover:text-primary ml-1">{policyTitle}</Link> /
             <span className="ml-1">Federal</span>
           </nav>
@@ -159,7 +174,6 @@ export default function FederalPolicyPage({ params }: { params: Promise<{ policy
           </div>
         )}
       </div>
-    </div>
     </div>
   );
 }

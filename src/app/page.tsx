@@ -87,76 +87,49 @@ export default function Home() {
   return (
     <div className="bg-secondary/30 flex-1">
       <div className="container mx-auto px-4 py-6 md:py-12">
-        {/* Mobile Menu Button */}
-        <div className="lg:hidden mb-6">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="flex items-center gap-2"
-          >
-            <Menu className="h-4 w-4" />
-            Issues
-          </Button>
-        </div>
-
-        {/* Mobile Categories Dropdown */}
-        {isMobileMenuOpen && (
-          <div className="lg:hidden mb-6">
-            <Card>
-              <CardContent className="p-0">
-                <nav className="space-y-1">
-                  {SITE_ISSUE_CATEGORIES.map((category) => (
-                    <Link
-                      key={category}
-                      href={`/issues/${convertTitleToSlug(category)}`}
-                      className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted transition-colors group"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <span className="text-muted-foreground group-hover:text-foreground">
-                        {category}
-                      </span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
-                    </Link>
-                  ))}
-                </nav>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        <div className="flex flex-col lg:flex-row lg:justify-center">
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full max-w-6xl">
-            {/* Desktop Left Navigation Panel */}
-            <aside className="hidden lg:block w-64 flex-shrink-0">
-              <div className="sticky top-8">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Issues</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <nav className="space-y-1">
-                      {SITE_ISSUE_CATEGORIES.map((category) => (
-                        <Link
-                          key={category}
-                          href={`/issues/${convertTitleToSlug(category)}`}
-                          className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted transition-colors group"
-                        >
-                          <span className="text-muted-foreground group-hover:text-foreground">
-                            {category}
-                          </span>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
-                        </Link>
-                      ))}
-                    </nav>
-                  </CardContent>
-                </Card>
-              </div>
-            </aside>
-
+        <div className="flex justify-center">
+          <div className="w-full max-w-2xl">
             {/* Main Content - Campaigns */}
-            <div className="w-full lg:max-w-[672px] lg:flex-1">
+            <div className="w-full">
               <h1 className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8">Current Campaigns</h1>
+              
+              {/* Issues Filter Dropdown */}
+              <div className="mb-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="flex items-center gap-2 w-full"
+                >
+                  <Menu className="h-4 w-4" />
+                  Browse by issue
+                </Button>
+              </div>
+
+              {/* Categories Dropdown */}
+              {isMobileMenuOpen && (
+                <div className="mb-6">
+                  <Card>
+                    <CardContent className="p-0">
+                      <nav className="space-y-1">
+                        {SITE_ISSUE_CATEGORIES.map((category) => (
+                          <Link
+                            key={category}
+                            href={`/issues/${convertTitleToSlug(category)}`}
+                            className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted transition-colors group"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <span className="text-muted-foreground group-hover:text-foreground">
+                              {category}
+                            </span>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                          </Link>
+                        ))}
+                      </nav>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
               <div className="space-y-4 md:space-y-6">
                 {campaigns.map((campaign) => {
                   const isSupport = campaign.position === 'Support';
@@ -209,7 +182,7 @@ export default function Home() {
                             </div>
                           </div>
                           <Button size="sm" asChild className="w-full sm:w-auto">
-                            <Link href={`/campaigns/groups/${campaign.groupSlug}/${campaign.bill.type.toLowerCase()}-${campaign.bill.number}`}>
+                            <Link href={`/campaigns/${campaign.groupSlug}/${campaign.bill.type.toLowerCase()}-${campaign.bill.number}`}>
                               View Campaign
                               <ArrowRight className="ml-2 h-4 w-4" />
                             </Link>

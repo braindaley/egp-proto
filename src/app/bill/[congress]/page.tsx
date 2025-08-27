@@ -5,11 +5,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
 import { ALLOWED_SUBJECTS, extractSubjectsFromApiResponse } from '@/lib/subjects';
 import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PopularBillsNav } from '@/components/PopularBillsNav';
 import type { Bill } from '@/types';
 
 function convertTitleToSlug(title: string): string {
@@ -65,7 +63,6 @@ export default function BillsOverviewPage({ params }: { params: Promise<{ congre
   const [billsByIssue, setBillsByIssue] = useState<Map<string, Bill[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set());
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   useEffect(() => {
     async function getParams() {
@@ -139,34 +136,7 @@ export default function BillsOverviewPage({ params }: { params: Promise<{ congre
 
   return (
     <div className="bg-secondary/30 flex-1">
-      <div className="container mx-auto px-4 py-6 md:py-12">
-        {/* Mobile Menu Button */}
-        <div className="lg:hidden mb-6">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="flex items-center gap-2"
-          >
-            <Menu className="h-4 w-4" />
-            Popular Bills
-          </Button>
-        </div>
-
-        {/* Mobile Popular Bills Dropdown */}
-        {isMobileMenuOpen && (
-          <div className="lg:hidden mb-6">
-            <PopularBillsNav congress={congress} />
-          </div>
-        )}
-
-        <div className="flex flex-col lg:flex-row lg:justify-center">
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full max-w-6xl">
-            {/* Desktop Left Navigation Panel */}
-            <PopularBillsNav congress={congress} />
-
-            {/* Main Content */}
-            <div className="w-full lg:max-w-[672px] lg:flex-1">
+      <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
               <header className="text-center mb-12">
                 <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
                   Bills in the {congress}th Congress
@@ -280,9 +250,6 @@ export default function BillsOverviewPage({ params }: { params: Promise<{ congre
                   </>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
       </div>
       <footer className="text-center py-6 text-sm text-muted-foreground">
         <p>Data provided by the <a href="https://www.congress.gov/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">U.S. Congress</a> via <a href="https://api.congress.gov/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">api.congress.gov</a>.</p>

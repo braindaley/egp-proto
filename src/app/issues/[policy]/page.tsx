@@ -38,6 +38,10 @@ export default function PolicyPage({ params }: { params: { policy: string } }) {
       </p>
       
       <div className="mb-12">
+        <USMap />
+      </div>
+
+      <div className="mb-12">
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle>Federal Level</CardTitle>
@@ -54,10 +58,6 @@ export default function PolicyPage({ params }: { params: { policy: string } }) {
             </Link>
           </CardContent>
         </Card>
-      </div>
-
-      <div className="mb-12">
-        <USMap />
       </div>
 
       <div id="states">

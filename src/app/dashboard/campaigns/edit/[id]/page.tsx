@@ -253,7 +253,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                         {campaign.bill && campaign.groupSlug && (
                             <Button variant="outline" asChild>
                                 <Link 
-                                    href={`/campaigns/groups/${campaign.groupSlug}/${campaign.bill.type.toLowerCase()}-${campaign.bill.number}`}
+                                    href={`/campaigns/${campaign.groupSlug}/${campaign.bill.type.toLowerCase()}-${campaign.bill.number}`}
                                     target="_blank"
                                 >
                                     View Live Campaign

@@ -17,7 +17,7 @@ const WatchedGroups: React.FC = () => {
       return {
         slug,
         name: groupData.name,
-        url: `/campaigns/groups/${slug}`
+        url: `/campaigns/${slug}`
       };
     }
     return null;
@@ -33,7 +33,7 @@ const WatchedGroups: React.FC = () => {
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">No groups watched yet</p>
             <Link 
-              href="/campaigns/groups" 
+              href="/campaigns" 
               className="text-sm text-primary hover:text-primary/80 inline-flex items-center gap-1"
             >
               Browse advocacy groups
@@ -65,7 +65,7 @@ const WatchedGroups: React.FC = () => {
             ))}
             
             <Link 
-              href="/campaigns/groups" 
+              href="/campaigns" 
               className="flex items-center justify-between text-sm text-primary hover:text-primary/80 pt-2 border-t"
             >
               <span>Browse all groups</span>
