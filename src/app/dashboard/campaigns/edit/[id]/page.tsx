@@ -53,7 +53,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                 console.log('Campaign data:', foundCampaign); // Debug log
                 
                 setCampaign(foundCampaign);
-                setPosition(foundCampaign.position || foundCampaign.stance === 'support' ? 'Support' : 'Oppose');
+                setPosition(foundCampaign.stance === 'support' ? 'Support' : foundCampaign.stance === 'oppose' ? 'Oppose' : foundCampaign.position || 'Support');
                 setReasoning(foundCampaign.reasoning || '');
                 setActionButtonText(foundCampaign.actionButtonText || 'Voice your opinion');
             } catch (err) {

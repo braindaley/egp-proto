@@ -305,8 +305,13 @@ export default function CampaignsPage() {
                                         </CardHeader>
                                         <CardContent>
                                             <div className="text-sm text-muted-foreground">
-                                                <p className="line-clamp-2">{campaign.reasoning.replace(/[#*]/g, '').substring(0, 200)}...</p>
-                                                <div className="mt-2 flex gap-4">
+                                                <div 
+                                                    className="mb-2 [&>h3]:font-semibold [&>h3]:text-lg [&>h3]:mb-3 [&>ul]:list-disc [&>ul]:pl-5 [&>li]:leading-relaxed [&>strong]:font-semibold [&>em]:italic"
+                                                    dangerouslySetInnerHTML={{ 
+                                                        __html: campaign.reasoning 
+                                                    }} 
+                                                />
+                                                <div className="mt-4 flex gap-4 pt-2 border-t">
                                                     <span>Support: {campaign.supportCount}</span>
                                                     <span>Oppose: {campaign.opposeCount}</span>
                                                 </div>

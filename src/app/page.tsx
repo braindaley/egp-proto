@@ -6,22 +6,19 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { campaignsService, type Campaign } from '@/lib/campaigns';
 import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
-import { ThumbsUp, ThumbsDown, ArrowRight, ChevronRight, Menu } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, ArrowRight, ChevronRight, Menu, Eye } from 'lucide-react';
 import { getBillTypeSlug } from '@/lib/utils';
+import { parseSimpleMarkdown } from '@/lib/markdown-utils';
 import { useState, useEffect } from 'react';
 
 export default function Home() {
   const [campaigns, setCampaigns] = useState<Campaign[]>(campaignsService.getAllCampaigns().filter(c => c.isActive));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Fetch campaigns from both static data and Firebase
+  // Load campaigns from Firebase to match admin dashboard
   useEffect(() => {
-    const fetchAllCampaigns = async () => {
+    const fetchFirebaseCampaigns = async () => {
       try {
-        // Start with static campaigns
-        const staticCampaigns = campaignsService.getAllCampaigns().filter(c => c.isActive);
-        
-        // Fetch campaigns from Firebase
         const { getFirestore, collection, getDocs } = await import('firebase/firestore');
         const { app } = await import('@/lib/firebase');
         
@@ -36,12 +33,12 @@ export default function Home() {
             groupSlug: data.groupSlug,
             groupName: data.groupName || data.groupSlug,
             bill: {
-              congress: 119, // Default to current congress
+              congress: 119,
               type: data.billType,
               number: data.billNumber,
               title: data.billTitle
             },
-            position: data.position,
+            position: data.stance === 'support' ? 'Support' : data.stance === 'oppose' ? 'Oppose' : data.position,
             reasoning: data.reasoning,
             actionButtonText: 'Voice your opinion',
             supportCount: data.supportCount || 0,
@@ -52,28 +49,17 @@ export default function Home() {
           };
         });
         
-        // Combine both sets, avoiding duplicates
-        const allCampaigns = [...staticCampaigns];
-        firebaseCampaigns.forEach(fbCampaign => {
-          const exists = staticCampaigns.some(staticCampaign => 
-            staticCampaign.groupSlug === fbCampaign.groupSlug &&
-            staticCampaign.bill.type.toLowerCase() === fbCampaign.bill.type.toLowerCase() &&
-            staticCampaign.bill.number === fbCampaign.bill.number
-          );
-          if (!exists) {
-            allCampaigns.push(fbCampaign);
-          }
-        });
+        console.log('*** DEBUG: Loaded Firebase campaigns:', firebaseCampaigns.map(c => `${c.groupName} - ${c.bill.type} ${c.bill.number}`));
+        setCampaigns(firebaseCampaigns);
         
-        setCampaigns(allCampaigns);
       } catch (error) {
-        console.error('Error fetching campaigns:', error);
-        // Fallback to static campaigns if Firebase fetch fails
+        console.error('Error fetching Firebase campaigns:', error);
+        // Fallback to static campaigns if Firebase fails
         setCampaigns(campaignsService.getAllCampaigns().filter(c => c.isActive));
       }
     };
     
-    fetchAllCampaigns();
+    fetchFirebaseCampaigns();
   }, []);
   
   function convertTitleToSlug(title: string): string {
@@ -140,46 +126,71 @@ export default function Home() {
                   return (
                     <Card key={campaign.id} className="shadow-md hover:shadow-lg transition-shadow">
                       <CardHeader className="pb-4">
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs sm:text-sm font-medium text-primary mb-1">
-                              {campaign.bill.type.toUpperCase()} {campaign.bill.number} • {campaign.bill.congress}th Congress
+                        <div className="flex flex-col gap-3">
+                          {/* 1. Group Name's Opinion with Badge */}
+                          <div className="flex justify-between items-center">
+                            <p className="text-sm font-medium text-muted-foreground">
+                              {campaign.groupName} urges you to {campaign.position.toLowerCase()} {campaign.bill.type.toUpperCase()} {campaign.bill.number}
                             </p>
-                            <CardTitle className="text-base sm:text-lg font-bold mb-2 leading-tight">
-                              <Link 
-                                href={`/bill/${campaign.bill.congress}/${billTypeSlug}/${campaign.bill.number}`} 
-                                className="hover:underline break-words"
-                              >
-                                {campaign.bill.title || `Legislation ${campaign.bill.type.toUpperCase()} ${campaign.bill.number}`}
-                              </Link>
-                            </CardTitle>
-                            <p className="text-xs sm:text-sm text-muted-foreground">
-                              {campaign.groupName}
-                            </p>
+                            <Badge variant={badgeVariant} className="flex items-center gap-2 text-sm px-2 py-1 shrink-0">
+                              <PositionIcon className="h-3 w-3" />
+                              <span>{campaign.position}</span>
+                            </Badge>
                           </div>
-                          <Badge variant={badgeVariant} className="flex items-center gap-2 text-sm px-2 py-1 sm:text-base sm:px-3 sm:py-1.5 shrink-0">
-                            <PositionIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span>{campaign.position}</span>
-                          </Badge>
+                          
+                          {/* 3. H2: Bill Short Title */}
+                          <CardTitle className="text-lg sm:text-xl font-bold leading-tight">
+                            <Link 
+                              href={`/bill/${campaign.bill.congress}/${billTypeSlug}/${campaign.bill.number}`} 
+                              className="hover:underline break-words"
+                            >
+                              {campaign.bill.title || `Legislation ${campaign.bill.type.toUpperCase()} ${campaign.bill.number}`}
+                            </Link>
+                          </CardTitle>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0">
+                        {/* 4. Formatted Markdown Reasoning (3 rows max) */}
                         <div 
-                          className="text-muted-foreground mb-4 text-sm leading-relaxed [&>h3]:hidden [&>ul]:list-disc [&>ul]:pl-5 [&>li]:leading-relaxed" 
+                          className="text-muted-foreground mb-4 text-sm leading-relaxed overflow-hidden line-clamp-3 [&>h3]:hidden [&>ul]:list-disc [&>ul]:pl-5 [&>li]:leading-relaxed" 
+                          style={{ 
+                            display: '-webkit-box',
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}
                           dangerouslySetInnerHTML={{ 
-                            __html: campaign.reasoning.replace(/<h3>.*?<\/h3>/gi, '').substring(0, 200) + '...' 
+                            __html: parseSimpleMarkdown(campaign.reasoning, { hideHeaders: true })
                           }} 
                         />
+                        
+                        {/* 5. Bottom Section with Buttons */}
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t gap-3">
-                          <div className="flex gap-4 justify-center sm:justify-start">
-                            <div className="flex items-center gap-1 text-sm text-green-600">
+                          <div className="flex gap-2 flex-wrap justify-center sm:justify-start">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                            >
                               <ThumbsUp className="h-4 w-4" />
                               <span className="font-semibold">{campaign.supportCount.toLocaleString()}</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-sm text-red-600">
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                            >
                               <ThumbsDown className="h-4 w-4" />
                               <span className="font-semibold">{campaign.opposeCount.toLocaleString()}</span>
-                            </div>
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-2 text-muted-foreground"
+                            >
+                              <Eye className="h-4 w-4" />
+                              Watch
+                            </Button>
                           </div>
                           <Button size="sm" asChild className="w-full sm:w-auto">
                             <Link href={`/campaigns/${campaign.groupSlug}/${campaign.bill.type.toLowerCase()}-${campaign.bill.number}`}>

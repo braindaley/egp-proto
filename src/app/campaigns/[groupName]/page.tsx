@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getAdvocacyGroupData } from '@/lib/advocacy-groups';
 import { campaignsService } from '@/lib/campaigns';
-import { ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Users, Calendar, BarChart, Mic, Edit, CheckCircle } from 'lucide-react';
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { WatchButton } from '@/components/WatchButton';
 import type { Bill, ApiCollection, Sponsor, Cosponsor, Committee, Summary, TextVersion, RelatedBill, Subject, PolicyArea } from '@/types';
 import { getBillTypeSlug } from '@/lib/utils';
+import { parseSimpleMarkdown } from '@/lib/markdown-utils';
 import { remark } from 'remark';
 import html from 'remark-html';
 
@@ -207,7 +208,7 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
                 campaign.billType || campaign.bill?.type, 
                 campaign.billNumber || campaign.bill?.number
             );
-            const processedReasoning = await processMarkdown(campaign.reasoning);
+            // Use raw reasoning for parseSimpleMarkdown processing in template
             return {
                 bill: billDetails || {
                     congress: campaign.congress || campaign.bill?.congress,
@@ -215,8 +216,8 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
                     number: campaign.billNumber || campaign.bill?.number,
                     title: campaign.billTitle || campaign.bill?.title
                 },
-                position: campaign.position,
-                reasoning: processedReasoning,
+                position: campaign.stance === 'support' ? 'Support' : campaign.stance === 'oppose' ? 'Oppose' : campaign.position,
+                reasoning: campaign.reasoning, // Keep raw markdown for template processing
                 actionButtonText: campaign.actionButtonText,
                 supportCount: campaign.supportCount,
                 opposeCount: campaign.opposeCount,
@@ -255,43 +256,65 @@ export default async function GroupDetailPage({ params }: { params: { groupName:
                                 return (
                                     <Card key={index} className="shadow-md hover:shadow-lg transition-shadow">
                                         <CardHeader className="pb-4">
-                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-xs sm:text-sm font-medium text-primary mb-1">
-                                                        {item.bill.type?.toUpperCase()} {item.bill.number} • {item.bill.congress}th Congress
+                                            <div className="flex flex-col gap-3">
+                                                {/* 1. Group Name's Opinion with Badge */}
+                                                <div className="flex justify-between items-center">
+                                                    <p className="text-sm font-medium text-muted-foreground">
+                                                        {groupData.name} urges you to {item.position.toLowerCase()} {item.bill.type?.toUpperCase()} {item.bill.number}
                                                     </p>
-                                                    <CardTitle className="text-base sm:text-lg font-bold mb-2 leading-tight">
-                                                        <Link 
-                                                            href={`/bill/${item.bill.congress}/${billTypeSlug}/${item.bill.number}`} 
-                                                            className="hover:underline break-words"
-                                                        >
-                                                            {item.bill.title || `Legislation ${item.bill.type?.toUpperCase()} ${item.bill.number}`}
-                                                        </Link>
-                                                    </CardTitle>
+                                                    <Badge variant={badgeVariant} className="flex items-center gap-2 text-sm px-2 py-1 shrink-0">
+                                                        <PositionIcon className="h-3 w-3" />
+                                                        <span>{item.position}</span>
+                                                    </Badge>
                                                 </div>
-                                                <Badge variant={badgeVariant} className="flex items-center gap-2 text-sm px-2 py-1 sm:text-base sm:px-3 sm:py-1.5 shrink-0">
-                                                    <PositionIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                                                    <span>{item.position}</span>
-                                                </Badge>
+                                                
+                                                {/* 3. H2: Bill Short Title */}
+                                                <CardTitle className="text-lg sm:text-xl font-bold leading-tight">
+                                                    <Link 
+                                                        href={`/bill/${item.bill.congress}/${billTypeSlug}/${item.bill.number}`} 
+                                                        className="hover:underline break-words"
+                                                    >
+                                                        {item.bill.title || `Legislation ${item.bill.type?.toUpperCase()} ${item.bill.number}`}
+                                                    </Link>
+                                                </CardTitle>
                                             </div>
                                         </CardHeader>
                                         <CardContent className="pt-0">
+                                            {/* 4. Formatted Markdown Reasoning */}
                                             <div 
                                                 className="text-muted-foreground mb-4 text-sm leading-relaxed [&>h3]:hidden [&>ul]:list-disc [&>ul]:pl-5 [&>li]:leading-relaxed" 
                                                 dangerouslySetInnerHTML={{ 
-                                                    __html: item.reasoning.replace(/<h3>.*?<\/h3>/gi, '').substring(0, 200) + '...' 
+                                                    __html: parseSimpleMarkdown(item.reasoning || '', { hideHeaders: true }) 
                                                 }} 
                                             />
+                                            
+                                            {/* 5. Bottom Section with Buttons */}
                                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t gap-3">
-                                                <div className="flex gap-4 justify-center sm:justify-start">
-                                                    <div className="flex items-center gap-1 text-sm text-green-600">
+                                                <div className="flex gap-2 flex-wrap justify-center sm:justify-start">
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                                                    >
                                                         <ThumbsUp className="h-4 w-4" />
                                                         <span className="font-semibold">{item.supportCount.toLocaleString()}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1 text-sm text-red-600">
+                                                    </Button>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                                    >
                                                         <ThumbsDown className="h-4 w-4" />
                                                         <span className="font-semibold">{item.opposeCount.toLocaleString()}</span>
-                                                    </div>
+                                                    </Button>
+                                                    <Button 
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex items-center gap-2 text-muted-foreground"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                        Watch
+                                                    </Button>
                                                 </div>
                                                 <Button size="sm" asChild className="w-full sm:w-auto">
                                                     <Link href={`/campaigns/${groupName}/${item.bill.type?.toLowerCase()}-${item.bill.number}`}>
