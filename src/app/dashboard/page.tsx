@@ -8,7 +8,7 @@ import { useUserActivity } from '@/hooks/use-user-activity';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, ThumbsUp, ThumbsDown, Megaphone } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, ThumbsUp, ThumbsDown, Megaphone, Eye } from 'lucide-react';
 
 // Force dynamic rendering to prevent prerendering issues
 export const dynamic = 'force-dynamic';
@@ -45,6 +45,7 @@ export default function DashboardPage() {
         { label: 'Dashboard', href: '/dashboard', icon: UserIcon, isActive: true },
         { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
         { label: 'Activity', href: '/dashboard/activity', icon: BarChart3 },
+        { label: 'Following', href: '/dashboard/following', icon: Eye },
         { label: 'Membership', href: '/dashboard/membership', icon: Crown },
         { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
         { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },

@@ -67,9 +67,15 @@ export default async function MemberDetailPage({ params }: { params: { bioguideI
   }
   
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
-      {/* Pass minimal data to the client, which will fetch the rest */}
-      <MemberDetailClient initialMember={member} congress={congress} />
+    <div className="bg-secondary/30 flex-1">
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="flex justify-center">
+          <div className="w-full max-w-2xl">
+            {/* Pass minimal data to the client, which will fetch the rest */}
+            <MemberDetailClient initialMember={member} congress={congress} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

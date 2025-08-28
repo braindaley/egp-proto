@@ -43,15 +43,18 @@ export interface User extends FirebaseUser {
   militaryService?: boolean;
   constituentDescription?: string;
   policyInterests?: {
-    ageGenerations?: number;
+    climateEnergyEnvironment?: number;
+    criminalJustice?: number;
+    defenseNationalSecurity?: number;
+    discriminationPrejudice?: number;
     economyWork?: number;
-    familyRelationships?: number;
+    education?: number;
+    healthPolicy?: number;
     immigrationMigration?: number;
     internationalAffairs?: number;
-    politicsPolicy?: number;
-    raceEthnicity?: number;
-    religion?: number;
-    science?: number;
+    nationalConditions?: number;
+    religionGovernment?: number;
+    technology?: number;
   };
   createdAt?: Date;
   updatedAt?: Date;

@@ -3,7 +3,8 @@
 import { use, useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
+import { SITE_ISSUE_CATEGORIES, getUserInterestForCategory } from '@/lib/policy-area-mapping';
+import { useAuth } from '@/hooks/use-auth';
 import type { Bill } from '@/types';
 
 function convertTitleToSlug(title: string): string {
@@ -65,6 +66,7 @@ function BillRow({ bill }: BillRowProps) {
 
 export default function FederalPolicyPage({ params }: { params: Promise<{ policy: string }> }) {
   const resolvedParams = use(params);
+  const { user } = useAuth();
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -104,11 +106,36 @@ export default function FederalPolicyPage({ params }: { params: Promise<{ policy
         
         if (response.ok) {
           const data = await response.json();
+          
+          // Get user's interest level for this policy area
+          const userInterestLevel = getUserInterestForCategory(user?.policyInterests, policyTitle);
+          const isHighInterest = userInterestLevel >= 3; // Medium or High interest
+          
+          // Sort bills with user interest consideration
           const sortedBills = (data.bills || []).sort((a: Bill, b: Bill) => {
+            // Primary sort: User interest level (if user has high interest, prioritize more recent activity)
+            if (isHighInterest && user) {
+              // For high-interest areas, prioritize bills with more recent activity
+              const dateA = new Date(a.latestAction.actionDate);
+              const dateB = new Date(b.latestAction.actionDate);
+              const daysDiffA = (Date.now() - dateA.getTime()) / (1000 * 60 * 60 * 24);
+              const daysDiffB = (Date.now() - dateB.getTime()) / (1000 * 60 * 60 * 24);
+              
+              // Boost score for bills with activity in last 7 days
+              const scoreA = daysDiffA <= 7 ? 1000 : 0;
+              const scoreB = daysDiffB <= 7 ? 1000 : 0;
+              
+              if (scoreA !== scoreB) {
+                return scoreB - scoreA;
+              }
+            }
+            
+            // Secondary sort: By date (most recent first)
             const dateA = new Date(a.latestAction.actionDate);
             const dateB = new Date(b.latestAction.actionDate);
             return dateB.getTime() - dateA.getTime();
           });
+          
           setBills(sortedBills);
         } else {
           console.error(`Failed to fetch bills for ${policyTitle}:`, response.status, await response.text());
@@ -144,6 +171,9 @@ export default function FederalPolicyPage({ params }: { params: Promise<{ policy
           </h1>
           <p className="text-muted-foreground">
             Browse federal bills and legislation related to {policyTitle.toLowerCase()} policy
+            {user && getUserInterestForCategory(user?.policyInterests, policyTitle) >= 3 && (
+              <span className="ml-2 text-blue-600 text-sm">• Personalized for your high interest</span>
+            )}
           </p>
         </div>
 

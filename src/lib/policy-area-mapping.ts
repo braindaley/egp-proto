@@ -101,3 +101,48 @@ export function getPolicyAreasForSiteCategory(category: SiteIssueCategory): stri
     .filter(([_, siteCategory]) => siteCategory === category)
     .map(([policyArea]) => policyArea);
 }
+
+// Map user policy interest keys to site issue categories
+export const POLICY_INTEREST_TO_SITE_CATEGORY: Record<string, SiteIssueCategory> = {
+  climateEnergyEnvironment: 'Climate, Energy & Environment',
+  criminalJustice: 'Criminal Justice',
+  defenseNationalSecurity: 'Defense & National Security',
+  discriminationPrejudice: 'Discrimination & Prejudice',
+  economyWork: 'Economy & Work',
+  education: 'Education',
+  healthPolicy: 'Health Policy',
+  immigrationMigration: 'Immigration & Migration',
+  internationalAffairs: 'International Affairs',
+  nationalConditions: 'National Conditions',
+  religionGovernment: 'Religion & Government',
+  technology: 'Technology'
+};
+
+// Map site issue categories back to policy interest keys
+export const SITE_CATEGORY_TO_POLICY_INTEREST: Record<SiteIssueCategory, string> = {
+  'Climate, Energy & Environment': 'climateEnergyEnvironment',
+  'Criminal Justice': 'criminalJustice',
+  'Defense & National Security': 'defenseNationalSecurity',
+  'Discrimination & Prejudice': 'discriminationPrejudice',
+  'Economy & Work': 'economyWork',
+  'Education': 'education',
+  'Health Policy': 'healthPolicy',
+  'Immigration & Migration': 'immigrationMigration',
+  'International Affairs': 'internationalAffairs',
+  'National Conditions': 'nationalConditions',
+  'Religion & Government': 'religionGovernment',
+  'Technology': 'technology'
+};
+
+/**
+ * Get user's interest level for a specific site category
+ */
+export function getUserInterestForCategory(
+  policyInterests: Record<string, number> | undefined,
+  category: SiteIssueCategory
+): number {
+  if (!policyInterests) return 2; // Default to neutral
+  
+  const interestKey = SITE_CATEGORY_TO_POLICY_INTEREST[category];
+  return policyInterests[interestKey] ?? 2;
+}

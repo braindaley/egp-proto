@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,6 +82,7 @@ export default function ActivityPage() {
     { label: 'Dashboard', href: '/dashboard', icon: UserIcon },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
     { label: 'Activity', href: '/dashboard/activity', icon: BarChart3, isActive: true },
+    { label: 'Following', href: '/dashboard/following', icon: Eye },
     { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },

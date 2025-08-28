@@ -22,6 +22,7 @@ import { SummaryDisplay } from './bill-summary-display';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 import { extractSubjectsFromApiResponse } from '@/lib/subjects';
+import { useWatchedBills } from '@/hooks/use-watched-bills';
 
 const getBillStatus = (latestAction: any): string => {
     if (!latestAction?.text) return 'Introduced';
@@ -82,7 +83,22 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   const [opposeCount, setOpposeCount] = useState(initialSupportData.opposeCount);
   const [userAction, setUserAction] = useState<'support' | 'oppose' | null>(null);
   
+  // Add watch functionality
+  const { isWatchedBill, toggleWatchBill } = useWatchedBills();
+  
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
+  const isWatched = isWatchedBill(bill.congress!, bill.type!, bill.number!);
+  
+  const handleWatchClick = () => {
+    if (!user) {
+      const currentUrl = window.location.pathname;
+      router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
+      return;
+    }
+    
+    console.log('Watch button clicked');
+    toggleWatchBill(bill.congress!, bill.type!, bill.number!, bill.title || bill.shortTitle);
+  };
   
   // Fetch sponsor image when component mounts
   useEffect(() => {
@@ -296,12 +312,18 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 </span>
               </Button>
               <Button 
-                variant="outline"
+                variant={isWatched ? "default" : "outline"}
                 size="sm"
-                className="flex items-center gap-2 text-muted-foreground"
+                className={`flex items-center gap-2 ${
+                  isWatched 
+                    ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                onClick={handleWatchClick}
+                title={user ? (isWatched ? 'Stop watching this bill' : 'Watch this bill for updates') : 'Login to watch this bill'}
               >
                 <Eye className="h-4 w-4" />
-                Watch
+                {isWatched ? 'Watching' : 'Watch'}
               </Button>
             </CardFooter>
           </Card>

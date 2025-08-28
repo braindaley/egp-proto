@@ -158,7 +158,7 @@ export default function BillsOverviewPage({ params }: { params: Promise<{ congre
                         <label className="text-sm font-medium">
                           Filter by policy issue:
                         </label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {ALLOWED_SUBJECTS.map((subject) => (
                             <div key={subject} className="flex items-center space-x-2">
                               <Checkbox

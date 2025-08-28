@@ -20,15 +20,18 @@ export default function InterestsPage() {
   const { user, loading, refreshUserData } = useAuth();
   const { toast } = useToast();
   const [policyInterests, setPolicyInterests] = useState({
-    ageGenerations: 2,
+    climateEnergyEnvironment: 2,
+    criminalJustice: 2,
+    defenseNationalSecurity: 2,
+    discriminationPrejudice: 2,
     economyWork: 2,
-    familyRelationships: 2,
+    education: 2,
+    healthPolicy: 2,
     immigrationMigration: 2,
     internationalAffairs: 2,
-    politicsPolicy: 2,
-    raceEthnicity: 2,
-    religion: 2,
-    science: 2,
+    nationalConditions: 2,
+    religionGovernment: 2,
+    technology: 2,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -38,15 +41,18 @@ export default function InterestsPage() {
   useEffect(() => {
     if (user) {
       setPolicyInterests({
-        ageGenerations: user.policyInterests?.ageGenerations ?? 2,
+        climateEnergyEnvironment: user.policyInterests?.climateEnergyEnvironment ?? 2,
+        criminalJustice: user.policyInterests?.criminalJustice ?? 2,
+        defenseNationalSecurity: user.policyInterests?.defenseNationalSecurity ?? 2,
+        discriminationPrejudice: user.policyInterests?.discriminationPrejudice ?? 2,
         economyWork: user.policyInterests?.economyWork ?? 2,
-        familyRelationships: user.policyInterests?.familyRelationships ?? 2,
+        education: user.policyInterests?.education ?? 2,
+        healthPolicy: user.policyInterests?.healthPolicy ?? 2,
         immigrationMigration: user.policyInterests?.immigrationMigration ?? 2,
         internationalAffairs: user.policyInterests?.internationalAffairs ?? 2,
-        politicsPolicy: user.policyInterests?.politicsPolicy ?? 2,
-        raceEthnicity: user.policyInterests?.raceEthnicity ?? 2,
-        religion: user.policyInterests?.religion ?? 2,
-        science: user.policyInterests?.science ?? 2,
+        nationalConditions: user.policyInterests?.nationalConditions ?? 2,
+        religionGovernment: user.policyInterests?.religionGovernment ?? 2,
+        technology: user.policyInterests?.technology ?? 2,
       });
     }
   }, [user]);
@@ -106,15 +112,18 @@ export default function InterestsPage() {
   }
 
   const policyIssues = [
-    { key: 'ageGenerations', label: 'Age & Generations' },
+    { key: 'climateEnergyEnvironment', label: 'Climate, Energy & Environment' },
+    { key: 'criminalJustice', label: 'Criminal Justice' },
+    { key: 'defenseNationalSecurity', label: 'Defense & National Security' },
+    { key: 'discriminationPrejudice', label: 'Discrimination & Prejudice' },
     { key: 'economyWork', label: 'Economy & Work' },
-    { key: 'familyRelationships', label: 'Family & Relationships' },
+    { key: 'education', label: 'Education' },
+    { key: 'healthPolicy', label: 'Health Policy' },
     { key: 'immigrationMigration', label: 'Immigration & Migration' },
     { key: 'internationalAffairs', label: 'International Affairs' },
-    { key: 'politicsPolicy', label: 'Politics & Policy' },
-    { key: 'raceEthnicity', label: 'Race & Ethnicity' },
-    { key: 'religion', label: 'Religion' },
-    { key: 'science', label: 'Science' },
+    { key: 'nationalConditions', label: 'National Conditions' },
+    { key: 'religionGovernment', label: 'Religion & Government' },
+    { key: 'technology', label: 'Technology' },
   ];
 
   const interestLevels = ['None', 'Low', 'Neutral', 'Medium', 'High'];

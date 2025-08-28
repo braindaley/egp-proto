@@ -1,5 +1,9 @@
+'use client';
+
 import Link from 'next/link';
-import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
+import { useEffect } from 'react';
+import { SITE_ISSUE_CATEGORIES, getUserInterestForCategory } from '@/lib/policy-area-mapping';
+import { useAuth } from '@/hooks/use-auth';
 
 function convertTitleToSlug(title: string): string {
   return title
@@ -15,6 +19,18 @@ const issueCategories = SITE_ISSUE_CATEGORIES.map(category => ({
 }));
 
 export default function IssuesPage() {
+  const { user, loading, refreshUserData } = useAuth();
+
+  // Refresh user data on mount to ensure we have the latest policy interests
+  useEffect(() => {
+    if (user && !loading) {
+      refreshUserData();
+    }
+  }, [user?.uid, loading, refreshUserData]);
+
+  // Sort categories alphabetically
+  const sortedCategories = issueCategories.sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <div className="container mx-auto px-4 py-8 md:py-12 max-w-2xl">
       <header className="text-center mb-12">
@@ -26,15 +42,32 @@ export default function IssuesPage() {
         </p>
       </header>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {issueCategories.map((category) => (
-          <Link
-            href={`/issues/${category.slug}`}
-            key={category.slug}
-            className="text-center p-4 rounded-lg bg-card text-card-foreground shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors duration-200 ease-in-out"
-          >
-            <span className="font-medium">{category.name}</span>
-          </Link>
-        ))}
+        {sortedCategories.map((category) => {
+          const userInterest = user && user.policyInterests ? getUserInterestForCategory(user.policyInterests, category.name) : 2;
+          const isHighInterest = userInterest >= 4; // Only "High" (index 4)
+          const isLowInterest = userInterest <= 1;  // "None" (0) and "Low" (1)
+          
+          return (
+            <Link
+              href={`/issues/${category.slug}`}
+              key={category.slug}
+              className={`text-center p-4 rounded-lg shadow-sm transition-colors duration-200 ease-in-out ${
+                isHighInterest 
+                  ? 'bg-blue-50 border-2 border-blue-200 text-blue-900 hover:bg-blue-100' 
+                  : isLowInterest 
+                  ? 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  : 'bg-card text-card-foreground hover:bg-accent hover:text-accent-foreground'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <span className="font-medium">{category.name}</span>
+                {isHighInterest && (
+                  <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">High Interest</span>
+                )}
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
