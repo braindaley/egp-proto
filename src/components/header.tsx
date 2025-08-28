@@ -101,6 +101,9 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
             <Link href="/campaigns" className="text-sm font-medium hover:text-primary transition-colors">
               Campaigns
             </Link>
+            <Link href="/state" className="text-sm font-medium hover:text-primary transition-colors">
+              State
+            </Link>
           </nav>
 
           {/* Right Section - Auth and Menu */}
@@ -144,6 +147,7 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                     </div>
                     
                     <Separator />
+                    
 
                     <SheetClose asChild>
                       <Link href="/for-you" className="block w-full text-left p-2 rounded-md hover:bg-accent">
@@ -160,12 +164,17 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                     
                     <SheetClose asChild>
                       <Link href={billsHref} className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          Bills
+                          Federal Bills
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>
                       <Link href={congressHref} className="block w-full text-left p-2 rounded-md hover:bg-accent">
                           Congress
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/state" className="block w-full text-left p-2 rounded-md hover:bg-accent">
+                          State Legislature
                       </Link>
                     </SheetClose>
 

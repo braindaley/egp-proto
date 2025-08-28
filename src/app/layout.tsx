@@ -8,6 +8,7 @@ import { Header } from "@/components/header";
 import { ZipCodeBanner } from "@/components/ui/zip-code-banner";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ZipCodeProvider } from "@/hooks/use-zip-code";
+import { SessionProvider } from "@/contexts/SessionContext";
 import QueryProvider from "@/providers/query-client-provider";
 import type { Congress } from '@/types';
 
@@ -81,11 +82,13 @@ export default async function RootLayout({
         <QueryProvider>
           <AuthProvider>
             <ZipCodeProvider>
-              <Header congresses={congresses} />
-              {children}
-              <Toaster />
-              <Footer />
-              <ZipCodeBanner />
+              <SessionProvider>
+                <Header congresses={congresses} />
+                {children}
+                <Toaster />
+                <Footer />
+                <ZipCodeBanner />
+              </SessionProvider>
             </ZipCodeProvider>
           </AuthProvider>
         </QueryProvider>
