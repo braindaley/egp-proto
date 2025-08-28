@@ -45,96 +45,93 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
                    : bill.sponsorParty === 'D' ? 'bg-blue-600 text-white'
                    : 'bg-gray-400 text-white';
 
-  // Generate explainer data on component mount
+  // Use server-provided explainer data or generate fallback
   useEffect(() => {
-    const generateExplainer = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Add a small delay based on index to stagger requests and avoid rate limiting
-        if (index !== undefined && index > 0) {
-          await new Promise(resolve => setTimeout(resolve, Math.min(index * 100, 2000)));
-        }
-        const response = await fetch('/api/ai/generate-bill-explainer', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ bill }),
-        });
-        
-        if (!response.ok) {
-          throw new Error(`API request failed: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setExplainerData(data);
-      } catch (error) {
-        console.error('Error generating explainer data:', error);
-        // Generate unique fallback data based on bill details
-        const titleLower = bill.shortTitle.toLowerCase();
-        const subject = bill.subjects?.[0]?.toLowerCase() || 'policy';
-        const billNum = bill.number;
-        
-        // Create variety based on bill number hash
-        const hashCode = Math.abs(bill.billNumber.split('').reduce((a, b) => {
-          a = ((a << 5) - a) + b.charCodeAt(0);
-          return a & a;
-        }, 0));
-        const variant = hashCode % 6;
-        
-        const headlines = [
-          'Progress or setback?',
-          'Necessary reform or overreach?',
-          'Smart policy or government excess?', 
-          'Innovation or bureaucracy?',
-          'Public benefit or special interests?',
-          'Long overdue or rushed decision?'
-        ];
-        
-        const supportReasons = [
-          `Could improve ${subject} outcomes for Americans`,
-          `Addresses important gaps in current ${subject} policy`,
-          `Would modernize outdated ${subject} regulations`, 
-          `May provide needed oversight in ${subject} sector`,
-          `Could create opportunities in ${subject} area`,
-          `Responds to public concerns about ${subject}`
-        ];
-        
-        const opposeReasons = [
-          `May increase ${subject} costs without clear benefits`,
-          `Could create unintended consequences in ${subject}`,
-          `Might expand government role in ${subject} unnecessarily`,
-          `May burden ${subject} stakeholders with new requirements`,
-          `Could disrupt working ${subject} systems`,
-          `Might lack sufficient funding for ${subject} implementation`
-        ];
-        
-        // Add some specific keywords for more targeted content
-        let explainer = `This bill focuses on ${subject}`;
-        if (titleLower.includes('establish') || titleLower.includes('create')) {
-          explainer += ' and would establish new programs or agencies';
-        } else if (titleLower.includes('reform') || titleLower.includes('improve')) {
-          explainer += ' and would reform existing systems';
-        } else if (titleLower.includes('fund') || titleLower.includes('appropriat')) {
-          explainer += ' and would provide funding for programs';
-        } else {
-          explainer += ' with new requirements or changes';
-        }
-        
-        setExplainerData({
-          headline: headlines[variant],
-          explainer: explainer + '.',
-          supportStatement: supportReasons[variant],
-          opposeStatement: opposeReasons[variant],
-          closingQuestion: 'What do you think?'
-        });
-      } finally {
+    const loadExplainer = () => {
+      setIsLoading(true);
+      
+      // Check if bill already has server-provided explainer data
+      if (bill.explainer) {
+        setExplainerData(bill.explainer);
         setIsLoading(false);
+        return;
       }
+      
+      // Generate fallback data if no server explainer is available
+      const titleLower = bill.shortTitle.toLowerCase();
+      const subject = bill.subjects?.[0]?.toLowerCase() || 'policy';
+      
+      // Create variety based on a unique hash combining multiple bill properties
+      const hashString = `${bill.congress}-${bill.type}-${bill.number}-${bill.shortTitle.slice(0, 20)}-${subject}-${bill.sponsorParty}-${bill.sponsorFullName}`;
+      let hashCode = 0;
+      for (let i = 0; i < hashString.length; i++) {
+        const char = hashString.charCodeAt(i);
+        hashCode = ((hashCode << 5) - hashCode) + char;
+        hashCode = hashCode & hashCode; // Convert to 32-bit integer
+      }
+      const variant = Math.abs(hashCode) % 6;
+      
+      const headlines = [
+        'Progress or setback?',
+        'Necessary reform or overreach?',
+        'Smart policy or government excess?', 
+        'Innovation or bureaucracy?',
+        'Public benefit or special interests?',
+        'Long overdue or rushed decision?'
+      ];
+      
+      // More varied support/oppose statements based on subject and bill type
+      const subjectSpecific = subject === 'policy' ? 'this area' : subject;
+      
+      const supportReasons = [
+        `Could significantly improve ${subjectSpecific} outcomes`,
+        `Addresses critical gaps in current ${subjectSpecific} policy`,
+        `Would modernize outdated ${subjectSpecific} approaches`, 
+        `Provides essential oversight for ${subjectSpecific}`,
+        `Creates valuable opportunities in ${subjectSpecific}`,
+        `Responds to urgent public concerns about ${subjectSpecific}`
+      ];
+      
+      const opposeReasons = [
+        `May increase costs without proven ${subjectSpecific} benefits`,
+        `Could cause unintended ${subjectSpecific} consequences`,
+        `Might unnecessarily expand government role in ${subjectSpecific}`,
+        `May create burdensome ${subjectSpecific} requirements`,
+        `Could disrupt effective ${subjectSpecific} systems`,
+        `Lacks adequate funding for proper ${subjectSpecific} implementation`
+      ];
+      
+      // Add some specific keywords for more targeted content based on title and subject
+      let explainer = '';
+      const isEstablishing = titleLower.includes('establish') || titleLower.includes('create') || titleLower.includes('establish');
+      const isReforming = titleLower.includes('reform') || titleLower.includes('improve') || titleLower.includes('modernize');
+      const isFunding = titleLower.includes('fund') || titleLower.includes('appropriat') || titleLower.includes('invest');
+      const isRepealing = titleLower.includes('repeal') || titleLower.includes('eliminate') || titleLower.includes('end');
+      
+      if (isRepealing) {
+        explainer = `This bill would eliminate or repeal existing ${subject} policies`;
+      } else if (isEstablishing) {
+        explainer = `This bill would create new ${subject} programs or agencies`;
+      } else if (isReforming) {
+        explainer = `This bill would reform and improve existing ${subject} systems`;
+      } else if (isFunding) {
+        explainer = `This bill would provide funding for ${subject} initiatives`;
+      } else {
+        explainer = `This bill would modify federal ${subject} policy`;
+      }
+      
+      setExplainerData({
+        headline: headlines[variant],
+        explainer: explainer + '.',
+        supportStatement: supportReasons[variant],
+        opposeStatement: opposeReasons[variant],
+        closingQuestion: 'What do you think?'
+      });
+      
+      setIsLoading(false);
     };
 
-    generateExplainer();
+    loadExplainer();
   }, [bill]);
 
   const handleInteractionClick = (e: React.MouseEvent) => {

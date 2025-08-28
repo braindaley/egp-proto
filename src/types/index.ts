@@ -443,6 +443,13 @@ export interface FeedBill {
   status: string;
   importanceScore: number;
   summary?: string;
+  explainer?: {
+    headline: string;
+    explainer: string;
+    supportStatement: string;
+    opposeStatement: string;
+    closingQuestion: string;
+  };
 }
 
 export interface CommitteeMember {

@@ -28,6 +28,11 @@ service cloud.firestore {
         allow read, write: if true; // In production, you'd likely restrict write access
     }
     
+    // Allow server-side processes to read and write bill explainers
+    match /bill_explainers/{billId} {
+        allow read, write: if true; // AI-generated bill explainer cache
+    }
+    
     // Allow read/write access to cache metadata
     match /cache_metadata/{docId} {
         allow read, write: if true; // Metadata about cache refresh status

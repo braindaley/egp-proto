@@ -1,7 +1,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Bill, CongressApiResponse, FeedBill, Sponsor, Summary, Cosponsor, ApiCollection } from '@/types';
-import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, doc, where } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, writeBatch, Timestamp, query, orderBy, limit, doc, where, getDoc, setDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { convert } from 'html-to-text';
 import { mapApiSubjectToAllowed } from '@/lib/subjects';
@@ -64,6 +64,194 @@ function calculateImportanceScore(bill: Bill, latestActionText: string): number 
   }
   
   return Math.max(0, score);
+}
+
+// Function to generate AI explainer for a bill with caching
+async function generateBillExplainer(bill: FeedBill, db: ReturnType<typeof getFirestore>): Promise<any> {
+  const explainerCollection = collection(db, 'bill_explainers');
+  const billId = `${bill.congress}-${bill.type}-${bill.number}`;
+  const explainerDoc = doc(explainerCollection, billId);
+  
+  try {
+    // Check if explainer already exists
+    const existingDoc = await getDoc(explainerDoc);
+    if (existingDoc.exists()) {
+      const data = existingDoc.data();
+      // Check if cache is less than 7 days old
+      const sevenDaysAgo = Timestamp.fromMillis(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      if (data.cachedAt && data.cachedAt > sevenDaysAgo) {
+        return data.explainerData;
+      }
+    }
+    
+    // Generate new explainer using Google AI
+    const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+    if (!apiKey) {
+      console.warn('Google AI API key not configured, using fallback explainer');
+      return generateFallbackExplainer(bill);
+    }
+    
+    const prompt = `You are creating an informative card for: ${bill.billNumber} - ${bill.shortTitle}
+
+BILL INFORMATION:
+- Title: ${bill.shortTitle}
+- Number: ${bill.billNumber}  
+- Summary: ${bill.summary || 'No detailed summary available'}
+- Subject Areas: ${bill.subjects?.join(', ') || 'General legislation'}
+- Sponsor Party: ${bill.sponsorParty}
+- Latest Action: ${bill.latestAction?.text || 'No recent action'}
+- Status: ${bill.status}
+
+TASK: Create content that accurately reflects THIS specific bill, not generic political statements.
+
+REQUIREMENTS:
+1. HEADLINE: 4-6 words as a neutral question about THIS bill's specific topic
+2. EXPLAINER: One sentence describing what THIS specific bill actually does (not generic political language)
+3. SUPPORT: One argument why someone might support THIS specific bill (max 140 chars)
+4. OPPOSE: One argument why someone might oppose THIS specific bill (max 140 chars)  
+5. CLOSING: A neutral question inviting discussion about THIS bill
+
+CRITICAL RULES:
+- Base everything on the actual bill details provided, especially the summary
+- Avoid generic phrases like "this bill focuses on" or "government overreach"
+- Be specific to the bill's actual provisions and subject matter
+- Use simple, clear language that explains the real policy impact
+- No emojis, hashtags, or promotional language
+- Present both sides fairly based on the actual bill content
+
+Return valid JSON only with: headline, explainer, supportStatement, opposeStatement, closingQuestion`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 512,
+          responseMimeType: 'application/json',
+        }
+      }),
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      console.warn(`AI API error for bill ${billId}: ${response.status}`);
+      return generateFallbackExplainer(bill);
+    }
+    
+    const data = await response.json();
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!responseText) {
+      return generateFallbackExplainer(bill);
+    }
+    
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(responseText);
+      // Validate required fields
+      const requiredFields = ['headline', 'explainer', 'supportStatement', 'opposeStatement', 'closingQuestion'];
+      for (const field of requiredFields) {
+        if (!parsedResponse[field]) {
+          throw new Error(`Missing field: ${field}`);
+        }
+      }
+    } catch (parseError) {
+      console.warn(`Failed to parse AI response for ${billId}:`, parseError);
+      return generateFallbackExplainer(bill);
+    }
+    
+    // Cache the successful response
+    await setDoc(explainerDoc, {
+      billId,
+      explainerData: parsedResponse,
+      cachedAt: Timestamp.now(),
+      billTitle: bill.shortTitle,
+      billNumber: bill.billNumber
+    });
+    
+    return parsedResponse;
+    
+  } catch (error) {
+    console.warn(`Error generating explainer for ${billId}:`, error);
+    return generateFallbackExplainer(bill);
+  }
+}
+
+// Function to generate fallback explainer
+function generateFallbackExplainer(bill: FeedBill): any {
+  const titleLower = bill.shortTitle.toLowerCase();
+  const subject = bill.subjects?.[0]?.toLowerCase() || 'policy';
+  
+  // Create variety based on bill properties hash
+  const hashString = `${bill.billNumber}-${bill.shortTitle.slice(0, 20)}-${subject}-${bill.sponsorParty}-${bill.sponsorFullName}`;
+  let hashCode = 0;
+  for (let i = 0; i < hashString.length; i++) {
+    const char = hashString.charCodeAt(i);
+    hashCode = ((hashCode << 5) - hashCode) + char;
+    hashCode = hashCode & hashCode; // Convert to 32-bit integer
+  }
+  const variant = Math.abs(hashCode) % 6;
+  
+  const headlines = [
+    'Progress or setback?',
+    'Necessary reform or overreach?',
+    'Smart policy or government excess?', 
+    'Innovation or bureaucracy?',
+    'Public benefit or special interests?',
+    'Long overdue or rushed decision?'
+  ];
+  
+  const supportReasons = [
+    `Could improve ${subject} outcomes for Americans`,
+    `Addresses important gaps in current ${subject} policy`,
+    `Would modernize outdated ${subject} regulations`, 
+    `May provide needed oversight in ${subject} sector`,
+    `Could create opportunities in ${subject} area`,
+    `Responds to public concerns about ${subject}`
+  ];
+  
+  const opposeReasons = [
+    `May increase ${subject} costs without clear benefits`,
+    `Could create unintended consequences in ${subject}`,
+    `Might expand government role in ${subject} unnecessarily`,
+    `May burden ${subject} stakeholders with new requirements`,
+    `Could disrupt working ${subject} systems`,
+    `Might lack sufficient funding for ${subject} implementation`
+  ];
+  
+  let explainer = `This bill focuses on ${subject}`;
+  if (titleLower.includes('establish') || titleLower.includes('create')) {
+    explainer += ' and would establish new programs or agencies';
+  } else if (titleLower.includes('reform') || titleLower.includes('improve')) {
+    explainer += ' and would reform existing systems';
+  } else if (titleLower.includes('fund') || titleLower.includes('appropriat')) {
+    explainer += ' and would provide funding for programs';
+  } else {
+    explainer += ' with new requirements or changes';
+  }
+  
+  return {
+    headline: headlines[variant],
+    explainer: explainer + '.',
+    supportStatement: supportReasons[variant],
+    opposeStatement: opposeReasons[variant],
+    closingQuestion: 'What do you think?'
+  };
 }
 
 // Function to process long title into shorter version
@@ -254,7 +442,7 @@ export async function GET(req: NextRequest) {
   const db = getFirestore(app);
   const cacheCollection = collection(db, 'cached_bills');
   
-  const sixtyMinutesAgo = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
+  const fiveMinutesAgo = Timestamp.fromMillis(Date.now() - 5 * 60 * 1000);
 
   try {
     const overallTimeout = new Promise((_, reject) =>
@@ -268,7 +456,7 @@ export async function GET(req: NextRequest) {
       const cacheSnapshot = await getDocs(q);
       const latestDoc = cacheSnapshot.docs[0];
 
-      if (latestDoc && latestDoc.data().cachedAt > sixtyMinutesAgo) {
+      if (latestDoc && latestDoc.data().cachedAt > fiveMinutesAgo) {
           const allCachedQuery = query(
             cacheCollection, 
             orderBy('importanceScore', 'desc'),
@@ -276,7 +464,15 @@ export async function GET(req: NextRequest) {
           );
           const allDocsSnapshot = await getDocs(allCachedQuery);
           const cachedBillsForCongress = allDocsSnapshot.docs
-            .map(doc => doc.data().billData as FeedBill)
+            .map(doc => {
+              const data = doc.data();
+              const bill = data.billData as FeedBill;
+              // Ensure explainer is included if it exists
+              if (!bill.explainer && data.billData.explainer) {
+                bill.explainer = data.billData.explainer;
+              }
+              return bill;
+            })
             .filter(bill => bill.congress === 119 && bill.status !== 'Became Law');
 
           if (cachedBillsForCongress.length > 0) {
@@ -345,7 +541,7 @@ export async function GET(req: NextRequest) {
             cosponsors: billDetails.cosponsors
           }, bill.latestAction.text);
 
-          return {
+          const feedBill: FeedBill = {
               shortTitle: processLongTitle(billTitle).trim(),
               billNumber: `${bill.type} ${bill.number}`,
               congress: bill.congress,
@@ -361,6 +557,9 @@ export async function GET(req: NextRequest) {
               importanceScore,
               summary: billDetails.summary,
           };
+          
+          // Generate explainer with caching (will be done in parallel after batch)
+          return feedBill;
         });
 
         try {
@@ -382,14 +581,28 @@ export async function GET(req: NextRequest) {
       
       console.log(`Processed ${feedBills.length} bills with detailed sponsor information.`);
       
-      if (feedBills.length > 0) {
-          console.log('💾 Starting to cache', feedBills.length, 'bills to Firestore...');
+      // Generate explainers for all bills in parallel (with caching)
+      console.log('🤖 Generating AI explainers for bills...');
+      const billsWithExplainers = await Promise.all(
+        feedBills.map(async (bill) => {
+          try {
+            const explainer = await generateBillExplainer(bill, db);
+            return { ...bill, explainer };
+          } catch (error) {
+            console.warn(`Failed to generate explainer for ${bill.billNumber}:`, error);
+            return { ...bill, explainer: generateFallbackExplainer(bill) };
+          }
+        })
+      );
+      
+      if (billsWithExplainers.length > 0) {
+          console.log('💾 Starting to cache', billsWithExplainers.length, 'bills to Firestore...');
           try {
             const batch = writeBatch(db);
-            feedBills.forEach((bill, index) => {
+            billsWithExplainers.forEach((bill, index) => {
                 const billId = `${bill.congress}-${bill.type}-${bill.number}`;
                 const docRef = doc(cacheCollection, billId);
-                console.log(`📝 Adding bill ${index + 1}/${feedBills.length} to cache: ${billId}`);
+                console.log(`📝 Adding bill ${index + 1}/${billsWithExplainers.length} to cache: ${billId}`);
                 // Sanitize bill data to remove undefined values
                 const sanitizedBill = {
                     ...bill,
@@ -398,7 +611,8 @@ export async function GET(req: NextRequest) {
                     sponsorFullName: bill.sponsorFullName || 'Unknown',
                     sponsorParty: bill.sponsorParty || 'N/A',
                     committeeName: bill.committeeName || 'General Legislation',
-                    subjects: (bill.subjects && bill.subjects.length > 0) ? bill.subjects : ['General Legislation']
+                    subjects: (bill.subjects && bill.subjects.length > 0) ? bill.subjects : ['General Legislation'],
+                    explainer: bill.explainer || generateFallbackExplainer(bill)
                 };
                 
                 batch.set(docRef, {
@@ -410,7 +624,7 @@ export async function GET(req: NextRequest) {
                 });
             });
             await batch.commit();
-            console.log(`✅ Successfully cached ${feedBills.length} bills to Firestore collection 'cached_bills'.`);
+            console.log(`✅ Successfully cached ${billsWithExplainers.length} bills with explainers to Firestore.`);
           } catch (cacheError) {
             console.error('🚨 Error caching bills to Firestore:', cacheError);
           }
@@ -418,7 +632,7 @@ export async function GET(req: NextRequest) {
         console.log('⚠️ No bills to cache');
       }
 
-      const sortedBills = feedBills.sort((a, b) => b.importanceScore - a.importanceScore);
+      const sortedBills = billsWithExplainers.sort((a, b) => b.importanceScore - a.importanceScore);
       return NextResponse.json({ bills: sortedBills });
     };
 
@@ -439,7 +653,15 @@ export async function GET(req: NextRequest) {
         
         if (!oldCacheSnapshot.empty) {
           const bills = oldCacheSnapshot.docs
-            .map(doc => doc.data().billData as FeedBill)
+            .map(doc => {
+              const data = doc.data();
+              const bill = data.billData as FeedBill;
+              // Ensure explainer is included if it exists
+              if (!bill.explainer && data.billData.explainer) {
+                bill.explainer = data.billData.explainer;
+              }
+              return bill;
+            })
             .filter(bill => bill.congress === 119 && bill.status !== 'Became Law');
           console.log(`Serving ${bills.length} bills from older cache due to timeout.`);
           return NextResponse.json({ bills });
