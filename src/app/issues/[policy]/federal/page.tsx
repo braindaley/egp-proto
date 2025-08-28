@@ -39,7 +39,7 @@ function BillRow({ bill }: BillRowProps) {
   };
 
   return (
-    <Link href={`/bill/${bill.congress}/${bill.type.toLowerCase()}/${bill.number}`} className="block">
+    <Link href={`/federal/bill/${bill.congress}/${bill.type.toLowerCase()}/${bill.number}`} className="block">
       <div className="box-border content-stretch flex flex-col items-start justify-center px-4 py-3 relative size-full hover:bg-gray-50 transition-colors border-b border-gray-200">
         <div className="content-stretch flex gap-2 items-center justify-start relative shrink-0 w-full mb-2">
           <div className="box-border content-stretch flex gap-2.5 items-center justify-center px-2.5 py-0.5 relative rounded-xl shrink-0 bg-primary/10">

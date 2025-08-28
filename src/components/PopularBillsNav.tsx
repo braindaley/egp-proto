@@ -75,7 +75,7 @@ export function PopularBillsNav({ congress }: { congress: string }) {
                   return (
                     <Link
                       key={`${bill.congress}-${bill.type}-${bill.number}`}
-                      href={`/bill/${bill.congress}/${billTypeSlug}/${bill.number}`}
+                      href={`/federal/bill/${bill.congress}/${billTypeSlug}/${bill.number}`}
                       className="flex items-start justify-between px-4 py-2.5 hover:bg-muted transition-colors group"
                     >
                       <div className="flex-1 min-w-0 space-y-1">

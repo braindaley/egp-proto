@@ -228,7 +228,7 @@ export default function Home() {
                           {/* 3. H2: Bill Short Title */}
                           <CardTitle className="text-lg sm:text-xl font-bold leading-tight">
                             <Link 
-                              href={`/bill/${campaign.bill.congress}/${billTypeSlug}/${campaign.bill.number}`} 
+                              href={`/federal/bill/${campaign.bill.congress}/${billTypeSlug}/${campaign.bill.number}`} 
                               className="hover:underline break-words"
                             >
                               {campaign.bill.title || `Legislation ${campaign.bill.type.toUpperCase()} ${campaign.bill.number}`}

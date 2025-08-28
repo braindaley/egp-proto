@@ -44,7 +44,7 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
     localStorage.setItem('selectedCongress', congress);
   };
 
-  const billsHref = selectedCongress ? `/bill/${selectedCongress}` : '/bills';
+  const billsHref = selectedCongress ? `/federal/bill/${selectedCongress}` : '/federal/bills';
   const congressHref = selectedCongress ? `/congress/${selectedCongress}` : '/congress';
 
   const renderAuthContent = () => {

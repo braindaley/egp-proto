@@ -78,7 +78,7 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                     
                     {/* 3. H2: Bill Short Title */}
                     <CardTitle className="text-lg sm:text-xl font-bold leading-tight">
-                        <Link href={`/bill/${bill.congress}/${billTypeSlug}/${bill.number}`} className="hover:underline">
+                        <Link href={`/federal/bill/${bill.congress}/${billTypeSlug}/${bill.number}`} className="hover:underline">
                             {billTitle}
                         </Link>
                     </CardTitle>

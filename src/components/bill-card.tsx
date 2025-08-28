@@ -25,7 +25,7 @@ function formatDate(dateString: string) {
 
 export function BillCard({ bill }: { bill: Bill }) {
   const billTypeSlug = getBillTypeSlug(bill.type);
-  const detailUrl = `/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
+  const detailUrl = `/federal/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
   
   // Get consistent mock support data
   const { supportCount, opposeCount } = getBillSupportData(bill.congress!, bill.type!, bill.number!);

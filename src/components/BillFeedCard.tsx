@@ -93,7 +93,7 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
     const isWatched = isWatchedBill(bill.congress, bill.type, bill.number);
 
     const billTypeSlug = getBillTypeSlug(bill.type);
-    const detailUrl = `/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
+    const detailUrl = `/federal/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
     
     // Get consistent mock support data
     const { supportCount, opposeCount } = getBillSupportData(bill.congress, bill.type, bill.number);
