@@ -604,11 +604,11 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Step 2: Select Outreach
   const renderStep1 = () => (
-    <Card>
+    <Card className="flex-1 flex flex-col">
       <CardHeader>
-        <CardTitle>Step 2: Select Outreach</CardTitle>
+        <CardTitle>Select Outreach</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 flex-1 flex flex-col">
         {/* Your Representatives */}
         {availableMembers.representatives.length > 0 && (
           <div>
@@ -743,12 +743,20 @@ const AdvocacyMessageContent: React.FC = () => {
           )}
         </div>
 
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={() => setStep(1)}>
+        <div className="flex-1"></div>
+        <div className="flex justify-between mt-auto pt-6">
+          <Button variant="outline" onClick={() => {
+            // Go back to compose message or routing depending on user status
+            if (!user && !verifiedUserInfo) {
+              setStep(2); // Go back to routing
+            } else {
+              setStep(1); // Go back to compose
+            }
+          }}>
             Back
           </Button>
           <Button 
-            onClick={() => setStep(3)}
+            onClick={() => setStep(4)}
             disabled={selectedMembers.length === 0}
           >
             Next
@@ -760,11 +768,17 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Step 1: Compose Your Message
   const renderStep2 = () => (
-    <Card>
+    <Card className="flex-1 flex flex-col">
       <CardHeader>
-        <CardTitle>Step 1: Compose your message</CardTitle>
+        <CardTitle>
+          {bill ? (
+            `Voice your opinion on ${billType?.toUpperCase()}${billNumber}: ${bill.shortTitle || bill.title}`
+          ) : (
+            'Compose your message'
+          )}
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 flex-1 flex flex-col">
         {/* Stance selection */}
         <div>
           <h3 className="font-semibold mb-3">Your Position</h3>
@@ -795,9 +809,9 @@ const AdvocacyMessageContent: React.FC = () => {
         </div>
 
         {/* Message composition */}
-        <div>
+        <div className="flex-1 flex flex-col">
           <h3 className="font-semibold mb-3">Your Message</h3>
-          <div className="space-y-3">
+          <div className="space-y-3 flex-1 flex flex-col">
             <Button 
               onClick={generateAITemplate} 
               variant="outline" 
@@ -820,34 +834,39 @@ const AdvocacyMessageContent: React.FC = () => {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Write your message here, or generate a template to get started..."
-              rows={20}
+              className="flex-1 resize-none"
+              style={{ minHeight: '280px' }}
             />
             
             {/* Upload Media */}
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
-              <div className="text-center">
-                <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                <h4 className="text-sm font-medium mb-2">Upload Media</h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Add images, documents, or other files to support your message
-                </p>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,.pdf,.doc,.docx,.txt"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    setUploadedFiles(prev => [...prev, ...files]);
-                  }}
-                  className="hidden"
-                  id="media-upload"
-                />
-                <Label htmlFor="media-upload" className="cursor-pointer">
-                  <Button variant="outline" type="button" className="pointer-events-none">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Choose Files
-                  </Button>
-                </Label>
+            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Upload className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <h4 className="text-xs font-medium">Upload Media</h4>
+                    <p className="text-xs text-muted-foreground">Add files to support your message</p>
+                  </div>
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setUploadedFiles(prev => [...prev, ...files]);
+                    }}
+                    className="hidden"
+                    id="media-upload"
+                  />
+                  <Label htmlFor="media-upload" className="cursor-pointer">
+                    <Button variant="outline" type="button" size="sm" className="pointer-events-none">
+                      <Upload className="mr-1 h-3 w-3" />
+                      Choose Files
+                    </Button>
+                  </Label>
+                </div>
               </div>
               
               {/* Uploaded Files Display */}
@@ -886,9 +905,17 @@ const AdvocacyMessageContent: React.FC = () => {
         </div>
 
 
-        <div className="flex justify-end">
+        <div className="flex-1"></div>
+        <div className="flex justify-end mt-auto pt-6">
           <Button 
-            onClick={() => setStep(2)}
+            onClick={() => {
+              // If user is not logged in and not verified, go to routing step
+              if (!user && !verifiedUserInfo) {
+                setStep(2); // Go to routing/verification step
+              } else {
+                setStep(3); // Skip to select outreach
+              }
+            }}
             disabled={!message || !userStance}
           >
             Next
@@ -898,7 +925,459 @@ const AdvocacyMessageContent: React.FC = () => {
     </Card>
   );
 
-  // Step 3: Review Message
+  // Step 2: Help us route your message (Verification for non-logged users)
+  const renderRoutingStep = () => {
+    if (user || verifiedUserInfo) {
+      // Skip this step if user is already logged in or verified
+      setStep(3);
+      return null;
+    }
+    
+    return (
+      <Card className="flex-1 flex flex-col">
+        <CardHeader>
+          <CardTitle>Help us route your message</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 flex-1 flex flex-col">
+          <p className="text-sm text-muted-foreground">
+            To make sure your message reaches the right elected official—whether federal, state, or local—we need to quickly verify who you are. This ensures your opinion is counted and not mistaken for spam.
+          </p>
+          
+          {verificationStep === 'initial' && (
+            <>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="firstInitial">First Initial</Label>
+                  <Input
+                    id="firstInitial"
+                    placeholder="J"
+                    maxLength={1}
+                    value={firstInitial}
+                    onChange={(e) => setFirstInitial(e.target.value.toUpperCase())}
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="lastNameLetters">First 4 Letters of Last Name</Label>
+                  <Input
+                    id="lastNameLetters"
+                    placeholder="SMIT"
+                    maxLength={4}
+                    value={lastNameLetters}
+                    onChange={(e) => setLastNameLetters(e.target.value.toUpperCase())}
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="verificationZipCode">ZIP Code</Label>
+                  <Input
+                    id="verificationZipCode"
+                    placeholder="12345"
+                    maxLength={5}
+                    value={verificationZipCode}
+                    onChange={(e) => setVerificationZipCode(e.target.value.replace(/\D/g, ''))}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              
+              <div className="bg-secondary/50 rounded-lg p-4 text-sm">
+                <p className="font-medium mb-2">Your Privacy Matters</p>
+                <p className="text-muted-foreground">
+                  Your information is only used for verification and is never shared beyond what's required to deliver your letter to your representatives.
+                </p>
+              </div>
+              
+              <div className="flex-1"></div>
+              <div className="flex justify-between items-center mt-auto pt-6">
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep(1)}>
+                    Back
+                  </Button>
+                  <Button variant="ghost" onClick={() => router.push('/login')}>  
+                    Already have an account? Login
+                  </Button>
+                </div>
+                <Button 
+                  onClick={handleVerificationSubmit}
+                  disabled={isVerifying}
+                >
+                  {isVerifying ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Continue'
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+          
+          {verificationStep === 'selection' && (
+            <>
+              <div>
+                <h4 className="font-semibold mb-3">Select Your Record</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  We found the following possible matches. Please select your record to continue.
+                </p>
+              </div>
+              
+              <RadioGroup value={selectedMatch} onValueChange={setSelectedMatch}>
+                {matches.map((match) => (
+                  <div key={match.id} className="bg-background border rounded-lg p-4 cursor-pointer hover:bg-accent transition-colors">
+                    <label className="flex items-start space-x-3 cursor-pointer">
+                      <RadioGroupItem value={match.id} className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">{match.fullName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {match.address}, {match.city}, {match.state} {match.zipCode}
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                ))}
+              </RadioGroup>
+              
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="font-medium mb-1">Not Listed?</p>
+                  <p>If you don't see yourself, click "Not Me" to enter your full details instead.</p>
+                </AlertDescription>
+              </Alert>
+              
+              <div className="flex-1"></div>
+              <div className="flex justify-between mt-auto pt-6">
+                <Button variant="ghost" onClick={handleVerificationReset}>
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Try Again
+                </Button>
+                
+                <div className="space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setVerificationStep('manual')}
+                  >
+                    Not Me
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      handleMatchSelection();
+                      setStep(3); // Go to select outreach after verification
+                    }}
+                    disabled={!selectedMatch}
+                  >
+                    Confirm Selection
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+          
+          {verificationStep === 'manual' && (
+            <>
+              <div>
+                <h4 className="font-semibold mb-3">Enter Your Information</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Please enter your full details to ensure your message is delivered to your representatives.
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      placeholder="John"
+                      value={manualFirstName}
+                      onChange={(e) => setManualFirstName(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      placeholder="Smith"
+                      value={manualLastName}
+                      onChange={(e) => setManualLastName(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="address">Street Address</Label>
+                  <Input
+                    id="address"
+                    placeholder="123 Main St"
+                    value={manualAddress}
+                    onChange={(e) => setManualAddress(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      placeholder="Springfield"
+                      value={manualCity}
+                      onChange={(e) => setManualCity(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      placeholder="IL"
+                      maxLength={2}
+                      value={manualState}
+                      onChange={(e) => setManualState(e.target.value.toUpperCase())}
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="manualZip">ZIP Code</Label>
+                    <Input
+                      id="manualZip"
+                      placeholder="12345"
+                      maxLength={5}
+                      value={manualZipCode}
+                      onChange={(e) => setManualZipCode(e.target.value.replace(/\D/g, ''))}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  If our records don't show every variation of your name and address, you can still confirm your information manually to ensure your message is delivered.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="flex-1"></div>
+              <div className="flex justify-between mt-auto pt-6">
+                <Button variant="ghost" onClick={() => setVerificationStep('selection')}>
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back to Matches
+                </Button>
+                
+                <Button onClick={() => {
+                  handleManualSubmit();
+                  setStep(3); // Go to select outreach after verification
+                }}>
+                  Verify & Continue
+                </Button>
+              </div>
+            </>
+          )}
+          
+          {verificationError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{verificationError}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Step 4: Personal Information
+  const renderPersonalInfoStep = () => {
+    return (
+      <Card className="flex-1 flex flex-col">
+        <CardHeader>
+          <CardTitle>Personal Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 flex-1 flex flex-col">
+          {/* Personal Information Selection - for logged in or verified users */}
+          {(user || verifiedUserInfo) && availableFields.length > 0 && (
+            <div>
+              <h3 className="font-semibold mb-3">Select information you'd like to include about yourself</h3>
+              <div className="space-y-3">
+                {availableFields.map(field => (
+                  <div key={field.key} className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={selectedPersonalData.includes(field.key)}
+                      onCheckedChange={() => togglePersonalData(field.key)}
+                      disabled={field.key === 'fullName'}
+                    />
+                    <Label className="cursor-pointer">
+                      <span>{field.label}</span>
+                      {field.value && (
+                        <span className="text-sm text-muted-foreground ml-2">({field.value})</span>
+                      )}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex items-center space-x-2 mt-4 mb-4">
+                <Switch
+                  id="save-default"
+                  checked={saveAsDefault}
+                  onCheckedChange={setSaveAsDefault}
+                />
+                <Label htmlFor="save-default" className="cursor-pointer">
+                  Save as default for all future mailings
+                </Label>
+              </div>
+            </div>
+          )}
+
+          {/* Constituent Description Field */}
+          {(user || verifiedUserInfo) && (
+            <div>
+              <Label htmlFor="constituent-description-logged" className="text-sm font-medium">
+                Describe yourself as a constituent (optional)
+              </Label>
+              <Textarea
+                id="constituent-description-logged"
+                placeholder="Share your background, values, and what matters most to you as a constituent..."
+                value={constituentDescription}
+                onChange={(e) => setConstituentDescription(e.target.value)}
+                className="mt-1"
+                rows={4}
+              />
+            </div>
+          )}
+
+          <div className="flex-1"></div>
+          <div className="flex justify-between mt-auto pt-6">
+            <Button variant="outline" onClick={() => setStep(3)}>
+              Back
+            </Button>
+            <Button onClick={() => setStep(5)}>
+              Next
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Step 5: Message Delivery
+  const renderDeliveryStep = () => {
+    return (
+      <Card className="flex-1 flex flex-col">
+        <CardHeader>
+          <CardTitle>Message Delivery</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 flex-1 flex flex-col">
+          {/* Message Delivery Options */}
+          {(user || verifiedUserInfo) && (
+            <div>
+              <h3 className="font-semibold mb-3">How would you like to send your message?</h3>
+              <RadioGroup value={deliveryMethod} onValueChange={(value: 'egutenberg' | 'email_provider') => setDeliveryMethod(value)} className="space-y-3">
+                
+                {/* Option 1: eGutenbergPress */}
+                <div className="border rounded-lg p-4">
+                  <label className="flex items-start space-x-3 cursor-pointer">
+                    <RadioGroupItem value="egutenberg" className="mt-1" />
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <AtSign className="h-4 w-4 text-primary" />
+                        <span className="font-medium">eGutenbergPress address</span>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Recommended</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        We'll send your message from our platform and notify you of any responses
+                      </p>
+                      {deliveryMethod === 'egutenberg' && (
+                        <div>
+                          <Label htmlFor="notification-email-logged" className="text-xs font-medium">
+                            Enter your email for notifications
+                          </Label>
+                          <Input
+                            id="notification-email-logged"
+                            type="email"
+                            placeholder={user?.email || "your@email.com"}
+                            value={notificationEmail || user?.email || ''}
+                            onChange={(e) => setNotificationEmail(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
+
+                {/* Option 2: Email Provider */}
+                <div className="border rounded-lg p-4">
+                  <label className="flex items-start space-x-3 cursor-pointer">
+                    <RadioGroupItem value="email_provider" className="mt-1" />
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Globe className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Sign into your email provider</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Connect with Gmail, Microsoft 365, Outlook, Yahoo, or other email providers
+                      </p>
+                      {deliveryMethod === 'email_provider' && (
+                        <div className="grid grid-cols-2 gap-2 mt-3">
+                          <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                            <div className="w-4 h-4 bg-red-500 rounded-sm flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">G</span>
+                            </div>
+                            <span>Gmail</span>
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                            <div className="w-4 h-4 bg-blue-500 rounded-sm flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">O</span>
+                            </div>
+                            <span>Outlook</span>
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                            <div className="w-4 h-4 bg-purple-600 rounded-sm flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">Y</span>
+                            </div>
+                            <span>Yahoo</span>
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                            <div className="w-4 h-4 bg-blue-600 rounded-sm flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">M</span>
+                            </div>
+                            <span>Microsoft 365</span>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
+
+          <div className="flex-1"></div>
+          <div className="flex justify-between mt-auto pt-6">
+            <Button variant="outline" onClick={() => setStep(5)}>
+              Back
+            </Button>
+            <Button onClick={() => setStep(9)}>
+              Send Message
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Step 6: Review Message
   const renderStep3 = () => {
     const selectedPersonalFields = personalDataFields.filter(f => selectedPersonalData.includes(f.key));
     
@@ -914,9 +1393,9 @@ const AdvocacyMessageContent: React.FC = () => {
     };
     
     return (
-      <Card>
+      <Card className="flex-1 flex flex-col">
         <CardHeader>
-          <CardTitle>Step 3: Review Message</CardTitle>
+          <CardTitle>Review Message</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Recipients */}
@@ -937,15 +1416,15 @@ const AdvocacyMessageContent: React.FC = () => {
           </div>
 
           {/* Message Body */}
-          <div>
+          <div className="flex-1 flex flex-col">
             <h3 className="font-semibold mb-3">Message Body</h3>
-            <div className="bg-muted rounded-lg p-4">
+            <div className="bg-muted rounded-lg p-4 overflow-y-auto" style={{ height: '230px' }}>
               <p className="whitespace-pre-wrap">{message}</p>
             </div>
           </div>
 
-          {/* Verification Section for Non-Logged Users */}
-          {!user && !verifiedUserInfo && (
+          {/* Verification has been moved to Step 2 */}
+          {false && (
             <div>
               <h3 className="font-semibold mb-3">Before We Deliver Your Message</h3>
               <div className="bg-muted rounded-lg p-6 space-y-6">
@@ -1191,143 +1670,6 @@ const AdvocacyMessageContent: React.FC = () => {
             </div>
           )}
 
-          {/* Personal Information Selection - for logged in or verified users */}
-          {(user || verifiedUserInfo) && availableFields.length > 0 && (
-            <div>
-              <h3 className="font-semibold mb-3">Select information you'd like to include about yourself</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {availableFields.map(field => (
-                  <div key={field.key} className="flex items-center space-x-2">
-                    <Checkbox
-                      checked={selectedPersonalData.includes(field.key)}
-                      onCheckedChange={() => togglePersonalData(field.key)}
-                      disabled={field.key === 'fullName'}
-                    />
-                    <Label className="cursor-pointer">
-                      <span>{field.label}</span>
-                      {field.value && (
-                        <span className="text-sm text-muted-foreground ml-2">({field.value})</span>
-                      )}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="flex items-center space-x-2 mt-4 mb-4">
-                <Switch
-                  id="save-default"
-                  checked={saveAsDefault}
-                  onCheckedChange={setSaveAsDefault}
-                />
-                <Label htmlFor="save-default" className="cursor-pointer">
-                  Save as default for all future mailings
-                </Label>
-              </div>
-            </div>
-          )}
-
-          {/* Additional sections for logged in/verified users - show after complete verification */}
-          {(user || verifiedUserInfo) && (
-            <div className="space-y-6">
-              {/* Constituent Description Field */}
-              <div>
-                <Label htmlFor="constituent-description-logged" className="text-sm font-medium">
-                  Describe yourself as a constituent (optional)
-                </Label>
-                <Textarea
-                  id="constituent-description-logged"
-                  placeholder="Share your background, values, and what matters most to you as a constituent..."
-                  value={constituentDescription}
-                  onChange={(e) => setConstituentDescription(e.target.value)}
-                  className="mt-1"
-                  rows={4}
-                />
-              </div>
-
-              {/* Message Delivery Options */}
-              <div>
-                <h3 className="font-semibold mb-3">How would you like to send your message?</h3>
-                <RadioGroup value={deliveryMethod} onValueChange={(value: 'egutenberg' | 'email_provider') => setDeliveryMethod(value)} className="space-y-3">
-                  
-                  {/* Option 1: eGutenbergPress */}
-                  <div className="border rounded-lg p-4">
-                    <label className="flex items-start space-x-3 cursor-pointer">
-                      <RadioGroupItem value="egutenberg" className="mt-1" />
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <AtSign className="h-4 w-4 text-primary" />
-                          <span className="font-medium">eGutenbergPress address</span>
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Recommended</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          We'll send your message from our platform and notify you of any responses
-                        </p>
-                        {deliveryMethod === 'egutenberg' && (
-                          <div>
-                            <Label htmlFor="notification-email-logged" className="text-xs font-medium">
-                              Enter your email for notifications
-                            </Label>
-                            <Input
-                              id="notification-email-logged"
-                              type="email"
-                              placeholder={user?.email || "your@email.com"}
-                              value={notificationEmail || user?.email || ''}
-                              onChange={(e) => setNotificationEmail(e.target.value)}
-                              className="mt-1"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </label>
-                  </div>
-
-                  {/* Option 2: Email Provider */}
-                  <div className="border rounded-lg p-4">
-                    <label className="flex items-start space-x-3 cursor-pointer">
-                      <RadioGroupItem value="email_provider" className="mt-1" />
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Globe className="h-4 w-4 text-primary" />
-                          <span className="font-medium">Sign into your email provider</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Connect with Gmail, Microsoft 365, Outlook, Yahoo, or other email providers
-                        </p>
-                        {deliveryMethod === 'email_provider' && (
-                          <div className="grid grid-cols-2 gap-2 mt-3">
-                            <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                              <div className="w-4 h-4 bg-red-500 rounded-sm flex items-center justify-center">
-                                <span className="text-white text-xs font-bold">G</span>
-                              </div>
-                              <span>Gmail</span>
-                            </Button>
-                            <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                              <div className="w-4 h-4 bg-blue-500 rounded-sm flex items-center justify-center">
-                                <span className="text-white text-xs font-bold">O</span>
-                              </div>
-                              <span>Outlook</span>
-                            </Button>
-                            <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                              <div className="w-4 h-4 bg-purple-600 rounded-sm flex items-center justify-center">
-                                <span className="text-white text-xs font-bold">Y</span>
-                              </div>
-                              <span>Yahoo</span>
-                            </Button>
-                            <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                              <div className="w-4 h-4 bg-blue-600 rounded-sm flex items-center justify-center">
-                                <span className="text-white text-xs font-bold">M</span>
-                              </div>
-                              <span>Microsoft 365</span>
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </label>
-                  </div>
-                </RadioGroup>
-              </div>
-            </div>
-          )}
 
 
           {/* Unavailable fields - only show for logged in users */}
@@ -1372,14 +1714,15 @@ const AdvocacyMessageContent: React.FC = () => {
             </div>
           )}
 
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(2)}>
+          <div className="flex-1"></div>
+          <div className="flex justify-between mt-auto pt-6">
+            <Button variant="outline" onClick={() => setStep(4)}>
               Back
             </Button>
-            {/* Send message button - only show when user has completed verification */}
+            {/* Next button - go to delivery step */}
             {(user || verifiedUserInfo) && (
               <Button onClick={() => setStep(6)}>
-                Send message
+                Next
               </Button>
             )}
           </div>
@@ -1518,8 +1861,8 @@ const AdvocacyMessageContent: React.FC = () => {
           </div>
           
           {/* Navigation */}
-          <div className="flex justify-between items-center pt-4 border-t">
-            <Button variant="outline" onClick={() => setStep(3)} className="px-6">
+          <div className="flex justify-between items-center mt-auto pt-6 border-t">
+            <Button variant="outline" onClick={() => setStep(5)} className="px-6">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
@@ -1623,7 +1966,7 @@ const AdvocacyMessageContent: React.FC = () => {
             <div className="flex justify-center">
               <Button 
                 variant="outline" 
-                onClick={() => setStep(3)}
+                onClick={() => setStep(5)}
               >
                 Back
               </Button>
@@ -1642,10 +1985,10 @@ const AdvocacyMessageContent: React.FC = () => {
     return renderStep4();
   };
 
-  // useEffect hooks for Step 6 - moved to component level to follow Rules of Hooks
+  // useEffect hooks for Step 9 - moved to component level to follow Rules of Hooks
   useEffect(() => {
-    // Reset and start sending when entering Step 6
-    if (step === 6 && !isSending && !messageSent) {
+    // Reset and start sending when entering Step 9
+    if (step === 9 && !isSending && !messageSent) {
       setIsSending(true);
       setSendingError(null);
       setMessageSent(false);
@@ -1653,7 +1996,7 @@ const AdvocacyMessageContent: React.FC = () => {
   }, [step, isSending, messageSent]);
 
   useEffect(() => {
-    if (step === 6 && isSending && !messageSent) {
+    if (step === 9 && isSending && !messageSent) {
       const sendMessage = async () => {
         try {
           // Import Firebase functions
@@ -1746,7 +2089,7 @@ const AdvocacyMessageContent: React.FC = () => {
                 router.push(`/advocacy-message/confirmation?count=${recipientCount}`);
               } else {
                 // Show account creation step
-                setStep(7);
+                setStep(10);
               }
             }, 2000);
           }, 2000);
@@ -1772,7 +2115,7 @@ const AdvocacyMessageContent: React.FC = () => {
             <CardDescription>{sendingError}</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button onClick={() => setStep(3)} className="mt-4">
+            <Button onClick={() => setStep(5)} className="mt-4">
               Back to Review
             </Button>
           </CardContent>
@@ -1831,9 +2174,9 @@ const AdvocacyMessageContent: React.FC = () => {
     );
   };
 
-  // Auto-fill email when reaching Step 7 if user provided notification email
+  // Auto-fill email when reaching Step 10 if user provided notification email
   useEffect(() => {
-    if (step === 7 && notificationEmail && !email) {
+    if (step === 10 && notificationEmail && !email) {
       setEmail(notificationEmail);
     }
   }, [step, notificationEmail, email]);
@@ -2015,8 +2358,10 @@ const AdvocacyMessageContent: React.FC = () => {
   // Show loading state
   if (loading) {
     return (
-      <div className="container mx-auto p-8 max-w-4xl flex justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="min-h-screen bg-secondary/30 flex items-center justify-center">
+        <div className="container mx-auto px-8 max-w-2xl flex justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
       </div>
     );
   }
@@ -2025,57 +2370,36 @@ const AdvocacyMessageContent: React.FC = () => {
   // We'll handle login/signup after message composition
 
   return (
-    <div className="bg-secondary/30 flex-1">
-      <div className="container mx-auto p-8 max-w-4xl">
-      {/* Verification Notice */}
-      {verifiedUserInfo && !user && (
-        <Alert className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <p className="font-medium">You're verified as {verifiedUserInfo.fullName}</p>
-            <p className="text-sm mt-1">Your message will be delivered to your representatives. For additional features like tracking responses and managing your messages, consider <Link href={`/signup?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`} className="text-primary underline">creating an account</Link>.</p>
-          </AlertDescription>
-        </Alert>
-      )}
+    <div className="min-h-screen bg-secondary/30 relative flex flex-col">
+      {/* Close button */}
+      <button
+        onClick={() => {
+          // Check if there's a referrer to go back to
+          if (typeof window !== 'undefined' && document.referrer) {
+            router.back();
+          } else {
+            // Otherwise go to home page
+            router.push('/');
+          }
+        }}
+        className="absolute top-4 right-4 p-2 rounded-full hover:bg-secondary/50 transition-colors z-10"
+        aria-label="Close"
+      >
+        <X className="h-6 w-6" />
+      </button>
       
-      {/* Bill Context */}
-      {bill && (
-        <Card className="mb-6 bg-secondary/50">
-          <CardContent className="p-4">
-            <p className="text-center font-medium">
-              Voice your opinion on {billType?.toUpperCase()} {billNumber}: {bill.shortTitle || bill.title}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Progress Bar */}
-      <div className="mb-8">
-        <div className="flex justify-between text-xs text-muted-foreground mb-2 px-1">
-          <span className={`text-center ${step === 1 ? 'font-bold text-primary' : ''}`}>
-            Compose Message
-          </span>
-          <span className={`text-center ${step === 2 ? 'font-bold text-primary' : ''}`}>
-            Select Outreach
-          </span>
-          <span className={`text-center ${step === 3 ? 'font-bold text-primary' : ''}`}>
-            Review Message
-          </span>
-          <span className={`text-center ${(step >= 4) ? 'font-bold text-primary' : ''}`}>
-            {user ? 'Send Message' : 'Create Account'}
-          </span>
-        </div>
-        <Progress value={(Math.min(step, 4) / 4) * 100} className="h-2" />
-      </div>
-
+      <div className="container mx-auto px-8 pt-16 pb-8 max-w-2xl flex-1 flex flex-col">
       {/* Step Content */}
-      {step === 1 && renderStep2()} {/* Personal Information */}
-      {step === 2 && renderStep1()} {/* Select Outreach */}
-      {step === 3 && renderStep3()} {/* Review Message */}
-      {step === 4 && renderStep4()} {/* Create Account */}
-      {step === 5 && renderStep5()} {/* Send Message */}
-      {step === 6 && renderStep6()} {/* Sending Screen */}
-      {step === 7 && renderStep7()} {/* Account Creation Form */}
+      {step === 1 && renderStep2()} {/* Compose Message */}
+      {step === 2 && renderRoutingStep()} {/* Help us route your message (Verification) */}
+      {step === 3 && renderStep1()} {/* Select Outreach */}
+      {step === 4 && renderPersonalInfoStep()} {/* Personal Information */}
+      {step === 5 && renderStep3()} {/* Review Message */}
+      {step === 6 && renderDeliveryStep()} {/* Message Delivery */}
+      {step === 7 && renderStep4()} {/* Create Account */}
+      {step === 8 && renderStep5()} {/* Send Message */}
+      {step === 9 && renderStep6()} {/* Sending Screen */}
+      {step === 10 && renderStep7()} {/* Account Creation Form */}
       </div>
     </div>
   );

@@ -183,7 +183,7 @@ export default function MembershipPage() {
                           </Badge>
                         </CardTitle>
                         <CardDescription className="text-base mt-2">
-                          <span className="font-semibold">Free for your first year</span>, then $20/month
+                          <span className="font-semibold">$20/year</span>
                         </CardDescription>
                       </div>
                     </div>
@@ -210,13 +210,10 @@ export default function MembershipPage() {
                       <div className="bg-secondary/50 rounded-lg p-4 border">
                         <div className="text-center">
                           <div className="text-3xl font-bold text-foreground mb-1">
-                            FREE
+                            $20
                           </div>
                           <div className="text-sm text-muted-foreground mb-2">
-                            for your first year
-                          </div>
-                          <div className="text-lg font-semibold text-foreground">
-                            Then $20/month
+                            per year
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">
                             Cancel anytime • No commitment
@@ -230,7 +227,7 @@ export default function MembershipPage() {
                           Upgrade to Premium
                         </Button>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Secure checkout • Start your free year today
+                          Secure checkout • Just $20 per year
                         </p>
                       </div>
                     </div>
@@ -254,7 +251,7 @@ export default function MembershipPage() {
                         Join a community of dedicated advocates who are making a real difference in policy and governance.
                       </p>
                       <p>
-                        <strong>No hidden fees.</strong> Cancel anytime during your free year or after with just one click.
+                        <strong>No hidden fees.</strong> Cancel anytime with just one click.
                       </p>
                     </div>
                   </CardContent>
