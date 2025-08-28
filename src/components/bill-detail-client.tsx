@@ -412,7 +412,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                       <li key={index} className="flex items-center justify-between p-2 border rounded-md">
                                           <span className="font-semibold text-sm">{sponsor.fullName} ({sponsor.party}-{sponsor.state})</span>
                                           <Button asChild variant="link" size="sm" className="h-auto p-0">
-                                              <Link href={`/congress/${bill.congress}/${sponsor.state.toLowerCase()}/${sponsor.bioguideId}`}>
+                                              <Link href={`/federal/congress/${bill.congress}/${sponsor.state.toLowerCase()}/${sponsor.bioguideId}`}>
                                                   View Member <ArrowRight className="ml-1 h-3 w-3" />
                                               </Link>
                                           </Button>
@@ -435,7 +435,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                       <li key={index} className="flex items-center justify-between p-2 border rounded-md">
                                           <span className="font-semibold text-sm">{cosponsor.fullName} ({cosponsor.party}-{cosponsor.state})</span>
                                           <Button asChild variant="link" size="sm" className="h-auto p-0">
-                                              <Link href={`/congress/${bill.congress}/${cosponsor.state.toLowerCase()}/${cosponsor.bioguideId}`}>
+                                              <Link href={`/federal/congress/${bill.congress}/${cosponsor.state.toLowerCase()}/${cosponsor.bioguideId}`}>
                                                    View Member <ArrowRight className="ml-1 h-3 w-3" />
                                               </Link>
                                           </Button>
@@ -470,7 +470,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                 committee.activities
                                     .filter(activity => activity.name !== 'Unknown')
                                     .map((activity, activityIndex) => {
-                                        const committeeLink = `/congress/${bill.congress}/committees/${committee.systemCode.toLowerCase()}`;
+                                        const committeeLink = `/federal/congress/${bill.congress}/committees/${committee.systemCode.toLowerCase()}`;
                                         // Transform committee name: "Budget Committee" -> "House Budget"
                                         const displayName = committee.chamber === 'House' && committee.name.includes('Committee')
                                             ? `House ${committee.name.replace(' Committee', '')}`

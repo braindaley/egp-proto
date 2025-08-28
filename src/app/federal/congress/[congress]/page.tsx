@@ -10,13 +10,13 @@ export default async function CongressOverviewPage({ params }: { params: { congr
     {
       title: 'Members by State',
       description: 'View senators and representatives for each state.',
-      href: `/congress/${congress}/states`,
+      href: `/federal/congress/${congress}/states`,
       icon: <Users className="h-8 w-8 text-primary" />,
     },
     {
       title: 'Committees',
       description: 'Explore the committees for this congressional session.',
-      href: `/congress/${congress}/committees`,
+      href: `/federal/congress/${congress}/committees`,
       icon: <Library className="h-8 w-8 text-primary" />,
     },
   ];

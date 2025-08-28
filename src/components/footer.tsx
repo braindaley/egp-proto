@@ -10,7 +10,7 @@ export function Footer() {
   const { user, loading, logout, selectedCongress } = useAuth();
 
   const billsHref = selectedCongress ? `/bill/${selectedCongress}` : '/bills';
-  const congressHref = selectedCongress ? `/congress/${selectedCongress}` : '/congress';
+  const congressHref = selectedCongress ? `/federal/congress/${selectedCongress}` : '/federal/congress';
 
   return (
     <footer className="bg-card text-card-foreground border-t">

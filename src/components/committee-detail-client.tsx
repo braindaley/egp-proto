@@ -23,7 +23,7 @@ const LeadershipCard: React.FC<{ member: CommitteeMember; title: string; congres
                 <AvatarFallback>{member.name?.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="ml-4">
-                <Link href={congress && member.state ? `/congress/${congress}/states/${member.state.toLowerCase()}/${member.bioguideId}` : `/congress/member/${member.bioguideId}`}>
+                <Link href={congress && member.state ? `/federal/congress/${congress}/states/${member.state.toLowerCase()}/${member.bioguideId}` : `/federal/congress/member/${member.bioguideId}`}>
                     <p className="text-xl font-bold hover:underline">{member.name}</p>
                 </Link>
                 <p className="text-xs text-gray-500">{member.party === 'R' ? 'Republican' : 'Democrat'}, {member.state}</p>
@@ -365,7 +365,7 @@ export function CommitteeDetailClient({ committee, congress }: { committee: Enha
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {committee.subcommittees?.map(sub => (
                 <Card key={sub.systemCode} className="hover:shadow-md transition-shadow cursor-pointer group">
-                  <Link href={`/congress/${congress}/committees/${committee.systemCode || 'hsap00'}/${sub.systemCode}`}>
+                  <Link href={`/federal/congress/${congress}/committees/${committee.systemCode || 'hsap00'}/${sub.systemCode}`}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">

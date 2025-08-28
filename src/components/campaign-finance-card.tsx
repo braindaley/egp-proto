@@ -90,7 +90,7 @@ export const CampaignFinanceCard = ({ member, congress, state, bioguideId }: { m
     return null; // Don't show the card if there's an error or no data
   }
 
-  const financialSummaryUrl = `/congress/${congress}/states/${state}/${bioguideId}/finance`;
+  const financialSummaryUrl = `/federal/congress/${congress}/states/${state}/${bioguideId}/finance`;
 
   return (
     <Card>

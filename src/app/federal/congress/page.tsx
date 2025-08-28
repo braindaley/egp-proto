@@ -38,5 +38,5 @@ export default async function CongressRedirectPage() {
   // Default to 119 if the API fails
   const latestCongress = sortedCongresses[0]?.number.toString() || '119';
 
-  redirect(`/congress/${latestCongress}`);
+  redirect(`/federal/congress/${latestCongress}`);
 }

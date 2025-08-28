@@ -45,7 +45,7 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
   };
 
   const billsHref = selectedCongress ? `/federal/bill/${selectedCongress}` : '/federal/bills';
-  const congressHref = selectedCongress ? `/congress/${selectedCongress}` : '/congress';
+  const congressHref = selectedCongress ? `/federal/congress/${selectedCongress}` : '/federal/congress';
 
   const renderAuthContent = () => {
     if (loading) {
@@ -100,9 +100,6 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
             </Link>
             <Link href="/campaigns" className="text-sm font-medium hover:text-primary transition-colors">
               Campaigns
-            </Link>
-            <Link href="/state" className="text-sm font-medium hover:text-primary transition-colors">
-              State
             </Link>
           </nav>
 
@@ -163,18 +160,13 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                     <Separator />
                     
                     <SheetClose asChild>
-                      <Link href={billsHref} className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          Federal Bills
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href={congressHref} className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          Congress
+                      <Link href="/federal" className="block w-full text-left p-2 rounded-md hover:bg-accent">
+                          Federal
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>
                       <Link href="/state" className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          State Legislature
+                          State
                       </Link>
                     </SheetClose>
 

@@ -51,7 +51,7 @@ export default async function CommitteesPage({ params }: { params: { congress: s
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {houseCommittees.map((committee) => (
               <Link
-                href={`/congress/${congress}/committees/${committee.systemCode.toLowerCase()}`}
+                href={`/federal/congress/${congress}/committees/${committee.systemCode.toLowerCase()}`}
                 key={committee.systemCode}
                 className="text-center p-4 rounded-lg bg-card text-card-foreground shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors duration-200 ease-in-out"
               >
@@ -70,7 +70,7 @@ export default async function CommitteesPage({ params }: { params: { congress: s
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {senateCommittees.map((committee) => (
               <Link
-                href={`/congress/${congress}/committees/${committee.systemCode.toLowerCase()}`}
+                href={`/federal/congress/${congress}/committees/${committee.systemCode.toLowerCase()}`}
                 key={committee.systemCode}
                 className="text-center p-4 rounded-lg bg-card text-card-foreground shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors duration-200 ease-in-out"
               >

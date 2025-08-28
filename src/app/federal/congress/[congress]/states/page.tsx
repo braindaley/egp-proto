@@ -46,7 +46,7 @@ export default async function CongressByStateListPage({ params }: { params: { co
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {states.map((state) => (
           <Link
-            href={`/congress/${congress}/states/${state.abbr.toLowerCase()}`}
+            href={`/federal/congress/${congress}/states/${state.abbr.toLowerCase()}`}
             key={state.abbr}
             className="text-center p-4 rounded-lg bg-card text-card-foreground shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors duration-200 ease-in-out"
           >

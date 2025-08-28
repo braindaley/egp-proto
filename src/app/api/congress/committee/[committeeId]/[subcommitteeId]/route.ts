@@ -145,7 +145,7 @@ function getSampleSubcommitteeData(subcommitteeId: string, committeeId: string):
         parentCommittee: {
           name: "Armed Services Committee",
           systemCode: "hsas00",
-          url: "/congress/119/committees/hsas00"
+          url: "/federal/congress/119/committees/hsas00"
         },
         membershipStats: {
           totalMembers: 4,
@@ -189,7 +189,7 @@ function getSampleSubcommitteeData(subcommitteeId: string, committeeId: string):
         parentCommittee: {
           name: "Armed Services Committee",
           systemCode: "hsas00", 
-          url: "/congress/119/committees/hsas00"
+          url: "/federal/congress/119/committees/hsas00"
         },
         membershipStats: {
           totalMembers: 1,
@@ -268,7 +268,7 @@ function getSampleSubcommitteeData(subcommitteeId: string, committeeId: string):
         parentCommittee: {
           name: "Oversight and Government Reform Committee",
           systemCode: "hsgo00",
-          url: "/congress/119/committees/hsgo00"
+          url: "/federal/congress/119/committees/hsgo00"
         },
         membershipStats: {
           totalMembers: 2,
@@ -406,7 +406,7 @@ function getSampleSubcommitteeData(subcommitteeId: string, committeeId: string):
     parentCommittee: {
       name: parentCommitteeName,
       systemCode: committeeId,
-      url: `/congress/119/committees/${committeeId}`
+      url: `/federal/congress/119/committees/${committeeId}`
     },
     membershipStats: membershipStats
   };

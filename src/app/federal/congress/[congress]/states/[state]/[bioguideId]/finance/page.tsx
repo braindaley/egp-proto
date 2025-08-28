@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default async function FinancialSummaryPage({ params }: { params: { congress: string, state: string, bioguideId: string } }) {
   const { congress, state, bioguideId } = await params;
-  const memberDetailUrl = `/congress/${congress}/states/${state}/${bioguideId}`;
+  const memberDetailUrl = `/federal/congress/${congress}/states/${state}/${bioguideId}`;
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">

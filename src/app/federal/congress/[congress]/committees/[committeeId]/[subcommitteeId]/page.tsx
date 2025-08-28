@@ -84,7 +84,7 @@ function MemberCard({ member, showTitle = true, congress }: { member: Subcommitt
 
   // Generate internal member link
   const memberLink = congress && member.bioguideId && member.state ? 
-    `/congress/${congress}/states/${member.state}/${member.bioguideId}` : 
+    `/federal/congress/${congress}/states/${member.state}/${member.bioguideId}` : 
     null;
 
   return (
@@ -150,7 +150,7 @@ export default async function SubcommitteeDetailPage({ params }: { params: { con
               The requested subcommittee could not be found or may no longer exist.
             </p>
             <Button variant="outline" className="mt-4" asChild>
-              <a href={`/congress/${congress}/committees/${committeeId}`}>
+              <a href={`/federal/congress/${congress}/committees/${committeeId}`}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Committee
               </a>

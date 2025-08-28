@@ -20,7 +20,7 @@ export default function ForYou() {
   const router = useRouter();
 
   const handleFindOfficials = (zipCode: string) => {
-    router.push(`/congress/119/states?zip=${zipCode}`);
+    router.push(`/federal/congress/119/states?zip=${zipCode}`);
   };
 
   if (loading) {

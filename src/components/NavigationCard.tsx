@@ -15,8 +15,8 @@ const NavigationCard: React.FC = () => {
     { href: '/dashboard', label: 'Profile', icon: User },
     { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare },
     { href: '/bills', label: 'Bills', icon: FileText },
-    { href: '/congress/119/states', label: 'Congress Members', icon: Users },
-    { href: '/congress/119/committees', label: 'Committees', icon: Building },
+    { href: '/federal/congress/119/states', label: 'Congress Members', icon: Users },
+    { href: '/federal/congress/119/committees', label: 'Committees', icon: Building },
     { href: '/groups', label: 'Groups', icon: Users },
   ];
 
