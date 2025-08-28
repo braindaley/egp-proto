@@ -41,9 +41,9 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
   
   const { supportCount, opposeCount } = getBillSupportData(bill.congress, bill.type, bill.number);
 
-  const partyColor = bill.sponsorParty === 'R' ? 'bg-red-100 text-red-800' 
-                   : bill.sponsorParty === 'D' ? 'bg-blue-100 text-blue-800'
-                   : 'bg-gray-100 text-gray-800';
+  const partyColor = bill.sponsorParty === 'R' ? 'bg-red-600 text-white' 
+                   : bill.sponsorParty === 'D' ? 'bg-blue-600 text-white'
+                   : 'bg-gray-400 text-white';
 
   // Generate explainer data on component mount
   useEffect(() => {
@@ -71,42 +71,62 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
         setExplainerData(data);
       } catch (error) {
         console.error('Error generating explainer data:', error);
-        // Generate bill-specific fallback data
-        const isEstablishing = bill.shortTitle.toLowerCase().includes('establish') || 
-                              bill.shortTitle.toLowerCase().includes('create') ||
-                              bill.shortTitle.toLowerCase().includes('fund');
-        const isReform = bill.shortTitle.toLowerCase().includes('reform') ||
-                         bill.shortTitle.toLowerCase().includes('improve') ||
-                         bill.shortTitle.toLowerCase().includes('modernize');
-        const isRepeal = bill.shortTitle.toLowerCase().includes('repeal') ||
-                         bill.shortTitle.toLowerCase().includes('eliminate') ||
-                         bill.shortTitle.toLowerCase().includes('end');
+        // Generate unique fallback data based on bill details
+        const titleLower = bill.shortTitle.toLowerCase();
+        const subject = bill.subjects?.[0]?.toLowerCase() || 'policy';
+        const billNum = bill.number;
         
-        let headline, supportStatement, opposeStatement;
+        // Create variety based on bill number hash
+        const hashCode = Math.abs(bill.billNumber.split('').reduce((a, b) => {
+          a = ((a << 5) - a) + b.charCodeAt(0);
+          return a & a;
+        }, 0));
+        const variant = hashCode % 6;
         
-        if (isRepeal) {
-          headline = 'Necessary change or risky move?';
-          supportStatement = 'Would eliminate outdated or harmful regulations';
-          opposeStatement = 'Could remove important protections or oversight';
-        } else if (isEstablishing) {
-          headline = 'Innovation or expansion?';
-          supportStatement = 'Could address unmet needs and create opportunities';
-          opposeStatement = 'May increase costs and government bureaucracy';
-        } else if (isReform) {
-          headline = 'Improvement or disruption?';
-          supportStatement = 'Would update and strengthen existing systems';
-          opposeStatement = 'Could cause unintended consequences or delays';
+        const headlines = [
+          'Progress or setback?',
+          'Necessary reform or overreach?',
+          'Smart policy or government excess?', 
+          'Innovation or bureaucracy?',
+          'Public benefit or special interests?',
+          'Long overdue or rushed decision?'
+        ];
+        
+        const supportReasons = [
+          `Could improve ${subject} outcomes for Americans`,
+          `Addresses important gaps in current ${subject} policy`,
+          `Would modernize outdated ${subject} regulations`, 
+          `May provide needed oversight in ${subject} sector`,
+          `Could create opportunities in ${subject} area`,
+          `Responds to public concerns about ${subject}`
+        ];
+        
+        const opposeReasons = [
+          `May increase ${subject} costs without clear benefits`,
+          `Could create unintended consequences in ${subject}`,
+          `Might expand government role in ${subject} unnecessarily`,
+          `May burden ${subject} stakeholders with new requirements`,
+          `Could disrupt working ${subject} systems`,
+          `Might lack sufficient funding for ${subject} implementation`
+        ];
+        
+        // Add some specific keywords for more targeted content
+        let explainer = `This bill focuses on ${subject}`;
+        if (titleLower.includes('establish') || titleLower.includes('create')) {
+          explainer += ' and would establish new programs or agencies';
+        } else if (titleLower.includes('reform') || titleLower.includes('improve')) {
+          explainer += ' and would reform existing systems';
+        } else if (titleLower.includes('fund') || titleLower.includes('appropriat')) {
+          explainer += ' and would provide funding for programs';
         } else {
-          headline = 'Progress or overreach?';
-          supportStatement = 'Addresses important public policy needs';
-          opposeStatement = 'May have budget or implementation challenges';
+          explainer += ' with new requirements or changes';
         }
         
         setExplainerData({
-          headline,
-          explainer: `This bill would ${isEstablishing ? 'create' : isReform ? 'reform' : isRepeal ? 'eliminate' : 'modify'} ${bill.shortTitle.toLowerCase().includes('act') ? 'federal policy' : 'existing law'}.`,
-          supportStatement,
-          opposeStatement,
+          headline: headlines[variant],
+          explainer: explainer + '.',
+          supportStatement: supportReasons[variant],
+          opposeStatement: opposeReasons[variant],
           closingQuestion: 'What do you think?'
         });
       } finally {
@@ -151,7 +171,7 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
 
   if (isLoading) {
     return (
-      <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out">
+      <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out bg-white border-gray-200">
         <CardContent className="p-6">
           <div className="animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
@@ -164,10 +184,10 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
   }
 
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out">
+    <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out bg-white border-gray-200">
       {/* Header with sponsor info */}
-      <div className="p-4 border-b">
-        <div className="flex items-center gap-3 mb-2">
+      <div className="p-6 text-center">
+        <div className="flex items-center justify-center gap-4">
           {bill.sponsorImageUrl && (
             <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
               <Image 
@@ -179,15 +199,12 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
               />
             </div>
           )}
-          <span className={`text-xs px-2 py-1 rounded-full ${partyColor}`}>
-            {bill.sponsorFullName} ({bill.sponsorParty})
-          </span>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs font-semibold">{bill.billNumber}</Badge>
+          <Badge className={`text-sm font-medium ${partyColor} border-0`}>
+            {bill.sponsorFullName}
+          </Badge>
+          <Badge variant="outline" className="text-sm font-semibold border-gray-300 text-gray-800">{bill.billNumber}</Badge>
           {bill.subjects && bill.subjects.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="outline" className="text-sm border-gray-300 text-gray-600">
               {bill.subjects[0]}
             </Badge>
           )}
@@ -195,53 +212,69 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
       </div>
 
       {/* Social Media Explainer Content */}
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6 pt-8">
         {/* Headline */}
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-primary mb-3">
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">
             {explainerData?.headline}
           </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+          <p className="text-sm text-gray-600 leading-relaxed">
             {explainerData?.explainer}
           </p>
-          <Link 
-            href={detailUrl} 
-            className="text-xs text-blue-600 hover:underline"
-            onClick={(e) => e.stopPropagation()}
-          >
-            Read full bill →
-          </Link>
         </div>
 
         {/* Support and Oppose Boxes */}
         <div className="grid md:grid-cols-2 gap-4">
           {/* Support Box */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <h4 className="font-semibold text-green-800 mb-2">Support</h4>
-            <p className="text-sm text-green-700 leading-relaxed">
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold text-gray-800">Support</h4>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className={`flex items-center gap-1.5 transition-colors border-gray-300 ${
+                  supportStatus === 'supported'
+                    ? 'bg-gray-800 text-white'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                }`}
+                onClick={handleSupport}
+              >
+                <ThumbsUp className="h-4 w-4" />
+                {supportStatus === 'supported' ? 'Supported!' : supportCount.toLocaleString()}
+              </Button>
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed">
               {explainerData?.supportStatement}
             </p>
           </div>
 
           {/* Oppose Box */}
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <h4 className="font-semibold text-red-800 mb-2">Oppose</h4>
-            <p className="text-sm text-red-700 leading-relaxed">
+          <div className="bg-gray-100 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold text-gray-800">Oppose</h4>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className={`flex items-center gap-1.5 transition-colors border-gray-300 ${
+                  supportStatus === 'opposed'
+                    ? 'bg-gray-800 text-white'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                }`}
+                onClick={handleOppose}
+              >
+                <ThumbsDown className="h-4 w-4" />
+                {supportStatus === 'opposed' ? 'Opposed!' : opposeCount.toLocaleString()}
+              </Button>
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed">
               {explainerData?.opposeStatement}
             </p>
           </div>
         </div>
-
-        {/* Closing Question */}
-        <div className="text-center pt-2 border-t">
-          <p className="text-sm font-medium text-gray-700">
-            {explainerData?.closingQuestion}
-          </p>
-        </div>
       </CardContent>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-2 p-4 border-t">
+      <div className="flex items-center justify-center gap-4 p-6 bg-gray-50">
         <Button 
           size="sm"
           className="bg-black text-white hover:bg-gray-800"
@@ -252,43 +285,15 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
         </Button>
         
         <Button 
-          variant="outline" 
-          size="sm"
-          className={`flex items-center gap-1.5 transition-colors ${
-            supportStatus === 'supported'
-              ? 'bg-green-100 text-green-800 border-green-300'
-              : 'text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200'
-          }`}
-          onClick={handleSupport}
-        >
-          <ThumbsUp className="h-4 w-4" />
-          {supportStatus === 'supported' ? 'Supported!' : supportCount.toLocaleString()}
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          size="sm"
-          className={`flex items-center gap-1.5 transition-colors ${
-            supportStatus === 'opposed'
-              ? 'bg-red-100 text-red-800 border-red-300'
-              : 'text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200'
-          }`}
-          onClick={handleOppose}
-        >
-          <ThumbsDown className="h-4 w-4" />
-          {supportStatus === 'opposed' ? 'Opposed!' : opposeCount.toLocaleString()}
-        </Button>
-        
-        <Button 
           variant="outline"
           size="sm"
           onClick={handleWatch}
           className={cn(
-            "flex items-center gap-1.5",
-            isWatched ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" : "text-muted-foreground"
+            "flex items-center gap-1.5 border-gray-300",
+            isWatched ? "bg-gray-800 text-white" : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
           )}
         >
-          <Eye className={cn("h-4 w-4", isWatched && "text-blue-600")} />
+          <Eye className="h-4 w-4" />
           {isWatched ? 'Watching' : 'Watch'}
         </Button>
         
@@ -296,11 +301,19 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
           variant="outline"
           size="sm"
           onClick={handleInteractionClick}
-          className="flex items-center gap-1.5 text-muted-foreground"
+          className="flex items-center gap-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 border-gray-300"
         >
           <Share className="h-4 w-4" />
           Share
         </Button>
+        
+        <Link 
+          href={detailUrl} 
+          className="text-sm text-gray-500 hover:text-gray-700 hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          Read full bill →
+        </Link>
       </div>
     </Card>
   );
