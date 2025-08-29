@@ -14,19 +14,15 @@ export default function StandaloneLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <QueryProvider>
-          <AuthProvider>
-            <ZipCodeProvider>
-              <SessionProvider>
-                {children}
-                <Toaster />
-              </SessionProvider>
-            </ZipCodeProvider>
-          </AuthProvider>
-        </QueryProvider>
-      </body>
-    </html>
+    <QueryProvider>
+      <AuthProvider>
+        <ZipCodeProvider>
+          <SessionProvider>
+            {children}
+            <Toaster />
+          </SessionProvider>
+        </ZipCodeProvider>
+      </AuthProvider>
+    </QueryProvider>
   );
 }

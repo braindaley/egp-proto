@@ -69,7 +69,10 @@ const LEGISLATIVE_STAGES = [
 function getBillStageIndex(bill: Bill): number {
   const latestActionText = bill.latestAction?.text?.toLowerCase() || '';
   
-  if (latestActionText.includes('became public law') || latestActionText.includes('signed by president')) {
+  if (latestActionText.includes('became public law') || 
+      latestActionText.includes('signed by president') ||
+      latestActionText.includes('signed into law') ||
+      latestActionText.includes('public law no')) {
     return 6; // Enacted
   }
   if (latestActionText.includes('presented to president') || latestActionText.includes('to president')) {

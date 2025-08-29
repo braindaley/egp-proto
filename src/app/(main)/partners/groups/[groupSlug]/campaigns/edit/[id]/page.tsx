@@ -17,13 +17,44 @@ import {
 } from '@/components/ui/select';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { campaignsService, type Campaign } from '@/lib/campaigns';
 
 // Force dynamic rendering to prevent prerendering issues
 export const dynamic = 'force-dynamic';
 
-export default function EditCampaignPage({ params }: { params: { id: string } }) {
+const advocacyGroups = [
+    { name: 'League of Women Voters', slug: 'league-of-women-voters' },
+    { name: 'Brennan Center for Justice', slug: 'brennan-center-for-justice' },
+    { name: 'Common Cause', slug: 'common-cause' },
+    { name: 'Fair Elections Center', slug: 'fair-elections-center' },
+    { name: 'FairVote', slug: 'fairvote' },
+    { name: 'Vote Smart', slug: 'vote-smart' },
+    { name: 'VoteRiders', slug: 'voteriders' },
+    { name: 'Rock the Vote', slug: 'rock-the-vote' },
+    { name: 'Mi Familia Vota', slug: 'mi-familia-vota' },
+    { name: 'Black Voters Matter', slug: 'black-voters-matter' },
+    { name: 'When We All Vote', slug: 'when-we-all-vote' },
+    { name: 'Fair Fight Action', slug: 'fair-fight-action' },
+    { name: 'Campaign Legal Center', slug: 'campaign-legal-center' },
+    { name: 'BallotReady', slug: 'ballotready' },
+    { name: 'Democracy Works (TurboVote)', slug: 'democracy-works-turbovote' },
+    { name: 'HeadCount', slug: 'headcount' },
+    { name: 'State Voices', slug: 'state-voices' },
+    { name: 'Asian Americans Advancing Justice', slug: 'asian-americans-advancing-justice' },
+    { name: 'NAACP Legal Defense Fund', slug: 'naacp-legal-defense-fund' },
+    { name: 'Voto Latino', slug: 'voto-latino' },
+    { name: 'Alliance for Youth Action', slug: 'alliance-for-youth-action' },
+    { name: 'National Vote at Home Institute', slug: 'national-vote-at-home-institute' },
+    { name: 'National Voter Registration Day', slug: 'national-voter-registration-day' },
+    { name: 'Democracy NC', slug: 'democracy-nc' },
+    { name: 'The Civics Center', slug: 'the-civics-center' },
+    { name: 'No Labels', slug: 'no-labels' },
+].sort((a, b) => a.name.localeCompare(b.name));
+
+export default function EditCampaignPage() {
     const router = useRouter();
+    const params = useParams();
     const { user, loading: authLoading } = useAuth();
     const [campaign, setCampaign] = useState<Campaign | null>(null);
     const [position, setPosition] = useState<'Support' | 'Oppose'>('Support');
@@ -33,13 +64,16 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const groupSlug = params?.groupname as string;
+    const campaignId = params?.id as string;
+    const groupInfo = advocacyGroups.find(g => g.slug === groupSlug);
+
     useEffect(() => {
         async function loadCampaign() {
-            if (!user) return;
+            if (!user || !campaignId) return;
             
             try {
-                const { id } = await params;
-                const response = await fetch(`/api/campaigns/${id}`);
+                const response = await fetch(`/api/campaigns/${campaignId}`);
                 
                 if (!response.ok) {
                     setError('Campaign not found');
@@ -48,6 +82,12 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                 
                 const data = await response.json();
                 const foundCampaign = data.campaign;
+                
+                // Verify this campaign belongs to the correct group
+                if (foundCampaign.groupSlug !== groupSlug) {
+                    setError('Campaign not found for this group');
+                    return;
+                }
                 
                 console.log('Campaign data:', foundCampaign); // Debug log
                 
@@ -64,7 +104,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
         }
 
         loadCampaign();
-    }, [params, user]);
+    }, [campaignId, user, groupSlug]);
 
     const handleSave = async () => {
         if (!campaign || !reasoning) {
@@ -91,8 +131,8 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                 throw new Error(error.error || 'Failed to update campaign');
             }
 
-            // Redirect back to campaigns dashboard
-            router.push('/dashboard/campaigns');
+            // Redirect back to group campaigns dashboard
+            router.push(`/partners/groups/${groupSlug}/campaigns`);
         } catch (error) {
             console.error('Error updating campaign:', error);
             alert(error instanceof Error ? error.message : 'Failed to update campaign');
@@ -127,6 +167,24 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
         );
     }
 
+    if (!groupInfo) {
+        return (
+            <div className="container mx-auto p-4 md:p-8 max-w-[800px]">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Group Not Found</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">The requested advocacy group was not found.</p>
+                        <Button className="mt-4" asChild>
+                            <Link href="/partners">Back to Partners</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
     if (error || !campaign) {
         return (
             <div className="container mx-auto p-4 md:p-8 max-w-[800px]">
@@ -137,7 +195,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                     <CardContent>
                         <p className="text-muted-foreground">{error || 'Campaign not found'}</p>
                         <Button className="mt-4" asChild>
-                            <Link href="/dashboard/campaigns">Back to Campaigns</Link>
+                            <Link href={`/partners/groups/${groupSlug}/campaigns`}>Back to {groupInfo.name} Campaigns</Link>
                         </Button>
                     </CardContent>
                 </Card>
@@ -150,9 +208,9 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
             <header className="mb-8">
                 <div className="flex items-center gap-4 mb-4">
                     <Button variant="ghost" size="sm" asChild>
-                        <Link href="/dashboard/campaigns" className="flex items-center gap-2">
+                        <Link href={`/partners/groups/${groupSlug}/campaigns`} className="flex items-center gap-2">
                             <ArrowLeft className="h-4 w-4" />
-                            Back to Campaigns
+                            Back to {groupInfo.name} Campaigns
                         </Link>
                     </Button>
                 </div>
@@ -171,7 +229,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                     {/* Read-only fields */}
                     <div className="space-y-2">
                         <Label>Advocacy Group</Label>
-                        <Input value={campaign.groupName} disabled />
+                        <Input value={groupInfo.name} disabled />
                     </div>
 
                     <div className="space-y-2">
@@ -247,7 +305,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
                             )}
                         </Button>
                         <Button variant="outline" asChild>
-                            <Link href="/dashboard/campaigns">Cancel</Link>
+                            <Link href={`/partners/groups/${groupSlug}/campaigns`}>Cancel</Link>
                         </Button>
                         {campaign.bill && campaign.groupSlug && (
                             <Button variant="outline" asChild>

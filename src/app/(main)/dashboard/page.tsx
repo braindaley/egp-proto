@@ -49,7 +49,6 @@ export default function DashboardPage() {
         { label: 'Membership', href: '/dashboard/membership', icon: Crown },
         { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
         { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },
-        { label: 'Manage Campaigns', href: '/dashboard/campaigns', icon: Megaphone },
     ];
     
     return (
@@ -293,53 +292,6 @@ export default function DashboardPage() {
                                     </CardContent>
                                 </Card>
 
-                                {/* Campaign Management Section */}
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Campaign Management</CardTitle>
-                                        <CardDescription>
-                                            Track and manage your advocacy campaigns
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Link href="/dashboard/campaigns">
-                                            <Card className="p-6 cursor-pointer transition-colors hover:bg-muted/50">
-                                                <div className="flex items-start justify-between">
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-3 mb-4">
-                                                            <Megaphone className="h-6 w-6 text-primary" />
-                                                            <h3 className="text-xl font-semibold">Manage Campaigns</h3>
-                                                        </div>
-                                                        <p className="text-muted-foreground mb-4">
-                                                            Create, edit, and track advocacy campaigns for important policy issues.
-                                                        </p>
-                                                        
-                                                        {/* Campaign Stats */}
-                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                                            <div>
-                                                                <div className="font-medium text-primary">24</div>
-                                                                <div className="text-muted-foreground">Active Campaigns</div>
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-medium text-green-600">156</div>
-                                                                <div className="text-muted-foreground">Total Participants</div>
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-medium text-blue-600">8</div>
-                                                                <div className="text-muted-foreground">Issue Categories</div>
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-medium text-orange-600">342</div>
-                                                                <div className="text-muted-foreground">Messages Sent</div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <ChevronRight className="h-5 w-5 text-muted-foreground ml-4" />
-                                                </div>
-                                            </Card>
-                                        </Link>
-                                    </CardContent>
-                                </Card>
                             </main>
                         </div>
                     </div>

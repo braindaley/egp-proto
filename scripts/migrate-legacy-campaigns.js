@@ -72,7 +72,7 @@ async function migrateCampaigns() {
     }
     
     console.log('\n📝 Next steps:');
-    console.log('   1. Check the dashboard at http://localhost:3000/dashboard/campaigns');
+    console.log('   1. Check the dashboard at http://localhost:3000/dashboard/partners');
     console.log('   2. Template campaigns are now available for all groups');
     console.log('   3. Homepage will show these campaigns in the feed');
     console.log('   4. Users can manage these campaigns from the dashboard');

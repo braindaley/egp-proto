@@ -12,7 +12,6 @@ export default function SendMessagePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [messageData, setMessageData] = useState<any>(null);
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const { user, loading: authLoading } = useAuth();
@@ -107,13 +106,9 @@ export default function SendMessagePage() {
       // Clear the session storage
       sessionStorage.removeItem('pendingMessage');
       
-      setSent(true);
-      
-      // Navigate to confirmation page after a brief delay
-      setTimeout(() => {
-        const recipientCount = messageData.selectedMembers.length;
-        router.push(`/advocacy-message/confirmation?count=${recipientCount}`);
-      }, 2000);
+      // Navigate directly to confirmation page
+      const recipientCount = messageData.selectedMembers.length;
+      router.push(`/advocacy-message/confirmation?count=${recipientCount}`);
       
     } catch (error) {
       console.error('Error saving message:', error);
@@ -125,122 +120,117 @@ export default function SendMessagePage() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background px-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p>Loading...</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-secondary/30 flex items-center justify-center">
+        <div className="container mx-auto px-8 max-w-2xl">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p>Loading...</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle>Authentication Required</CardTitle>
-            <CardDescription>Please log in to send your message</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Button asChild>
-              <Link href={`/login?returnTo=${encodeURIComponent('/advocacy-message/send')}`}>
-                Login
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-secondary/30 flex items-center justify-center">
+        <div className="container mx-auto px-8 max-w-2xl">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle>Authentication Required</CardTitle>
+              <CardDescription>Please log in to send your message</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Button asChild>
+                <Link href={`/login?returnTo=${encodeURIComponent('/advocacy-message/send')}`}>
+                  Login
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle>Error</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <Button asChild>
-              <Link href="/advocacy-message">
-                Start Over
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (sent) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background px-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Message Sent!</h2>
-            <p className="text-muted-foreground mb-4">
-              Your message has been successfully sent to {messageData?.selectedMembers?.length || 0} representative{(messageData?.selectedMembers?.length || 0) !== 1 ? 's' : ''}.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Redirecting to confirmation page...
-            </p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-secondary/30 flex items-center justify-center">
+        <div className="container mx-auto px-8 max-w-2xl">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle>Error</CardTitle>
+              <CardDescription>{error}</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <Button asChild>
+                <Link href="/advocacy-message">
+                  Start Over
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+    <div className="min-h-screen bg-secondary/30 relative flex flex-col">
+      <div className="container mx-auto px-8 py-12 max-w-2xl flex-1 flex flex-col">
+        <Card className="flex-1 flex flex-col">
+          <CardHeader className="text-center pb-8">
           <CardTitle>Ready to Send</CardTitle>
           <CardDescription>
             Your message is ready to be sent to {messageData?.selectedMembers?.length || 0} representative{(messageData?.selectedMembers?.length || 0) !== 1 ? 's' : ''}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {messageData?.bill && (
-            <div className="bg-secondary/50 rounded-lg p-4">
-              <p className="font-medium text-sm">
-                Message regarding: {messageData.bill.shortTitle || messageData.bill.title}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Your stance: {messageData.userStance === 'support' ? 'Support' : 'Oppose'}
-              </p>
+        <CardContent className="space-y-6 flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col justify-between">
+            <div>
+              {messageData?.bill && (
+                <div className="bg-secondary/50 rounded-lg p-4">
+                  <p className="font-medium text-sm">
+                    Message regarding: {messageData.bill.shortTitle || messageData.bill.title}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Your stance: {messageData.userStance === 'support' ? 'Support' : 'Oppose'}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
-          
-          <Button 
-            onClick={handleSend}
-            disabled={isSending}
-            className="w-full"
-            size="lg"
-          >
-            {isSending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              'Send Message Now'
-            )}
-          </Button>
-          
-          <div className="text-center">
-            <Button variant="ghost" asChild>
-              <Link href="/advocacy-message">
-                Cancel
-              </Link>
-            </Button>
+            
+            <div className="space-y-4">
+              <Button 
+                onClick={handleSend}
+                disabled={isSending}
+                className="w-full"
+                size="lg"
+              >
+                {isSending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Message Now'
+                )}
+              </Button>
+              
+              <div className="text-center">
+                <Button variant="ghost" asChild>
+                  <Link href="/advocacy-message">
+                    Cancel
+                  </Link>
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

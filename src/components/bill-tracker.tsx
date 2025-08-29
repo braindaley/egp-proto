@@ -36,7 +36,10 @@ function formatDate(dateString: string) {
 const getStepStatus = (latestActionText: string, originChamber: string): { currentIndex: number, currentDate?: string } => {
   const lowerCaseAction = latestActionText.toLowerCase();
 
-  if (lowerCaseAction.includes('became public law')) {
+  if (lowerCaseAction.includes('became public law') || 
+      lowerCaseAction.includes('signed by president') ||
+      lowerCaseAction.includes('signed into law') ||
+      lowerCaseAction.includes('public law no')) {
     return { currentIndex: 4 };
   }
   if (lowerCaseAction.includes('presented to president')) {

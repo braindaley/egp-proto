@@ -92,7 +92,7 @@ export default function CampaignEmailsPage({ params }: { params: { id: string } 
                     <CardContent>
                         <p className="text-muted-foreground">{error || 'Campaign not found'}</p>
                         <Button className="mt-4" asChild>
-                            <Link href="/dashboard/campaigns">Back to Campaigns</Link>
+                            <Link href="/partners">Back to Campaigns</Link>
                         </Button>
                     </CardContent>
                 </Card>
@@ -105,7 +105,7 @@ export default function CampaignEmailsPage({ params }: { params: { id: string } 
             <header className="mb-8">
                 <div className="flex items-center gap-4 mb-4">
                     <Button variant="ghost" size="sm" asChild>
-                        <Link href="/dashboard/campaigns" className="flex items-center gap-2">
+                        <Link href="/partners" className="flex items-center gap-2">
                             <ArrowLeft className="h-4 w-4" />
                             Back to Campaigns
                         </Link>

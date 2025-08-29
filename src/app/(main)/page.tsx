@@ -217,7 +217,13 @@ export default function Home() {
                           {/* 1. Group Name's Opinion with Badge */}
                           <div className="flex justify-between items-center">
                             <p className="text-sm font-medium text-muted-foreground">
-                              {campaign.groupName} urges you to {campaign.position.toLowerCase()} {campaign.bill.type.toUpperCase()} {campaign.bill.number}
+                              <Link 
+                                href={`/campaigns/${campaign.groupSlug}`}
+                                className="hover:underline hover:text-foreground transition-colors"
+                              >
+                                {campaign.groupName}
+                              </Link>{' '}
+                              urges you to {campaign.position.toLowerCase()} {campaign.bill.type.toUpperCase()} {campaign.bill.number}
                             </p>
                             <Badge variant={badgeVariant} className="flex items-center gap-2 text-sm px-2 py-1 shrink-0">
                               <PositionIcon className="h-3 w-3" />

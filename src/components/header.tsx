@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Landmark, LogOut, User, Loader2, Menu } from 'lucide-react';
+import { Landmark, LogOut, User, Loader2, Menu, Building2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -59,6 +59,12 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                     <Link href="/dashboard">
                         <User className="mr-2 h-4 w-4" />
                         Dashboard
+                    </Link>
+                </Button>
+                <Button variant="ghost" size="sm" asChild>
+                    <Link href="/partners">
+                        <Building2 className="mr-2 h-4 w-4" />
+                        Partners
                     </Link>
                 </Button>
                 <Button variant="outline" size="sm" onClick={logout}>
@@ -182,6 +188,14 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                                         <Link href="/dashboard">
                                             <User className="mr-2 h-4 w-4" />
                                             Dashboard
+                                        </Link>
+                                    </Button>
+                                </SheetClose>
+                                <SheetClose asChild>
+                                    <Button variant="ghost" className="w-full justify-start" asChild>
+                                        <Link href="/partners">
+                                            <Building2 className="mr-2 h-4 w-4" />
+                                            Partners
                                         </Link>
                                     </Button>
                                 </SheetClose>

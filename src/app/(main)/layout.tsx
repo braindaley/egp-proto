@@ -1,5 +1,3 @@
-import { Inter } from "next/font/google";
-import "../globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
@@ -9,8 +7,6 @@ import { ZipCodeProvider } from "@/hooks/use-zip-code";
 import { SessionProvider } from "@/contexts/SessionContext";
 import QueryProvider from "@/providers/query-client-provider";
 import type { Congress } from '@/types';
-
-const inter = Inter({ subsets: ["latin"] });
 
 // This function now contains the logic directly from the API route
 // to avoid internal fetch errors during server rendering.
@@ -70,22 +66,20 @@ export default async function MainLayout({
   const congresses = await getCongresses();
   
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <QueryProvider>
-          <AuthProvider>
-            <ZipCodeProvider>
-              <SessionProvider>
-                <Header congresses={congresses} />
-                {children}
-                <Toaster />
-                <Footer />
-                <ZipCodeBanner />
-              </SessionProvider>
-            </ZipCodeProvider>
-          </AuthProvider>
-        </QueryProvider>
-      </body>
-    </html>
+    <div>
+      <QueryProvider>
+        <AuthProvider>
+          <ZipCodeProvider>
+            <SessionProvider>
+              <Header congresses={congresses} />
+              {children}
+              <Toaster />
+              <Footer />
+              <ZipCodeBanner />
+            </SessionProvider>
+          </ZipCodeProvider>
+        </AuthProvider>
+      </QueryProvider>
+    </div>
   );
 }

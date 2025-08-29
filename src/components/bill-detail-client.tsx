@@ -29,7 +29,11 @@ const getBillStatus = (latestAction: any): string => {
     
     const actionText = latestAction.text.toLowerCase();
     
-    if (actionText.includes('became law') || actionText.includes('signed into law')) {
+    if (actionText.includes('became law') || 
+        actionText.includes('signed into law') || 
+        actionText.includes('became public law') ||
+        actionText.includes('public law no') ||
+        actionText.includes('signed by president')) {
         return 'Became Law';
     }
     if (actionText.includes('to president') || actionText.includes('presented to president')) {

@@ -143,7 +143,7 @@ const Campaigns: React.FC = () => {
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">Select a group in dashboard to view campaigns</p>
             <Link 
-              href="/dashboard/campaigns" 
+              href="/partners" 
               className="text-sm text-primary hover:text-primary/80 inline-flex items-center gap-1"
             >
               Go to campaigns dashboard
@@ -156,7 +156,7 @@ const Campaigns: React.FC = () => {
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">No campaigns yet for {groupName}</p>
             <Link 
-              href={`/dashboard/campaigns/create?group=${selectedGroup}`}
+              href={`/partners/create?group=${selectedGroup}`}
               className="text-sm text-primary hover:text-primary/80 inline-flex items-center gap-1"
             >
               Create your first campaign
@@ -190,7 +190,7 @@ const Campaigns: React.FC = () => {
                         <LinkIcon className="h-3 w-3" />
                       </Button>
                     </Link>
-                    <Link href={`/dashboard/campaigns/edit/${campaign.id}`}>
+                    <Link href={`/partners/edit/${campaign.id}`}>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -209,7 +209,7 @@ const Campaigns: React.FC = () => {
             ))}
             
             <Link 
-              href="/dashboard/campaigns" 
+              href="/partners" 
               className="flex items-center justify-between text-sm text-primary hover:text-primary/80 pt-2 border-t"
             >
               <span>Manage campaigns</span>

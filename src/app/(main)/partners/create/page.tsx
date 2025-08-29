@@ -319,7 +319,7 @@ function CreateCampaignPageContent() {
                             )}
                         </Button>
                         <Button variant="outline" asChild>
-                            <Link href="/dashboard/campaigns">Cancel</Link>
+                            <Link href="/partners">Cancel</Link>
                         </Button>
                     </div>
                 </CardContent>

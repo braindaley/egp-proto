@@ -10,7 +10,10 @@ import { mapApiSubjectToAllowed } from '@/lib/subjects';
 function getBillStatus(latestActionText: string): string {
     const lowerCaseAction = latestActionText.toLowerCase();
 
-    if (lowerCaseAction.includes('became public law')) {
+    if (lowerCaseAction.includes('became public law') || 
+        lowerCaseAction.includes('signed into law') ||
+        lowerCaseAction.includes('public law no') ||
+        lowerCaseAction.includes('signed by president')) {
         return 'Became Law';
     }
     if (lowerCaseAction.includes('presented to president')) {
@@ -33,7 +36,10 @@ function calculateImportanceScore(bill: Bill, latestActionText: string): number 
   const actionText = (latestActionText || '').toLowerCase();
   
   // HIGH PRIORITY: Advanced legislative stages
-  if (actionText.includes('became public law')) score += 50;
+  if (actionText.includes('became public law') || 
+      actionText.includes('signed into law') ||
+      actionText.includes('public law no') ||
+      actionText.includes('signed by president')) score += 50;
   if (actionText.includes('presented to president')) score += 40;
   if (actionText.includes('passed house') && actionText.includes('passed senate')) score += 35;
   if (actionText.includes('passed house') || actionText.includes('passed senate')) score += 25;
