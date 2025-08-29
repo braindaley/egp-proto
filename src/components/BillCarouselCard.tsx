@@ -41,8 +41,8 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
   
   const { supportCount, opposeCount } = getBillSupportData(bill.congress, bill.type, bill.number);
 
-  const partyColor = bill.sponsorParty === 'R' ? 'bg-red-600 text-white' 
-                   : bill.sponsorParty === 'D' ? 'bg-blue-600 text-white'
+  const partyColor = bill.sponsorParty === 'R' ? 'bg-stone-600 text-white' 
+                   : bill.sponsorParty === 'D' ? 'bg-slate-600 text-white'
                    : 'bg-gray-400 text-white';
 
   // Use server-provided explainer data or generate fallback

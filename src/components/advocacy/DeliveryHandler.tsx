@@ -132,7 +132,7 @@ const DeliveryHandler: React.FC<DeliveryHandlerProps> = ({
         )}
 
         {status === 'success' && (
-          <div className="text-center text-green-600">
+          <div className="text-center text-stone-600">
             <CheckCircle className="h-16 w-16 mx-auto mb-4" />
             <h3 className="text-2xl font-bold mb-2">Message Sent!</h3>
             <p>Confirmation: {confirmationNumber}</p>
@@ -142,7 +142,7 @@ const DeliveryHandler: React.FC<DeliveryHandlerProps> = ({
         )}
 
         {status === 'error' && (
-          <div className="text-center text-red-600">
+          <div className="text-center text-amber-600">
             <XCircle className="h-16 w-16 mx-auto mb-4" />
             <h3 className="text-2xl font-bold mb-2">Something Went Wrong</h3>
             <p>We couldn't send your message. Please try again.</p>

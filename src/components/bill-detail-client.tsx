@@ -251,7 +251,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                     </div>
                   )}
                   <span className={`flex items-center gap-1.5 px-3 py-2 rounded-full ${
-                    bill.sponsors[0].party === 'R' ? 'bg-red-100 text-red-800' 
+                    bill.sponsors[0].party === 'R' ? 'bg-stone-200 text-stone-700' 
                     : bill.sponsors[0].party === 'D' ? 'bg-blue-100 text-blue-800'
                     : 'bg-gray-100 text-gray-800'
                   }`}>
@@ -286,8 +286,8 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 size="sm"
                 className={`flex items-center gap-2 transition-colors ${
                   userAction === 'support' 
-                    ? 'bg-green-100 text-green-800 border-green-300' 
-                    : 'text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200'
+                    ? 'bg-stone-200 text-stone-700 border-stone-300' 
+                    : 'text-stone-600 hover:text-stone-700 hover:bg-stone-50 border-stone-200'
                 }`}
                 onClick={() => handleSupportOppose('support')}
                 title={user ? 'Support this bill' : 'Login to support this bill'}
@@ -303,8 +303,8 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                 size="sm"
                 className={`flex items-center gap-2 transition-colors ${
                   userAction === 'oppose' 
-                    ? 'bg-red-100 text-red-800 border-red-300' 
-                    : 'text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200'
+                    ? 'bg-amber-100 text-amber-700 border-amber-300' 
+                    : 'text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200'
                 }`}
                 onClick={() => handleSupportOppose('oppose')}
                 title={user ? 'Oppose this bill' : 'Login to oppose this bill'}

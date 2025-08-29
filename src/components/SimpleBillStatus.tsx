@@ -16,23 +16,23 @@ const statusConfig = {
   },
   'in-committee': {
     label: 'In Committee',
-    color: 'bg-yellow-100 text-yellow-700 border-yellow-300'
+    color: 'bg-stone-100 text-stone-700 border-stone-300'
   },
   'passed-house': {
     label: 'Passed House',
-    color: 'bg-blue-100 text-blue-700 border-blue-300'
+    color: 'bg-slate-100 text-slate-700 border-slate-300'
   },
   'passed-senate': {
     label: 'Passed Senate',
-    color: 'bg-indigo-100 text-indigo-700 border-indigo-300'
+    color: 'bg-zinc-100 text-zinc-700 border-zinc-300'
   },
   'enacted': {
     label: 'Enacted',
-    color: 'bg-green-100 text-green-700 border-green-300'
+    color: 'bg-stone-200 text-stone-700 border-stone-300'
   },
   'failed': {
     label: 'Failed',
-    color: 'bg-red-100 text-red-700 border-red-300'
+    color: 'bg-amber-100 text-amber-700 border-amber-300'
   }
 };
 

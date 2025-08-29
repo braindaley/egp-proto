@@ -34,8 +34,8 @@ const LeadershipCard: React.FC<{ member: CommitteeMember; title: string; congres
 );
 
 const MemberCard: React.FC<{ member: CommitteeMember; congress?: string; chamber?: string }> = ({ member, congress, chamber }) => {
-  const partyColor = member.party === 'Republican' || member.party === 'R' ? 'bg-red-100 text-red-800' : 
-                     member.party === 'Democratic' || member.party === 'Democrat' || member.party === 'D' ? 'bg-blue-100 text-blue-800' : 
+  const partyColor = member.party === 'Republican' || member.party === 'R' ? 'bg-stone-100 text-stone-800' : 
+                     member.party === 'Democratic' || member.party === 'Democrat' || member.party === 'D' ? 'bg-slate-100 text-slate-800' : 
                      'bg-gray-100 text-gray-800';
   
   const partyAbbr = member.party === 'Republican' || member.party === 'R' ? 'R' : 
@@ -316,11 +316,11 @@ export function CommitteeDetailClient({ committee, congress }: { committee: Enha
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div className="space-y-1">
-                  <p className="text-2xl font-bold text-red-600">{republicans.length}</p>
+                  <p className="text-2xl font-bold text-stone-600">{republicans.length}</p>
                   <p className="text-sm text-muted-foreground">Majority (Republican)</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-2xl font-bold text-blue-600">{democrats.length}</p>
+                  <p className="text-2xl font-bold text-slate-600">{democrats.length}</p>
                   <p className="text-sm text-muted-foreground">Minority (Democratic)</p>
                 </div>
               </div>

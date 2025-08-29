@@ -128,7 +128,7 @@ export function BillStatus({ bill, className }: BillStatusProps) {
           <div className="flex items-start gap-3">
             <div className={cn(
               "mt-0.5 rounded-full p-1",
-              currentStageIndex >= 6 ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"
+              currentStageIndex >= 6 ? "bg-stone-100 text-stone-600" : "bg-slate-100 text-slate-600"
             )}>
               {React.createElement(currentStage.icon, { className: "h-5 w-5" })}
             </div>
