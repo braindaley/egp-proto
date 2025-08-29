@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getBillTypeSlug } from '@/lib/utils';
-import { Users, ThumbsUp, ThumbsDown, Eye, Share, MessageSquareText } from 'lucide-react';
+import { Users, ThumbsUp, ThumbsDown, Eye, ExternalLink, MessageSquareText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
 import { getBillSupportData } from '@/lib/bill-support-data';
@@ -26,6 +26,7 @@ interface BillCarouselCardProps {
   bill: FeedBill;
   index?: number;
 }
+
 
 export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
   const [supportStatus, setSupportStatus] = useState<'none' | 'supported' | 'opposed'>('none');
@@ -109,15 +110,15 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
       const isRepealing = titleLower.includes('repeal') || titleLower.includes('eliminate') || titleLower.includes('end');
       
       if (isRepealing) {
-        explainer = `This bill would eliminate or repeal existing ${subject} policies`;
+        explainer = `${bill.billNumber} would eliminate or repeal existing ${subject} policies`;
       } else if (isEstablishing) {
-        explainer = `This bill would create new ${subject} programs or agencies`;
+        explainer = `${bill.billNumber} would create new ${subject} programs or agencies`;
       } else if (isReforming) {
-        explainer = `This bill would reform and improve existing ${subject} systems`;
+        explainer = `${bill.billNumber} would reform and improve existing ${subject} systems`;
       } else if (isFunding) {
-        explainer = `This bill would provide funding for ${subject} initiatives`;
+        explainer = `${bill.billNumber} would provide funding for ${subject} initiatives`;
       } else {
-        explainer = `This bill would modify federal ${subject} policy`;
+        explainer = `${bill.billNumber} would modify federal ${subject} policy`;
       }
       
       setExplainerData({
@@ -166,6 +167,7 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
     router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`);
   };
 
+
   if (isLoading) {
     return (
       <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out bg-white border-gray-200">
@@ -182,31 +184,6 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
 
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300 ease-in-out bg-white border-gray-200">
-      {/* Header with sponsor info */}
-      <div className="p-6 text-center">
-        <div className="flex items-center justify-center gap-4">
-          {bill.sponsorImageUrl && (
-            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-              <Image 
-                src={bill.sponsorImageUrl} 
-                alt={bill.sponsorFullName}
-                width={40}
-                height={40}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-          <Badge className={`text-sm font-medium ${partyColor} border-0`}>
-            {bill.sponsorFullName}
-          </Badge>
-          <Badge variant="outline" className="text-sm font-semibold border-gray-300 text-gray-800">{bill.billNumber}</Badge>
-          {bill.subjects && bill.subjects.length > 0 && (
-            <Badge variant="outline" className="text-sm border-gray-300 text-gray-600">
-              {bill.subjects[0]}
-            </Badge>
-          )}
-        </div>
-      </div>
 
       {/* Social Media Explainer Content */}
       <CardContent className="space-y-6 pt-8">
@@ -226,19 +203,6 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-semibold text-gray-800">Support</h4>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className={`flex items-center gap-1.5 transition-colors border-gray-300 ${
-                  supportStatus === 'supported'
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-                }`}
-                onClick={handleSupport}
-              >
-                <ThumbsUp className="h-4 w-4" />
-                {supportStatus === 'supported' ? 'Supported!' : supportCount.toLocaleString()}
-              </Button>
             </div>
             <p className="text-sm text-gray-700 leading-relaxed">
               {explainerData?.supportStatement}
@@ -249,19 +213,6 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
           <div className="bg-gray-100 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-semibold text-gray-800">Oppose</h4>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className={`flex items-center gap-1.5 transition-colors border-gray-300 ${
-                  supportStatus === 'opposed'
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-                }`}
-                onClick={handleOppose}
-              >
-                <ThumbsDown className="h-4 w-4" />
-                {supportStatus === 'opposed' ? 'Opposed!' : opposeCount.toLocaleString()}
-              </Button>
             </div>
             <p className="text-sm text-gray-700 leading-relaxed">
               {explainerData?.opposeStatement}
@@ -270,46 +221,63 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
         </div>
       </CardContent>
 
-      {/* Action Buttons */}
-      <div className="flex items-center justify-center gap-4 p-6 bg-gray-50">
-        <Button 
-          size="sm"
-          className="bg-black text-white hover:bg-gray-800"
+      {/* Twitter-style Action Bar */}
+      <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+        <button
           onClick={handleVoiceOpinionClick}
+          className="flex items-center gap-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full px-3 py-2 transition-colors group"
         >
-          <MessageSquareText className="h-4 w-4 mr-1" />
-          Voice Opinion
-        </Button>
+          <MessageSquareText className="h-4 w-4" />
+          <span className="text-sm font-medium">58</span>
+        </button>
         
-        <Button 
-          variant="outline"
-          size="sm"
+        <button
+          onClick={handleSupport}
+          className={`flex items-center gap-1 rounded-full px-3 py-2 transition-colors group ${
+            supportStatus === 'supported'
+              ? 'text-red-600 bg-red-50'
+              : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
+          }`}
+        >
+          <ThumbsUp className="h-4 w-4" />
+          <span className="text-sm font-medium">
+            {supportStatus === 'supported' ? (supportCount + 1).toLocaleString() : supportCount.toLocaleString()}
+          </span>
+        </button>
+        
+        <button
+          onClick={handleOppose}
+          className={`flex items-center gap-1 rounded-full px-3 py-2 transition-colors group ${
+            supportStatus === 'opposed'
+              ? 'text-red-600 bg-red-50'
+              : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
+          }`}
+        >
+          <ThumbsDown className="h-4 w-4" />
+          <span className="text-sm font-medium">
+            {supportStatus === 'opposed' ? (opposeCount + 1).toLocaleString() : opposeCount.toLocaleString()}
+          </span>
+        </button>
+        
+        <button
           onClick={handleWatch}
-          className={cn(
-            "flex items-center gap-1.5 border-gray-300",
-            isWatched ? "bg-gray-800 text-white" : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
-          )}
+          className={`flex items-center gap-1 rounded-full px-3 py-2 transition-colors group ${
+            isWatched 
+              ? 'text-blue-600 bg-blue-50' 
+              : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+          }`}
         >
           <Eye className="h-4 w-4" />
-          {isWatched ? 'Watching' : 'Watch'}
-        </Button>
+          <span className="text-sm font-medium">123K</span>
+        </button>
         
-        <Button 
-          variant="outline"
-          size="sm"
-          onClick={handleInteractionClick}
-          className="flex items-center gap-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 border-gray-300"
-        >
-          <Share className="h-4 w-4" />
-          Share
-        </Button>
-        
-        <Link 
-          href={detailUrl} 
-          className="text-sm text-gray-500 hover:text-gray-700 hover:underline"
+        <Link
+          href={detailUrl}
           onClick={(e) => e.stopPropagation()}
+          className="flex items-center gap-1 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-full px-3 py-2 transition-colors group"
         >
-          Read full bill →
+          <ExternalLink className="h-4 w-4" />
+          <span className="text-sm font-medium">Bill</span>
         </Link>
       </div>
     </Card>
