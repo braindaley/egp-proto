@@ -107,6 +107,7 @@ const AdvocacyMessageContent: React.FC = () => {
   const [constituentDescription, setConstituentDescription] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'egutenberg' | 'email_provider'>('egutenberg');
   const [notificationEmail, setNotificationEmail] = useState('');
+  const [bccEmails, setBccEmails] = useState<string[]>(['']);
   
   // Step 6 state (sending screen)
   const [isSending, setIsSending] = useState(false);
@@ -536,6 +537,9 @@ const AdvocacyMessageContent: React.FC = () => {
         })),
         personalDataIncluded: selectedPersonalData,
         constituentDescription: constituentDescription || null,
+        deliveryMethod: deliveryMethod,
+        notificationEmail: notificationEmail || null,
+        bccEmails: bccEmails.filter(email => email.trim() !== ''),
         sentAt: Timestamp.now(),
         deliveryStatus: 'sent'
       };
@@ -1298,18 +1302,65 @@ const AdvocacyMessageContent: React.FC = () => {
                         We'll send your message from our platform and notify you of any responses
                       </p>
                       {deliveryMethod === 'egutenberg' && (
-                        <div>
-                          <Label htmlFor="notification-email-logged" className="text-xs font-medium">
-                            Enter your email for notifications
-                          </Label>
-                          <Input
-                            id="notification-email-logged"
-                            type="email"
-                            placeholder={user?.email || "your@email.com"}
-                            value={notificationEmail || user?.email || ''}
-                            onChange={(e) => setNotificationEmail(e.target.value)}
-                            className="mt-1"
-                          />
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor="notification-email-logged" className="text-xs font-medium">
+                              Enter your email for notifications
+                            </Label>
+                            <Input
+                              id="notification-email-logged"
+                              type="email"
+                              placeholder={user?.email || "your@email.com"}
+                              value={notificationEmail || user?.email || ''}
+                              onChange={(e) => setNotificationEmail(e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label className="text-xs font-medium">BCC Email Addresses (Optional)</Label>
+                            <div className="space-y-2 mt-1">
+                              {bccEmails.map((email, index) => (
+                                <div key={index} className="flex gap-2">
+                                  <Input
+                                    type="email"
+                                    placeholder="bcc@email.com"
+                                    value={email}
+                                    onChange={(e) => {
+                                      const newBccEmails = [...bccEmails];
+                                      newBccEmails[index] = e.target.value;
+                                      setBccEmails(newBccEmails);
+                                    }}
+                                    className="flex-1"
+                                  />
+                                  {bccEmails.length > 1 && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        const newBccEmails = bccEmails.filter((_, i) => i !== index);
+                                        setBccEmails(newBccEmails.length === 0 ? [''] : newBccEmails);
+                                      }}
+                                    >
+                                      Remove
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                              {bccEmails.length < 5 && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setBccEmails([...bccEmails, ''])}
+                                  className="text-xs"
+                                >
+                                  Add BCC Email
+                                </Button>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1329,31 +1380,78 @@ const AdvocacyMessageContent: React.FC = () => {
                         Connect with Gmail, Microsoft 365, Outlook, Yahoo, or other email providers
                       </p>
                       {deliveryMethod === 'email_provider' && (
-                        <div className="grid grid-cols-2 gap-2 mt-3">
-                          <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                            <div className="w-4 h-4 bg-stone-500 rounded-sm flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">G</span>
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                              <div className="w-4 h-4 bg-stone-500 rounded-sm flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">G</span>
+                              </div>
+                              <span>Gmail</span>
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                              <div className="w-4 h-4 bg-slate-500 rounded-sm flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">O</span>
+                              </div>
+                              <span>Outlook</span>
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                              <div className="w-4 h-4 bg-zinc-600 rounded-sm flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">Y</span>
+                              </div>
+                              <span>Yahoo</span>
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                              <div className="w-4 h-4 bg-blue-600 rounded-sm flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">M</span>
+                              </div>
+                              <span>Microsoft 365</span>
+                            </Button>
+                          </div>
+                          
+                          <div>
+                            <Label className="text-xs font-medium">BCC Email Addresses (Optional)</Label>
+                            <div className="space-y-2 mt-1">
+                              {bccEmails.map((email, index) => (
+                                <div key={index} className="flex gap-2">
+                                  <Input
+                                    type="email"
+                                    placeholder="bcc@email.com"
+                                    value={email}
+                                    onChange={(e) => {
+                                      const newBccEmails = [...bccEmails];
+                                      newBccEmails[index] = e.target.value;
+                                      setBccEmails(newBccEmails);
+                                    }}
+                                    className="flex-1"
+                                  />
+                                  {bccEmails.length > 1 && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        const newBccEmails = bccEmails.filter((_, i) => i !== index);
+                                        setBccEmails(newBccEmails.length === 0 ? [''] : newBccEmails);
+                                      }}
+                                    >
+                                      Remove
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                              {bccEmails.length < 5 && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setBccEmails([...bccEmails, ''])}
+                                  className="text-xs"
+                                >
+                                  Add BCC Email
+                                </Button>
+                              )}
                             </div>
-                            <span>Gmail</span>
-                          </Button>
-                          <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                            <div className="w-4 h-4 bg-slate-500 rounded-sm flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">O</span>
-                            </div>
-                            <span>Outlook</span>
-                          </Button>
-                          <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                            <div className="w-4 h-4 bg-zinc-600 rounded-sm flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">Y</span>
-                            </div>
-                            <span>Yahoo</span>
-                          </Button>
-                          <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                            <div className="w-4 h-4 bg-blue-600 rounded-sm flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">M</span>
-                            </div>
-                            <span>Microsoft 365</span>
-                          </Button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1690,6 +1788,20 @@ const AdvocacyMessageContent: React.FC = () => {
           )}
 
 
+          {/* BCC Emails */}
+          {bccEmails.filter(email => email.trim() !== '').length > 0 && (
+            <div>
+              <h3 className="font-semibold mb-3">BCC Recipients</h3>
+              <div className="bg-muted rounded-lg p-4">
+                {bccEmails.filter(email => email.trim() !== '').map((email, index) => (
+                  <p key={index} className="text-sm">
+                    {email}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+          
           {/* Signature - only show when user has completed verification */}
           {(user || verifiedUserInfo) && (
             <div>
@@ -2374,8 +2486,11 @@ const AdvocacyMessageContent: React.FC = () => {
       {/* Close button */}
       <button
         onClick={() => {
-          // Check if there's a referrer to go back to
-          if (typeof window !== 'undefined' && document.referrer) {
+          // If we have bill parameters, go to the bill detail page
+          if (congress && billType && billNumber) {
+            router.push(`/bill/${congress}/${billType}/${billNumber}`);
+          } else if (typeof window !== 'undefined' && window.history.length > 1) {
+            // Try to go back if there's history
             router.back();
           } else {
             // Otherwise go to home page

@@ -60,6 +60,7 @@ function CreateCampaignPageContent() {
     const { user, loading: authLoading } = useAuth();
     
     const [selectedGroup, setSelectedGroup] = useState<string>(searchParams.get('group') || '');
+    const [campaignType, setCampaignType] = useState<'Bill' | 'Town Hall' | 'Candidate'>('Bill');
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Bill[]>([]);
     const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
@@ -193,6 +194,21 @@ function CreateCampaignPageContent() {
                                         {group.name}
                                     </SelectItem>
                                 ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Campaign Type */}
+                    <div className="space-y-2">
+                        <Label htmlFor="campaign-type">Campaign Type</Label>
+                        <Select value={campaignType} onValueChange={(value) => setCampaignType(value as 'Bill' | 'Town Hall' | 'Candidate')}>
+                            <SelectTrigger id="campaign-type">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Bill">Bill</SelectItem>
+                                <SelectItem value="Town Hall">Town Hall</SelectItem>
+                                <SelectItem value="Candidate">Candidate</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
