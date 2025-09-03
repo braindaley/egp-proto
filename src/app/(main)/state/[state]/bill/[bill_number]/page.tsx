@@ -58,8 +58,17 @@ export default function BillDetailPage() {
         const data = await response.json();
         
         if (data.status === 'success' && data.data?.sessions?.length > 0) {
-          // Use the most recent session (first one)
-          setCurrentSession(data.data.sessions[0]);
+          const sessionsList = data.data.sessions;
+          const currentYear = new Date().getFullYear();
+          // Find the first session that's not a future prefile session
+          const activeSession = sessionsList.find((s: any) => 
+            !s.prefile && s.year_start <= currentYear && !s.special
+          );
+          const recentSession = sessionsList.find((s: any) => 
+            s.year_start <= currentYear && !s.special
+          );
+          // Use active session, or most recent non-future session, or fallback to first
+          setCurrentSession(activeSession || recentSession || sessionsList[0]);
         }
       } catch (error) {
         console.error('Error fetching current session:', error);
@@ -83,7 +92,10 @@ export default function BillDetailPage() {
         const data = await response.json();
         
         if (data.status === 'success' && data.data?.masterlist) {
-          const bills = Object.values(data.data.masterlist) as any[];
+          // Filter out 'session' key and only get actual bill objects
+          const bills = Object.entries(data.data.masterlist)
+            .filter(([key, value]: [string, any]) => key !== 'session' && value.bill_id)
+            .map(([_, bill]) => bill) as any[];
           const foundBill = bills.find((b: any) => b.number === billNumber);
           
           if (foundBill) {

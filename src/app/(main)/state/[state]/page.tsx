@@ -82,9 +82,18 @@ export default function StateOverviewPage() {
           const sessionsList = data.data.sessions;
           setSessions(sessionsList);
           
-          // Auto-select the most recent session (first one)
+          // Auto-select a session that has bills (not a future prefile session)
           if (sessionsList.length > 0) {
-            setCurrentSession(sessionsList[0]);
+            const currentYear = new Date().getFullYear();
+            // Find the first session that's not a future prefile session
+            const activeSession = sessionsList.find((s: any) => 
+              !s.prefile && s.year_start <= currentYear && !s.special
+            );
+            const recentSession = sessionsList.find((s: any) => 
+              s.year_start <= currentYear && !s.special
+            );
+            // Use active session, or most recent non-future session, or fallback to first
+            setCurrentSession(activeSession || recentSession || sessionsList[0]);
           }
         }
       } catch (error) {
@@ -110,7 +119,10 @@ export default function StateOverviewPage() {
         
         if (billsData.status === 'success' && billsData.data?.masterlist) {
           // Get all bills and set total count
-          const billsArray = Object.values(billsData.data.masterlist) as any[];
+          // Filter out 'session' key and only get actual bill objects
+          const billsArray = Object.entries(billsData.data.masterlist)
+            .filter(([key, value]: [string, any]) => key !== 'session' && value.bill_id)
+            .map(([_, bill]) => bill) as any[];
           setTotalBillsCount(billsArray.length);
           // Display first 6 bills
           setRecentBills(billsArray.slice(0, 6));
@@ -220,9 +232,9 @@ export default function StateOverviewPage() {
               <div className="text-center py-8 text-muted-foreground">Loading bills...</div>
             ) : recentBills.length > 0 ? (
               <div className="space-y-4">
-                {recentBills.map((bill) => (
+                {recentBills.map((bill, index) => (
                   <Link 
-                    key={bill.bill_id} 
+                    key={bill.bill_id || `bill-${index}`} 
                     href={`/state/${stateCode.toLowerCase()}/bill/${bill.number}`}
                     className="block"
                   >
@@ -287,9 +299,9 @@ export default function StateOverviewPage() {
               <div className="text-center py-8 text-muted-foreground">Loading members...</div>
             ) : members.length > 0 ? (
               <div className="grid grid-cols-2 gap-4">
-                {members.map((member) => (
+                {members.map((member, index) => (
                   <Link 
-                    key={member.people_id} 
+                    key={member.people_id || `member-${index}`} 
                     href={`/state/${stateCode.toLowerCase()}/member/${member.people_id}`}
                     className="block"
                   >
