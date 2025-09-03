@@ -84,6 +84,35 @@ const existingCampaigns: Campaign[] = [
     updatedAt: '2024-01-01T00:00:00Z',
     isActive: true
   },
+  // League of Women Voters campaigns
+  {
+    id: 'league-hr-14',
+    groupSlug: 'league-of-women-voters',
+    groupName: 'League of Women Voters',
+    bill: { congress: 119, type: 'HR', number: '14', title: 'Election Day Holiday Act' },
+    position: 'Support',
+    reasoning: 'Making Election Day a federal holiday would increase voter participation by removing work-related barriers to voting. This reform would particularly benefit hourly workers and those with inflexible schedules who often face difficult choices between voting and earning a paycheck.',
+    actionButtonText: 'Voice your opinion',
+    supportCount: 12500,
+    opposeCount: 2100,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    isActive: true
+  },
+  {
+    id: 'league-hr-22',
+    groupSlug: 'league-of-women-voters',
+    groupName: 'League of Women Voters',
+    bill: { congress: 119, type: 'HR', number: '22', title: 'SAVE Act' },
+    position: 'Oppose',
+    reasoning: 'The SAVE Act would require documentary proof of citizenship for voter registration, creating significant barriers for eligible voters. This requirement would disproportionately affect elderly citizens, rural voters, and those who have changed their names through marriage.',
+    actionButtonText: 'Voice your opinion',
+    supportCount: 3100,
+    opposeCount: 17200,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    isActive: true
+  },
   // Add more migrated campaigns as needed...
 ];
 

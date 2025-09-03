@@ -37,7 +37,7 @@ async function getBillDetails(congress: number, billType: string, billNumber: st
 export default async function CampaignDetailPage({ 
     params 
 }: { 
-    params: { groupName: string; billId: string } 
+    params: Promise<{ groupName: string; billId: string }>
 }) {
     const { groupName, billId } = await params;
     
