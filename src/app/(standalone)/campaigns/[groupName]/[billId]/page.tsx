@@ -11,7 +11,7 @@ import { remark } from 'remark';
 import html from 'remark-html';
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
-import { X, FileText } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SummaryDisplay } from '@/components/bill-summary-display';
 
@@ -68,47 +68,49 @@ export default function CampaignDetailPage({
                 return;
             }
 
-            // Get campaign data - first check static campaigns service
-            let campaignData = campaignsService.getCampaignByGroupAndBill(groupName, billType, billNumber);
+            // Get campaign data - first check Firebase for edited campaigns
+            let campaignData = null;
             
-            // If not found in static data, check Firebase
-            if (!campaignData) {
-                try {
-                    const db = getFirestore(app);
-                    const campaignsQuery = query(
-                        collection(db, 'campaigns'),
-                        where('groupSlug', '==', groupName),
-                        where('billType', '==', billType.toUpperCase()),
-                        where('billNumber', '==', billNumber)
-                    );
-                    
-                    const querySnapshot = await getDocs(campaignsQuery);
-                    if (!querySnapshot.empty) {
-                        const doc = querySnapshot.docs[0];
-                        const data = doc.data();
-                        campaignData = {
-                            id: doc.id,
-                            groupSlug: data.groupSlug,
-                            groupName: data.groupName || groupName,
-                            bill: {
-                                congress: 119, // Default to current congress
-                                type: data.billType,
-                                number: data.billNumber,
-                                title: data.billTitle
-                            },
-                            position: data.position,
-                            reasoning: data.reasoning,
-                            actionButtonText: 'Voice your opinion',
-                            supportCount: data.supportCount || 0,
-                            opposeCount: data.opposeCount || 0,
-                            createdAt: data.createdAt || new Date().toISOString(),
-                            updatedAt: data.updatedAt || new Date().toISOString(),
-                            isActive: true
-                        };
-                    }
-                } catch (error) {
-                    console.error('Error fetching campaign from Firebase:', error);
+            try {
+                const db = getFirestore(app);
+                const campaignsQuery = query(
+                    collection(db, 'campaigns'),
+                    where('groupSlug', '==', groupName),
+                    where('billType', '==', billType.toUpperCase()),
+                    where('billNumber', '==', billNumber)
+                );
+                
+                const querySnapshot = await getDocs(campaignsQuery);
+                if (!querySnapshot.empty) {
+                    const doc = querySnapshot.docs[0];
+                    const data = doc.data();
+                    campaignData = {
+                        id: doc.id,
+                        groupSlug: data.groupSlug,
+                        groupName: data.groupName || groupName,
+                        bill: {
+                            congress: data.congress || 119, // Use congress from Firebase if available
+                            type: data.billType,
+                            number: data.billNumber,
+                            title: data.billTitle
+                        },
+                        position: data.stance === 'support' ? 'Support' : data.stance === 'oppose' ? 'Oppose' : data.position || 'Support',
+                        reasoning: data.reasoning,
+                        actionButtonText: data.actionButtonText || 'Voice your opinion',
+                        supportCount: data.supportCount || 0,
+                        opposeCount: data.opposeCount || 0,
+                        createdAt: data.createdAt || new Date().toISOString(),
+                        updatedAt: data.updatedAt || new Date().toISOString(),
+                        isActive: true
+                    };
                 }
+            } catch (error) {
+                console.error('Error fetching campaign from Firebase:', error);
+            }
+            
+            // If not found in Firebase, check static campaigns service as fallback
+            if (!campaignData) {
+                campaignData = campaignsService.getCampaignByGroupAndBill(groupName, billType, billNumber);
             }
             
             if (!campaignData) {
@@ -180,8 +182,8 @@ export default function CampaignDetailPage({
             
             <div className="container mx-auto px-8 pt-16 pb-8 max-w-2xl flex-1 flex flex-col">
                 <Card className="flex-1">
-                    <CardHeader className="text-center pb-4">
-                        <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center mx-auto mb-4">
+                    <CardHeader className="pb-4">
+                        <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center mb-4">
                             <Image 
                                 src={groupData.logoUrl || "https://placehold.co/100x100.png"} 
                                 alt={`${groupData.name} logo`} 
@@ -189,21 +191,17 @@ export default function CampaignDetailPage({
                                 height={100}
                             />
                         </div>
-                        <h3 className="text-3xl font-bold font-headline text-primary">
+                        <h1 className="text-2xl font-bold font-headline text-primary text-left">
                             You've been invited to voice your opinion
-                        </h3>
-                        <p className="text-lg text-muted-foreground mt-2">
-                            {groupData.name} urges you to {campaign.position.toLowerCase()} {campaign.bill.type} {campaign.bill.number}
-                        </p>
+                        </h1>
+                        <h2 className="text-xl font-semibold text-primary text-left mt-2">
+                            {campaign.bill.type.toUpperCase()} {campaign.bill.number}
+                        </h2>
                     </CardHeader>
                     <CardContent>
                         {/* AI Bill Overview Section */}
                         {billDetails && ((billDetails.allSummaries && billDetails.allSummaries.length > 0) || (billDetails.summaries?.items && billDetails.summaries.items.length > 0)) && (
-                            <div className="bg-secondary/50 rounded-lg p-6 mb-6">
-                                <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                                    <FileText className="h-5 w-5" />
-                                    Bill Overview
-                                </h4>
+                            <div className="mb-6">
                                 <SummaryDisplay 
                                     summary={billDetails.allSummaries?.[0] || billDetails.summaries?.items?.[0]}
                                     showPoliticalPerspectives={false}
@@ -218,6 +216,7 @@ export default function CampaignDetailPage({
                             supportCount={campaign.supportCount}
                             opposeCount={campaign.opposeCount}
                             groupSlug={groupName}
+                            groupName={groupData.name}
                         />
                     </CardContent>
                 </Card>

@@ -2,12 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import type { Summary } from '@/types';
-import { Loader2, FileText, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2, FileText } from 'lucide-react';
 import { summarizeText, getDemocraticPerspective, getRepublicanPerspective } from '@/ai/flows/summarize-text-flow';
-import { formatDate } from '@/lib/utils';
 
 // Helper function to strip HTML and clean text
 const cleanTextForAI = (htmlText: string | null | undefined): string | null => {
@@ -102,11 +98,7 @@ export const SummaryDisplay = ({ summary, showPoliticalPerspectives = false }: {
   }, [summary, showPoliticalPerspectives]);
 
   return (
-    <div className="p-3 bg-secondary/50 rounded-md">
-      <div className="font-semibold text-sm mb-2 flex justify-between items-center">
-        <span>{summary.actionDesc} ({summary.versionCode})</span>
-        <span className="text-xs text-muted-foreground font-normal">{formatDate(summary.updateDate)}</span>
-      </div>
+    <div>
       
       {isLoading && (
         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
@@ -130,27 +122,6 @@ export const SummaryDisplay = ({ summary, showPoliticalPerspectives = false }: {
         </>
       )}
 
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="mt-4" disabled={!summary.text}>View original text</Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[90vw] h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Original Text: {summary.actionDesc} ({summary.versionCode})</DialogTitle>
-            <DialogDescription>
-              Full original text for the summary from {formatDate(summary.updateDate)}.
-            </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="flex-grow pr-6">
-             <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: summary.text }} />
-          </ScrollArea>
-          <DialogClose asChild>
-            <Button type="button" variant="secondary" className="mt-4">
-              Close
-            </Button>
-          </DialogClose>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
