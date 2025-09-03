@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Check, Mail, Users, Video, MessageCircle, Heart, BarChart3 } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Check, Mail, Users, Video, MessageCircle, Heart, BarChart3, Share2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,6 +59,11 @@ export default function MembershipPage() {
       icon: MessageCircle,
       title: 'Messaging Between Users',
       description: 'Connect and coordinate with other advocates through our secure messaging system'
+    },
+    {
+      icon: Share2,
+      title: 'Receive and post all responses',
+      description: 'Share responses to your transmittals with your peers'
     }
   ];
 
