@@ -223,6 +223,13 @@ export class LegiscanConnector {
   async getSessionPeople(sessionId: number): Promise<LegiscanApiResponse<any>> {
     return this.makeRequest('getSessionPeople', { id: sessionId });
   }
+
+  /**
+   * Get dataset for a session (bulk download)
+   */
+  async getDataset(sessionId: number): Promise<LegiscanApiResponse<any>> {
+    return this.makeRequest('getDataset', { id: sessionId });
+  }
 }
 
 /**

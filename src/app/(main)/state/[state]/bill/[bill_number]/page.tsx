@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, ArrowLeft, FileText, Calendar, Users, ExternalLink, Loader2, Vote, Clock, User, Building } from 'lucide-react';
+import { ArrowRight, ArrowLeft, FileText, Calendar, Users, ExternalLink, Loader2, Vote, Clock, User, Building, Tags } from 'lucide-react';
+import { processLegiscanBillSubjects } from '@/lib/legiscan-subjects';
 
 const states = [
   { name: 'Alabama', abbr: 'AL' }, { name: 'Alaska', abbr: 'AK' },
@@ -315,6 +316,56 @@ export default function BillDetailPage() {
                 </div>
               </div>
 
+              {/* Subjects & Policy Areas */}
+              {(() => {
+                const subjectData = processLegiscanBillSubjects(bill);
+                return subjectData.rawSubjects.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-primary mb-3 flex items-center gap-2">
+                      <Tags className="h-4 w-4" />
+                      Policy Areas & Issues
+                    </h3>
+                    <div className="space-y-3">
+                      {/* Primary Category */}
+                      {subjectData.primaryCategory && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-2">Primary Issue Category</p>
+                          <Badge variant="default" className="text-sm">
+                            {subjectData.primaryCategory}
+                          </Badge>
+                        </div>
+                      )}
+                      
+                      {/* Additional Categories */}
+                      {subjectData.allCategories.length > 1 && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-2">Additional Categories</p>
+                          <div className="flex flex-wrap gap-2">
+                            {subjectData.allCategories.slice(1).map(category => (
+                              <Badge key={category} variant="outline" className="text-xs">
+                                {category}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Raw Subjects */}
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">State Legislative Subjects</p>
+                        <div className="flex flex-wrap gap-2">
+                          {subjectData.rawSubjects.map((subject, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {subject}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* External Links */}
               <div>
                 <h3 className="font-semibold text-primary mb-3">External Resources</h3>
@@ -347,41 +398,39 @@ export default function BillDetailPage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {bill.sponsors.map((sponsor: any) => (
-                    <Link 
-                      key={sponsor.people_id} 
-                      href={`/state/${stateCode.toLowerCase()}/member/${sponsor.people_id}`}
-                      className="block"
-                    >
-                      <div className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer hover:border-primary/50">
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant={sponsor.sponsor_type_id === 1 ? "default" : "secondary"} className="text-xs">
-                            {sponsor.sponsor_type_id === 1 ? 'Primary' : 'Co-Sponsor'}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {sponsor.party}
-                          </Badge>
-                        </div>
-                        <h4 className="font-semibold text-sm mb-1 hover:text-primary transition-colors">{sponsor.name}</h4>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          {sponsor.role} - {sponsor.district}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-blue-600">View Profile</span>
-                          {sponsor.ballotpedia && (
-                            <a 
-                              href={`https://ballotpedia.org/${sponsor.ballotpedia}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              Ballotpedia
-                            </a>
-                          )}
-                        </div>
+                    <div key={sponsor.people_id} className="border rounded-lg p-4 hover:shadow-md transition-shadow hover:border-primary/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant={sponsor.sponsor_type_id === 1 ? "default" : "secondary"} className="text-xs">
+                          {sponsor.sponsor_type_id === 1 ? 'Primary' : 'Co-Sponsor'}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {sponsor.party}
+                        </Badge>
                       </div>
-                    </Link>
+                      <h4 className="font-semibold text-sm mb-1 hover:text-primary transition-colors">{sponsor.name}</h4>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        {sponsor.role} - {sponsor.district}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <Link 
+                          href={`/state/${stateCode.toLowerCase()}/member/${sponsor.people_id}`}
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          View Profile
+                        </Link>
+                        {sponsor.ballotpedia && (
+                          <a 
+                            href={`https://ballotpedia.org/${sponsor.ballotpedia}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Ballotpedia
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </CardContent>

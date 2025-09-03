@@ -76,6 +76,13 @@ export async function GET(req: Request) {
         const person = await legiscan.getPerson(parseInt(personId));
         return NextResponse.json(person);
 
+      case 'dataset':
+        if (!sessionId) {
+          return NextResponse.json({ error: 'Session ID required for dataset' }, { status: 400 });
+        }
+        const dataset = await legiscan.getDataset(parseInt(sessionId));
+        return NextResponse.json(dataset);
+
       case 'states':
         // Return available state mappings
         return NextResponse.json({
@@ -86,7 +93,7 @@ export async function GET(req: Request) {
       default:
         return NextResponse.json({
           error: 'Invalid action',
-          availableActions: ['sessions', 'masterlist', 'bill', 'search', 'recent', 'session-people', 'person', 'states'],
+          availableActions: ['sessions', 'masterlist', 'bill', 'search', 'recent', 'session-people', 'person', 'dataset', 'states'],
           examples: {
             sessions: '/api/legiscan?action=sessions&state=CA',
             masterlist: '/api/legiscan?action=masterlist&sessionId=1234',
@@ -95,6 +102,7 @@ export async function GET(req: Request) {
             recent: '/api/legiscan?action=recent&state=CA',
             sessionPeople: '/api/legiscan?action=session-people&sessionId=1234',
             person: '/api/legiscan?action=person&personId=1234',
+            dataset: '/api/legiscan?action=dataset&sessionId=1234',
             states: '/api/legiscan?action=states',
           },
         }, { status: 400 });
