@@ -6,6 +6,8 @@ import { campaignsService } from '@/lib/campaigns';
 import { getAdvocacyGroupData } from '@/lib/advocacy-groups';
 import { remark } from 'remark';
 import html from 'remark-html';
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
+import { app } from '@/lib/firebase';
 
 async function processMarkdown(markdown: string) {
     const result = await remark().use(html).process(markdown);
@@ -54,9 +56,6 @@ export default async function CampaignDetailPage({
     // If not found in static data, check Firebase
     if (!campaign) {
         try {
-            const { getFirestore, collection, query, where, getDocs } = await import('firebase/firestore');
-            const { app } = await import('@/lib/firebase');
-            
             const db = getFirestore(app);
             const campaignsQuery = query(
                 collection(db, 'campaigns'),

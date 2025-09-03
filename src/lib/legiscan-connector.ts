@@ -94,12 +94,34 @@ export class LegiscanConnector {
         };
       }
 
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        return {
+          status: 'error',
+          error: {
+            message: `Expected JSON but received ${contentType}. Response: ${text.substring(0, 200)}...`,
+          },
+        };
+      }
+
       const data = await response.json();
       return {
         status: 'success',
         data,
       };
     } catch (error: any) {
+      // Handle JSON parsing errors specifically
+      if (error.message.includes('Unexpected token') || error.message.includes('Unexpected end of JSON input')) {
+        return {
+          status: 'error',
+          error: {
+            message: `JSON parsing failed: ${error.message}. The API may have returned HTML instead of JSON.`,
+          },
+        };
+      }
+      
       return {
         status: 'error',
         error: {

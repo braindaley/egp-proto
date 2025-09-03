@@ -19,7 +19,7 @@ import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, B
 export const dynamic = 'force-dynamic';
 
 export default function ProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUserData } = useAuth();
   const { zipCode: cookieZipCode } = useZipCode();
   const { representatives } = useMembersByZip(cookieZipCode);
   const [profile, setProfile] = useState<Partial<User>>({});
@@ -83,6 +83,7 @@ export default function ProfilePage() {
     try {
       const userRef = doc(db, 'users', user.uid);
       await setDoc(userRef, { ...profile, birthYear: Number(profile.birthYear) }, { merge: true });
+      await refreshUserData();
       router.push('/dashboard');
     } catch (error) {
       console.error("Error saving profile:", error);

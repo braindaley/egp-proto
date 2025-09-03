@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -109,6 +109,20 @@ const AdvocacyMessageContent: React.FC = () => {
   const [deliveryMethod, setDeliveryMethod] = useState<'egutenberg' | 'email_provider'>('egutenberg');
   const [notificationEmail, setNotificationEmail] = useState('');
   const [bccEmails, setBccEmails] = useState<string[]>(['']);
+
+  // Profile data form fields for missing user data
+  const [profileFirstName, setProfileFirstName] = useState('');
+  const [profileLastName, setProfileLastName] = useState('');
+  const [profileAddress, setProfileAddress] = useState('');
+  const [profileCity, setProfileCity] = useState('');
+  const [profileState, setProfileState] = useState('');
+  const [profileZipCode, setProfileZipCode] = useState('');
+  const [profileBirthYear, setProfileBirthYear] = useState('');
+  const [profileGender, setProfileGender] = useState('');
+  const [profilePoliticalAffiliation, setProfilePoliticalAffiliation] = useState('');
+  const [profileEducation, setProfileEducation] = useState('');
+  const [profileProfession, setProfileProfession] = useState('');
+  const [profileMilitaryService, setProfileMilitaryService] = useState<boolean | null>(null);
   
   // Step 6 state (sending screen)
   const [isSending, setIsSending] = useState(false);
@@ -169,6 +183,42 @@ const AdvocacyMessageContent: React.FC = () => {
       setVerifiedUserInfo(null);
     }
   }, [isVerified]);
+
+  // Load user profile data when authenticated
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { getFirestore, doc, getDoc } = await import('firebase/firestore');
+        const { app } = await import('@/lib/firebase');
+        const db = getFirestore(app);
+        
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          
+          // Populate form fields with existing user data
+          if (userData.firstName) setProfileFirstName(userData.firstName);
+          if (userData.lastName) setProfileLastName(userData.lastName);
+          if (userData.address) setProfileAddress(userData.address);
+          if (userData.city) setProfileCity(userData.city);
+          if (userData.state) setProfileState(userData.state);
+          if (userData.zipCode) setProfileZipCode(userData.zipCode);
+          if (userData.birthYear) setProfileBirthYear(userData.birthYear.toString());
+          if (userData.gender) setProfileGender(userData.gender);
+          if (userData.politicalAffiliation) setProfilePoliticalAffiliation(userData.politicalAffiliation);
+          if (userData.education) setProfileEducation(userData.education);
+          if (userData.profession) setProfileProfession(userData.profession);
+          if (userData.militaryService !== undefined) setProfileMilitaryService(userData.militaryService);
+        }
+      } catch (error) {
+        console.error('Failed to load user profile:', error);
+      }
+    };
+
+    loadUserProfile();
+  }, [user]);
 
   // Fetch bill details
   useEffect(() => {
@@ -248,21 +298,35 @@ const AdvocacyMessageContent: React.FC = () => {
       ];
     }
     
-    // Use logged in user profile if available
+    // Use logged in user profile if available, combining saved data with current form state
     if (user) {
-      const addressParts = [user?.address, user?.city, user?.state, user?.zipCode].filter(Boolean);
+      // Combine profile form state with any existing user data
+      const currentFirstName = profileFirstName || user?.firstName || '';
+      const currentLastName = profileLastName || user?.lastName || '';
+      const currentAddress = profileAddress || user?.address || '';
+      const currentCity = profileCity || user?.city || '';
+      const currentState = profileState || user?.state || '';
+      const currentZipCode = profileZipCode || user?.zipCode || '';
+      const currentBirthYear = profileBirthYear || user?.birthYear?.toString() || '';
+      const currentGender = profileGender || user?.gender || '';
+      const currentPoliticalAffiliation = profilePoliticalAffiliation || user?.politicalAffiliation || '';
+      const currentEducation = profileEducation || user?.education || '';
+      const currentProfession = profileProfession || user?.profession || '';
+      const currentMilitaryService = profileMilitaryService !== null ? profileMilitaryService : user?.militaryService;
+      
+      const addressParts = [currentAddress, currentCity, currentState, currentZipCode].filter(Boolean);
       const addressValue = addressParts.join(', ');
       const addressAvailable = addressParts.length > 0;
       
       return [
-        { key: 'fullName', label: 'Full Name', value: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(), available: !!(user?.firstName || user?.lastName) },
+        { key: 'fullName', label: 'Full Name', value: `${currentFirstName} ${currentLastName}`.trim(), available: !!(currentFirstName || currentLastName) },
         { key: 'fullAddress', label: 'Full Address', value: addressValue, available: addressAvailable },
-        { key: 'birthYear', label: 'Birth Year', value: user?.birthYear, available: !!user?.birthYear },
-        { key: 'gender', label: 'Gender', value: user?.gender, available: !!user?.gender },
-        { key: 'politicalAffiliation', label: 'Political Affiliation', value: user?.politicalAffiliation, available: !!user?.politicalAffiliation },
-        { key: 'education', label: 'Education', value: user?.education, available: !!user?.education },
-        { key: 'profession', label: 'Profession', value: user?.profession, available: !!user?.profession },
-        { key: 'militaryService', label: 'Military Service', value: user?.militaryService ? 'Yes' : 'No', available: user?.militaryService !== undefined },
+        { key: 'birthYear', label: 'Birth Year', value: currentBirthYear, available: !!(currentBirthYear && currentBirthYear !== 'NaN' && !isNaN(Number(currentBirthYear)) && Number(currentBirthYear) >= 1900) },
+        { key: 'gender', label: 'Gender', value: currentGender, available: !!currentGender },
+        { key: 'politicalAffiliation', label: 'Political Affiliation', value: currentPoliticalAffiliation, available: !!currentPoliticalAffiliation },
+        { key: 'education', label: 'Education', value: currentEducation, available: !!currentEducation },
+        { key: 'profession', label: 'Profession', value: currentProfession, available: !!currentProfession },
+        { key: 'militaryService', label: 'Military Service', value: currentMilitaryService ? 'Yes' : 'No', available: currentMilitaryService !== undefined && currentMilitaryService !== null },
       ];
     }
     
@@ -279,9 +343,64 @@ const AdvocacyMessageContent: React.FC = () => {
     ];
   };
 
-  const personalDataFields = getPersonalDataFields();
+  const personalDataFields = useMemo(() => getPersonalDataFields(), [
+    user,
+    verifiedUserInfo,
+    profileFirstName,
+    profileLastName,
+    profileAddress,
+    profileCity,
+    profileState,
+    profileZipCode,
+    profileBirthYear,
+    profileGender,
+    profilePoliticalAffiliation,
+    profileEducation,
+    profileProfession,
+    profileMilitaryService
+  ]);
   const availableFields = personalDataFields.filter(f => f.available);
   const unavailableFields = personalDataFields.filter(f => !f.available);
+
+  // Save profile data function
+  const saveProfileData = async () => {
+    if (!user) return;
+
+    try {
+      const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+      const { app } = await import('@/lib/firebase');
+      const db = getFirestore(app);
+      
+      const updates: any = {};
+      
+      // Only update fields that have values
+      if (profileFirstName.trim()) updates.firstName = profileFirstName.trim();
+      if (profileLastName.trim()) updates.lastName = profileLastName.trim();
+      if (profileAddress.trim()) updates.address = profileAddress.trim();
+      if (profileCity.trim()) updates.city = profileCity.trim();
+      if (profileState.trim()) updates.state = profileState.trim();
+      if (profileZipCode.trim()) updates.zipCode = profileZipCode.trim();
+      if (profileBirthYear.trim()) {
+        const year = parseInt(profileBirthYear.trim());
+        if (!isNaN(year) && year >= 1900 && year <= new Date().getFullYear()) {
+          updates.birthYear = year;
+        }
+      }
+      if (profileGender.trim()) updates.gender = profileGender.trim();
+      if (profilePoliticalAffiliation.trim()) updates.politicalAffiliation = profilePoliticalAffiliation.trim();
+      if (profileEducation.trim()) updates.education = profileEducation.trim();
+      if (profileProfession.trim()) updates.profession = profileProfession.trim();
+      if (profileMilitaryService !== null) updates.militaryService = profileMilitaryService;
+      
+      if (Object.keys(updates).length > 0) {
+        updates.updatedAt = new Date().toISOString();
+        await updateDoc(doc(db, 'users', user.uid), updates);
+        console.log('Profile data saved successfully');
+      }
+    } catch (error) {
+      console.error('Error saving profile data:', error);
+    }
+  };
 
   // Verification functions
   const handleVerificationSubmit = async () => {
@@ -1202,31 +1321,554 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Step 4: Personal Information
   const renderPersonalInfoStep = () => {
+    // Helper function to handle field input changes and auto-save
+    const handleFieldChange = async (fieldKey: string, value: string) => {
+      switch (fieldKey) {
+        case 'firstName':
+          setProfileFirstName(value);
+          if (value.trim() && user) {
+            // Auto-save and include in selection
+            try {
+              const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+              const { app } = await import('@/lib/firebase');
+              const db = getFirestore(app);
+              await updateDoc(doc(db, 'users', user.uid), { firstName: value.trim() });
+              if (!selectedPersonalData.includes('fullName')) {
+                setSelectedPersonalData(prev => [...prev, 'fullName']);
+              }
+            } catch (error) {
+              console.error('Error saving first name:', error);
+            }
+          }
+          break;
+        case 'lastName':
+          setProfileLastName(value);
+          if (value.trim() && user) {
+            try {
+              const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+              const { app } = await import('@/lib/firebase');
+              const db = getFirestore(app);
+              await updateDoc(doc(db, 'users', user.uid), { lastName: value.trim() });
+              if (!selectedPersonalData.includes('fullName')) {
+                setSelectedPersonalData(prev => [...prev, 'fullName']);
+              }
+            } catch (error) {
+              console.error('Error saving last name:', error);
+            }
+          }
+          break;
+        case 'address':
+          setProfileAddress(value);
+          if (value.trim() && user) {
+            try {
+              const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+              const { app } = await import('@/lib/firebase');
+              const db = getFirestore(app);
+              await updateDoc(doc(db, 'users', user.uid), { address: value.trim() });
+              if (!selectedPersonalData.includes('fullAddress')) {
+                setSelectedPersonalData(prev => [...prev, 'fullAddress']);
+              }
+            } catch (error) {
+              console.error('Error saving address:', error);
+            }
+          }
+          break;
+        case 'city':
+          setProfileCity(value);
+          if (value.trim() && user) {
+            try {
+              const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+              const { app } = await import('@/lib/firebase');
+              const db = getFirestore(app);
+              await updateDoc(doc(db, 'users', user.uid), { city: value.trim() });
+              if (!selectedPersonalData.includes('fullAddress')) {
+                setSelectedPersonalData(prev => [...prev, 'fullAddress']);
+              }
+            } catch (error) {
+              console.error('Error saving city:', error);
+            }
+          }
+          break;
+        case 'state':
+          setProfileState(value);
+          if (value.trim() && user) {
+            try {
+              const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+              const { app } = await import('@/lib/firebase');
+              const db = getFirestore(app);
+              await updateDoc(doc(db, 'users', user.uid), { state: value.trim() });
+              if (!selectedPersonalData.includes('fullAddress')) {
+                setSelectedPersonalData(prev => [...prev, 'fullAddress']);
+              }
+            } catch (error) {
+              console.error('Error saving state:', error);
+            }
+          }
+          break;
+        case 'zipCode':
+          setProfileZipCode(value);
+          if (value.trim() && user) {
+            try {
+              const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+              const { app } = await import('@/lib/firebase');
+              const db = getFirestore(app);
+              await updateDoc(doc(db, 'users', user.uid), { zipCode: value.trim() });
+              if (!selectedPersonalData.includes('fullAddress')) {
+                setSelectedPersonalData(prev => [...prev, 'fullAddress']);
+              }
+            } catch (error) {
+              console.error('Error saving zip code:', error);
+            }
+          }
+          break;
+        case 'birthYear':
+          setProfileBirthYear(value);
+          if (value.trim() && user) {
+            const year = parseInt(value.trim());
+            if (year >= 1900 && year <= new Date().getFullYear()) {
+              try {
+                const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+                const { app } = await import('@/lib/firebase');
+                const db = getFirestore(app);
+                await updateDoc(doc(db, 'users', user.uid), { birthYear: year });
+                if (!selectedPersonalData.includes('birthYear')) {
+                  setSelectedPersonalData(prev => [...prev, 'birthYear']);
+                }
+              } catch (error) {
+                console.error('Error saving birth year:', error);
+              }
+            }
+          }
+          break;
+        case 'gender':
+          setProfileGender(value);
+          if (value.trim() && user) {
+            try {
+              const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+              const { app } = await import('@/lib/firebase');
+              const db = getFirestore(app);
+              await updateDoc(doc(db, 'users', user.uid), { gender: value.trim() });
+              if (!selectedPersonalData.includes('gender')) {
+                setSelectedPersonalData(prev => [...prev, 'gender']);
+              }
+            } catch (error) {
+              console.error('Error saving gender:', error);
+            }
+          }
+          break;
+        case 'politicalAffiliation':
+          setProfilePoliticalAffiliation(value);
+          if (value.trim() && user) {
+            try {
+              const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+              const { app } = await import('@/lib/firebase');
+              const db = getFirestore(app);
+              await updateDoc(doc(db, 'users', user.uid), { politicalAffiliation: value.trim() });
+              if (!selectedPersonalData.includes('politicalAffiliation')) {
+                setSelectedPersonalData(prev => [...prev, 'politicalAffiliation']);
+              }
+            } catch (error) {
+              console.error('Error saving political affiliation:', error);
+            }
+          }
+          break;
+        case 'education':
+          setProfileEducation(value);
+          if (value.trim() && user) {
+            try {
+              const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+              const { app } = await import('@/lib/firebase');
+              const db = getFirestore(app);
+              await updateDoc(doc(db, 'users', user.uid), { education: value.trim() });
+              if (!selectedPersonalData.includes('education')) {
+                setSelectedPersonalData(prev => [...prev, 'education']);
+              }
+            } catch (error) {
+              console.error('Error saving education:', error);
+            }
+          }
+          break;
+        case 'profession':
+          setProfileProfession(value);
+          if (value.trim() && user) {
+            try {
+              const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+              const { app } = await import('@/lib/firebase');
+              const db = getFirestore(app);
+              await updateDoc(doc(db, 'users', user.uid), { profession: value.trim() });
+              if (!selectedPersonalData.includes('profession')) {
+                setSelectedPersonalData(prev => [...prev, 'profession']);
+              }
+            } catch (error) {
+              console.error('Error saving profession:', error);
+            }
+          }
+          break;
+      }
+    };
+
+    const handleMilitaryServiceChange = async (value: boolean | null) => {
+      setProfileMilitaryService(value);
+      if (value !== null && user) {
+        try {
+          const { getFirestore, doc, updateDoc } = await import('firebase/firestore');
+          const { app } = await import('@/lib/firebase');
+          const db = getFirestore(app);
+          await updateDoc(doc(db, 'users', user.uid), { militaryService: value });
+          if (!selectedPersonalData.includes('militaryService')) {
+            setSelectedPersonalData(prev => [...prev, 'militaryService']);
+          }
+        } catch (error) {
+          console.error('Error saving military service:', error);
+        }
+      }
+    };
+
     return (
       <Card className="flex-1 flex flex-col">
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 flex-1 flex flex-col">
-          {/* Personal Information Selection - for logged in or verified users */}
-          {(user || verifiedUserInfo) && availableFields.length > 0 && (
+          {/* Unified Personal Information Section */}
+          {(user || verifiedUserInfo) && (
             <div>
               <h3 className="font-semibold mb-3">Select information you'd like to include about yourself</h3>
-              <div className="space-y-3">
-                {availableFields.map(field => (
-                  <div key={field.key} className="flex items-center space-x-2">
-                    <Checkbox
-                      checked={selectedPersonalData.includes(field.key)}
-                      onCheckedChange={() => togglePersonalData(field.key)}
-                    />
-                    <Label className="cursor-pointer">
-                      <span>{field.label}</span>
-                      {field.value && (
-                        <span className="text-sm text-muted-foreground ml-2">({field.value})</span>
-                      )}
-                    </Label>
-                  </div>
-                ))}
+              <div className="space-y-4">
+                
+                {/* Full Name */}
+                <div>
+                  {personalDataFields.find(f => f.key === 'fullName')?.available ? (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={selectedPersonalData.includes('fullName')}
+                        onCheckedChange={() => togglePersonalData('fullName')}
+                      />
+                      <Label className="cursor-pointer">
+                        <span>Full Name</span>
+                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'fullName')?.value})</span>
+                      </Label>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="profile-first-name" className="text-sm font-medium">
+                          First Name
+                        </Label>
+                        <input
+                          id="profile-first-name"
+                          type="text"
+                          value={profileFirstName}
+                          onChange={(e) => handleFieldChange('firstName', e.target.value)}
+                          placeholder="Enter your first name"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="profile-last-name" className="text-sm font-medium">
+                          Last Name
+                        </Label>
+                        <input
+                          id="profile-last-name"
+                          type="text"
+                          value={profileLastName}
+                          onChange={(e) => handleFieldChange('lastName', e.target.value)}
+                          placeholder="Enter your last name"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Full Address */}
+                <div>
+                  {personalDataFields.find(f => f.key === 'fullAddress')?.available ? (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={selectedPersonalData.includes('fullAddress')}
+                        onCheckedChange={() => togglePersonalData('fullAddress')}
+                      />
+                      <Label className="cursor-pointer">
+                        <span>Full Address</span>
+                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'fullAddress')?.value})</span>
+                      </Label>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <Label htmlFor="profile-address" className="text-sm font-medium">
+                          Address
+                        </Label>
+                        <input
+                          id="profile-address"
+                          type="text"
+                          value={profileAddress}
+                          onChange={(e) => handleFieldChange('address', e.target.value)}
+                          placeholder="Enter your address"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="profile-city" className="text-sm font-medium">
+                          City
+                        </Label>
+                        <input
+                          id="profile-city"
+                          type="text"
+                          value={profileCity}
+                          onChange={(e) => handleFieldChange('city', e.target.value)}
+                          placeholder="Enter your city"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="profile-state" className="text-sm font-medium">
+                          State
+                        </Label>
+                        <input
+                          id="profile-state"
+                          type="text"
+                          value={profileState}
+                          onChange={(e) => handleFieldChange('state', e.target.value)}
+                          placeholder="Enter your state"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="profile-zip-code" className="text-sm font-medium">
+                          ZIP Code
+                        </Label>
+                        <input
+                          id="profile-zip-code"
+                          type="text"
+                          value={profileZipCode}
+                          onChange={(e) => handleFieldChange('zipCode', e.target.value)}
+                          placeholder="Enter your ZIP code"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Birth Year */}
+                <div>
+                  {personalDataFields.find(f => f.key === 'birthYear')?.available ? (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={selectedPersonalData.includes('birthYear')}
+                        onCheckedChange={() => togglePersonalData('birthYear')}
+                      />
+                      <Label className="cursor-pointer">
+                        <span>Birth Year</span>
+                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'birthYear')?.value})</span>
+                      </Label>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label htmlFor="profile-birth-year" className="text-sm font-medium">
+                        Birth Year
+                      </Label>
+                      <select
+                        id="profile-birth-year"
+                        value={profileBirthYear}
+                        onChange={(e) => handleFieldChange('birthYear', e.target.value)}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      >
+                        <option value="">Select your birth year</option>
+                        {Array.from({ length: new Date().getFullYear() - 1900 + 1 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                          <option key={year} value={year}>{year}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Gender */}
+                <div>
+                  {personalDataFields.find(f => f.key === 'gender')?.available ? (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={selectedPersonalData.includes('gender')}
+                        onCheckedChange={() => togglePersonalData('gender')}
+                      />
+                      <Label className="cursor-pointer">
+                        <span>Gender</span>
+                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'gender')?.value})</span>
+                      </Label>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label htmlFor="profile-gender" className="text-sm font-medium">
+                        Gender
+                      </Label>
+                      <select
+                        id="profile-gender"
+                        value={profileGender}
+                        onChange={(e) => handleFieldChange('gender', e.target.value)}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      >
+                        <option value="">Select your gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Non-binary">Non-binary</option>
+                        <option value="Other">Other</option>
+                        <option value="Prefer not to say">Prefer not to say</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Political Affiliation */}
+                <div>
+                  {personalDataFields.find(f => f.key === 'politicalAffiliation')?.available ? (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={selectedPersonalData.includes('politicalAffiliation')}
+                        onCheckedChange={() => togglePersonalData('politicalAffiliation')}
+                      />
+                      <Label className="cursor-pointer">
+                        <span>Political Affiliation</span>
+                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'politicalAffiliation')?.value})</span>
+                      </Label>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label htmlFor="profile-political-affiliation" className="text-sm font-medium">
+                        Political Affiliation
+                      </Label>
+                      <select
+                        id="profile-political-affiliation"
+                        value={profilePoliticalAffiliation}
+                        onChange={(e) => handleFieldChange('politicalAffiliation', e.target.value)}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      >
+                        <option value="">Select your political affiliation</option>
+                        <option value="Democrat">Democrat</option>
+                        <option value="Republican">Republican</option>
+                        <option value="Independent">Independent</option>
+                        <option value="Green Party">Green Party</option>
+                        <option value="Libertarian">Libertarian</option>
+                        <option value="No Affiliation">No Affiliation</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Education */}
+                <div>
+                  {personalDataFields.find(f => f.key === 'education')?.available ? (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={selectedPersonalData.includes('education')}
+                        onCheckedChange={() => togglePersonalData('education')}
+                      />
+                      <Label className="cursor-pointer">
+                        <span>Education</span>
+                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'education')?.value})</span>
+                      </Label>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label htmlFor="profile-education" className="text-sm font-medium">
+                        Education
+                      </Label>
+                      <select
+                        id="profile-education"
+                        value={profileEducation}
+                        onChange={(e) => handleFieldChange('education', e.target.value)}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      >
+                        <option value="">Select your education level</option>
+                        <option value="High School Diploma">High School Diploma</option>
+                        <option value="Some College">Some College</option>
+                        <option value="Associate's Degree">Associate's Degree</option>
+                        <option value="Bachelor's Degree">Bachelor's Degree</option>
+                        <option value="Master's Degree">Master's Degree</option>
+                        <option value="Doctoral Degree">Doctoral Degree</option>
+                        <option value="Professional Degree">Professional Degree</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Profession */}
+                <div>
+                  {personalDataFields.find(f => f.key === 'profession')?.available ? (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={selectedPersonalData.includes('profession')}
+                        onCheckedChange={() => togglePersonalData('profession')}
+                      />
+                      <Label className="cursor-pointer">
+                        <span>Profession</span>
+                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'profession')?.value})</span>
+                      </Label>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label htmlFor="profile-profession" className="text-sm font-medium">
+                        Profession
+                      </Label>
+                      <input
+                        id="profile-profession"
+                        type="text"
+                        value={profileProfession}
+                        onChange={(e) => handleFieldChange('profession', e.target.value)}
+                        placeholder="Enter your profession"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Military Service */}
+                <div>
+                  {personalDataFields.find(f => f.key === 'militaryService')?.available ? (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={selectedPersonalData.includes('militaryService')}
+                        onCheckedChange={() => togglePersonalData('militaryService')}
+                      />
+                      <Label className="cursor-pointer">
+                        <span>Military Service</span>
+                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'militaryService')?.value})</span>
+                      </Label>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label className="text-sm font-medium">
+                        Military Service
+                      </Label>
+                      <div className="mt-2 space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="profile-military-service"
+                            id="military-yes"
+                            checked={profileMilitaryService === true}
+                            onChange={() => handleMilitaryServiceChange(true)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                          />
+                          <Label htmlFor="military-yes" className="cursor-pointer">Yes</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="profile-military-service"
+                            id="military-no"
+                            checked={profileMilitaryService === false}
+                            onChange={() => handleMilitaryServiceChange(false)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                          />
+                          <Label htmlFor="military-no" className="cursor-pointer">No</Label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="flex items-center space-x-2 mt-4 mb-4">
@@ -1281,7 +1923,13 @@ const AdvocacyMessageContent: React.FC = () => {
             <Button variant="outline" onClick={() => setStep(3)}>
               Back
             </Button>
-            <Button onClick={() => setStep(5)}>
+            <Button onClick={async () => {
+              // Save profile data if user is logged in and has filled out any fields
+              if (user) {
+                await saveProfileData();
+              }
+              setStep(5);
+            }}>
               Next
             </Button>
           </div>
@@ -1786,22 +2434,6 @@ const AdvocacyMessageContent: React.FC = () => {
 
 
 
-          {/* Unavailable fields - only show for logged in users */}
-          {user && unavailableFields.length > 0 && (
-            <div>
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  To include additional information, update your profile:
-                  <ul className="mt-2 list-disc list-inside">
-                    {unavailableFields.map(field => (
-                      <li key={field.key} className="text-sm">{field.label}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
 
 
           {/* BCC Emails */}
