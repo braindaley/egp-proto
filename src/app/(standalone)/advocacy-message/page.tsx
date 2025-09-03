@@ -16,6 +16,7 @@ import { Sparkles, Loader2, AlertCircle, User, Search, X, CheckCircle, Mail, Shi
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
+import { SummaryDisplay } from '@/components/bill-summary-display';
 import Link from 'next/link';
 import type { Member, Bill, Sponsor } from '@/types';
 
@@ -2521,7 +2522,7 @@ const AdvocacyMessageContent: React.FC = () => {
     return (
       <Card className="max-w-2xl mx-auto">
         <CardHeader className="text-center pb-8">
-          <CardTitle className="text-3xl font-bold text-primary mb-2">Create your account!</CardTitle>
+          <CardTitle className="text-xl font-bold text-primary mb-2">Create your account!</CardTitle>
           <CardDescription className="text-lg">
             To keep track of your sent messages, login or sign up
           </CardDescription>
@@ -2728,6 +2729,16 @@ const AdvocacyMessageContent: React.FC = () => {
                   Regarding Legislation
                 </h4>
                 <p className="text-sm text-muted-foreground">{bill.shortTitle || bill.title}</p>
+                
+                {/* AI Overview */}
+                {bill.summaries && bill.summaries.length > 0 && (
+                  <div className="mt-4">
+                    <SummaryDisplay 
+                      summary={bill.summaries[bill.summaries.length - 1]} 
+                      showPoliticalPerspectives={false}
+                    />
+                  </div>
+                )}
               </div>
             )}
             

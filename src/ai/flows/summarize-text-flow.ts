@@ -11,22 +11,28 @@ function createSimpleSummary(text: string): string {
   // Convert HTML to plain text
   const plainText = convert(text, { wordwrap: false });
   
-  // Get first sentence or first 150 characters
-  const sentences = plainText.split(/[.!?]+/).filter(s => s.trim().length > 10);
-  const firstSentence = sentences[0]?.trim() || '';
+  // Clean up the text - remove extra whitespace and normalize
+  const cleanedText = plainText
+    .replace(/\s+/g, ' ')
+    .replace(/\n+/g, ' ')
+    .trim();
   
-  // Get word count and character count
-  const wordCount = plainText.trim().split(/\s+/).length;
-  const charCount = plainText.length;
-  
-  // Create a simple summary
-  if (firstSentence.length > 10) {
-    return `${firstSentence}. This document contains approximately ${wordCount} words (${charCount} characters) and appears to be legislative content.`;
+  // If the text is already concise (under 500 chars), return it as is
+  if (cleanedText.length <= 500) {
+    return cleanedText;
   }
   
-  // Fallback if no good sentence found
-  const preview = plainText.substring(0, 150).trim();
-  return `This document discusses "${preview}..." and contains approximately ${wordCount} words (${charCount} characters).`;
+  // Otherwise, get the first meaningful paragraph or sentences
+  const sentences = cleanedText.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 10);
+  
+  // Take the first few sentences that form a coherent summary (up to 500 chars)
+  let summary = '';
+  for (const sentence of sentences) {
+    if (summary.length + sentence.length > 500) break;
+    summary += (summary ? ' ' : '') + sentence;
+  }
+  
+  return summary || cleanedText.substring(0, 500).trim();
 }
 
 function analyzeDemocraticPerspective(text: string, isLikelyDemocraticBill: boolean = true): string {
