@@ -52,6 +52,7 @@ interface Campaign {
     reasoning: string;
     supportCount: number;
     opposeCount: number;
+    isStatic?: boolean;
 }
 
 interface OtherCampaign {
@@ -136,19 +137,22 @@ export default function GroupCampaignsPage() {
             if (!user || !groupSlug) return;
             
             try {
-                // Use client-side Firestore queries
+                // First, fetch user-specific campaigns from Firebase
                 const { getFirestore, collection, query, where, getDocs } = await import('firebase/firestore');
                 const { app } = await import('@/lib/firebase');
                 
                 const db = getFirestore(app);
+                console.log('Current user ID:', user.uid);
+                console.log('Looking for groupSlug:', groupSlug);
+                
                 const campaignsQuery = query(
                     collection(db, 'campaigns'),
-                    where('userId', '==', user.uid),
                     where('groupSlug', '==', groupSlug)
+                    // Temporarily removed userId filter to see all campaigns
                 );
                 
                 const querySnapshot = await getDocs(campaignsQuery);
-                const campaignsData = querySnapshot.docs.map(doc => ({
+                const firebaseCampaignsData = querySnapshot.docs.map(doc => ({
                     id: doc.id,
                     bill: {
                         type: doc.data().billType,
@@ -161,10 +165,36 @@ export default function GroupCampaignsPage() {
                     opposeCount: doc.data().opposeCount || 0,
                     ...doc.data()
                 }));
+
+                let allCampaigns = [...firebaseCampaignsData];
+
+                // Only add static campaigns if no Firebase campaigns exist for this group
+                if (firebaseCampaignsData.length === 0) {
+                    const { campaignsService } = await import('@/lib/campaigns');
+                    const staticCampaigns = campaignsService.getCampaignsByGroup(groupSlug);
+                    
+                    // Convert static campaigns to the format expected by the component
+                    const staticCampaignsData = staticCampaigns.map(staticCampaign => ({
+                        id: staticCampaign.id,
+                        bill: {
+                            type: staticCampaign.bill.type,
+                            number: staticCampaign.bill.number,
+                            title: staticCampaign.bill.title
+                        },
+                        position: staticCampaign.position,
+                        reasoning: staticCampaign.reasoning,
+                        supportCount: staticCampaign.supportCount || 0,
+                        opposeCount: staticCampaign.opposeCount || 0,
+                        isStatic: true, // Flag to identify static campaigns
+                    }));
+                    
+                    allCampaigns = staticCampaignsData;
+                }
                 
-                setCampaigns(campaignsData);
+                console.log(`Loading ${allCampaigns.length} campaigns for ${groupSlug}:`, allCampaigns.map(c => ({ id: c.id, type: c.bill?.type, number: c.bill?.number, isStatic: c.isStatic })));
+                setCampaigns(allCampaigns);
                 // Fetch other campaigns after setting campaigns
-                await fetchOtherCampaigns(campaignsData);
+                await fetchOtherCampaigns(allCampaigns);
             } catch (error) {
                 console.error('Error fetching campaigns:', error);
                 setCampaigns([]);
@@ -215,18 +245,19 @@ export default function GroupCampaignsPage() {
             // Refresh campaigns list
             if (groupSlug && user) {
                 try {
+                    // Fetch user-specific campaigns from Firebase
                     const { getFirestore, collection, query, where, getDocs } = await import('firebase/firestore');
                     const { app } = await import('@/lib/firebase');
                     
                     const db = getFirestore(app);
                     const campaignsQuery = query(
                         collection(db, 'campaigns'),
-                        where('userId', '==', user.uid),
                         where('groupSlug', '==', groupSlug)
+                        // Temporarily removed userId filter to see all campaigns
                     );
                     
                     const querySnapshot = await getDocs(campaignsQuery);
-                    const campaignsData = querySnapshot.docs.map(doc => ({
+                    const firebaseCampaignsData = querySnapshot.docs.map(doc => ({
                         id: doc.id,
                         bill: {
                             type: doc.data().billType,
@@ -239,10 +270,35 @@ export default function GroupCampaignsPage() {
                         opposeCount: doc.data().opposeCount || 0,
                         ...doc.data()
                     }));
+
+                    let allCampaigns = [...firebaseCampaignsData];
+
+                    // Only add static campaigns if no Firebase campaigns exist for this group
+                    if (firebaseCampaignsData.length === 0) {
+                        const { campaignsService } = await import('@/lib/campaigns');
+                        const staticCampaigns = campaignsService.getCampaignsByGroup(groupSlug);
+                        
+                        // Convert static campaigns to the format expected by the component
+                        const staticCampaignsData = staticCampaigns.map(staticCampaign => ({
+                            id: staticCampaign.id,
+                            bill: {
+                                type: staticCampaign.bill.type,
+                                number: staticCampaign.bill.number,
+                                title: staticCampaign.bill.title
+                            },
+                            position: staticCampaign.position,
+                            reasoning: staticCampaign.reasoning,
+                            supportCount: staticCampaign.supportCount || 0,
+                            opposeCount: staticCampaign.opposeCount || 0,
+                            isStatic: true, // Flag to identify static campaigns
+                        }));
+                        
+                        allCampaigns = staticCampaignsData;
+                    }
                     
-                    setCampaigns(campaignsData);
+                    setCampaigns(allCampaigns);
                     // Refresh other campaigns too
-                    await fetchOtherCampaigns(campaignsData);
+                    await fetchOtherCampaigns(allCampaigns);
                 } catch (error) {
                     console.error('Error refreshing campaigns:', error);
                 }
@@ -522,18 +578,21 @@ export default function GroupCampaignsPage() {
                                                                     <Edit2 className="h-4 w-4" />
                                                                 </Link>
                                                             </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                onClick={() => handleDeleteCampaign(campaign.id)}
-                                                                disabled={deletingCampaign === campaign.id}
-                                                            >
-                                                                {deletingCampaign === campaign.id ? (
-                                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                                ) : (
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                )}
-                                                            </Button>
+                                                            {/* Only show delete button for Firebase campaigns, not static campaigns */}
+                                                            {!campaign.isStatic && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    onClick={() => handleDeleteCampaign(campaign.id)}
+                                                                    disabled={deletingCampaign === campaign.id}
+                                                                >
+                                                                    {deletingCampaign === campaign.id ? (
+                                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                                    ) : (
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    )}
+                                                                </Button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </CardHeader>

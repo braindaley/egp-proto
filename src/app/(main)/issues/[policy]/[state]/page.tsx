@@ -28,13 +28,14 @@ function convertSlugToState(slug: string): string {
   return stateMap[slug] || null;
 }
 
-export default function StatePolicyPage({ 
+export default async function StatePolicyPage({ 
   params 
 }: { 
-  params: { policy: string; state: string } 
+  params: Promise<{ policy: string; state: string }> 
 }) {
-  const policyTitle = convertSlugToTitle(params.policy);
-  const stateName = convertSlugToState(params.state);
+  const { policy, state } = await params;
+  const policyTitle = convertSlugToTitle(policy);
+  const stateName = convertSlugToState(state);
   
   if (!policyTitle || !stateName) {
     notFound();

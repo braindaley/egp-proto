@@ -64,7 +64,7 @@ export default function EditCampaignPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const groupSlug = params?.groupname as string;
+    const groupSlug = params?.groupSlug as string;
     const campaignId = params?.id as string;
     const groupInfo = advocacyGroups.find(g => g.slug === groupSlug);
 
@@ -73,6 +73,7 @@ export default function EditCampaignPage() {
             if (!user || !campaignId) return;
             
             try {
+                // Load campaign from API (handles both Firebase and static campaigns)
                 const response = await fetch(`/api/campaigns/${campaignId}`);
                 
                 if (!response.ok) {
@@ -89,7 +90,7 @@ export default function EditCampaignPage() {
                     return;
                 }
                 
-                console.log('Campaign data:', foundCampaign); // Debug log
+                console.log('Campaign data:', foundCampaign);
                 
                 setCampaign(foundCampaign);
                 setPosition(foundCampaign.stance === 'support' ? 'Support' : foundCampaign.stance === 'oppose' ? 'Oppose' : foundCampaign.position || 'Support');
@@ -114,28 +115,57 @@ export default function EditCampaignPage() {
 
         setIsSaving(true);
         try {
-            const response = await fetch(`/api/campaigns/${campaign.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    position,
-                    reasoning,
-                    actionButtonText
-                })
-            });
+            if (campaign.isStatic) {
+                // For static campaigns, create a new Firebase campaign to make it editable
+                const response = await fetch('/api/campaigns', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        groupSlug,
+                        billType: campaign.bill.type,
+                        billNumber: campaign.bill.number,
+                        billTitle: campaign.bill.title,
+                        position,
+                        reasoning,
+                        actionButtonText,
+                        supportCount: campaign.supportCount || 0,
+                        opposeCount: campaign.opposeCount || 0
+                    })
+                });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to update campaign');
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to create editable campaign');
+                }
+
+                console.log('Static campaign migrated to Firebase successfully');
+            } else {
+                // For Firebase campaigns, update normally
+                const response = await fetch(`/api/campaigns/${campaign.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        position,
+                        reasoning,
+                        actionButtonText
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to update campaign');
+                }
             }
 
             // Redirect back to group campaigns dashboard
             router.push(`/partners/groups/${groupSlug}/campaigns`);
         } catch (error) {
-            console.error('Error updating campaign:', error);
-            alert(error instanceof Error ? error.message : 'Failed to update campaign');
+            console.error('Error saving campaign:', error);
+            alert(error instanceof Error ? error.message : 'Failed to save campaign');
         } finally {
             setIsSaving(false);
         }
@@ -218,6 +248,13 @@ export default function EditCampaignPage() {
                 <p className="text-muted-foreground mt-2">
                     {campaign.bill ? `Edit campaign for ${campaign.bill.type} ${campaign.bill.number}` : 'Edit campaign'}
                 </p>
+                {campaign?.isStatic && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <p className="text-sm text-blue-700">
+                            <strong>Note:</strong> This is a template campaign. When you save your changes, it will be copied to your account and become fully editable.
+                        </p>
+                    </div>
+                )}
             </header>
 
             <div className="space-y-6">

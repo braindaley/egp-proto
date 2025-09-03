@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
 import USMap from '@/components/USMap';
-import { US_STATES, convertStateToSlug } from '@/lib/states';
+import { BrowseByStateAccordion } from '@/components/BrowseByStateAccordion';
 
 function convertTitleToSlug(title: string): string {
   return title
@@ -22,8 +22,9 @@ function convertSlugToTitle(slug: string): string {
   return categoryMap[slug] || null;
 }
 
-export default function PolicyPage({ params }: { params: { policy: string } }) {
-  const policyTitle = convertSlugToTitle(params.policy);
+export default async function PolicyPage({ params }: { params: Promise<{ policy: string }> }) {
+  const { policy } = await params;
+  const policyTitle = convertSlugToTitle(policy);
   
   if (!policyTitle) {
     notFound();
@@ -51,7 +52,7 @@ export default function PolicyPage({ params }: { params: { policy: string } }) {
               Explore federal policies and legislation related to {policyTitle.toLowerCase()}.
             </p>
             <Link 
-              href={`/issues/${params.policy}/federal`}
+              href={`/issues/${policy}/federal`}
               className="inline-flex items-center text-primary hover:underline font-medium"
             >
               View Federal Policies →
@@ -61,21 +62,11 @@ export default function PolicyPage({ params }: { params: { policy: string } }) {
       </div>
 
       <div id="states">
-        <h2 className="text-2xl font-bold mb-2">State level</h2>
-        <p className="text-muted-foreground mb-6">
-          Browse state-by-state policies and initiatives for {policyTitle.toLowerCase()}
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {US_STATES.map((state) => (
-            <Link
-              key={state}
-              href={`/issues/${params.policy}/${convertStateToSlug(state)}`}
-              className="text-center p-4 rounded-lg bg-card text-card-foreground shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors duration-200 ease-in-out"
-            >
-              <span className="font-medium">{state}</span>
-            </Link>
-          ))}
-        </div>
+        <h2 className="text-2xl font-bold mb-6">State Level</h2>
+        <BrowseByStateAccordion 
+          policySlug={policy} 
+          policyTitle={policyTitle}
+        />
       </div>
     </div>
     </div>

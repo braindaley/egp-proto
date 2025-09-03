@@ -7,22 +7,43 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    
+    // First check Firebase
     const docRef = adminDb.collection('campaigns').doc(id);
     const docSnap = await docRef.get();
     
-    if (!docSnap.exists) {
-      return NextResponse.json(
-        { error: 'Campaign not found' },
-        { status: 404 }
-      );
+    if (docSnap.exists) {
+      const campaign = {
+        id: docSnap.id,
+        ...docSnap.data()
+      };
+      return NextResponse.json({ campaign });
     }
 
-    const campaign = {
-      id: docSnap.id,
-      ...docSnap.data()
-    };
+    // If not found in Firebase, check static campaigns service
+    const { campaignsService } = await import('@/lib/campaigns');
+    const staticCampaign = campaignsService.getCampaign(id);
+    
+    if (staticCampaign) {
+      // Convert static campaign to the format expected by the edit page
+      const campaign = {
+        id: staticCampaign.id,
+        groupSlug: staticCampaign.groupSlug,
+        bill: staticCampaign.bill,
+        position: staticCampaign.position,
+        reasoning: staticCampaign.reasoning,
+        actionButtonText: staticCampaign.actionButtonText,
+        supportCount: staticCampaign.supportCount,
+        opposeCount: staticCampaign.opposeCount,
+        isStatic: true
+      };
+      return NextResponse.json({ campaign });
+    }
 
-    return NextResponse.json({ campaign });
+    return NextResponse.json(
+      { error: 'Campaign not found' },
+      { status: 404 }
+    );
   } catch (error) {
     console.error('Error fetching campaign:', error);
     return NextResponse.json(

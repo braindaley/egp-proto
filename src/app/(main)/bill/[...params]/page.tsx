@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
 
-export default function BillRedirect({
+export default async function BillRedirect({
   params,
 }: {
-  params: { params: string[] };
+  params: Promise<{ params: string[] }>;
 }) {
+  const { params: pathParams } = await params;
   // Redirect old /bill/* routes to /federal/bill/*
-  const newPath = `/federal/bill/${params.params.join('/')}`;
+  const newPath = `/federal/bill/${pathParams.join('/')}`;
   redirect(newPath);
 }
