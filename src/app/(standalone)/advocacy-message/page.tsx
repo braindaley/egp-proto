@@ -86,6 +86,7 @@ const AdvocacyMessageContent: React.FC = () => {
   const [message, setMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedPersonalData, setSelectedPersonalData] = useState<string[]>(['fullName']);
+  const [nickname, setNickname] = useState('');
   const [saveAsDefault, setSaveAsDefault] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   
@@ -455,7 +456,6 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Toggle personal data field
   const togglePersonalData = (key: string) => {
-    if (key === 'fullName') return; // Full name is always required
     setSelectedPersonalData(prev => {
       if (prev.includes(key)) {
         return prev.filter(k => k !== key);
@@ -1218,7 +1218,6 @@ const AdvocacyMessageContent: React.FC = () => {
                     <Checkbox
                       checked={selectedPersonalData.includes(field.key)}
                       onCheckedChange={() => togglePersonalData(field.key)}
-                      disabled={field.key === 'fullName'}
                     />
                     <Label className="cursor-pointer">
                       <span>{field.label}</span>
@@ -1240,6 +1239,23 @@ const AdvocacyMessageContent: React.FC = () => {
                   Save as default for all future mailings
                 </Label>
               </div>
+            </div>
+          )}
+
+          {/* Nickname field - shown when Full Name is not checked */}
+          {(user || verifiedUserInfo) && !selectedPersonalData.includes('fullName') && (
+            <div>
+              <Label htmlFor="nickname" className="text-sm font-medium">
+                Nickname (optional)
+              </Label>
+              <input
+                id="nickname"
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="Enter a nickname to use in your message"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              />
             </div>
           )}
 
@@ -1809,23 +1825,34 @@ const AdvocacyMessageContent: React.FC = () => {
               <div className="bg-muted rounded-lg p-4">
                 <p className="font-medium">Sincerely,</p>
                 <div className="mt-2 flex items-center gap-2">
-                  <div className="relative inline-flex items-center justify-center w-5 h-5">
-                    <div className="absolute inset-0 rounded-full border-2 border-gray-700"></div>
-                    <Check className="h-3 w-3 text-gray-500" strokeWidth={3} />
-                  </div>
+                  {selectedPersonalData.includes('fullName') && (
+                    <div className="relative inline-flex items-center justify-center w-5 h-5">
+                      <div className="absolute inset-0 rounded-full border-2 border-gray-700"></div>
+                      <Check className="h-3 w-3 text-gray-500" strokeWidth={3} />
+                    </div>
+                  )}
                   <p className="inline">
-                    {personalDataFields.find(f => f.key === 'fullName')?.value || 
-                     (user || verifiedUserInfo ? 'Your Name' : 'A Concerned Constituent')}
+                    {selectedPersonalData.includes('fullName') ? 
+                      (personalDataFields.find(f => f.key === 'fullName')?.value || (user || verifiedUserInfo ? 'Your Name' : 'A Concerned Constituent')) :
+                      (nickname || 'A Concerned Constituent')
+                    }
                   </p>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
-                    Verified Voter
-                  </span>
+                  {selectedPersonalData.includes('fullName') && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
+                      Verified Voter
+                    </span>
+                  )}
                 </div>
                 {selectedPersonalFields.filter(f => f.key !== 'fullName').map(field => (
                   <p key={field.key} className="text-sm text-muted-foreground">
                     {field.label}: {field.value}
                   </p>
                 ))}
+                {constituentDescription && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    <span className="font-medium">About me:</span> {constituentDescription}
+                  </p>
+                )}
                 {(!user && !verifiedUserInfo) && (
                   <p className="text-xs text-muted-foreground mt-2 italic">
                     Message sent anonymously

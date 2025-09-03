@@ -20,6 +20,11 @@ interface PersonalData {
   militaryService: boolean;
 }
 
+// Define the shape of form inputs
+interface FormInputs {
+  nickname: string;
+}
+
 // Define the shape of the recipients
 export interface Recipients {
     representatives: boolean;
@@ -36,6 +41,7 @@ interface AdvocacyMessageFormProps {
     personalDataIncluded: PersonalData;
     savePreferences: boolean;
     useAnonymousId: boolean;
+    formInputs: FormInputs;
   }) => void;
 }
 
@@ -51,7 +57,7 @@ const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, rec
 
   // State to manage the user's selection of personal information
   const [personalData, setPersonalData] = useState<PersonalData>({
-    fullName: true, // Full Name is required
+    fullName: false, // Full Name is now optional
     address: false,
     age: false,
     gender: false,
@@ -60,6 +66,11 @@ const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, rec
     profession: false,
     votingPrecinct: false,
     militaryService: false,
+  });
+
+  // State for form inputs
+  const [formInputs, setFormInputs] = useState<FormInputs>({
+    nickname: '',
   });
 
   // State for privacy controls
@@ -91,8 +102,12 @@ const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, rec
   
   // Handle personal data checkbox changes
   const handlePersonalDataChange = (field: keyof PersonalData) => {
-    if (field === 'fullName') return; // Full Name is always required
     setPersonalData((prev) => ({ ...prev, [field]: !prev[field] }));
+  };
+
+  // Handle input field changes
+  const handleInputChange = (field: keyof FormInputs, value: string) => {
+    setFormInputs((prev) => ({ ...prev, [field]: value }));
   };
 
   // Handle form submission
@@ -103,6 +118,7 @@ const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, rec
       personalDataIncluded: personalData,
       savePreferences,
       useAnonymousId,
+      formInputs,
     });
   };
 
@@ -178,15 +194,34 @@ const AdvocacyMessageForm: React.FC<AdvocacyMessageFormProps> = ({ billType, rec
                       id={field}
                       checked={personalData[field]}
                       onCheckedChange={() => handlePersonalDataChange(field)}
-                      disabled={field === 'fullName'}
                     />
                     <Label htmlFor={field} className="ml-2">
-                      {field.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}
+                      {field === 'fullName' && user?.firstName ? 
+                        `Full Name (${user.firstName}${user.lastName ? ' ' + user.lastName : ''})` :
+                        field.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())
+                      }
                     </Label>
                   </div>
                 );
               })}
             </div>
+            
+            {/* Nickname field - shown when Full Name is not checked */}
+            {!personalData.fullName && (
+              <div className="mt-4">
+                <Label htmlFor="nickname" className="text-sm font-medium">
+                  Nickname (optional)
+                </Label>
+                <input
+                  id="nickname"
+                  type="text"
+                  value={formInputs.nickname}
+                  onChange={(e) => handleInputChange('nickname', e.target.value)}
+                  placeholder="Enter a nickname to use in your message"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
+            )}
           </div>
 
           {/* Privacy Controls */}
