@@ -194,9 +194,9 @@ export default function CampaignDetailPage({
                         <h1 className="text-2xl font-bold font-headline text-primary text-left">
                             You've been invited to voice your opinion
                         </h1>
-                        <h2 className="text-xl font-semibold text-primary text-left mt-2">
-                            {campaign.bill.type.toUpperCase()} {campaign.bill.number}
-                        </h2>
+                        <p className="text-sm text-muted-foreground text-left mt-2">
+                            {fullBill.title || `${campaign.bill.type.toUpperCase()} ${campaign.bill.number}`}
+                        </p>
                     </CardHeader>
                     <CardContent>
                         {/* AI Bill Overview Section */}
