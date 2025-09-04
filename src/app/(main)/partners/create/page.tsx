@@ -136,7 +136,7 @@ function CreateCampaignPageContent() {
             }
 
             // Redirect to the campaign landing page
-            router.push(`/groups/${selectedGroup}/${selectedBill.type.toLowerCase()}-${selectedBill.number}`);
+            router.push(`/campaigns/${selectedGroup}/${selectedBill.type.toLowerCase()}-${selectedBill.number}`);
         } catch (error) {
             console.error('Error creating campaign:', error);
             alert(error instanceof Error ? error.message : 'Failed to create campaign');

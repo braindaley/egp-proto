@@ -13,9 +13,18 @@ export async function GET(
     const docSnap = await docRef.get();
     
     if (docSnap.exists) {
+      const data = docSnap.data() as any;
       const campaign = {
         id: docSnap.id,
-        ...docSnap.data()
+        ...data,
+        // Normalize bill shape expected by clients
+        bill: data.bill || ((data.billType || data.billNumber || data.billTitle || data.congress) ? {
+          type: data.billType,
+          number: data.billNumber,
+          title: data.billTitle,
+          congress: data.congress,
+        } : undefined),
+        isStatic: false,
       };
       return NextResponse.json({ campaign });
     }
