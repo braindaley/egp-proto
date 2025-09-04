@@ -2,8 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import type { Summary } from '@/types';
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText, Eye } from 'lucide-react';
 import { summarizeText, getDemocraticPerspective, getRepublicanPerspective } from '@/ai/flows/summarize-text-flow';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 // Helper function to strip HTML and clean text
 const cleanTextForAI = (htmlText: string | null | undefined): string | null => {
@@ -112,10 +121,40 @@ export const SummaryDisplay = ({ summary, showPoliticalPerspectives = false }: {
       {!isLoading && !error && aiSummary && (
         <>
           <div className="mb-4">
-            <p className="text-sm text-muted-foreground italic flex items-center gap-1">
-              <FileText className="h-3 w-3" />
-              AI-generated overview:
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground italic flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                AI-generated overview:
+              </p>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-auto p-1">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Full Summary</DialogTitle>
+                    <DialogDescription>
+                      Congressional summary for {summary.actionDesc || 'this bill'}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">Original Congressional Summary:</h4>
+                      <div 
+                        className="prose prose-sm max-w-none text-muted-foreground"
+                        dangerouslySetInnerHTML={{ __html: summary.text || 'No summary text available' }}
+                      />
+                    </div>
+                    <div className="pt-4 border-t">
+                      <h4 className="font-semibold text-sm mb-2">AI-Generated Overview:</h4>
+                      <p className="prose prose-sm max-w-none text-muted-foreground">{aiSummary}</p>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
             <p className="prose prose-sm max-w-none text-muted-foreground mt-1">{aiSummary}</p>
           </div>
 

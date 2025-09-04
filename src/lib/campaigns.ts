@@ -113,6 +113,21 @@ const existingCampaigns: Campaign[] = [
     updatedAt: '2024-01-01T00:00:00Z',
     isActive: true
   },
+  // Black Voters Matter campaign (from advocacy-groups.ts)
+  {
+    id: 'black-voters-matter-hr-1',
+    groupSlug: 'black-voters-matter',
+    groupName: 'Black Voters Matter',
+    bill: { congress: 119, type: 'HR', number: '1', title: 'For the People Act' },
+    position: 'Support',
+    reasoning: 'Comprehensive democracy reform would expand voting access in Black communities through automatic registration, early voting expansion, and restoration of voting rights for people with prior convictions, addressing historical and ongoing voter suppression.',
+    actionButtonText: 'Voice your opinion',
+    supportCount: 16500,
+    opposeCount: 4100,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    isActive: true
+  },
   // Add more migrated campaigns as needed...
 ];
 
@@ -149,6 +164,16 @@ export const campaignsService = {
   getCampaignByGroupAndBill: (groupSlug: string, billType: string, billNumber: string): Campaign | undefined => {
     return campaigns.find(c => 
       c.groupSlug === groupSlug && 
+      c.bill.type.toLowerCase() === billType.toLowerCase() && 
+      c.bill.number === billNumber &&
+      c.isActive
+    );
+  },
+
+  // Get campaigns by bill
+  getCampaignsByBill: (congress: number, billType: string, billNumber: string): Campaign[] => {
+    return campaigns.filter(c => 
+      c.bill.congress === congress &&
       c.bill.type.toLowerCase() === billType.toLowerCase() && 
       c.bill.number === billNumber &&
       c.isActive

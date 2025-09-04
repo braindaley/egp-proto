@@ -2,17 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { Bill, RelatedBill } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown, Eye, MessageSquareText } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { getBillSupportData } from '@/lib/bill-support-data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getBillTypeSlug, formatDate, constructBillUrl } from '@/lib/utils';
@@ -23,6 +21,7 @@ import { useZipCode } from '@/hooks/use-zip-code';
 import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 import { extractSubjectsFromApiResponse } from '@/lib/subjects';
 import { useWatchedBills } from '@/hooks/use-watched-bills';
+import { campaignsService } from '@/lib/campaigns';
 
 const getBillStatus = (latestAction: any): string => {
     if (!latestAction?.text) return 'Introduced';
@@ -52,32 +51,7 @@ const getBillStatus = (latestAction: any): string => {
     return 'Introduced';
 };
 
-const BillStatusIndicator = ({ status }: { status: string }) => {
-    const steps: string[] = ['Introduced', 'In Committee', 'Passed House', 'Passed Senate', 'To President', 'Became Law'];
-    let currentStepIndex = steps.indexOf(status);
-
-    if (currentStepIndex === -1) {
-        currentStepIndex = 1; // Default to 'In Committee' if status is not found
-    }
-
-    const progressPercentage = ((currentStepIndex + 1) / steps.length) * 100;
-
-    return (
-        <div>
-            <div className="flex justify-between text-xs text-muted-foreground mb-2 px-1">
-                {steps.map((step, index) => (
-                    <span key={step} className={`text-center ${index === currentStepIndex ? 'font-bold text-primary' : ''}`}>
-                        {step}
-                    </span>
-                ))}
-            </div>
-            <Progress value={progressPercentage} className="h-2" />
-        </div>
-    );
-};
-
 export function BillDetailClient({ bill }: { bill: Bill }) {
-  const [sponsorImageUrl, setSponsorImageUrl] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
   
@@ -86,6 +60,67 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   const [supportCount, setSupportCount] = useState(initialSupportData.supportCount);
   const [opposeCount, setOpposeCount] = useState(initialSupportData.opposeCount);
   const [userAction, setUserAction] = useState<'support' | 'oppose' | null>(null);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  
+  // Load campaigns for this bill from both static data and Firebase
+  useEffect(() => {
+    const loadCampaigns = async () => {
+      // Get static campaigns
+      const staticCampaigns = campaignsService.getCampaignsByBill(bill.congress!, bill.type!, bill.number!);
+      
+      try {
+        // Try to fetch from Firebase as well
+        const { getFirestore, collection, query, where, getDocs } = await import('firebase/firestore');
+        const { app } = await import('@/lib/firebase');
+        const db = getFirestore(app);
+        
+        const campaignsQuery = query(
+          collection(db, 'campaigns'),
+          where('billType', '==', bill.type),
+          where('billNumber', '==', bill.number)
+        );
+        
+        const querySnapshot = await getDocs(campaignsQuery);
+        const firebaseCampaigns = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            groupSlug: data.groupSlug,
+            groupName: data.organizationName || data.groupName,
+            position: data.position,
+            supportCount: data.supportCount || 0,
+            opposeCount: data.opposeCount || 0,
+            bill: {
+              congress: data.congress || bill.congress,
+              type: data.billType,
+              number: data.billNumber
+            }
+          };
+        });
+        
+        // Combine static and Firebase campaigns, avoiding duplicates
+        const allCampaigns = [...staticCampaigns];
+        firebaseCampaigns.forEach(fbCampaign => {
+          const exists = allCampaigns.some(c => 
+            c.groupSlug === fbCampaign.groupSlug && 
+            c.bill.type === fbCampaign.bill.type && 
+            c.bill.number === fbCampaign.bill.number
+          );
+          if (!exists) {
+            allCampaigns.push(fbCampaign);
+          }
+        });
+        
+        setCampaigns(allCampaigns);
+      } catch (error) {
+        console.log('Firebase not available or error fetching:', error);
+        // Fall back to static campaigns only
+        setCampaigns(staticCampaigns);
+      }
+    };
+    
+    loadCampaigns();
+  }, [bill]);
   
   // Add watch functionality
   const { isWatchedBill, toggleWatchBill } = useWatchedBills();
@@ -103,28 +138,6 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
     console.log('Watch button clicked');
     toggleWatchBill(bill.congress!, bill.type!, bill.number!, bill.title || bill.shortTitle);
   };
-  
-  // Fetch sponsor image when component mounts
-  useEffect(() => {
-    const fetchSponsorImage = async () => {
-      if (hasSponsors && bill.sponsors[0]?.bioguideId) {
-        try {
-          const response = await fetch(`https://api.congress.gov/v3/member/${bill.sponsors[0].bioguideId}?format=json&api_key=Wfxsy1WLgtTWIaKixMUDHz2DtRuaaqAtEZOU0E49`);
-          if (response.ok) {
-            const data = await response.json();
-            const imageUrl = data.member?.depiction?.imageUrl;
-            if (imageUrl) {
-              setSponsorImageUrl(imageUrl);
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to fetch sponsor image:', error);
-        }
-      }
-    };
-
-    fetchSponsorImage();
-  }, [bill.sponsors, hasSponsors]);
   const hasCosponsors = bill.cosponsors?.items && bill.cosponsors.items.length > 0;
   const hasCommittees = bill.committees?.items && bill.committees.items.length > 0;
   const hasAllSummaries = bill.allSummaries && Array.isArray(bill.allSummaries) && bill.allSummaries.length > 0;
@@ -221,13 +234,21 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
         <div className="max-w-2xl mx-auto space-y-8">
           <Card>
             <CardHeader>
-              {/* Bill number */}
-              <div className="flex items-center gap-3 mb-3 flex-wrap">
+              {/* Bill number, status, and category */}
+              <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
                 <Badge variant="outline" className="shrink-0 font-semibold">{bill.type} {bill.number}</Badge>
+                <Badge className="shrink-0 bg-black text-white hover:bg-black/90">
+                  {getBillStatus(bill.latestAction)}
+                </Badge>
+                {sitePolicyCategory && (
+                  <Badge className="shrink-0 bg-gray-500 text-white hover:bg-gray-600 text-xs">
+                    {sitePolicyCategory}
+                  </Badge>
+                )}
               </div>
 
-              {/* Bill title - keeping H1 size */}
-              <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary mb-4">
+              {/* Bill title - responsive sizing */}
+              <h1 className="font-headline text-2xl sm:text-3xl md:text-4xl font-bold text-primary mb-4 break-words">
                 {displayTitle}
               </h1>
               {hasDistinctShortTitle && (
@@ -235,163 +256,199 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                   {bill.shortTitle}
                 </p>
               )}
-
-              {/* Sponsor info under the title */}
-              {hasSponsors && bill.sponsors[0] && (
-                <div className="flex items-center gap-4 mb-0">
-                  {sponsorImageUrl && (
-                    <div className="w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0">
-                      <Image 
-                        src={sponsorImageUrl} 
-                        alt={bill.sponsors[0].fullName}
-                        width={60}
-                        height={60}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <span className={`flex items-center gap-1.5 px-3 py-2 rounded-full ${
-                    bill.sponsors[0].party === 'R' ? 'bg-stone-200 text-stone-700' 
-                    : bill.sponsors[0].party === 'D' ? 'bg-blue-100 text-blue-800'
-                    : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    <Users className="h-3 w-3" />
-                    {bill.sponsors[0].fullName} ({bill.sponsors[0].party}-{bill.sponsors[0].state})
+              {/* Twitter-style Action Bar - mobile optimized */}
+              <div className="flex items-center justify-between px-1 sm:px-2 py-3 border-t border-gray-200 gap-0.5 sm:gap-1 overflow-x-auto">
+                <button
+                  onClick={handleVoiceOpinionClick}
+                  className="flex items-center gap-0.5 sm:gap-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 transition-colors group flex-shrink-0"
+                >
+                  <MessageSquareText className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                  <span className="text-xs sm:text-sm font-medium">58</span>
+                </button>
+                
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSupportOppose('support');
+                  }}
+                  className={`flex items-center gap-0.5 sm:gap-1 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 transition-colors group flex-shrink-0 ${
+                    userAction === 'support'
+                      ? 'text-red-600 bg-red-50'
+                      : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
+                  }`}
+                  title={user ? 'Support this bill' : 'Login to support this bill'}
+                >
+                  <ThumbsUp className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                  <span className="text-xs sm:text-sm font-medium">
+                    {supportCount.toLocaleString()}
                   </span>
-                </div>
-              )}
+                </button>
+                
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSupportOppose('oppose');
+                  }}
+                  className={`flex items-center gap-0.5 sm:gap-1 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 transition-colors group flex-shrink-0 ${
+                    userAction === 'oppose'
+                      ? 'text-red-600 bg-red-50'
+                      : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
+                  }`}
+                  title={user ? 'Oppose this bill' : 'Login to oppose this bill'}
+                >
+                  <ThumbsDown className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                  <span className="text-xs sm:text-sm font-medium">
+                    {opposeCount.toLocaleString()}
+                  </span>
+                </button>
+                
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleWatchClick();
+                  }}
+                  className={`flex items-center gap-0.5 sm:gap-1 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 transition-colors group flex-shrink-0 ${
+                    isWatched 
+                      ? 'text-blue-600 bg-blue-50' 
+                      : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                  }`}
+                  title={user ? (isWatched ? 'Stop watching this bill' : 'Watch this bill for updates') : 'Login to watch this bill'}
+                >
+                  <Eye className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                  <span className="text-xs sm:text-sm font-medium">123K</span>
+                </button>
+                
+                <a
+                  href={constructBillUrl(bill)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-0.5 sm:gap-1 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 transition-colors group flex-shrink-0"
+                >
+                  <ExternalLink className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                  <span className="text-xs sm:text-sm font-medium">Bill</span>
+                </a>
+              </div>
             </CardHeader>
             
             <CardContent className="space-y-4">
-              {/* Latest Action */}
-              {bill.latestAction && (
-                <p className="text-sm text-muted-foreground">
-                  <span className="font-semibold text-foreground">Latest Action:</span>{' '}
-                  {bill.latestAction.text} ({formatDate(bill.latestAction.actionDate)})
-                </p>
+              {/* Summary Display */}
+              {hasAllSummaries && bill.allSummaries[0] && (
+                <div className="mb-4">
+                  <SummaryDisplay summary={bill.allSummaries[0]} showPoliticalPerspectives={false} />
+                </div>
               )}
-
-              {/* Status Bar */}
-              {bill.latestAction && (
-                <BillStatusIndicator status={getBillStatus(bill.latestAction)} />
+              
+              {/* Campaigns Section */}
+              {campaigns.length > 0 && (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-sm font-medium text-muted-foreground mb-3">Campaigns:</p>
+                  <div className="space-y-3">
+                    {campaigns.map((campaign) => (
+                      <div key={campaign.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium break-words">{campaign.groupName}</span>
+                          <Badge 
+                            variant={campaign.position === 'Support' ? 'default' : 'secondary'}
+                            className={`text-xs flex-shrink-0 ${
+                              campaign.position === 'Support' 
+                                ? 'bg-black text-white hover:bg-black/90' 
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                          >
+                            {campaign.position}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground flex-wrap">
+                          <div className="flex items-center gap-1">
+                            <ThumbsUp className="h-3 w-3 flex-shrink-0" />
+                            <span>{campaign.supportCount.toLocaleString()}</span>
+                          </div>
+                          <span>•</span>
+                          <div className="flex items-center gap-1">
+                            <ThumbsDown className="h-3 w-3 flex-shrink-0" />
+                            <span>{campaign.opposeCount.toLocaleString()}</span>
+                          </div>
+                          <span>•</span>
+                          <Link 
+                            href={`/campaigns/${campaign.groupSlug}/${bill.type?.toLowerCase()}-${bill.number}`}
+                            className="text-primary hover:underline whitespace-nowrap"
+                          >
+                            View
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </CardContent>
-            
-            <CardFooter className="flex items-center gap-2 pt-4 border-t">
-              <Button size="sm" onClick={handleVoiceOpinionClick}>
-                  Voice your opinion
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className={`flex items-center gap-2 transition-colors ${
-                  userAction === 'support' 
-                    ? 'bg-stone-200 text-stone-700 border-stone-300' 
-                    : 'text-stone-600 hover:text-stone-700 hover:bg-stone-50 border-stone-200'
-                }`}
-                onClick={() => handleSupportOppose('support')}
-                title={user ? 'Support this bill' : 'Login to support this bill'}
-                disabled={userAction === 'support'}
-              >
-                <ThumbsUp className="h-4 w-4" />
-                <span className="font-semibold">
-                  {userAction === 'support' ? 'Supported!' : supportCount.toLocaleString()}
-                </span>
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className={`flex items-center gap-2 transition-colors ${
-                  userAction === 'oppose' 
-                    ? 'bg-amber-100 text-amber-700 border-amber-300' 
-                    : 'text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200'
-                }`}
-                onClick={() => handleSupportOppose('oppose')}
-                title={user ? 'Oppose this bill' : 'Login to oppose this bill'}
-                disabled={userAction === 'oppose'}
-              >
-                <ThumbsDown className="h-4 w-4" />
-                <span className="font-semibold">
-                  {userAction === 'oppose' ? 'Opposed!' : opposeCount.toLocaleString()}
-                </span>
-              </Button>
-              <Button 
-                variant={isWatched ? "default" : "outline"}
-                size="sm"
-                className={`flex items-center gap-2 ${
-                  isWatched 
-                    ? "bg-blue-600 hover:bg-blue-700 text-white" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                onClick={handleWatchClick}
-                title={user ? (isWatched ? 'Stop watching this bill' : 'Watch this bill for updates') : 'Login to watch this bill'}
-              >
-                <Eye className="h-4 w-4" />
-                {isWatched ? 'Watching' : 'Watch'}
-              </Button>
-            </CardFooter>
           </Card>
 
-          {(hasAllSummaries || bill.summaries?.count > 0 || bill.title || bill.shortTitle) && (
+          {/* Show additional summaries card only if there are more than 1 summary */}
+          {hasAllSummaries && bill.allSummaries.length > 1 && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
                             <FileText className="text-primary" />
-                            {hasAllSummaries ? `All Summaries (${bill.allSummaries.length})` : 'Summary'}
+                            Additional Summaries ({bill.allSummaries.length - 1})
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {hasAllSummaries ? (
-                            <>
-                                {/* Show first summary normally */}
-                                <SummaryDisplay summary={bill.allSummaries[0]} showPoliticalPerspectives={false} />
-                                
-                                {/* Show additional summaries in accordions */}
-                                {bill.allSummaries.length > 1 && (
-                                    <div className="space-y-2">
-                                        {bill.allSummaries.slice(1).map((summary, index) => (
-                                            <Collapsible key={index + 1}>
-                                                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 border rounded-md hover:bg-gray-50 transition-colors">
-                                                    <div className="flex items-center gap-2 text-left">
-                                                        <FileText className="h-4 w-4 text-primary" />
-                                                        <span className="font-medium text-sm">{summary.actionDesc} ({summary.versionCode})</span>
-                                                        <span className="text-xs text-muted-foreground">{formatDate(summary.updateDate)}</span>
-                                                    </div>
-                                                    <ArrowRight className="h-4 w-4 transition-transform duration-200" />
-                                                </CollapsibleTrigger>
-                                                <CollapsibleContent className="pt-2">
-                                                    <SummaryDisplay summary={summary} showPoliticalPerspectives={false} />
-                                                </CollapsibleContent>
-                                            </Collapsible>
-                                        ))}
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <div className="text-sm">
-                                {bill.summaries?.count > 0 ? (
-                                    <p className="text-muted-foreground italic">
-                                        Summary is being processed. Please check back later.
-                                    </p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        <div>
-                                            <p className="font-medium text-muted-foreground mb-1">Official Title</p>
-                                            <p className="text-foreground">{bill.title || displayTitle}</p>
+                        <div className="space-y-2">
+                            {bill.allSummaries.slice(1).map((summary, index) => (
+                                <Collapsible key={index + 1}>
+                                    <CollapsibleTrigger className="flex items-center justify-between w-full p-3 border rounded-md hover:bg-gray-50 transition-colors">
+                                        <div className="flex items-center gap-2 text-left">
+                                            <FileText className="h-4 w-4 text-primary" />
+                                            <span className="font-medium text-sm">{summary.actionDesc} ({summary.versionCode})</span>
+                                            <span className="text-xs text-muted-foreground">{formatDate(summary.updateDate)}</span>
                                         </div>
-                                        {bill.shortTitle && bill.shortTitle !== bill.title && (
-                                            <div>
-                                                <p className="font-medium text-muted-foreground mb-1">Short Title</p>
-                                                <p className="text-foreground">{bill.shortTitle}</p>
-                                            </div>
-                                        )}
-                                        <p className="text-muted-foreground italic mt-4">
-                                            Official congressional summary not yet available. Visit Congress.gov for the latest information.
-                                        </p>
+                                        <ArrowRight className="h-4 w-4 transition-transform duration-200" />
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="pt-2">
+                                        <SummaryDisplay summary={summary} showPoliticalPerspectives={false} />
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+          {/* Show fallback summary card if no allSummaries but has title/shortTitle */}
+          {!hasAllSummaries && (bill.summaries?.count > 0 || bill.title || bill.shortTitle) && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <FileText className="text-primary" />
+                            Summary
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="text-sm">
+                            {bill.summaries?.count > 0 ? (
+                                <p className="text-muted-foreground italic">
+                                    Summary is being processed. Please check back later.
+                                </p>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div>
+                                        <p className="font-medium text-muted-foreground mb-1">Official Title</p>
+                                        <p className="text-foreground">{bill.title || displayTitle}</p>
                                     </div>
-                                )}
-                            </div>
-                        )}
+                                    {bill.shortTitle && bill.shortTitle !== bill.title && (
+                                        <div>
+                                            <p className="font-medium text-muted-foreground mb-1">Short Title</p>
+                                            <p className="text-foreground">{bill.shortTitle}</p>
+                                        </div>
+                                    )}
+                                    <p className="text-muted-foreground italic mt-4">
+                                        Official congressional summary not yet available. Visit Congress.gov for the latest information.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
             )}
@@ -633,12 +690,6 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
               billType={bill.type}
               billNumber={bill.number}
             />
-
-            <Button asChild className="w-full">
-                <a href={constructBillUrl(bill)} target="_blank" rel="noopener noreferrer">
-                    View on Congress.gov <ExternalLink className="ml-2 h-4 w-4" />
-                </a>
-            </Button>
         </div>
       </main>
       <footer className="text-center py-6 text-sm text-muted-foreground mt-8 border-t">
