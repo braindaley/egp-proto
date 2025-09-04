@@ -45,7 +45,7 @@ export default async function MemberDetailPage({ params }: { params: { bioguideI
   if (!member) {
     // Instead of a hard 404, we can render a more graceful error message on the page
     return (
-        <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="container mx-auto px-4 py-8 md:py-12" style={{ maxWidth: '672px' }}>
             <Card className="max-w-2xl mx-auto">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -68,7 +68,7 @@ export default async function MemberDetailPage({ params }: { params: { bioguideI
   }
   
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
+    <div className="container mx-auto px-4 py-8 md:py-12" style={{ maxWidth: '672px' }}>
       <MemberDetailClient initialMember={member} congress={congress} />
     </div>
   );
