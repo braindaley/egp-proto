@@ -150,75 +150,48 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
   const currentlyServing = isCurrentlyServing(member);
   const currentTermInfo = allTerms[0];
   const chamberName = currentTermInfo?.chamber === 'House of Representatives' ? 'House' : currentTermInfo?.chamber;
+  const currentParty = member.partyHistory && member.partyHistory.length > 0 ? member.partyHistory[member.partyHistory.length - 1].partyName : member.partyName;
 
   return (
     <>
-      <header className="mb-8">
-        <div className="flex flex-col md:flex-row items-start gap-6">
-            <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
-                <Image
-                src={member.depiction?.imageUrl || 'https://placehold.co/300x300.png'}
-                alt={`Official photo of ${member.name}`}
-                fill
-                sizes="(max-width: 768px) 128px, 160px"
-                className="object-cover"
-                />
-            </div>
-            <div className="flex-1">
-                <p className="text-lg text-muted-foreground font-medium mb-1">{member.honorificName}</p>
-                <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary">
-                    {member.directOrderName}
-                </h1>
-                <div className="flex flex-wrap items-center gap-2 mt-3">
-                    {matchStatus === 'isMatch' && (
-                        <Badge variant="outline" className="text-base bg-green-100 text-green-800 border-green-200">
-                           Your Representative
-                        </Badge>
-                    )}
-                    {matchStatus === 'loading' && (
-                        <Badge variant="outline" className="text-base bg-blue-100 text-blue-800 border-blue-200">
-                           Checking...
-                        </Badge>
-                    )}
-                    {!zipCode && matchStatus === 'idle' && (
-                        <Badge variant="outline" className="text-xs text-muted-foreground cursor-help" title="Set your ZIP code to see if this is your representative">
-                           Set ZIP to see if this is your rep
-                        </Badge>
-                    )}
-                    <Badge variant={member.partyName === 'Republican' ? 'destructive' : member.partyName === 'Democratic' ? 'default' : 'secondary'} className="text-base">
-                        {member.partyName}
-                    </Badge>
-                    {chamberName && ( <Badge variant="outline" className="text-base">{chamberName}</Badge> )}
-                    <Badge variant="outline" className="text-base">{member.state}{member.district ? ` - District ${member.district}` : ''}</Badge>
-                    {currentlyServing && (
-                        <Badge variant="outline" className="text-base bg-green-100 text-green-800 border-green-200">Currently Serving</Badge>
-                    )}
-                </div>
-            </div>
-        </div>
-      </header>
 
       {/* --- Rest of the component --- */}
       <div className="space-y-8">
         <Card>
-          <CardHeader> <CardTitle className="flex items-center gap-2"><User /> Basic Info</CardTitle> </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-semibold text-muted-foreground">Full Name</h4>
-                <p>{member.directOrderName}</p>
+          <CardContent className="space-y-4 text-sm pt-8">
+            <div className="flex flex-col md:flex-row items-center gap-6 mb-6">
+              <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
+                <Image
+                  src={member.depiction?.imageUrl || 'https://placehold.co/300x300.png'}
+                  alt={`Official photo of ${member.name}`}
+                  fill
+                  sizes="(max-width: 768px) 128px, 160px"
+                  className="object-cover"
+                />
               </div>
-              {member.birthYear && (
-                 <div>
-                   <h4 className="font-semibold text-muted-foreground">Born</h4>
-                   <p>{member.birthYear} (Age: {new Date().getFullYear() - parseInt(member.birthYear)})</p>
-                 </div>
+              <div className="flex-1">
+                <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary mb-3">
+                  {member.directOrderName}
+                </h1>
+              </div>
+            </div>
+            <Separator />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {chamberName && (
+                <div>
+                  <h4 className="font-semibold text-muted-foreground">{chamberName === 'House' ? 'House' : 'Senate'}</h4>
+                  <p>{chamberName}</p>
+                </div>
               )}
-               {firstTerm && (
-                  <div>
-                    <h4 className="font-semibold text-muted-foreground">First Term</h4>
-                    <p>{firstTerm.startYear}</p>
-                  </div>
+              <div>
+                <h4 className="font-semibold text-muted-foreground">Party</h4>
+                <p>{currentParty || 'Unknown'}</p>
+              </div>
+              {member.district && (
+                <div>
+                  <h4 className="font-semibold text-muted-foreground">District</h4>
+                  <p>{member.state}-{member.district}</p>
+                </div>
               )}
               {yearsOfService > 0 && (
                  <div>
@@ -227,7 +200,16 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                  </div>
               )}
             </div>
-             <Separator />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info /> Member Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
              <div className="space-y-2">
                 {member.officialWebsiteUrl && (
                     <div className="flex items-center gap-2">
@@ -278,6 +260,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
             )}
           </CardContent>
         </Card>
+        
         <CampaignFinanceCard member={member} congress={congress} state={member.state.toLowerCase()} bioguideId={member.bioguideId} />
         <NewsCard bioguideId={member.bioguideId} />
         <LegislativeActivityCard member={member} />

@@ -260,10 +260,9 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
               <div className="flex items-center justify-between px-1 sm:px-2 py-3 border-t border-gray-200 gap-0.5 sm:gap-1 overflow-x-auto">
                 <button
                   onClick={handleVoiceOpinionClick}
-                  className="flex items-center gap-0.5 sm:gap-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 transition-colors group flex-shrink-0"
+                  className="bg-black text-white hover:bg-black/90 rounded-md px-3 sm:px-4 py-1.5 sm:py-2 transition-colors flex-shrink-0"
                 >
-                  <MessageSquareText className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
-                  <span className="text-xs sm:text-sm font-medium">58</span>
+                  <span className="text-xs sm:text-sm font-medium">Voice your opinion</span>
                 </button>
                 
                 <button
@@ -333,9 +332,15 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
             
             <CardContent className="space-y-4">
               {/* Summary Display */}
-              {hasAllSummaries && bill.allSummaries[0] && (
+              {hasAllSummaries && bill.allSummaries[0] ? (
                 <div className="mb-4">
                   <SummaryDisplay summary={bill.allSummaries[0]} showPoliticalPerspectives={false} />
+                </div>
+              ) : (
+                <div className="mb-4 p-4 bg-gray-50 rounded-md border">
+                  <p className="text-sm text-muted-foreground italic">
+                    A summary is in progress.
+                  </p>
                 </div>
               )}
               
@@ -382,6 +387,44 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Collapsible section for additional details */}
+          <Collapsible>
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 border rounded-md hover:bg-gray-50 transition-colors">
+              <h3 className="text-lg font-semibold">More about this bill</h3>
+              <ArrowRight className="h-4 w-4 transition-transform duration-200" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-6 mt-4">
+
+          {/* Bill Metadata */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="text-primary" />
+                Bill Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Introduced</p>
+                  <p className="text-sm">{formatDate(bill.introducedDate)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Origin Chamber</p>
+                  <p className="text-sm">{bill.originChamber}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Last Updated</p>
+                  <p className="text-sm">{formatDate(bill.updateDate)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Congress</p>
+                  <p className="text-sm">{bill.congress}th Congress</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -597,26 +640,58 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
               </Card>
             )}
 
-            {/* Placeholder cards */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Winners/Losers</CardTitle>
-              </CardHeader>
-            </Card>
+            {/* Legislative Actions Timeline */}
+            {hasActions && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <History className="text-primary" />
+                    Legislative Actions ({bill.actions.count})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {bill.actions.items.slice(0, 10).map((action, index) => (
+                      <div key={index} className="flex flex-col sm:flex-row sm:items-start gap-2 p-3 border rounded-md">
+                        <div className="flex-shrink-0">
+                          <Badge variant="outline" className="text-xs">
+                            {formatDate(action.actionDate)}
+                          </Badge>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm">{action.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {bill.actions.items.length > 10 && (
+                      <Collapsible>
+                        <CollapsibleContent className="space-y-3 mt-3">
+                          {bill.actions.items.slice(10).map((action, index) => (
+                            <div key={index + 10} className="flex flex-col sm:flex-row sm:items-start gap-2 p-3 border rounded-md">
+                              <div className="flex-shrink-0">
+                                <Badge variant="outline" className="text-xs">
+                                  {formatDate(action.actionDate)}
+                                </Badge>
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm">{action.text}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </CollapsibleContent>
+                        <CollapsibleTrigger asChild>
+                          <Button variant="outline" className="w-full mt-4">
+                            Show all {bill.actions.items.length} actions
+                          </Button>
+                        </CollapsibleTrigger>
+                      </Collapsible>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Third party ratings</CardTitle>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Industry support</CardTitle>
-              </CardHeader>
-            </Card>
-
-             {hasRelatedBills && (
+            {hasRelatedBills && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
@@ -690,6 +765,9 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
               billType={bill.type}
               billNumber={bill.number}
             />
+
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </main>
       <footer className="text-center py-6 text-sm text-muted-foreground mt-8 border-t">
