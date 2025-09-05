@@ -26,6 +26,7 @@ import { CampaignFinanceCard } from './campaign-finance-card';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
 import { Separator } from './ui/separator';
+import { SimpleIdeologyChart } from './simple-ideology-chart';
 
 // --- Name Matching Function ---
 function areNamesSimilar(nameA: string, nameB: string): boolean {
@@ -200,8 +201,19 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                  </div>
               )}
             </div>
+            <Separator />
+            <SimpleIdeologyChart bioguideId={member.bioguideId} />
           </CardContent>
         </Card>
+        
+        <Collapsible defaultOpen={false}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full flex items-center justify-between">
+              More about this member
+              <ChevronsUpDown className="h-4 w-4" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-8 mt-4">
         
         <Card>
           <CardHeader>
@@ -575,6 +587,9 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
             )}
           </CardContent>
         </Card>
+        
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </>
   );

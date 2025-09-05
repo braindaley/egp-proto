@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createLegiscanConnector, LEGISCAN_STATE_IDS } from '@/lib/legiscan-connector';
+import { 
+  getMockSessions, 
+  getMockMasterList, 
+  getMockSessionPeople, 
+  getMockBill 
+} from '@/lib/mock-legiscan-data';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -9,85 +14,99 @@ export async function GET(req: Request) {
   const billId = searchParams.get('billId');
   const personId = searchParams.get('personId');
   const query = searchParams.get('query');
-  const debug = searchParams.get('debug');
+
+  // Add a small delay to simulate API response time
+  await new Promise(resolve => setTimeout(resolve, 100));
 
   try {
-    const legiscan = createLegiscanConnector();
-
     switch (action) {
       case 'sessions':
-        if (stateCode) {
-          // Validate state code exists in our mapping (for validation only)
-          const upperStateCode = stateCode.toUpperCase();
-          if (!LEGISCAN_STATE_IDS[upperStateCode as keyof typeof LEGISCAN_STATE_IDS]) {
-            return NextResponse.json({ error: 'Invalid state code' }, { status: 400 });
-          }
-          // Pass the state code directly to LegiScan API (not the state ID)
-          const sessions = await legiscan.getSessions(upperStateCode);
-          return NextResponse.json(sessions);
-        } else {
-          const allSessions = await legiscan.getSessions();
-          return NextResponse.json(allSessions);
-        }
+        const sessions = getMockSessions(stateCode || undefined);
+        return NextResponse.json(sessions);
 
       case 'masterlist':
         if (!sessionId) {
           return NextResponse.json({ error: 'Session ID required for masterlist' }, { status: 400 });
         }
-        const masterList = await legiscan.getMasterList(parseInt(sessionId));
+        const masterList = getMockMasterList(parseInt(sessionId));
         return NextResponse.json(masterList);
 
       case 'bill':
         if (!billId) {
           return NextResponse.json({ error: 'Bill ID required' }, { status: 400 });
         }
-        const bill = await legiscan.getBill(parseInt(billId));
+        const bill = getMockBill(parseInt(billId));
         return NextResponse.json(bill);
 
       case 'search':
         if (!query) {
           return NextResponse.json({ error: 'Query required for search' }, { status: 400 });
         }
-        const searchParams = {
-          state: stateCode || undefined,
-        };
-        const searchResults = await legiscan.searchBills(query, searchParams);
-        return NextResponse.json(searchResults);
+        // Mock search results - in a real implementation, you'd search through bills
+        return NextResponse.json({
+          status: 'success',
+          data: {
+            status: 'OK',
+            searchresult: []
+          }
+        });
 
       case 'recent':
-        const recentParams = {
-          state: stateCode || undefined,
-          days: 7, // Default to last 7 days
-        };
-        const recentBills = await legiscan.getRecentBills(recentParams);
+        // Mock recent bills - return some recent bills from California
+        const recentBills = getMockMasterList(2172);
         return NextResponse.json(recentBills);
 
       case 'session-people':
         if (!sessionId) {
           return NextResponse.json({ error: 'Session ID required for session-people' }, { status: 400 });
         }
-        const sessionPeople = await legiscan.getSessionPeople(parseInt(sessionId));
+        const sessionPeople = getMockSessionPeople(parseInt(sessionId));
         return NextResponse.json(sessionPeople);
 
       case 'person':
         if (!personId) {
           return NextResponse.json({ error: 'Person ID required for person' }, { status: 400 });
         }
-        const person = await legiscan.getPerson(parseInt(personId));
-        return NextResponse.json(person);
+        // Mock person data
+        return NextResponse.json({
+          status: 'success',
+          data: {
+            status: 'OK',
+            person: {
+              people_id: parseInt(personId),
+              name: 'John Doe',
+              party: 'D',
+              role: 'Assembly Member',
+              district: 'District 1'
+            }
+          }
+        });
 
       case 'dataset':
         if (!sessionId) {
           return NextResponse.json({ error: 'Session ID required for dataset' }, { status: 400 });
         }
-        const dataset = await legiscan.getDataset(parseInt(sessionId));
-        return NextResponse.json(dataset);
+        // Mock dataset - return empty as datasets require special access
+        return NextResponse.json({
+          status: 'error',
+          error: 'Dataset access not available in mock mode'
+        });
 
       case 'states':
         // Return available state mappings
         return NextResponse.json({
           status: 'success',
-          data: LEGISCAN_STATE_IDS,
+          data: {
+            'AL': 1, 'AK': 2, 'AZ': 3, 'AR': 4, 'CA': 5, 'CO': 6,
+            'CT': 7, 'DE': 8, 'FL': 10, 'GA': 11, 'HI': 12, 'ID': 13,
+            'IL': 14, 'IN': 15, 'IA': 16, 'KS': 17, 'KY': 18, 'LA': 19,
+            'ME': 20, 'MD': 21, 'MA': 22, 'MI': 23, 'MN': 24, 'MS': 25,
+            'MO': 26, 'MT': 27, 'NE': 28, 'NV': 29, 'NH': 30, 'NJ': 31,
+            'NM': 32, 'NY': 33, 'NC': 34, 'ND': 35, 'OH': 36, 'OK': 37,
+            'OR': 38, 'PA': 39, 'RI': 40, 'SC': 41, 'SD': 42, 'TN': 43,
+            'TX': 44, 'UT': 45, 'VT': 46, 'VA': 47, 'WA': 48, 'WV': 49,
+            'WI': 50, 'WY': 51
+          }
         });
 
       default:
@@ -96,64 +115,25 @@ export async function GET(req: Request) {
           availableActions: ['sessions', 'masterlist', 'bill', 'search', 'recent', 'session-people', 'person', 'dataset', 'states'],
           examples: {
             sessions: '/api/legiscan?action=sessions&state=CA',
-            masterlist: '/api/legiscan?action=masterlist&sessionId=1234',
-            bill: '/api/legiscan?action=bill&billId=5678',
-            search: '/api/legiscan?action=search&query=healthcare&state=CA',
+            masterlist: '/api/legiscan?action=masterlist&sessionId=2172',
+            bill: '/api/legiscan?action=bill&billId=1893344',
+            search: '/api/legiscan?action=search&query=immigration',
             recent: '/api/legiscan?action=recent&state=CA',
-            sessionPeople: '/api/legiscan?action=session-people&sessionId=1234',
-            person: '/api/legiscan?action=person&personId=1234',
-            dataset: '/api/legiscan?action=dataset&sessionId=1234',
-            states: '/api/legiscan?action=states',
-          },
+            'session-people': '/api/legiscan?action=session-people&sessionId=2172',
+            person: '/api/legiscan?action=person&personId=30001',
+            dataset: '/api/legiscan?action=dataset&sessionId=2172',
+            states: '/api/legiscan?action=states'
+          }
         }, { status: 400 });
     }
-  } catch (error: any) {
-    const errorResponse = {
-      error: 'Legiscan API error',
-      message: error.message,
-      ...(debug && { stack: error.stack }),
-    };
-    
-    return NextResponse.json(errorResponse, { status: 500 });
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { action, ...params } = body;
-    
-    const legiscan = createLegiscanConnector();
-
-    switch (action) {
-      case 'bulk-search':
-        const { queries, state } = params;
-        if (!Array.isArray(queries)) {
-          return NextResponse.json({ error: 'queries must be an array' }, { status: 400 });
-        }
-
-        const results = await Promise.all(
-          queries.map(async (query: string) => {
-            const result = await legiscan.searchBills(query, { state });
-            return { query, result };
-          })
-        );
-
-        return NextResponse.json({
-          status: 'success',
-          data: results,
-        });
-
-      default:
-        return NextResponse.json({
-          error: 'Invalid POST action',
-          availableActions: ['bulk-search'],
-        }, { status: 400 });
-    }
-  } catch (error: any) {
+  } catch (error) {
+    console.error('Mock API error:', error);
     return NextResponse.json({
-      error: 'Legiscan API error',
-      message: error.message,
+      status: 'error',
+      error: {
+        message: 'Mock API error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }
     }, { status: 500 });
   }
 }

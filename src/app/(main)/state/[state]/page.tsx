@@ -49,6 +49,7 @@ export default function StateOverviewPage() {
   const [totalMembersCount, setTotalMembersCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const stateName = states.find(s => s.abbr === stateCode)?.name || stateCode;
 
@@ -98,6 +99,7 @@ export default function StateOverviewPage() {
         }
       } catch (error) {
         console.error('Error fetching sessions:', error);
+        setApiError('Unable to load legislative data. The API service may be temporarily unavailable.');
       } finally {
         setSessionsLoading(false);
       }
@@ -141,6 +143,7 @@ export default function StateOverviewPage() {
         }
       } catch (error) {
         console.error('Error fetching state data:', error);
+        setApiError('Unable to load legislative data. The API service may be temporarily unavailable.');
       } finally {
         setLoading(false);
       }
@@ -209,6 +212,30 @@ export default function StateOverviewPage() {
           </div>
           
         </header>
+
+        {/* API Error Message */}
+        {apiError && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/50 rounded-lg border border-red-200 dark:border-red-800">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-medium text-red-900 dark:text-red-100">
+                  Legislative Data Unavailable
+                </h3>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  {apiError}
+                </p>
+                <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                  Please try again later or contact support if this issue persists.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Recent Bills Section */}

@@ -14,6 +14,7 @@
 In this example, Kansas, Montana and Pennsylvania are colored blue, and California and Delaware are colored red.
 Place this code in the empty space below. */
 
+.ca,.tx,.fl,.ny,.il,.mi,.oh,.pa,.ga,.nc,.va,.wa,.az,.in,.ma,.tn,.wi,.mn,.la,.sc,.al,.ky,.or,.co {fill:#000000}
 
 
 </style>

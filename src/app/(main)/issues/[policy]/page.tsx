@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
 import USMap from '@/components/USMap';
 import { BrowseByStateAccordion } from '@/components/BrowseByStateAccordion';
+import { UserStateBills } from '@/components/UserStateBills';
 
 function convertTitleToSlug(title: string): string {
   return title
@@ -63,10 +64,16 @@ export default async function PolicyPage({ params }: { params: Promise<{ policy:
 
       <div id="states">
         <h2 className="text-2xl font-bold mb-6">State Level</h2>
-        <BrowseByStateAccordion 
-          policySlug={policy} 
+        <UserStateBills 
+          policySlug={policy}
           policyTitle={policyTitle}
         />
+        <div className="mt-8">
+          <BrowseByStateAccordion 
+            policySlug={policy} 
+            policyTitle={policyTitle}
+          />
+        </div>
       </div>
     </div>
     </div>
