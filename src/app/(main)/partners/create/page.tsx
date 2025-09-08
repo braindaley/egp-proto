@@ -135,8 +135,8 @@ function CreateCampaignPageContent() {
                 throw new Error(error.error || 'Failed to create campaign');
             }
 
-            // Redirect to the campaign landing page
-            router.push(`/campaigns/${selectedGroup}/${selectedBill.type.toLowerCase()}-${selectedBill.number}`);
+            // Redirect to the group's campaigns page
+            router.push(`/partners/groups/${selectedGroup}/campaigns`);
         } catch (error) {
             console.error('Error creating campaign:', error);
             alert(error instanceof Error ? error.message : 'Failed to create campaign');
@@ -230,7 +230,7 @@ function CreateCampaignPageContent() {
                         </div>
                         
                         {/* Search Results */}
-                        {(isSearching || searchResults.length > 0) && (
+                        {searchQuery && !selectedBill && (isSearching || searchResults.length > 0) && (
                             <Card className="mt-2 max-h-64 overflow-y-auto">
                                 <CardContent className="p-2">
                                     {isSearching ? (

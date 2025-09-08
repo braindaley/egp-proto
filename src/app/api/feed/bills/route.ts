@@ -16,14 +16,31 @@ function getBillStatus(latestActionText: string): string {
         lowerCaseAction.includes('signed by president')) {
         return 'Became Law';
     }
-    if (lowerCaseAction.includes('presented to president')) {
+    if (lowerCaseAction.includes('presented to president') ||
+        lowerCaseAction.includes('to president')) {
         return 'To President';
     }
-    if (lowerCaseAction.includes('passed house') || lowerCaseAction.includes('passed/agreed to in house')) {
+    if (lowerCaseAction.includes('passed house') || 
+        lowerCaseAction.includes('passed/agreed to in house') ||
+        lowerCaseAction.includes('house agreed')) {
         return 'Passed House';
     }
-     if (lowerCaseAction.includes('passed senate') || lowerCaseAction.includes('passed/agreed to in senate')) {
+    if (lowerCaseAction.includes('passed senate') || 
+        lowerCaseAction.includes('passed/agreed to in senate') ||
+        lowerCaseAction.includes('senate agreed') ||
+        lowerCaseAction.includes('passed without objection')) {
         return 'Passed Senate';
+    }
+    // Check for bills that have been reported out of committee (more advanced)
+    if (lowerCaseAction.includes('reported to house') ||
+        lowerCaseAction.includes('reported to senate') ||
+        lowerCaseAction.includes('placed on calendar') ||
+        lowerCaseAction.includes('ordered to be reported') ||
+        lowerCaseAction.includes('reported favorably')) {
+        return 'Reported from Committee';
+    }
+    if (lowerCaseAction.includes('referred to') && lowerCaseAction.includes('committee')) {
+        return 'In Committee';
     }
     if (lowerCaseAction.includes('committee')) {
         return 'In Committee';
@@ -466,7 +483,7 @@ export async function GET(req: NextRequest) {
           const allCachedQuery = query(
             cacheCollection, 
             orderBy('importanceScore', 'desc'),
-            limit(50)
+            limit(100)
           );
           const allDocsSnapshot = await getDocs(allCachedQuery);
           const cachedBillsForCongress = allDocsSnapshot.docs
@@ -492,7 +509,7 @@ export async function GET(req: NextRequest) {
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
       const updatedSince = ninetyDaysAgo.toISOString().split('T')[0];
-      const listUrl = `https://api.congress.gov/v3/bill/${latestCongress}?updatedSince=${updatedSince}&limit=50&sort=updateDate+desc&api_key=${API_KEY}`;
+      const listUrl = `https://api.congress.gov/v3/bill/${latestCongress}?updatedSince=${updatedSince}&limit=100&sort=updateDate+desc&api_key=${API_KEY}`;
       
       const listRes = await fetch(listUrl, { next: { revalidate: 600 } });
       if (!listRes.ok) throw new Error(`Failed to fetch bill list from Congress API: ${listRes.status}`);
@@ -653,7 +670,7 @@ export async function GET(req: NextRequest) {
         const oldCacheQuery = query(
           cacheCollection, 
           orderBy('importanceScore', 'desc'),
-          limit(50)
+          limit(100)
         );
         const oldCacheSnapshot = await getDocs(oldCacheQuery);
         

@@ -68,16 +68,49 @@ export default function ForYou() {
     );
   }
 
+  // Debug: Log all unique statuses
+  const uniqueStatuses = [...new Set(bills.map(bill => bill.status))];
+  console.log('All unique bill statuses:', uniqueStatuses);
+  console.log('Total bills fetched:', bills.length);
+  
+  // Sample of bills with their statuses and latest actions
+  if (bills.length > 0) {
+    console.log('Sample bills:', bills.slice(0, 5).map(b => ({
+      number: b.billNumber,
+      status: b.status,
+      latestAction: b.latestAction?.text
+    })));
+  }
+  
+  // Filter bills to only show those that have advanced past introduction
+  // Include: Passed House, Passed Senate, To President, Reported from Committee, In Committee
+  // Exclude: Introduced, Became Law
+  const filteredBills = bills.filter(bill => 
+    bill.status === 'Passed House' || 
+    bill.status === 'Passed Senate' || 
+    bill.status === 'To President' ||
+    bill.status === 'Reported from Committee' ||
+    bill.status === 'In Committee'
+  );
+  
+  console.log('Filtered bills count:', filteredBills.length);
+  console.log('Filtered bill statuses:', [...new Set(filteredBills.map(b => b.status))]);
+
   return (
     <div className="bg-secondary/30 flex-1">
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-[672px] mx-auto">
           <div className="space-y-4">
-            {bills.slice(0, 20).map((bill, index) => (
+            {filteredBills.map((bill, index) => (
               <BillCarouselCard key={`${bill.congress}-${bill.type}-${bill.number}`} bill={bill} index={index} />
             ))}
-            {bills.length === 0 && (
-              <p className="text-center text-muted-foreground">No bills found</p>
+            {filteredBills.length === 0 && (
+              <p className="text-center text-muted-foreground">No bills currently in active legislative progress</p>
+            )}
+            {filteredBills.length > 0 && filteredBills.length < 20 && (
+              <p className="text-center text-muted-foreground text-sm">
+                Showing {filteredBills.length} bill{filteredBills.length === 1 ? '' : 's'} in active progress
+              </p>
             )}
           </div>
         </div>

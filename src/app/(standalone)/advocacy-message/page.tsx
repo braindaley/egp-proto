@@ -1678,7 +1678,7 @@ const AdvocacyMessageContent: React.FC = () => {
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       >
                         <option value="">Select your birth year</option>
-                        {Array.from({ length: new Date().getFullYear() - 1900 + 1 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                        {Array.from({ length: new Date().getFullYear() - 18 - 1900 + 1 }, (_, i) => new Date().getFullYear() - 18 - i).map(year => (
                           <option key={year} value={year}>{year}</option>
                         ))}
                       </select>

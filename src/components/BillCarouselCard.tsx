@@ -219,6 +219,16 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
             </p>
           </div>
         </div>
+
+        {/* Bill Number Badge and Title */}
+        <div className="flex flex-col items-center gap-2">
+          <Badge variant="secondary" className="text-xs font-semibold">
+            {bill.type.toUpperCase()} {bill.number}
+          </Badge>
+          <p className="text-sm text-gray-600 text-center line-clamp-2">
+            {bill.shortTitle}
+          </p>
+        </div>
       </CardContent>
 
       {/* Twitter-style Action Bar */}
