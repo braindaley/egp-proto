@@ -60,7 +60,7 @@ function CreateCampaignPageContent() {
     const { user, loading: authLoading } = useAuth();
     
     const [selectedGroup, setSelectedGroup] = useState<string>(searchParams.get('group') || '');
-    const [campaignType, setCampaignType] = useState<'Bill' | 'Town Hall' | 'Candidate'>('Bill');
+    const [campaignType, setCampaignType] = useState<'Legislation' | 'Town Hall Calling' | 'Candidate Advocacy' | 'Voter Registration' | 'Voter Poll'>('Legislation');
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Bill[]>([]);
     const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
@@ -201,14 +201,16 @@ function CreateCampaignPageContent() {
                     {/* Campaign Type */}
                     <div className="space-y-2">
                         <Label htmlFor="campaign-type">Campaign Type</Label>
-                        <Select value={campaignType} onValueChange={(value) => setCampaignType(value as 'Bill' | 'Town Hall' | 'Candidate')}>
+                        <Select value={campaignType} onValueChange={(value) => setCampaignType(value as 'Legislation' | 'Town Hall Calling' | 'Candidate Advocacy' | 'Voter Registration' | 'Voter Poll')}>
                             <SelectTrigger id="campaign-type">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="Bill">Bill</SelectItem>
-                                <SelectItem value="Town Hall">Town Hall</SelectItem>
-                                <SelectItem value="Candidate">Candidate</SelectItem>
+                                <SelectItem value="Legislation">Legislation</SelectItem>
+                                <SelectItem value="Town Hall Calling">Town Hall Calling</SelectItem>
+                                <SelectItem value="Candidate Advocacy">Candidate Advocacy</SelectItem>
+                                <SelectItem value="Voter Registration">Voter Registration</SelectItem>
+                                <SelectItem value="Voter Poll">Voter Poll</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
