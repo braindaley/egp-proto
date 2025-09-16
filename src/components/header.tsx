@@ -106,7 +106,7 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
 
           {/* Right Section - Auth and Menu */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
                 {renderAuthContent()}
             </div>
 

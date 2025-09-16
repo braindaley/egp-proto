@@ -105,4 +105,11 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  .line-clamp-12 {
+    display: -webkit-box;
+    -webkit-line-clamp: 12;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }

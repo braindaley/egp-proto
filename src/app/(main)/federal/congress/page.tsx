@@ -3,22 +3,50 @@ import { redirect } from 'next/navigation';
 import type { Congress } from '@/types';
 
 async function getCongresses(): Promise<Congress[]> {
-  // This assumes the app is running on localhost, which is fine for dev.
-  // In a real deployment, you'd use a relative URL or an env var for the base URL.
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const url = `${baseUrl}/api/congresses`;
+  const API_KEY = process.env.CONGRESS_API_KEY;
+
+  const fallbackCongresses: Congress[] = [
+    { name: '119th Congress', number: 119, startYear: '2025', endYear: '2027' },
+    { name: '118th Congress', number: 118, startYear: '2023', endYear: '2025' },
+    { name: '117th Congress', number: 117, startYear: '2021', endYear: '2023' },
+    { name: '116th Congress', number: 116, startYear: '2019', endYear: '2021' },
+    { name: '115th Congress', number: 115, startYear: '2017', endYear: '2019' },
+  ].sort((a, b) => b.number - a.number) as Congress[];
+
+  if (!API_KEY) {
+    console.error('CONGRESS_API_KEY is not defined on the server.');
+    return fallbackCongresses;
+  }
+
+  const url = `https://api.congress.gov/v3/congress?limit=250&api_key=${API_KEY}`;
 
   try {
-    const res = await fetch(url, { next: { revalidate: 3600 } });
+    const res = await fetch(url, {
+      next: { revalidate: 3600 } // Revalidate every hour
+    });
+
     if (!res.ok) {
-      console.error(`Failed to fetch congresses: ${res.status}`);
-      return [];
+      console.error(`Failed to fetch congresses from external API: ${res.status}`);
+      return fallbackCongresses;
     }
+
     const data = await res.json();
-    return data.congresses || [];
+    const congresses = (data.congresses || [])
+      .filter(Boolean)
+      .map((congress: any) => ({
+        ...congress,
+        number: parseInt(congress.name.match(/(\d+)/)?.[1] || '0', 10)
+      }))
+      .sort((a: any, b: any) => b.number - a.number);
+
+    if (congresses.length === 0) {
+        return fallbackCongresses;
+    }
+
+    return congresses;
   } catch (error) {
-    console.error('Error fetching congresses:', error);
-    return [];
+    console.error('Error in getCongresses (congress page):', error);
+    return fallbackCongresses;
   }
 }
 
