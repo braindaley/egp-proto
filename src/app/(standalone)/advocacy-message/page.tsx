@@ -84,6 +84,7 @@ const AdvocacyMessageContent: React.FC = () => {
   const [bill, setBill] = useState<Bill | null>(null);
   const [selectedMembers, setSelectedMembers] = useState<any[]>([]);
   const [userStance, setUserStance] = useState<'support' | 'oppose' | ''>('');
+  const [aiHelpChoice, setAiHelpChoice] = useState<'yes' | 'no' | ''>('');
   const [message, setMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedPersonalData, setSelectedPersonalData] = useState<string[]>(['fullName']);
@@ -879,8 +880,8 @@ const AdvocacyMessageContent: React.FC = () => {
           }}>
             Back
           </Button>
-          <Button 
-            onClick={() => setStep(4)}
+          <Button
+            onClick={() => setStep(7)}
             disabled={selectedMembers.length === 0}
           >
             Next
@@ -890,159 +891,289 @@ const AdvocacyMessageContent: React.FC = () => {
     </Card>
   );
 
-  // Step 1: Compose Your Message
-  const renderStep2 = () => (
-    <Card className="flex-1 flex flex-col">
-      <CardHeader>
+  // Step 1: Choose Your Position
+  const renderStep1_Position = () => (
+    <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
+      <CardHeader className="bg-background">
+        <div className="text-sm font-medium text-muted-foreground mb-2">Step 1</div>
         <CardTitle>
           {bill ? (
-            `Voice your opinion on ${billType?.toUpperCase()}${billNumber}: ${bill.shortTitle || bill.title}`
+            `Choose Your Position on ${billType?.toUpperCase()}${billNumber}`
           ) : (
-            'Compose your message'
+            'Choose Your Position'
           )}
         </CardTitle>
+        <p className="text-sm text-muted-foreground mt-2">
+          First, let us know whether you support or oppose this legislation. This helps us understand your viewpoint.
+        </p>
       </CardHeader>
-      <CardContent className="space-y-6 flex-1 flex flex-col">
-        {/* Stance selection */}
+      <CardContent className="space-y-6 flex-1 flex flex-col bg-background">
         <div>
-          <h3 className="font-semibold mb-3">Your Position</h3>
-          <div className="flex gap-3">
+          <h3 className="font-semibold mb-4 text-lg">Do you support or oppose this bill?</h3>
+          <div className="flex flex-col sm:flex-row gap-4">
             <Button
               variant={userStance === 'support' ? 'default' : 'outline'}
               onClick={() => setUserStance('support')}
               size="lg"
-              className="flex-1"
+              className="flex-1 flex-col"
+              style={{paddingTop: '24px', paddingBottom: '24px', minHeight: '100px'}}
             >
-              <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="mb-1" style={{width: '24px', height: '24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
               </svg>
-              Support
+              <div className="text-center">
+                <div className="font-semibold">Support</div>
+                <div className="text-sm opacity-75">I am in favor of this bill</div>
+              </div>
             </Button>
             <Button
               variant={userStance === 'oppose' ? 'destructive' : 'outline'}
               onClick={() => setUserStance('oppose')}
               size="lg"
-              className="flex-1"
+              className="flex-1 flex-col"
+              style={{paddingTop: '24px', paddingBottom: '24px', minHeight: '100px'}}
             >
-              <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="mb-1" style={{width: '24px', height: '24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .904-.405.904-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
               </svg>
-              Oppose
-            </Button>
-          </div>
-        </div>
-
-        {/* Message composition */}
-        <div className="flex-1 flex flex-col">
-          <h3 className="font-semibold mb-3">Your Message</h3>
-          <div className="space-y-3 flex-1 flex flex-col">
-            <Button 
-              onClick={generateAITemplate} 
-              variant="outline" 
-              disabled={!userStance || isGenerating}
-              className="w-full"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Generate AI Template
-                </>
-              )}
-            </Button>
-            <Textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Write your message here, or generate a template to get started..."
-              className="flex-1 resize-none"
-              style={{ minHeight: '280px' }}
-            />
-            
-            {/* Upload Media */}
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Upload className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <h4 className="text-xs font-medium">Upload Media</h4>
-                    <p className="text-xs text-muted-foreground">Add files to support your message</p>
-                  </div>
-                </div>
-                <div>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,.pdf,.doc,.docx,.txt"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      setUploadedFiles(prev => [...prev, ...files]);
-                    }}
-                    className="hidden"
-                    id="media-upload"
-                  />
-                  <Label htmlFor="media-upload" className="cursor-pointer">
-                    <Button variant="outline" type="button" size="sm" className="pointer-events-none">
-                      <Upload className="mr-1 h-3 w-3" />
-                      Choose Files
-                    </Button>
-                  </Label>
-                </div>
+              <div className="text-center">
+                <div className="font-semibold">Oppose</div>
+                <div className="text-sm opacity-75">I am against this bill</div>
               </div>
-              
-              {/* Uploaded Files Display */}
-              {uploadedFiles.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <p className="text-sm font-medium">Uploaded Files:</p>
-                  {uploadedFiles.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-2">
-                      <div className="flex items-center space-x-2">
-                        {file.type.startsWith('image/') ? (
-                          <Image className="h-4 w-4 text-blue-500" />
-                        ) : (
-                          <File className="h-4 w-4 text-gray-500" />
-                        )}
-                        <span className="text-sm">{file.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          ({(file.size / 1024).toFixed(1)} KB)
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setUploadedFiles(prev => prev.filter((_, i) => i !== index));
-                        }}
-                        className="h-6 w-6 p-0"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            </Button>
           </div>
         </div>
-
 
         <div className="flex-1"></div>
         <div className="flex justify-end mt-auto pt-6">
-          <Button 
-            onClick={() => {
-              // If user is not logged in and not verified, go to routing step
-              if (!user && !verifiedUserInfo) {
-                setStep(2); // Go to routing/verification step
-              } else {
-                setStep(3); // Skip to select outreach
-              }
-            }}
-            disabled={!message || !userStance}
+          <Button
+            onClick={() => setStep(2)}
+            disabled={!userStance}
+            size="lg"
+          >
+            Continue to Next Step
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Step 2: Get Help Writing (Optional)
+  const renderStep2_AIHelp = () => (
+    <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
+      <CardHeader className="bg-background">
+        <div className="text-sm font-medium text-muted-foreground mb-2">Step 2</div>
+        <CardTitle>Writing Your Message</CardTitle>
+        <p className="text-sm text-muted-foreground mt-2">
+          Would you like us to personalize your letter using relevant details from your profile?
+        </p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Personalized letters stand out and convey real impact to your recipients
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-6 flex-1 flex flex-col bg-background">
+        <div>
+          <h3 className="font-semibold mb-4 text-lg">Would you like help writing your message?</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button
+              variant={aiHelpChoice === 'yes' ? 'default' : 'outline'}
+              onClick={() => {
+                setAiHelpChoice('yes');
+                generateAITemplate();
+              }}
+              disabled={isGenerating}
+              size="lg"
+              className="flex-1 flex-col"
+              style={{paddingTop: '24px', paddingBottom: '24px', minHeight: '100px'}}
+            >
+              <svg className="mb-1" style={{width: '24px', height: '24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+              </svg>
+              <div className="text-center">
+                <div className="font-semibold">
+                  {isGenerating ? 'Creating...' : 'Yes'}
+                </div>
+                <div className="text-sm opacity-75">Help write my message</div>
+              </div>
+            </Button>
+            <Button
+              variant={aiHelpChoice === 'no' ? 'default' : 'outline'}
+              onClick={() => {
+                setAiHelpChoice('no');
+                setStep(3);
+              }}
+              size="lg"
+              className="flex-1 flex-col"
+              style={{paddingTop: '24px', paddingBottom: '24px', minHeight: '100px'}}
+            >
+              <svg className="mb-1" style={{width: '24px', height: '24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .904-.405.904-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+              </svg>
+              <div className="text-center">
+                <div className="font-semibold">No</div>
+                <div className="text-sm opacity-75">I will write my own message</div>
+              </div>
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex-1"></div>
+        <div className="flex justify-between mt-auto pt-6">
+          <Button
+            onClick={() => setStep(1)}
+            variant="outline"
+            size="lg"
+          >
+            Back
+          </Button>
+          <Button
+            onClick={() => setStep(3)}
+            size="lg"
           >
             Next
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Step 3: Write Your Message
+  const renderStep3_WriteMessage = () => (
+    <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background md:max-w-[672px] md:-mx-8">
+      <CardHeader className="bg-background">
+        <div className="text-sm font-medium text-muted-foreground mb-2">Step 3</div>
+        <CardTitle>Write Your Message</CardTitle>
+        <p className="text-sm text-muted-foreground mt-2">
+          {message ? 'Review and edit your message below. You can make any changes you like.' : 'Write your message to send to your elected officials.'}
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-6 flex-1 flex flex-col bg-background">
+        <div className="flex-1 flex flex-col">
+          <h3 className="font-semibold mb-3">Your Message</h3>
+          <Textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Write your message here. Tell your elected officials why this bill matters to you..."
+            className="flex-1 resize-none text-base"
+            style={{ minHeight: '400px' }}
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            Tip: Personal stories and specific examples make your message more impactful.
+          </p>
+        </div>
+
+        <div className="flex-1"></div>
+        <div className="flex justify-between mt-auto pt-6">
+          <Button
+            onClick={() => setStep(2)}
+            variant="outline"
+            size="lg"
+          >
+            Back
+          </Button>
+          <Button
+            onClick={() => setStep(4)}
+            disabled={!message}
+            size="lg"
+          >
+            Continue
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Step 4: Add Supporting Files (Optional)
+  const renderStep4_UploadMedia = () => (
+    <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
+      <CardHeader className="bg-background">
+        <div className="text-sm font-medium text-muted-foreground mb-2">Step 4</div>
+        <CardTitle>Add Supporting Files (Optional)</CardTitle>
+        <p className="text-sm text-muted-foreground mt-2">
+          You can attach photos, documents, or other files to support your message. This step is completely optional.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-6 flex-1 flex flex-col bg-background">
+        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+          <div className="text-center space-y-4">
+            <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
+            <div>
+              <h4 className="text-lg font-medium">Upload Supporting Files</h4>
+              <p className="text-sm text-muted-foreground">
+                Add photos, documents, or other files to strengthen your message
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Accepted formats: Images, PDFs, Word documents, and text files
+              </p>
+            </div>
+            <div>
+              <input
+                type="file"
+                multiple
+                accept="image/*,.pdf,.doc,.docx,.txt"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  setUploadedFiles(prev => [...prev, ...files]);
+                }}
+                className="hidden"
+                id="media-upload"
+              />
+              <Label htmlFor="media-upload" className="cursor-pointer">
+                <Button variant="outline" type="button" size="lg">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Choose Files
+                </Button>
+              </Label>
+            </div>
+          </div>
+
+          {/* Uploaded Files Display */}
+          {uploadedFiles.length > 0 && (
+            <div className="mt-6 space-y-3">
+              <p className="text-sm font-medium">Uploaded Files:</p>
+              {uploadedFiles.map((file, index) => (
+                <div key={index} className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
+                  <div className="flex items-center space-x-3">
+                    {file.type.startsWith('image/') ? (
+                      <Image className="h-5 w-5 text-blue-500" />
+                    ) : (
+                      <File className="h-5 w-5 text-gray-500" />
+                    )}
+                    <span className="text-sm font-medium">{file.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({(file.size / 1024).toFixed(1)} KB)
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1"></div>
+        <div className="flex justify-between mt-auto pt-6">
+          <Button
+            onClick={() => setStep(3)}
+            variant="outline"
+            size="lg"
+          >
+            Back
+          </Button>
+          <Button
+            onClick={() => setStep(5)}
+            size="lg"
+          >
+            Continue
           </Button>
         </div>
       </CardContent>
@@ -1053,7 +1184,7 @@ const AdvocacyMessageContent: React.FC = () => {
   const renderRoutingStep = () => {
     if (user || verifiedUserInfo) {
       // Skip this step if user is already logged in or verified
-      setStep(3);
+      setStep(6);
       return null;
     }
     
@@ -1188,10 +1319,10 @@ const AdvocacyMessageContent: React.FC = () => {
                   >
                     Not Me
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => {
                       handleMatchSelection();
-                      setStep(3); // Go to select outreach after verification
+                      setStep(6); // Go to select outreach after verification
                     }}
                     disabled={!selectedMatch}
                   >
@@ -1301,7 +1432,7 @@ const AdvocacyMessageContent: React.FC = () => {
                 
                 <Button onClick={() => {
                   handleManualSubmit();
-                  setStep(3); // Go to select outreach after verification
+                  setStep(6); // Go to select outreach after verification
                 }}>
                   Verify & Continue
                 </Button>
@@ -1921,7 +2052,7 @@ const AdvocacyMessageContent: React.FC = () => {
 
           <div className="flex-1"></div>
           <div className="flex justify-between mt-auto pt-6">
-            <Button variant="outline" onClick={() => setStep(3)}>
+            <Button variant="outline" onClick={() => setStep(6)}>
               Back
             </Button>
             <Button onClick={async () => {
@@ -1929,7 +2060,7 @@ const AdvocacyMessageContent: React.FC = () => {
               if (user) {
                 await saveProfileData();
               }
-              setStep(5);
+              setStep(8);
             }}>
               Next
             </Button>
@@ -2128,10 +2259,10 @@ const AdvocacyMessageContent: React.FC = () => {
 
           <div className="flex-1"></div>
           <div className="flex justify-between mt-auto pt-6">
-            <Button variant="outline" onClick={() => setStep(5)}>
+            <Button variant="outline" onClick={() => setStep(8)}>
               Back
             </Button>
-            <Button onClick={() => setStep(9)}>
+            <Button onClick={() => setStep(12)}>
               Send Message
             </Button>
           </div>
@@ -2497,12 +2628,12 @@ const AdvocacyMessageContent: React.FC = () => {
 
           <div className="flex-1"></div>
           <div className="flex justify-between mt-auto pt-6">
-            <Button variant="outline" onClick={() => setStep(4)}>
+            <Button variant="outline" onClick={() => setStep(7)}>
               Back
             </Button>
             {/* Next button - go to delivery step */}
             {(user || verifiedUserInfo) && (
-              <Button onClick={() => setStep(6)}>
+              <Button onClick={() => setStep(9)}>
                 Next
               </Button>
             )}
@@ -2643,7 +2774,7 @@ const AdvocacyMessageContent: React.FC = () => {
           
           {/* Navigation */}
           <div className="flex justify-between items-center mt-auto pt-6 border-t">
-            <Button variant="outline" onClick={() => setStep(5)} className="px-6">
+            <Button variant="outline" onClick={() => setStep(8)} className="px-6">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
@@ -2880,7 +3011,7 @@ const AdvocacyMessageContent: React.FC = () => {
                 router.push(`/advocacy-message/confirmation?count=${recipientCount}`);
               } else {
                 // Show account creation step
-                setStep(10);
+                setStep(13);
               }
             }, 2000);
           }, 2000);
@@ -2906,7 +3037,7 @@ const AdvocacyMessageContent: React.FC = () => {
             <CardDescription>{sendingError}</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button onClick={() => setStep(5)} className="mt-4">
+            <Button onClick={() => setStep(8)} className="mt-4">
               Back to Review
             </Button>
           </CardContent>
@@ -2965,9 +3096,9 @@ const AdvocacyMessageContent: React.FC = () => {
     );
   };
 
-  // Auto-fill email when reaching Step 10 if user provided notification email
+  // Auto-fill email when reaching Step 13 if user provided notification email
   useEffect(() => {
-    if (step === 10 && notificationEmail && !email) {
+    if (step === 13 && notificationEmail && !email) {
       setEmail(notificationEmail);
     }
   }, [step, notificationEmail, email]);
@@ -3161,39 +3292,44 @@ const AdvocacyMessageContent: React.FC = () => {
   // We'll handle login/signup after message composition
 
   return (
-    <div className="min-h-screen bg-secondary/30 relative flex flex-col">
-      {/* Close button */}
-      <button
-        onClick={() => {
-          // If we have bill parameters, go to the bill detail page
-          if (congress && billType && billNumber) {
-            router.push(`/bill/${congress}/${billType}/${billNumber}`);
-          } else if (typeof window !== 'undefined' && window.history.length > 1) {
-            // Try to go back if there's history
-            router.back();
-          } else {
-            // Otherwise go to home page
-            router.push('/');
-          }
-        }}
-        className="absolute top-4 right-4 p-2 rounded-full hover:bg-secondary/50 transition-colors z-10"
-        aria-label="Close"
-      >
-        <X className="h-6 w-6" />
-      </button>
-      
-      <div className="container mx-auto px-8 pt-16 pb-8 max-w-2xl flex-1 flex flex-col">
+    <div className="h-screen bg-secondary/30 flex flex-col overflow-hidden">
+      {/* Close button row */}
+      <div className="flex justify-end p-4 md:px-8 md:pt-8">
+        <button
+          onClick={() => {
+            // If we have bill parameters, go to the bill detail page
+            if (congress && billType && billNumber) {
+              router.push(`/bill/${congress}/${billType}/${billNumber}`);
+            } else if (typeof window !== 'undefined' && window.history.length > 1) {
+              // Try to go back if there's history
+              router.back();
+            } else {
+              // Otherwise go to home page
+              router.push('/');
+            }
+          }}
+          className="p-2 rounded-full hover:bg-secondary/50 transition-colors"
+          aria-label="Close"
+        >
+          <X className="h-6 w-6" />
+        </button>
+      </div>
+
+      <div className="w-full flex-1 flex flex-col overflow-auto p-0 md:container md:mx-auto md:px-8 md:pb-8 md:max-w-2xl">
       {/* Step Content */}
-      {step === 1 && renderStep2()} {/* Compose Message */}
-      {step === 2 && renderRoutingStep()} {/* Help us route your message (Verification) */}
-      {step === 3 && renderStep1()} {/* Select Outreach */}
-      {step === 4 && renderPersonalInfoStep()} {/* Personal Information */}
-      {step === 5 && renderStep3()} {/* Review Message */}
-      {step === 6 && renderDeliveryStep()} {/* Message Delivery */}
-      {step === 7 && renderStep4()} {/* Create Account */}
-      {step === 8 && renderStep5()} {/* Send Message */}
-      {step === 9 && renderStep6()} {/* Sending Screen */}
-      {step === 10 && renderStep7()} {/* Account Creation Form */}
+      {step === 1 && renderStep1_Position()} {/* Choose Your Position */}
+      {step === 2 && renderStep2_AIHelp()} {/* Get Help Writing (Optional) */}
+      {step === 3 && renderStep3_WriteMessage()} {/* Write Your Message */}
+      {step === 4 && renderStep4_UploadMedia()} {/* Add Supporting Files (Optional) */}
+      {step === 5 && renderRoutingStep()} {/* Help us route your message (Verification) */}
+      {step === 6 && renderStep1()} {/* Select Outreach */}
+      {step === 7 && renderPersonalInfoStep()} {/* Personal Information */}
+      {step === 8 && renderStep3()} {/* Review Message */}
+      {step === 9 && renderDeliveryStep()} {/* Message Delivery */}
+      {step === 10 && renderStep4()} {/* Create Account */}
+      {step === 11 && renderStep5()} {/* Send Message */}
+      {step === 12 && renderStep6()} {/* Sending Screen */}
+      {step === 13 && renderStep7()} {/* Account Creation Form */}
       </div>
     </div>
   );
