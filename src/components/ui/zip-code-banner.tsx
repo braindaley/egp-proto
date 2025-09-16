@@ -39,7 +39,7 @@ export function ZipCodeBanner() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white p-4 flex justify-center items-center z-50">
+    <div className="md:fixed bottom-0 left-0 right-0 bg-gray-800 text-white p-4 flex justify-center items-center z-50">
       <form onSubmit={handleSubmit} className="flex gap-2 items-center">
         <label htmlFor="zip-banner-input" className="text-sm font-medium mr-2 hidden sm:inline">Find your representatives:</label>
         <Input

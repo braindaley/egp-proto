@@ -11,7 +11,9 @@ function convertTitleToSlug(title: string): string {
     .toLowerCase()
     .replace(/&/g, 'and')
     .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '');
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 function convertSlugToTitle(slug: string): string {

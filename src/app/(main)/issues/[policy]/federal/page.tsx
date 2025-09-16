@@ -12,7 +12,9 @@ function convertTitleToSlug(title: string): string {
     .toLowerCase()
     .replace(/&/g, 'and')
     .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '');
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 function convertSlugToTitle(slug: string): string {
@@ -81,18 +83,26 @@ export default function FederalPolicyPage({ params }: { params: Promise<{ policy
       try {
         // Temporary mapping for old cached categories until cache is refreshed
         const categoryMapping: Record<string, string> = {
+          'Abortion': 'Politics & Policy',
           'Climate, Energy & Environment': 'Science',
-          'Criminal Justice': 'Politics & Policy', 
+          'Criminal Justice': 'Politics & Policy',
+          'Death Penalty': 'Politics & Policy',
           'Defense & National Security': 'Politics & Policy',
           'Discrimination & Prejudice': 'Race & Ethnicity',
+          'Drug Policy': 'Politics & Policy',
           'Economy & Work': 'Economy & Work',
           'Education': 'Age & Generations',
+          'Free Speech & Press': 'Politics & Policy',
+          'Gun Policy': 'Politics & Policy',
           'Health Policy': 'Age & Generations',
           'Immigration & Migration': 'Immigration & Migration',
           'International Affairs': 'International Affairs',
+          'LGBT Acceptance': 'Race & Ethnicity',
           'National Conditions': 'Politics & Policy',
+          'Privacy Rights': 'Politics & Policy',
           'Religion & Government': 'Religion',
-          'Technology': 'Science'
+          'Social Security & Medicare': 'Age & Generations',
+          'Technology Policy Issues': 'Science'
         };
         
         const searchSubject = categoryMapping[policyTitle] || policyTitle;

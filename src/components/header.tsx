@@ -101,12 +101,7 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
           
           {/* Center Section - Main Nav */}
           <nav className="flex items-center gap-4">
-            <Link href="/issues" className="text-sm font-medium hover:text-primary transition-colors">
-              Issues
-            </Link>
-            <Link href="/campaigns" className="text-sm font-medium hover:text-primary transition-colors">
-              Campaigns
-            </Link>
+            {/* Navigation moved to off-canvas menu */}
           </nav>
 
           {/* Right Section - Auth and Menu */}
@@ -164,7 +159,25 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                     </SheetClose>
                     
                     <Separator />
-                    
+
+                    <SheetClose asChild>
+                      <Link href="/issues" className="block w-full text-left p-2 rounded-md hover:bg-accent">
+                          Issues
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/organizations" className="block w-full text-left p-2 rounded-md hover:bg-accent">
+                          Organizations
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/campaigns" className="block w-full text-left p-2 rounded-md hover:bg-accent">
+                          Campaigns
+                      </Link>
+                    </SheetClose>
+
+                    <Separator />
+
                     <SheetClose asChild>
                       <Link href="/federal" className="block w-full text-left p-2 rounded-md hover:bg-accent">
                           Federal

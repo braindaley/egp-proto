@@ -66,13 +66,15 @@ export default async function MainLayout({
   const congresses = await getCongresses();
   
   return (
-    <div>
+    <div className="min-h-screen flex flex-col">
       <QueryProvider>
         <AuthProvider>
           <ZipCodeProvider>
             <SessionProvider>
               <Header congresses={congresses} />
-              {children}
+              <main className="flex-1">
+                {children}
+              </main>
               <Toaster />
               <Footer />
               <ZipCodeBanner />

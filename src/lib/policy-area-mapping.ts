@@ -2,18 +2,26 @@
 // Based on the standard policy areas from api.congress.gov
 
 export const SITE_ISSUE_CATEGORIES = [
+  'Abortion',
   'Climate, Energy & Environment',
   'Criminal Justice',
+  'Death Penalty',
   'Defense & National Security',
   'Discrimination & Prejudice',
+  'Drug Policy',
   'Economy & Work',
   'Education',
+  'Free Speech & Press',
+  'Gun Policy',
   'Health Policy',
   'Immigration & Migration',
   'International Affairs',
+  'LGBT Acceptance',
   'National Conditions',
+  'Privacy Rights',
   'Religion & Government',
-  'Technology'
+  'Social Security & Medicare',
+  'Technology Policy Issues'
 ] as const;
 
 export type SiteIssueCategory = typeof SITE_ISSUE_CATEGORIES[number];
@@ -28,9 +36,18 @@ export const POLICY_AREA_TO_SITE_CATEGORY: Record<string, SiteIssueCategory> = {
   'Public Lands and Natural Resources': 'Climate, Energy & Environment',
   'Water Resources Development': 'Climate, Energy & Environment',
   
+  // Abortion
+  // (Will be mapped based on specific bill content)
+
   // Criminal Justice
   'Crime and Law Enforcement': 'Criminal Justice',
   'Law': 'Criminal Justice',
+
+  // Death Penalty
+  // (Part of Criminal Justice but needs specific bill content analysis)
+
+  // Drug Policy
+  // (Will be mapped based on specific bill content)
   
   // Defense & National Security
   'Armed Forces and National Security': 'Defense & National Security',
@@ -73,8 +90,23 @@ export const POLICY_AREA_TO_SITE_CATEGORY: Record<string, SiteIssueCategory> = {
   // Religion & Government
   'Arts, Culture, Religion': 'Religion & Government',
   
-  // Technology
-  'Science, Technology, Communications': 'Technology'
+  // Free Speech & Press
+  // (Part of Civil Rights but needs specific bill content analysis)
+
+  // Gun Policy
+  // (Part of Crime and Law Enforcement but needs specific bill content analysis)
+
+  // LGBT Acceptance
+  // (Part of Civil Rights but needs specific bill content analysis)
+
+  // Privacy Rights
+  // (Part of Civil Rights and Technology but needs specific bill content analysis)
+
+  // Social Security & Medicare
+  'Social Security': 'Social Security & Medicare',
+
+  // Technology Policy Issues
+  'Science, Technology, Communications': 'Technology Policy Issues'
 };
 
 /**
@@ -104,34 +136,50 @@ export function getPolicyAreasForSiteCategory(category: SiteIssueCategory): stri
 
 // Map user policy interest keys to site issue categories
 export const POLICY_INTEREST_TO_SITE_CATEGORY: Record<string, SiteIssueCategory> = {
+  abortion: 'Abortion',
   climateEnergyEnvironment: 'Climate, Energy & Environment',
   criminalJustice: 'Criminal Justice',
+  deathPenalty: 'Death Penalty',
   defenseNationalSecurity: 'Defense & National Security',
   discriminationPrejudice: 'Discrimination & Prejudice',
+  drugPolicy: 'Drug Policy',
   economyWork: 'Economy & Work',
   education: 'Education',
+  freeSpeechPress: 'Free Speech & Press',
+  gunPolicy: 'Gun Policy',
   healthPolicy: 'Health Policy',
   immigrationMigration: 'Immigration & Migration',
   internationalAffairs: 'International Affairs',
+  lgbtAcceptance: 'LGBT Acceptance',
   nationalConditions: 'National Conditions',
+  privacyRights: 'Privacy Rights',
   religionGovernment: 'Religion & Government',
-  technology: 'Technology'
+  socialSecurityMedicare: 'Social Security & Medicare',
+  technologyPolicyIssues: 'Technology Policy Issues'
 };
 
 // Map site issue categories back to policy interest keys
 export const SITE_CATEGORY_TO_POLICY_INTEREST: Record<SiteIssueCategory, string> = {
+  'Abortion': 'abortion',
   'Climate, Energy & Environment': 'climateEnergyEnvironment',
   'Criminal Justice': 'criminalJustice',
+  'Death Penalty': 'deathPenalty',
   'Defense & National Security': 'defenseNationalSecurity',
   'Discrimination & Prejudice': 'discriminationPrejudice',
+  'Drug Policy': 'drugPolicy',
   'Economy & Work': 'economyWork',
   'Education': 'education',
+  'Free Speech & Press': 'freeSpeechPress',
+  'Gun Policy': 'gunPolicy',
   'Health Policy': 'healthPolicy',
   'Immigration & Migration': 'immigrationMigration',
   'International Affairs': 'internationalAffairs',
+  'LGBT Acceptance': 'lgbtAcceptance',
   'National Conditions': 'nationalConditions',
+  'Privacy Rights': 'privacyRights',
   'Religion & Government': 'religionGovernment',
-  'Technology': 'technology'
+  'Social Security & Medicare': 'socialSecurityMedicare',
+  'Technology Policy Issues': 'technologyPolicyIssues'
 };
 
 /**
@@ -332,7 +380,21 @@ export const LEGISCAN_SUBJECT_TO_SITE_CATEGORY: Record<string, SiteIssueCategory
   'Electronic Information Systems': 'Technology',
   'INFORMATION TECHNOLOGY SERVICES': 'Technology',
   'Digital Images': 'Technology',
-  'Technology': 'Technology',
+  'Technology': 'Technology Policy Issues',
+
+  // New category mappings
+  'Abortion': 'Abortion',
+  'Death Penalty': 'Death Penalty',
+  'Drug Policy': 'Drug Policy',
+  'Drugs': 'Drug Policy',
+  'Free Speech': 'Free Speech & Press',
+  'Press Freedom': 'Free Speech & Press',
+  'Gun Control': 'Gun Policy',
+  'Firearms': 'Gun Policy',
+  'LGBT': 'LGBT Acceptance',
+  'Privacy': 'Privacy Rights',
+  'Social Security': 'Social Security & Medicare',
+  'Medicare': 'Social Security & Medicare',
   
   // Family and Social Services (maps to appropriate categories)
   'Adoption': 'National Conditions',
