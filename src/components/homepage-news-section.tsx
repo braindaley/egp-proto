@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Eye } from 'lucide-react';
 import { campaignsService } from '@/lib/campaigns';
+import { useAuth } from '@/hooks/use-auth';
+import { HomeAdvocacySummary } from '@/components/home-advocacy-summary';
 
 interface NewsStory {
   id: number;
@@ -31,6 +33,7 @@ interface HomepageNewsSectionProps {
 
 export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
   const [latestBills, setLatestBills] = useState<Bill[]>([]);
+  const { user, loading: authLoading } = useAuth();
   // Mix up the stories to get diverse categories
   // Instead of taking the first 3 (all abortion), let's pick from different positions
   const firstStory = newsStories[4];  // Climate story (index 4)
@@ -84,40 +87,44 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
     <div className="w-full bg-background border-b">
       <div className="max-w-[1280px] mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          {/* Column 1: Mission Card - 5 columns */}
+          {/* Column 1: Mission Card or Advocacy Summary - 5 columns */}
           <div className="md:col-span-5">
-            <Card className="h-full border-none shadow-none">
-              <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                <div className="text-muted-foreground/50 text-sm">Mission Image</div>
-              </div>
-              <CardContent className="p-0 pt-6">
-                <h2 className="text-xl font-bold mb-4">Our mission</h2>
-                <p className="text-muted-foreground mb-4">
-                  eGutenberg Press is a serious platform built to help you make a real difference. Your messages go directly to your representatives—unlike social media, your voice here has measurable impact.
-                </p>
-                <p className="text-muted-foreground mb-4">
-                  Advocacy groups and organizations support this tool, but to be heard you must be a registered voter. Signing up is quick and simple.
-                </p>
-                <p className="text-muted-foreground mb-6">
-                  Ready to act?
-                </p>
-
-                <div className="flex items-center gap-4">
-                  <Button asChild>
-                    <Link href="/signup">
-                      Get Started
-                    </Link>
-                  </Button>
-
-                  <Link
-                    href="/login"
-                    className="text-sm text-muted-foreground hover:text-foreground underline"
-                  >
-                    Login
-                  </Link>
+            {!authLoading && user ? (
+              <HomeAdvocacySummary />
+            ) : (
+              <Card className="h-full border-none shadow-none">
+                <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                  <div className="text-muted-foreground/50 text-sm">Mission Image</div>
                 </div>
-              </CardContent>
-            </Card>
+                <CardContent className="p-0 pt-6">
+                  <h2 className="text-xl font-bold mb-4">Our mission</h2>
+                  <p className="text-muted-foreground mb-4">
+                    eGutenberg Press is a serious platform built to help you make a real difference. Your messages go directly to your representatives—unlike social media, your voice here has measurable impact.
+                  </p>
+                  <p className="text-muted-foreground mb-4">
+                    Advocacy groups and organizations support this tool, but to be heard you must be a registered voter. Signing up is quick and simple.
+                  </p>
+                  <p className="text-muted-foreground mb-6">
+                    Ready to act?
+                  </p>
+
+                  <div className="flex items-center gap-4">
+                    <Button asChild>
+                      <Link href="/signup">
+                        Get Started
+                      </Link>
+                    </Button>
+
+                    <Link
+                      href="/login"
+                      className="text-sm text-muted-foreground hover:text-foreground underline"
+                    >
+                      Login
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Column 2: Two stacked news stories - 4 columns */}
