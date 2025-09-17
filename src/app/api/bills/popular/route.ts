@@ -14,6 +14,19 @@ const typeMap: { [key: string]: string } = {
     'senate-resolution': 'S.Res.',
 };
 
+function decodeHtmlEntities(text: string): string {
+    return text
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&#x27;/g, "'")
+        .replace(/&#x2F;/g, '/')
+        .replace(/&#x5C;/g, '\\')
+        .replace(/&#96;/g, '`');
+}
+
 function parseBillsFromContent(content: string): Partial<Bill>[] {
     console.log('--- Using Robust Bill Parsing ---');
     const bills: Partial<Bill>[] = [];
@@ -26,10 +39,13 @@ function parseBillsFromContent(content: string): Partial<Bill>[] {
         const congress = parseInt(match[1], 10);
         const billTypeSlug = match[2];
         const billNumber = match[3];
-        let title = match[4].trim().replace(/&amp;/g, '&').replace(/\s*\.\.\.\s*$/, '');
+        // Decode HTML entities and clean up the title
+        let title = decodeHtmlEntities(match[4].trim()).replace(/\s*\.\.\.\s*$/, '');
+        // Remove any HTML tags that might have been left in the title
+        title = title.replace(/<[^>]*>/g, '');
 
         const type = typeMap[billTypeSlug];
-        
+
         if (!type) {
             console.warn(`[Parser] Skipping unknown bill type slug: ${billTypeSlug}`);
             continue;

@@ -714,39 +714,6 @@ export default function Home() {
 
       {/* Main Content Container */}
       <div className="md:snap-none snap-y snap-mandatory md:overflow-visible md:pb-8">
-        {/* Mission Card - First in the flow */}
-        <div className="md:mb-8 md:px-4 snap-start md:snap-none md:h-auto md:min-h-0 flex items-start pt-4 md:items-center md:pt-0 md:block">
-          <Card className="relative my-2 md:my-0 w-full md:w-full overflow-hidden md:h-auto">
-            <CardContent className="pt-6 pb-6 pr-6 h-full flex flex-col justify-center">
-              <h2 className="text-xl font-bold mb-4">Our mission</h2>
-              <p className="text-muted-foreground mb-4">
-                eGutenberg Press is a serious platform built to help you make a real difference. Your messages go directly to your representatives—unlike social media, your voice here has measurable impact.
-              </p>
-              <p className="text-muted-foreground mb-4">
-                Advocacy groups and organizations support this tool, but to be heard you must be a registered voter. Signing up is quick and simple.
-              </p>
-              <p className="text-muted-foreground mb-6">
-                Ready to act?
-              </p>
-
-              <div className="flex items-center gap-4">
-                <Button asChild>
-                  <Link href="/signup">
-                    Get Started
-                  </Link>
-                </Button>
-
-                <Link
-                  href="/login"
-                  className="text-sm text-muted-foreground hover:text-foreground underline"
-                >
-                  Login
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* News Stories and Campaign Cards */}
         {filteredStories.map((item, index) => {
           if (item.type === 'campaign') {
