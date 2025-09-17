@@ -14,6 +14,8 @@ import { X, ChevronDown, Eye, ThumbsUp, ThumbsDown, ArrowRight } from 'lucide-re
 import Link from 'next/link';
 import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
 import { campaignsService } from '@/lib/campaigns';
+import { PopularBills } from '@/components/popular-bills';
+import { HomepageNewsSection } from '@/components/homepage-news-section';
 
 export default function Home() {
   const [showCard, setShowCard] = useState(true);
@@ -591,15 +593,22 @@ export default function Home() {
   };
 
   return (
-    <div
-      className="relative px-4 md:px-0"
-      style={{
-        maxWidth: '672px',
-        margin: '0 auto'
-      }}
-    >
-      {/* Filters Section - Desktop with dropdown, Mobile with badges */}
-      <div className="sticky top-0 z-20 bg-background">
+    <>
+      {/* Popular Bills Section - Full width at top */}
+      <PopularBills />
+
+      {/* News and Campaigns Section - 3 column layout */}
+      <HomepageNewsSection newsStories={newsStories} />
+
+      <div
+        className="relative px-4 md:px-0"
+        style={{
+          maxWidth: '672px',
+          margin: '0 auto'
+        }}
+      >
+        {/* Filters Section - Desktop with dropdown, Mobile with badges */}
+        <div className="sticky top-0 z-20 bg-background">
         {/* Desktop Filters */}
         <div className="hidden md:block py-10">
           <div className="px-4">
@@ -855,7 +864,8 @@ export default function Home() {
             );
           }
         })}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

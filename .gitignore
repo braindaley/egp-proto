@@ -36,3 +36,7 @@ yarn-debug.log*
 yarn-error.log*
 dataconnect/schema/schema.gql
 _doc
+# Local Netlify folder
+.netlify
+netlify-env.json
+env-vars.json
