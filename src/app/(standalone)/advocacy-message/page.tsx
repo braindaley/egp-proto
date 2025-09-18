@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Sparkles, Loader2, AlertCircle, User, Search, X, CheckCircle, Mail, Shield, UserPlus, Upload, File, Image, ChevronLeft, Check, AtSign, Globe } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, User, Search, X, CheckCircle, Mail, Shield, UserPlus, Upload, File, Image, ChevronLeft, ChevronRight, Check, AtSign, Globe } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
@@ -87,18 +87,28 @@ const AdvocacyMessageContent: React.FC = () => {
   const [aiHelpChoice, setAiHelpChoice] = useState<'yes' | 'no' | ''>('');
   const [message, setMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedPersonalData, setSelectedPersonalData] = useState<string[]>(['fullName']);
+  const [selectedPersonalData, setSelectedPersonalData] = useState<string[]>([
+    'fullName',
+    'fullAddress',
+    'birthYear',
+    'gender',
+    'politicalAffiliation',
+    'education',
+    'profession',
+    'militaryService'
+  ]);
   const [nickname, setNickname] = useState('');
-  const [saveAsDefault, setSaveAsDefault] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   
   // Verification state
   const [verificationStep, setVerificationStep] = useState<'initial' | 'selection' | 'manual'>('initial');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState('');
-  const [firstInitial, setFirstInitial] = useState('');
-  const [lastNameLetters, setLastNameLetters] = useState('');
-  const [verificationZipCode, setVerificationZipCode] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [address, setAddress] = useState('');
+  const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [matches, setMatches] = useState<VerificationMatch[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<string>('');
   const [manualFirstName, setManualFirstName] = useState('');
@@ -111,6 +121,7 @@ const AdvocacyMessageContent: React.FC = () => {
   const [deliveryMethod, setDeliveryMethod] = useState<'egutenberg' | 'email_provider'>('egutenberg');
   const [notificationEmail, setNotificationEmail] = useState('');
   const [bccEmails, setBccEmails] = useState<string[]>(['']);
+  const [currentLetterIndex, setCurrentLetterIndex] = useState(0);
 
   // Profile data form fields for missing user data
   const [profileFirstName, setProfileFirstName] = useState('');
@@ -152,7 +163,7 @@ const AdvocacyMessageContent: React.FC = () => {
   });
 
   const { user, loading } = useAuth();
-  const { zipCode } = useZipCode();
+  const { zipCode, saveZipCode } = useZipCode();
   const { representatives: congressionalReps } = useMembersByZip(zipCode);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -278,6 +289,17 @@ const AdvocacyMessageContent: React.FC = () => {
         committeeLeadership: leadership,
         billSponsors: sponsorsWithEmails
       });
+
+      // Preselect congressional representatives
+      if (repsWithEmails.length > 0) {
+        setSelectedMembers(prev => {
+          // Only add reps that aren't already selected
+          const newReps = repsWithEmails.filter(rep =>
+            !prev.some(selected => selected.bioguideId === rep.bioguideId)
+          );
+          return [...prev, ...newReps];
+        });
+      }
     };
 
     fetchMembers();
@@ -291,12 +313,12 @@ const AdvocacyMessageContent: React.FC = () => {
       return [
         { key: 'fullName', label: 'Full Name', value: verifiedUserInfo.fullName, available: true },
         { key: 'fullAddress', label: 'Full Address', value: addressValue, available: true },
-        { key: 'birthYear', label: 'Birth Year', value: null, available: false },
-        { key: 'gender', label: 'Gender', value: null, available: false },
-        { key: 'politicalAffiliation', label: 'Political Affiliation', value: null, available: false },
-        { key: 'education', label: 'Education', value: null, available: false },
-        { key: 'profession', label: 'Profession', value: null, available: false },
-        { key: 'militaryService', label: 'Military Service', value: null, available: false },
+        { key: 'birthYear', label: 'Birth Year', value: '1990', available: true },
+        { key: 'gender', label: 'Gender', value: 'Prefer not to say', available: true },
+        { key: 'politicalAffiliation', label: 'Political Affiliation', value: 'Independent', available: true },
+        { key: 'education', label: 'Education', value: 'Bachelor\'s Degree', available: true },
+        { key: 'profession', label: 'Profession', value: 'Professional', available: true },
+        { key: 'militaryService', label: 'Military Service', value: 'No', available: true },
       ];
     }
     
@@ -321,27 +343,27 @@ const AdvocacyMessageContent: React.FC = () => {
       const addressAvailable = addressParts.length > 0;
       
       return [
-        { key: 'fullName', label: 'Full Name', value: `${currentFirstName} ${currentLastName}`.trim(), available: !!(currentFirstName || currentLastName) },
-        { key: 'fullAddress', label: 'Full Address', value: addressValue, available: addressAvailable },
-        { key: 'birthYear', label: 'Birth Year', value: currentBirthYear, available: !!(currentBirthYear && currentBirthYear !== 'NaN' && !isNaN(Number(currentBirthYear)) && Number(currentBirthYear) >= 1900) },
-        { key: 'gender', label: 'Gender', value: currentGender, available: !!currentGender },
-        { key: 'politicalAffiliation', label: 'Political Affiliation', value: currentPoliticalAffiliation, available: !!currentPoliticalAffiliation },
-        { key: 'education', label: 'Education', value: currentEducation, available: !!currentEducation },
-        { key: 'profession', label: 'Profession', value: currentProfession, available: !!currentProfession },
-        { key: 'militaryService', label: 'Military Service', value: currentMilitaryService ? 'Yes' : 'No', available: currentMilitaryService !== undefined && currentMilitaryService !== null },
+        { key: 'fullName', label: 'Full Name', value: `${currentFirstName} ${currentLastName}`.trim() || 'John Doe', available: true },
+        { key: 'fullAddress', label: 'Full Address', value: addressValue || '123 Main St, Springfield, IL 62701', available: true },
+        { key: 'birthYear', label: 'Birth Year', value: currentBirthYear || '1990', available: true },
+        { key: 'gender', label: 'Gender', value: currentGender || 'Prefer not to say', available: true },
+        { key: 'politicalAffiliation', label: 'Political Affiliation', value: currentPoliticalAffiliation || 'Independent', available: true },
+        { key: 'education', label: 'Education', value: currentEducation || 'Bachelor\'s Degree', available: true },
+        { key: 'profession', label: 'Profession', value: currentProfession || 'Professional', available: true },
+        { key: 'militaryService', label: 'Military Service', value: currentMilitaryService !== undefined ? (currentMilitaryService ? 'Yes' : 'No') : 'No', available: true },
       ];
     }
     
-    // For anonymous users, return minimal available fields
+    // For anonymous users, return available fields with default values
     return [
-      { key: 'fullName', label: 'Full Name', value: 'Your Name', available: false },
-      { key: 'fullAddress', label: 'Full Address', value: 'Your Address', available: false },
-      { key: 'birthYear', label: 'Birth Year', value: null, available: false },
-      { key: 'gender', label: 'Gender', value: null, available: false },
-      { key: 'politicalAffiliation', label: 'Political Affiliation', value: null, available: false },
-      { key: 'education', label: 'Education', value: null, available: false },
-      { key: 'profession', label: 'Profession', value: null, available: false },
-      { key: 'militaryService', label: 'Military Service', value: null, available: false },
+      { key: 'fullName', label: 'Full Name', value: 'John Doe', available: true },
+      { key: 'fullAddress', label: 'Full Address', value: '123 Main St, Springfield, IL 62701', available: true },
+      { key: 'birthYear', label: 'Birth Year', value: '1990', available: true },
+      { key: 'gender', label: 'Gender', value: 'Prefer not to say', available: true },
+      { key: 'politicalAffiliation', label: 'Political Affiliation', value: 'Independent', available: true },
+      { key: 'education', label: 'Education', value: 'Bachelor\'s Degree', available: true },
+      { key: 'profession', label: 'Profession', value: 'Professional', available: true },
+      { key: 'militaryService', label: 'Military Service', value: 'No', available: true },
     ];
   };
 
@@ -404,27 +426,59 @@ const AdvocacyMessageContent: React.FC = () => {
     }
   };
 
+  // Address autocomplete functionality
+  const searchAddresses = (query: string) => {
+    if (!query || query.length < 3) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      return;
+    }
+
+    // Mock address suggestions - in real implementation, this would call Google Places API
+    const mockSuggestions = [
+      `${query} Main St, Springfield, IL 62701`,
+      `${query} Oak Ave, Springfield, IL 62702`,
+      `${query} Elm St, Springfield, IL 62703`,
+      `${query} Pine St, Springfield, IL 62704`,
+      `${query} Maple Dr, Springfield, IL 62705`
+    ];
+
+    setAddressSuggestions(mockSuggestions);
+    setShowAddressSuggestions(true);
+  };
+
+  const handleAddressChange = (value: string) => {
+    setAddress(value);
+    searchAddresses(value);
+  };
+
+  const selectAddressSuggestion = (suggestion: string) => {
+    setAddress(suggestion);
+    setAddressSuggestions([]);
+    setShowAddressSuggestions(false);
+  };
+
   // Verification functions
   const handleVerificationSubmit = async () => {
     setVerificationError('');
     
-    if (!firstInitial || !lastNameLetters || !verificationZipCode) {
+    if (!firstName || !lastName || !address) {
       setVerificationError('Please fill in all fields');
       return;
     }
-    
-    if (firstInitial.length !== 1) {
-      setVerificationError('Please enter only the first initial of your first name');
+
+    if (firstName.length < 2) {
+      setVerificationError('Please enter your full first name');
       return;
     }
-    
-    if (lastNameLetters.length < 2 || lastNameLetters.length > 4) {
-      setVerificationError('Please enter 2-4 letters of your last name');
+
+    if (lastName.length < 2) {
+      setVerificationError('Please enter your full last name');
       return;
     }
-    
-    if (verificationZipCode.length !== 5 || !/^\d+$/.test(verificationZipCode)) {
-      setVerificationError('Please enter a valid 5-digit ZIP code');
+
+    if (address.length < 10) {
+      setVerificationError('Please enter a complete address');
       return;
     }
     
@@ -433,22 +487,26 @@ const AdvocacyMessageContent: React.FC = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Extract zip code from address for mock data
+      const zipMatch = address.match(/\d{5}(?:-\d{4})?/);
+      const extractedZip = zipMatch ? zipMatch[0] : '12345';
+
       const mockMatches: VerificationMatch[] = [
         {
           id: '1',
-          fullName: `${firstInitial.toUpperCase()}. ${lastNameLetters.charAt(0).toUpperCase() + lastNameLetters.slice(1).toLowerCase()}son`,
-          address: '123 Main St',
+          fullName: `${firstName} ${lastName}`,
+          address: address,
           city: 'Springfield',
           state: 'IL',
-          zipCode: verificationZipCode
+          zipCode: extractedZip
         },
         {
           id: '2',
-          fullName: `${firstInitial.toUpperCase()}. ${lastNameLetters.charAt(0).toUpperCase() + lastNameLetters.slice(1).toLowerCase()}man`,
-          address: '456 Oak Ave',
+          fullName: `${firstName} ${lastName}`,
+          address: address.replace(/\d+/, (match) => String(parseInt(match) + 100)),
           city: 'Springfield',
           state: 'IL',
-          zipCode: verificationZipCode
+          zipCode: extractedZip
         }
       ];
       
@@ -470,11 +528,13 @@ const AdvocacyMessageContent: React.FC = () => {
         constituentDescription: constituentDescription || null
       };
       setVerifiedUserInfo(verifiedInfo);
+      // Save the zip code to the useZipCode hook for member lookup
+      saveZipCode(selected.zipCode);
       // Reset verification form
       setVerificationStep('initial');
-      setFirstInitial('');
-      setLastNameLetters('');
-      setVerificationZipCode('');
+      setFirstName('');
+      setLastName('');
+      setAddress('');
       setMatches([]);
       setSelectedMatch('');
     }
@@ -500,6 +560,8 @@ const AdvocacyMessageContent: React.FC = () => {
     };
     
     setVerifiedUserInfo(manualInfo);
+    // Save the zip code to the useZipCode hook for member lookup
+    saveZipCode(manualZipCode);
     // Reset verification form
     setVerificationStep('initial');
     setManualFirstName('');
@@ -512,9 +574,9 @@ const AdvocacyMessageContent: React.FC = () => {
 
   const handleVerificationReset = () => {
     setVerificationStep('initial');
-    setFirstInitial('');
-    setLastNameLetters('');
-    setVerificationZipCode('');
+    setFirstName('');
+    setLastName('');
+    setAddress('');
     setMatches([]);
     setSelectedMatch('');
     setVerificationError('');
@@ -708,11 +770,6 @@ const AdvocacyMessageContent: React.FC = () => {
         }));
       }
       
-      // If saveAsDefault is true, save the selected fields to user preferences
-      if (saveAsDefault) {
-        // TODO: Save selectedPersonalData to user preferences in Firebase
-        console.log('Saving default preferences:', selectedPersonalData);
-      }
       
       // Navigate to confirmation page with recipient count and message status
       const recipientCount = selectedMembers.length;
@@ -731,7 +788,11 @@ const AdvocacyMessageContent: React.FC = () => {
   const renderStep1 = () => (
     <Card className="flex-1 flex flex-col">
       <CardHeader>
-        <CardTitle>Select Outreach</CardTitle>
+        <div className="text-sm font-medium text-muted-foreground mb-2">Step 6</div>
+        <CardTitle>Select representatives to send your message</CardTitle>
+        <p className="text-sm text-muted-foreground mt-2">
+          We've preselected your congressional representatives to make the most impact
+        </p>
       </CardHeader>
       <CardContent className="space-y-6 flex-1 flex flex-col">
         {/* Your Representatives */}
@@ -870,21 +931,14 @@ const AdvocacyMessageContent: React.FC = () => {
 
         <div className="flex-1"></div>
         <div className="flex justify-between mt-auto pt-6">
-          <Button variant="outline" onClick={() => {
-            // Go back to compose message or routing depending on user status
-            if (!user && !verifiedUserInfo) {
-              setStep(2); // Go back to routing
-            } else {
-              setStep(1); // Go back to compose
-            }
-          }}>
+          <Button variant="outline" onClick={() => setStep(5)}>
             Back
           </Button>
           <Button
             onClick={() => setStep(7)}
             disabled={selectedMembers.length === 0}
           >
-            Next
+            Continue
           </Button>
         </div>
       </CardContent>
@@ -895,7 +949,7 @@ const AdvocacyMessageContent: React.FC = () => {
   const renderStep1_Position = () => (
     <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
       <CardHeader className="bg-background">
-        <div className="text-sm font-medium text-muted-foreground mb-2">Step 1</div>
+        <div className="text-sm font-medium text-muted-foreground mb-2">Step 2</div>
         <CardTitle>
           {bill ? (
             `Choose Your Position on ${billType?.toUpperCase()}${billNumber}`
@@ -945,13 +999,20 @@ const AdvocacyMessageContent: React.FC = () => {
         </div>
 
         <div className="flex-1"></div>
-        <div className="flex justify-end mt-auto pt-6">
+        <div className="flex justify-between mt-auto pt-6">
           <Button
-            onClick={() => setStep(2)}
+            onClick={() => setStep(1)}
+            variant="outline"
+            size="lg"
+          >
+            Back
+          </Button>
+          <Button
+            onClick={() => setStep(3)}
             disabled={!userStance}
             size="lg"
           >
-            Continue to Next Step
+            Continue
           </Button>
         </div>
       </CardContent>
@@ -962,7 +1023,7 @@ const AdvocacyMessageContent: React.FC = () => {
   const renderStep2_AIHelp = () => (
     <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
       <CardHeader className="bg-background">
-        <div className="text-sm font-medium text-muted-foreground mb-2">Step 2</div>
+        <div className="text-sm font-medium text-muted-foreground mb-2">Step 3</div>
         <CardTitle>Writing Your Message</CardTitle>
         <p className="text-sm text-muted-foreground mt-2">
           Would you like us to personalize your letter using relevant details from your profile?
@@ -979,7 +1040,6 @@ const AdvocacyMessageContent: React.FC = () => {
               variant={aiHelpChoice === 'yes' ? 'default' : 'outline'}
               onClick={() => {
                 setAiHelpChoice('yes');
-                generateAITemplate();
               }}
               disabled={isGenerating}
               size="lg"
@@ -1000,7 +1060,6 @@ const AdvocacyMessageContent: React.FC = () => {
               variant={aiHelpChoice === 'no' ? 'default' : 'outline'}
               onClick={() => {
                 setAiHelpChoice('no');
-                setStep(3);
               }}
               size="lg"
               className="flex-1 flex-col"
@@ -1020,17 +1079,23 @@ const AdvocacyMessageContent: React.FC = () => {
         <div className="flex-1"></div>
         <div className="flex justify-between mt-auto pt-6">
           <Button
-            onClick={() => setStep(1)}
+            onClick={() => setStep(2)}
             variant="outline"
             size="lg"
           >
             Back
           </Button>
           <Button
-            onClick={() => setStep(3)}
+            onClick={() => {
+              if (aiHelpChoice === 'yes') {
+                generateAITemplate();
+              }
+              setStep(4);
+            }}
+            disabled={!aiHelpChoice}
             size="lg"
           >
-            Next
+            Continue
           </Button>
         </div>
       </CardContent>
@@ -1039,40 +1104,43 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Step 3: Write Your Message
   const renderStep3_WriteMessage = () => (
-    <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background md:max-w-[672px] md:-mx-8">
+    <Card className="flex-1 flex flex-col border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
       <CardHeader className="bg-background">
-        <div className="text-sm font-medium text-muted-foreground mb-2">Step 3</div>
+        <div className="text-sm font-medium text-muted-foreground mb-2">Step 4</div>
         <CardTitle>Write Your Message</CardTitle>
-        <p className="text-sm text-muted-foreground mt-2">
-          {message ? 'Review and edit your message below. You can make any changes you like.' : 'Write your message to send to your elected officials.'}
-        </p>
       </CardHeader>
       <CardContent className="space-y-6 flex-1 flex flex-col bg-background">
-        <div className="flex-1 flex flex-col">
-          <h3 className="font-semibold mb-3">Your Message</h3>
-          <Textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Write your message here. Tell your elected officials why this bill matters to you..."
-            className="flex-1 resize-none text-base"
-            style={{ minHeight: '400px' }}
-          />
-          <p className="text-xs text-muted-foreground mt-2">
-            Tip: Personal stories and specific examples make your message more impactful.
-          </p>
+        <p className="text-sm text-muted-foreground">
+          {message ? 'Review and edit your message below. You can make any changes you like.' : 'Write your message to send to your elected officials.'}
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="message">Your Message</Label>
+            <Textarea
+              id="message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Write your message here. Tell your elected officials why this bill matters to you..."
+              className="resize-none text-base min-h-[350px] mt-1"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Tip: Personal stories and specific examples make your message more impactful.
+            </p>
+          </div>
         </div>
 
         <div className="flex-1"></div>
         <div className="flex justify-between mt-auto pt-6">
           <Button
-            onClick={() => setStep(2)}
+            onClick={() => setStep(3)}
             variant="outline"
             size="lg"
           >
             Back
           </Button>
           <Button
-            onClick={() => setStep(4)}
+            onClick={() => setStep(5)}
             disabled={!message}
             size="lg"
           >
@@ -1087,7 +1155,7 @@ const AdvocacyMessageContent: React.FC = () => {
   const renderStep4_UploadMedia = () => (
     <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
       <CardHeader className="bg-background">
-        <div className="text-sm font-medium text-muted-foreground mb-2">Step 4</div>
+        <div className="text-sm font-medium text-muted-foreground mb-2">Step 5</div>
         <CardTitle>Add Supporting Files (Optional)</CardTitle>
         <p className="text-sm text-muted-foreground mt-2">
           You can attach photos, documents, or other files to support your message. This step is completely optional.
@@ -1163,14 +1231,14 @@ const AdvocacyMessageContent: React.FC = () => {
         <div className="flex-1"></div>
         <div className="flex justify-between mt-auto pt-6">
           <Button
-            onClick={() => setStep(3)}
+            onClick={() => setStep(4)}
             variant="outline"
             size="lg"
           >
             Back
           </Button>
           <Button
-            onClick={() => setStep(5)}
+            onClick={() => setStep(6)}
             size="lg"
           >
             Continue
@@ -1180,82 +1248,81 @@ const AdvocacyMessageContent: React.FC = () => {
     </Card>
   );
 
-  // Step 2: Help us route your message (Verification for non-logged users)
+  // Step 1: Help us verify that you are a registered voter
   const renderRoutingStep = () => {
-    if (user || verifiedUserInfo) {
-      // Skip this step if user is already logged in or verified
-      setStep(6);
-      return null;
-    }
-    
+    // Always show verification step, even for logged-in users
     return (
-      <Card className="flex-1 flex flex-col">
-        <CardHeader>
-          <CardTitle>Help us route your message</CardTitle>
+      <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
+        <CardHeader className="bg-background">
+          <div className="text-sm font-medium text-muted-foreground mb-2">Step 1</div>
+          <CardTitle>Help us verify that you are a registered voter</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 flex-1 flex flex-col">
           <p className="text-sm text-muted-foreground">
-            To make sure your message reaches the right elected official—whether federal, state, or local—we need to quickly verify who you are. This ensures your opinion is counted and not mistaken for spam.
+            To make sure your message reaches the right elected official—whether federal, state, or local—we need to quickly verify who you are. Once verified your message will be more important to your representative.
           </p>
           
           {verificationStep === 'initial' && (
             <>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="firstInitial">First Initial</Label>
+                  <Label htmlFor="firstName">First Name</Label>
                   <Input
-                    id="firstInitial"
-                    placeholder="J"
-                    maxLength={1}
-                    value={firstInitial}
-                    onChange={(e) => setFirstInitial(e.target.value.toUpperCase())}
+                    id="firstName"
+                    placeholder="John"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
                     className="mt-1"
                   />
                 </div>
-                
+
                 <div>
-                  <Label htmlFor="lastNameLetters">First 4 Letters of Last Name</Label>
+                  <Label htmlFor="lastName">Last Name</Label>
                   <Input
-                    id="lastNameLetters"
-                    placeholder="SMIT"
-                    maxLength={4}
-                    value={lastNameLetters}
-                    onChange={(e) => setLastNameLetters(e.target.value.toUpperCase())}
+                    id="lastName"
+                    placeholder="Smith"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
                     className="mt-1"
                   />
                 </div>
-                
-                <div>
-                  <Label htmlFor="verificationZipCode">ZIP Code</Label>
+
+                <div className="relative">
+                  <Label htmlFor="address">Address</Label>
                   <Input
-                    id="verificationZipCode"
-                    placeholder="12345"
-                    maxLength={5}
-                    value={verificationZipCode}
-                    onChange={(e) => setVerificationZipCode(e.target.value.replace(/\D/g, ''))}
+                    id="address"
+                    placeholder="Start typing your address..."
+                    value={address}
+                    onChange={(e) => handleAddressChange(e.target.value)}
+                    onFocus={() => address.length >= 3 && setShowAddressSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowAddressSuggestions(false), 150)}
                     className="mt-1"
                   />
+                  {showAddressSuggestions && addressSuggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {addressSuggestions.map((suggestion, index) => (
+                        <div
+                          key={index}
+                          className="px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                          onMouseDown={() => selectAddressSuggestion(suggestion)}
+                        >
+                          {suggestion}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Start typing your address to see suggestions
+                  </p>
                 </div>
-              </div>
-              
-              <div className="bg-secondary/50 rounded-lg p-4 text-sm">
-                <p className="font-medium mb-2">Your Privacy Matters</p>
-                <p className="text-muted-foreground">
-                  Your information is only used for verification and is never shared beyond what's required to deliver your letter to your representatives.
-                </p>
               </div>
               
               <div className="flex-1"></div>
               <div className="flex justify-between items-center mt-auto pt-6">
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setStep(1)}>
-                    Back
-                  </Button>
-                  <Button variant="ghost" onClick={() => router.push('/login')}>  
-                    Already have an account? Login
-                  </Button>
-                </div>
-                <Button 
+                <Button variant="ghost" onClick={() => router.push('/login')}>
+                  Already have an account? Login
+                </Button>
+                <Button
                   onClick={handleVerificationSubmit}
                   disabled={isVerifying}
                 >
@@ -1322,7 +1389,7 @@ const AdvocacyMessageContent: React.FC = () => {
                   <Button
                     onClick={() => {
                       handleMatchSelection();
-                      setStep(6); // Go to select outreach after verification
+                      setStep(2); // Go to choose position after verification
                     }}
                     disabled={!selectedMatch}
                   >
@@ -1432,7 +1499,7 @@ const AdvocacyMessageContent: React.FC = () => {
                 
                 <Button onClick={() => {
                   handleManualSubmit();
-                  setStep(6); // Go to select outreach after verification
+                  setStep(2); // Go to choose position after verification
                 }}>
                   Verify & Continue
                 </Button>
@@ -1659,13 +1726,16 @@ const AdvocacyMessageContent: React.FC = () => {
     return (
       <Card className="flex-1 flex flex-col">
         <CardHeader>
+          <div className="text-sm font-medium text-muted-foreground mb-2">Step 7</div>
           <CardTitle>Personal Information</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Select information you'd like to include about yourself
+          </p>
         </CardHeader>
         <CardContent className="space-y-6 flex-1 flex flex-col">
           {/* Unified Personal Information Section */}
           {(user || verifiedUserInfo) && (
             <div>
-              <h3 className="font-semibold mb-3">Select information you'd like to include about yourself</h3>
               <div className="space-y-4">
                 
                 {/* Full Name */}
@@ -2003,16 +2073,6 @@ const AdvocacyMessageContent: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex items-center space-x-2 mt-4 mb-4">
-                <Switch
-                  id="save-default"
-                  checked={saveAsDefault}
-                  onCheckedChange={setSaveAsDefault}
-                />
-                <Label htmlFor="save-default" className="cursor-pointer">
-                  Save as default for all future mailings
-                </Label>
-              </div>
             </div>
           )}
 
@@ -2062,7 +2122,7 @@ const AdvocacyMessageContent: React.FC = () => {
               }
               setStep(8);
             }}>
-              Next
+              Continue
             </Button>
           </div>
         </CardContent>
@@ -2289,33 +2349,110 @@ const AdvocacyMessageContent: React.FC = () => {
     return (
       <Card className="flex-1 flex flex-col">
         <CardHeader>
+          <div className="text-sm font-medium text-muted-foreground mb-2">Step 8</div>
           <CardTitle>Review Message</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Review your message before sending. Make sure everything looks correct and complete.
+          </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Recipients */}
-          <div>
-            <h3 className="font-semibold mb-3">Recipients ({selectedMembers.length})</h3>
-            <div className="bg-muted rounded-lg p-4 space-y-2">
-              {selectedMembers.map(member => (
-                <div key={member.bioguideId || member.email}>
-                  <div className="font-medium">{getSalutation(member)}</div>
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <User className="h-3 w-3" />
-                    <span>{member.fullName || member.name}</span>
-                    <span>({member.party})</span>
-                  </div>
-                </div>
-              ))}
+          {/* Letter Navigation */}
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">Letter Preview ({currentLetterIndex + 1} of {selectedMembers.length})</h3>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentLetterIndex(Math.max(0, currentLetterIndex - 1))}
+                disabled={currentLetterIndex === 0}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {selectedMembers[currentLetterIndex]?.fullName || selectedMembers[currentLetterIndex]?.name}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentLetterIndex(Math.min(selectedMembers.length - 1, currentLetterIndex + 1))}
+                disabled={currentLetterIndex === selectedMembers.length - 1}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
-          {/* Message Body */}
-          <div className="flex-1 flex flex-col">
-            <h3 className="font-semibold mb-3">Message Body</h3>
-            <div className="bg-muted rounded-lg p-4 overflow-y-auto" style={{ height: '230px' }}>
-              <p className="whitespace-pre-wrap">{message}</p>
+          {/* Formatted Letter */}
+          {selectedMembers[currentLetterIndex] && (
+            <div className="bg-white border rounded-lg p-8 shadow-sm" style={{ fontFamily: 'serif', lineHeight: '1.6' }}>
+              {/* Date */}
+              <div className="text-right mb-8">
+                {new Date().toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </div>
+
+              {/* Recipient Address */}
+              <div className="mb-8">
+                <div className="font-semibold">
+                  {getSalutation(selectedMembers[currentLetterIndex]).replace('Dear ', '')}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {selectedMembers[currentLetterIndex].officeTitle ||
+                   (selectedMembers[currentLetterIndex].chamber?.toLowerCase() === 'senate' ||
+                    selectedMembers[currentLetterIndex].url?.includes('/senate/') ? 'United States Senate' : 'House of Representatives')}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Washington, DC 20515
+                </div>
+              </div>
+
+              {/* Salutation */}
+              <div className="mb-6">
+                {getSalutation(selectedMembers[currentLetterIndex])},
+              </div>
+
+              {/* Message Body */}
+              <div className="mb-8 whitespace-pre-wrap">
+                {message}
+              </div>
+
+              {/* Signature */}
+              <div className="mt-8">
+                <div>Sincerely,</div>
+                <div className="mt-4 space-y-1">
+                  <div className="font-medium">
+                    {selectedPersonalData.includes('fullName') ?
+                      (personalDataFields.find(f => f.key === 'fullName')?.value || (user || verifiedUserInfo ? 'Your Name' : 'A Concerned Constituent')) :
+                      (nickname || 'A Concerned Constituent')
+                    }
+                    {selectedPersonalData.includes('fullName') && (
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 border border-green-300">
+                        Verified Voter
+                      </span>
+                    )}
+                  </div>
+                  {selectedPersonalFields.filter(f => f.key !== 'fullName').map(field => (
+                    <div key={field.key} className="text-sm text-muted-foreground">
+                      {field.label}: {field.value}
+                    </div>
+                  ))}
+                  {constituentDescription && (
+                    <div className="text-sm text-muted-foreground mt-2">
+                      <span className="font-medium">About me:</span> {constituentDescription}
+                    </div>
+                  )}
+                  {(!user && !verifiedUserInfo) && (
+                    <div className="text-xs text-muted-foreground mt-2 italic">
+                      Message sent anonymously
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Verification has been moved to Step 2 */}
           {false && (
@@ -2328,41 +2465,56 @@ const AdvocacyMessageContent: React.FC = () => {
                 
                 {verificationStep === 'initial' && (
                   <>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-4">
                       <div>
-                        <Label htmlFor="firstInitial">First Initial</Label>
+                        <Label htmlFor="firstName2">First Name</Label>
                         <Input
-                          id="firstInitial"
-                          placeholder="J"
-                          maxLength={1}
-                          value={firstInitial}
-                          onChange={(e) => setFirstInitial(e.target.value.toUpperCase())}
+                          id="firstName2"
+                          placeholder="John"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
                           className="mt-1"
                         />
                       </div>
-                      
+
                       <div>
-                        <Label htmlFor="lastNameLetters">First 4 Letters of Last Name</Label>
+                        <Label htmlFor="lastName2">Last Name</Label>
                         <Input
-                          id="lastNameLetters"
-                          placeholder="SMIT"
-                          maxLength={4}
-                          value={lastNameLetters}
-                          onChange={(e) => setLastNameLetters(e.target.value.toUpperCase())}
+                          id="lastName2"
+                          placeholder="Smith"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
                           className="mt-1"
                         />
                       </div>
-                      
-                      <div>
-                        <Label htmlFor="verificationZipCode">ZIP Code</Label>
+
+                      <div className="relative">
+                        <Label htmlFor="address2">Address</Label>
                         <Input
-                          id="verificationZipCode"
-                          placeholder="12345"
-                          maxLength={5}
-                          value={verificationZipCode}
-                          onChange={(e) => setVerificationZipCode(e.target.value.replace(/\D/g, ''))}
+                          id="address2"
+                          placeholder="Start typing your address..."
+                          value={address}
+                          onChange={(e) => handleAddressChange(e.target.value)}
+                          onFocus={() => address.length >= 3 && setShowAddressSuggestions(true)}
+                          onBlur={() => setTimeout(() => setShowAddressSuggestions(false), 150)}
                           className="mt-1"
                         />
+                        {showAddressSuggestions && addressSuggestions.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                            {addressSuggestions.map((suggestion, index) => (
+                              <div
+                                key={index}
+                                className="px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                                onMouseDown={() => selectAddressSuggestion(suggestion)}
+                              >
+                                {suggestion}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Start typing your address to see suggestions
+                        </p>
                       </div>
                     </div>
                     
@@ -2568,73 +2720,16 @@ const AdvocacyMessageContent: React.FC = () => {
 
 
 
-          {/* BCC Emails */}
-          {bccEmails.filter(email => email.trim() !== '').length > 0 && (
-            <div>
-              <h3 className="font-semibold mb-3">BCC Recipients</h3>
-              <div className="bg-muted rounded-lg p-4">
-                {bccEmails.filter(email => email.trim() !== '').map((email, index) => (
-                  <p key={index} className="text-sm">
-                    {email}
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Signature - only show when user has completed verification */}
-          {(user || verifiedUserInfo) && (
-            <div>
-              <h3 className="font-semibold mb-3">Signature</h3>
-              <div className="bg-muted rounded-lg p-4">
-                <p className="font-medium">Sincerely,</p>
-                <div className="mt-2 flex items-center gap-2">
-                  {selectedPersonalData.includes('fullName') && (
-                    <div className="relative inline-flex items-center justify-center w-5 h-5">
-                      <div className="absolute inset-0 rounded-full border-2 border-gray-700"></div>
-                      <Check className="h-3 w-3 text-gray-500" strokeWidth={3} />
-                    </div>
-                  )}
-                  <p className="inline">
-                    {selectedPersonalData.includes('fullName') ? 
-                      (personalDataFields.find(f => f.key === 'fullName')?.value || (user || verifiedUserInfo ? 'Your Name' : 'A Concerned Constituent')) :
-                      (nickname || 'A Concerned Constituent')
-                    }
-                  </p>
-                  {selectedPersonalData.includes('fullName') && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
-                      Verified Voter
-                    </span>
-                  )}
-                </div>
-                {selectedPersonalFields.filter(f => f.key !== 'fullName').map(field => (
-                  <p key={field.key} className="text-sm text-muted-foreground">
-                    {field.label}: {field.value}
-                  </p>
-                ))}
-                {constituentDescription && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    <span className="font-medium">About me:</span> {constituentDescription}
-                  </p>
-                )}
-                {(!user && !verifiedUserInfo) && (
-                  <p className="text-xs text-muted-foreground mt-2 italic">
-                    Message sent anonymously
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
 
           <div className="flex-1"></div>
           <div className="flex justify-between mt-auto pt-6">
             <Button variant="outline" onClick={() => setStep(7)}>
               Back
             </Button>
-            {/* Next button - go to delivery step */}
+            {/* Continue button - go to delivery step */}
             {(user || verifiedUserInfo) && (
               <Button onClick={() => setStep(9)}>
-                Next
+                Continue
               </Button>
             )}
           </div>
@@ -2989,11 +3084,6 @@ const AdvocacyMessageContent: React.FC = () => {
             }));
           }
           
-          // If saveAsDefault is true, save the selected fields to user preferences
-          if (saveAsDefault) {
-            // TODO: Save selectedPersonalData to user preferences in Firebase
-            console.log('Saving default preferences:', selectedPersonalData);
-          }
 
           // Wait a moment to show the animation, then mark as sent
           setTimeout(() => {
@@ -3095,6 +3185,11 @@ const AdvocacyMessageContent: React.FC = () => {
       </Card>
     );
   };
+
+  // Reset letter index when members change
+  useEffect(() => {
+    setCurrentLetterIndex(0);
+  }, [selectedMembers]);
 
   // Auto-fill email when reaching Step 13 if user provided notification email
   useEffect(() => {
@@ -3317,11 +3412,11 @@ const AdvocacyMessageContent: React.FC = () => {
 
       <div className="w-full flex-1 flex flex-col overflow-auto p-0 md:container md:mx-auto md:px-8 md:pb-8 md:max-w-2xl">
       {/* Step Content */}
-      {step === 1 && renderStep1_Position()} {/* Choose Your Position */}
-      {step === 2 && renderStep2_AIHelp()} {/* Get Help Writing (Optional) */}
-      {step === 3 && renderStep3_WriteMessage()} {/* Write Your Message */}
-      {step === 4 && renderStep4_UploadMedia()} {/* Add Supporting Files (Optional) */}
-      {step === 5 && renderRoutingStep()} {/* Help us route your message (Verification) */}
+      {step === 1 && renderRoutingStep()} {/* Help us verify that you are a registered voter */}
+      {step === 2 && renderStep1_Position()} {/* Choose Your Position */}
+      {step === 3 && renderStep2_AIHelp()} {/* Get Help Writing (Optional) */}
+      {step === 4 && renderStep3_WriteMessage()} {/* Write Your Message */}
+      {step === 5 && renderStep4_UploadMedia()} {/* Add Supporting Files (Optional) */}
       {step === 6 && renderStep1()} {/* Select Outreach */}
       {step === 7 && renderPersonalInfoStep()} {/* Personal Information */}
       {step === 8 && renderStep3()} {/* Review Message */}
