@@ -23,13 +23,17 @@ interface CachedBill {
 }
 
 function transformCachedBillToBill(cachedBill: CachedBill): Bill {
+  // Generate internal URL instead of using the cached congress.gov URL
+  const billTypeSlug = cachedBill.type.toLowerCase().replace(/\./g, '');
+  const internalUrl = `/federal/bill/${cachedBill.congress}/${billTypeSlug}/${cachedBill.number}`;
+
   return {
     congress: cachedBill.congress,
     number: cachedBill.number,
     type: cachedBill.type,
     title: cachedBill.title,
     shortTitle: `${cachedBill.type} ${cachedBill.number} - ${cachedBill.title}`,
-    url: cachedBill.url,
+    url: internalUrl,
     latestAction: cachedBill.latestAction,
     updateDate: cachedBill.updateDate,
     originChamber: cachedBill.originChamber,

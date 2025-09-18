@@ -17,7 +17,6 @@ export function FeedNavigation({ className }: FeedNavigationProps) {
   const tabs: { href: string; label: string }[] = [
     { href: '/', label: 'For you' },
     { href: '/following', label: 'Following' },
-    { href: '/issues', label: 'Issues' },
   ];
 
   return (

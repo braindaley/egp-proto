@@ -16,10 +16,12 @@ import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
 import { campaignsService } from '@/lib/campaigns';
 import { PopularBills } from '@/components/popular-bills';
 import { HomepageNewsSection } from '@/components/homepage-news-section';
+import { useZipCode } from '@/hooks/use-zip-code';
 
 export default function Home() {
   const [showCard, setShowCard] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState<string>('for-you');
+  const { zipCode } = useZipCode();
 
   // Helper function to convert category to URL slug
   const convertCategoryToSlug = (category: string): string => {
@@ -31,6 +33,312 @@ export default function Home() {
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
   };
+
+  // Helper function to get state from zip code
+  const getStateFromZip = (zipCode: string): { state: string, stateCode: string } | null => {
+    if (!zipCode) return null;
+
+    // Check by prefix (first 3 digits) - simplified version from the API route
+    const prefix = zipCode.substring(0, 3);
+    const statesByPrefix: Record<string, { state: string, stateCode: string }> = {
+      // California ranges
+      '900': { state: 'California', stateCode: 'CA' },
+      '901': { state: 'California', stateCode: 'CA' },
+      '902': { state: 'California', stateCode: 'CA' },
+      '903': { state: 'California', stateCode: 'CA' },
+      '904': { state: 'California', stateCode: 'CA' },
+      '905': { state: 'California', stateCode: 'CA' },
+      '906': { state: 'California', stateCode: 'CA' },
+      '907': { state: 'California', stateCode: 'CA' },
+      '908': { state: 'California', stateCode: 'CA' },
+      '910': { state: 'California', stateCode: 'CA' },
+      '911': { state: 'California', stateCode: 'CA' },
+      '912': { state: 'California', stateCode: 'CA' },
+      '913': { state: 'California', stateCode: 'CA' },
+      '914': { state: 'California', stateCode: 'CA' },
+      '915': { state: 'California', stateCode: 'CA' },
+      '916': { state: 'California', stateCode: 'CA' },
+      '917': { state: 'California', stateCode: 'CA' },
+      '918': { state: 'California', stateCode: 'CA' },
+      '919': { state: 'California', stateCode: 'CA' },
+      '920': { state: 'California', stateCode: 'CA' },
+      '921': { state: 'California', stateCode: 'CA' },
+      '922': { state: 'California', stateCode: 'CA' },
+      '923': { state: 'California', stateCode: 'CA' },
+      '924': { state: 'California', stateCode: 'CA' },
+      '925': { state: 'California', stateCode: 'CA' },
+      '926': { state: 'California', stateCode: 'CA' },
+      '927': { state: 'California', stateCode: 'CA' },
+      '928': { state: 'California', stateCode: 'CA' },
+      '930': { state: 'California', stateCode: 'CA' },
+      '931': { state: 'California', stateCode: 'CA' },
+      '932': { state: 'California', stateCode: 'CA' },
+      '933': { state: 'California', stateCode: 'CA' },
+      '934': { state: 'California', stateCode: 'CA' },
+      '935': { state: 'California', stateCode: 'CA' },
+      '936': { state: 'California', stateCode: 'CA' },
+      '937': { state: 'California', stateCode: 'CA' },
+      '938': { state: 'California', stateCode: 'CA' },
+      '939': { state: 'California', stateCode: 'CA' },
+      '940': { state: 'California', stateCode: 'CA' },
+      '941': { state: 'California', stateCode: 'CA' },
+      '942': { state: 'California', stateCode: 'CA' },
+      '943': { state: 'California', stateCode: 'CA' },
+      '944': { state: 'California', stateCode: 'CA' },
+      '945': { state: 'California', stateCode: 'CA' },
+      '946': { state: 'California', stateCode: 'CA' },
+      '947': { state: 'California', stateCode: 'CA' },
+      '948': { state: 'California', stateCode: 'CA' },
+      '949': { state: 'California', stateCode: 'CA' },
+      '950': { state: 'California', stateCode: 'CA' },
+      '951': { state: 'California', stateCode: 'CA' },
+      '952': { state: 'California', stateCode: 'CA' },
+      '953': { state: 'California', stateCode: 'CA' },
+      '954': { state: 'California', stateCode: 'CA' },
+      '955': { state: 'California', stateCode: 'CA' },
+      '956': { state: 'California', stateCode: 'CA' },
+      '957': { state: 'California', stateCode: 'CA' },
+      '958': { state: 'California', stateCode: 'CA' },
+      '959': { state: 'California', stateCode: 'CA' },
+      '960': { state: 'California', stateCode: 'CA' },
+      '961': { state: 'California', stateCode: 'CA' },
+      // New York ranges
+      '100': { state: 'New York', stateCode: 'NY' },
+      '101': { state: 'New York', stateCode: 'NY' },
+      '102': { state: 'New York', stateCode: 'NY' },
+      '103': { state: 'New York', stateCode: 'NY' },
+      '104': { state: 'New York', stateCode: 'NY' },
+      '105': { state: 'New York', stateCode: 'NY' },
+      '106': { state: 'New York', stateCode: 'NY' },
+      '107': { state: 'New York', stateCode: 'NY' },
+      '108': { state: 'New York', stateCode: 'NY' },
+      '109': { state: 'New York', stateCode: 'NY' },
+      '110': { state: 'New York', stateCode: 'NY' },
+      '111': { state: 'New York', stateCode: 'NY' },
+      '112': { state: 'New York', stateCode: 'NY' },
+      '113': { state: 'New York', stateCode: 'NY' },
+      '114': { state: 'New York', stateCode: 'NY' },
+      '115': { state: 'New York', stateCode: 'NY' },
+      '116': { state: 'New York', stateCode: 'NY' },
+      '117': { state: 'New York', stateCode: 'NY' },
+      '118': { state: 'New York', stateCode: 'NY' },
+      '119': { state: 'New York', stateCode: 'NY' },
+      // Texas ranges
+      '750': { state: 'Texas', stateCode: 'TX' },
+      '751': { state: 'Texas', stateCode: 'TX' },
+      '752': { state: 'Texas', stateCode: 'TX' },
+      '753': { state: 'Texas', stateCode: 'TX' },
+      '754': { state: 'Texas', stateCode: 'TX' },
+      '755': { state: 'Texas', stateCode: 'TX' },
+      '756': { state: 'Texas', stateCode: 'TX' },
+      '757': { state: 'Texas', stateCode: 'TX' },
+      '758': { state: 'Texas', stateCode: 'TX' },
+      '759': { state: 'Texas', stateCode: 'TX' },
+      '760': { state: 'Texas', stateCode: 'TX' },
+      '761': { state: 'Texas', stateCode: 'TX' },
+      '762': { state: 'Texas', stateCode: 'TX' },
+      '763': { state: 'Texas', stateCode: 'TX' },
+      '764': { state: 'Texas', stateCode: 'TX' },
+      '765': { state: 'Texas', stateCode: 'TX' },
+      '766': { state: 'Texas', stateCode: 'TX' },
+      '767': { state: 'Texas', stateCode: 'TX' },
+      '768': { state: 'Texas', stateCode: 'TX' },
+      '769': { state: 'Texas', stateCode: 'TX' },
+      '770': { state: 'Texas', stateCode: 'TX' },
+      '771': { state: 'Texas', stateCode: 'TX' },
+      '772': { state: 'Texas', stateCode: 'TX' },
+      '773': { state: 'Texas', stateCode: 'TX' },
+      '774': { state: 'Texas', stateCode: 'TX' },
+      '775': { state: 'Texas', stateCode: 'TX' },
+      '776': { state: 'Texas', stateCode: 'TX' },
+      '777': { state: 'Texas', stateCode: 'TX' },
+      '778': { state: 'Texas', stateCode: 'TX' },
+      '779': { state: 'Texas', stateCode: 'TX' },
+      '780': { state: 'Texas', stateCode: 'TX' },
+      '781': { state: 'Texas', stateCode: 'TX' },
+      '782': { state: 'Texas', stateCode: 'TX' },
+      '783': { state: 'Texas', stateCode: 'TX' },
+      '784': { state: 'Texas', stateCode: 'TX' },
+      '785': { state: 'Texas', stateCode: 'TX' },
+      '786': { state: 'Texas', stateCode: 'TX' },
+      '787': { state: 'Texas', stateCode: 'TX' },
+      '788': { state: 'Texas', stateCode: 'TX' },
+      '789': { state: 'Texas', stateCode: 'TX' },
+      '790': { state: 'Texas', stateCode: 'TX' },
+      '791': { state: 'Texas', stateCode: 'TX' },
+      '792': { state: 'Texas', stateCode: 'TX' },
+      '793': { state: 'Texas', stateCode: 'TX' },
+      '794': { state: 'Texas', stateCode: 'TX' },
+      '795': { state: 'Texas', stateCode: 'TX' },
+      '796': { state: 'Texas', stateCode: 'TX' },
+      '797': { state: 'Texas', stateCode: 'TX' },
+      '798': { state: 'Texas', stateCode: 'TX' },
+      '799': { state: 'Texas', stateCode: 'TX' },
+      // Florida ranges
+      '320': { state: 'Florida', stateCode: 'FL' },
+      '321': { state: 'Florida', stateCode: 'FL' },
+      '322': { state: 'Florida', stateCode: 'FL' },
+      '323': { state: 'Florida', stateCode: 'FL' },
+      '324': { state: 'Florida', stateCode: 'FL' },
+      '325': { state: 'Florida', stateCode: 'FL' },
+      '326': { state: 'Florida', stateCode: 'FL' },
+      '327': { state: 'Florida', stateCode: 'FL' },
+      '328': { state: 'Florida', stateCode: 'FL' },
+      '329': { state: 'Florida', stateCode: 'FL' },
+      '330': { state: 'Florida', stateCode: 'FL' },
+      '331': { state: 'Florida', stateCode: 'FL' },
+      '332': { state: 'Florida', stateCode: 'FL' },
+      '333': { state: 'Florida', stateCode: 'FL' },
+      '334': { state: 'Florida', stateCode: 'FL' },
+      '335': { state: 'Florida', stateCode: 'FL' },
+      '336': { state: 'Florida', stateCode: 'FL' },
+      '337': { state: 'Florida', stateCode: 'FL' },
+      '338': { state: 'Florida', stateCode: 'FL' },
+      '339': { state: 'Florida', stateCode: 'FL' }
+    };
+
+    return statesByPrefix[prefix] || null;
+  };
+
+  // Get user's state
+  const userState = zipCode ? getStateFromZip(zipCode) : null;
+
+  // Prepare issue categories for dropdown with "View all" option
+  const issueCategories = [
+    { id: 'view-all', label: 'View all' },
+    ...SITE_ISSUE_CATEGORIES.map(category => ({
+      id: category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and'),
+      label: category
+    }))
+  ];
+
+  // State-specific news articles for each policy category
+  const stateSpecificNewsByState: Record<string, Record<string, any>> = {
+    'California': {
+      'Abortion': { id: 1001, headline: "California Strengthens Reproductive Rights Protections", category: "Abortion", state: "California" },
+      'Climate, Energy & Environment': { id: 1002, headline: "California Passes Landmark Climate Legislation", category: "Climate, Energy & Environment", state: "California" },
+      'Criminal Justice': { id: 1003, headline: "California Advances Prison Reform Initiative", category: "Criminal Justice", state: "California" },
+      'Death Penalty': { id: 1004, headline: "California Reviews Death Penalty Moratorium", category: "Death Penalty", state: "California" },
+      'Defense & National Security': { id: 1005, headline: "California Military Bases Receive Infrastructure Funding", category: "Defense & National Security", state: "California" },
+      'Discrimination & Prejudice': { id: 1006, headline: "California Expands Anti-Discrimination Protections", category: "Discrimination & Prejudice", state: "California" },
+      'Drug Policy': { id: 1007, headline: "California Launches Substance Abuse Treatment Program", category: "Drug Policy", state: "California" },
+      'Economy & Work': { id: 1008, headline: "California Raises Minimum Wage Standards", category: "Economy & Work", state: "California" },
+      'Education': { id: 1009, headline: "California Increases School Funding Allocation", category: "Education", state: "California" },
+      'Free Speech & Press': { id: 1010, headline: "California Protects Journalist Shield Laws", category: "Free Speech & Press", state: "California" },
+      'Gun Policy': { id: 1011, headline: "California Implements Enhanced Gun Safety Measures", category: "Gun Policy", state: "California" },
+      'Health Policy': { id: 1012, headline: "California Expands Universal Healthcare Access", category: "Health Policy", state: "California" },
+      'Immigration & Migration': { id: 1013, headline: "California Sanctuary State Policies Upheld", category: "Immigration & Migration", state: "California" },
+      'International Affairs': { id: 1014, headline: "California Trade Partnerships with Pacific Nations", category: "International Affairs", state: "California" },
+      'LGBT Acceptance': { id: 1015, headline: "California Advances LGBTQ+ Rights Legislation", category: "LGBT Acceptance", state: "California" },
+      'National Conditions': { id: 1016, headline: "California Voting Rights Expansion Bill Passes", category: "National Conditions", state: "California" },
+      'Privacy Rights': { id: 1017, headline: "California Consumer Privacy Act Strengthened", category: "Privacy Rights", state: "California" },
+      'Religion & Government': { id: 1018, headline: "California Religious Freedom Protections Reviewed", category: "Religion & Government", state: "California" },
+      'Social Security & Medicare': { id: 1019, headline: "California Senior Benefits Program Expanded", category: "Social Security & Medicare", state: "California" },
+      'Technology Policy Issues': { id: 1020, headline: "California Tech Regulation Bill Advances", category: "Technology Policy Issues", state: "California" }
+    },
+    'New York': {
+      'Abortion': { id: 1101, headline: "New York Codifies Reproductive Rights in State Law", category: "Abortion", state: "New York" },
+      'Climate, Energy & Environment': { id: 1102, headline: "New York Green Energy Initiative Launched", category: "Climate, Energy & Environment", state: "New York" },
+      'Criminal Justice': { id: 1103, headline: "New York Advances Criminal Justice Reform Initiative", category: "Criminal Justice", state: "New York" },
+      'Death Penalty': { id: 1104, headline: "New York Death Penalty Abolition Reaffirmed", category: "Death Penalty", state: "New York" },
+      'Defense & National Security': { id: 1105, headline: "New York National Guard Modernization Plan", category: "Defense & National Security", state: "New York" },
+      'Discrimination & Prejudice': { id: 1106, headline: "New York Hate Crime Prevention Act Signed", category: "Discrimination & Prejudice", state: "New York" },
+      'Drug Policy': { id: 1107, headline: "New York Cannabis Legalization Implementation", category: "Drug Policy", state: "New York" },
+      'Economy & Work': { id: 1108, headline: "New York Worker Protection Laws Strengthened", category: "Economy & Work", state: "New York" },
+      'Education': { id: 1109, headline: "New York Education Funding Formula Reformed", category: "Education", state: "New York" },
+      'Free Speech & Press': { id: 1110, headline: "New York Press Freedom Shield Law Enhanced", category: "Free Speech & Press", state: "New York" },
+      'Gun Policy': { id: 1111, headline: "New York SAFE Act Provisions Expanded", category: "Gun Policy", state: "New York" },
+      'Health Policy': { id: 1112, headline: "New York Health Exchange Program Improved", category: "Health Policy", state: "New York" },
+      'Immigration & Migration': { id: 1113, headline: "New York Green Light Law Implementation", category: "Immigration & Migration", state: "New York" },
+      'International Affairs': { id: 1114, headline: "New York International Trade Office Expanded", category: "International Affairs", state: "New York" },
+      'LGBT Acceptance': { id: 1115, headline: "New York LGBTQ+ Youth Protection Act Passed", category: "LGBT Acceptance", state: "New York" },
+      'National Conditions': { id: 1116, headline: "New York Voting Rights Restoration Bill Signed", category: "National Conditions", state: "New York" },
+      'Privacy Rights': { id: 1117, headline: "New York Digital Privacy Act Introduced", category: "Privacy Rights", state: "New York" },
+      'Religion & Government': { id: 1118, headline: "New York Religious Accommodation Laws Updated", category: "Religion & Government", state: "New York" },
+      'Social Security & Medicare': { id: 1119, headline: "New York Senior Care Enhancement Program", category: "Social Security & Medicare", state: "New York" },
+      'Technology Policy Issues': { id: 1120, headline: "New York Tech Worker Rights Bill Proposed", category: "Technology Policy Issues", state: "New York" }
+    },
+    'Texas': {
+      'Abortion': { id: 1201, headline: "Texas Abortion Law Enforcement Updates", category: "Abortion", state: "Texas" },
+      'Climate, Energy & Environment': { id: 1202, headline: "Texas Renewable Energy Grid Expansion", category: "Climate, Energy & Environment", state: "Texas" },
+      'Criminal Justice': { id: 1203, headline: "Texas Police Reform Measures Debated", category: "Criminal Justice", state: "Texas" },
+      'Death Penalty': { id: 1204, headline: "Texas Death Penalty Procedures Reviewed", category: "Death Penalty", state: "Texas" },
+      'Defense & National Security': { id: 1205, headline: "Texas Military Installation Funding Secured", category: "Defense & National Security", state: "Texas" },
+      'Discrimination & Prejudice': { id: 1206, headline: "Texas Civil Rights Enforcement Enhanced", category: "Discrimination & Prejudice", state: "Texas" },
+      'Drug Policy': { id: 1207, headline: "Texas Drug Court Program Expansion", category: "Drug Policy", state: "Texas" },
+      'Economy & Work': { id: 1208, headline: "Texas Job Creation Incentive Program Launched", category: "Economy & Work", state: "Texas" },
+      'Education': { id: 1209, headline: "Texas Legislature Debates Education Funding Reform", category: "Education", state: "Texas" },
+      'Free Speech & Press': { id: 1210, headline: "Texas Campus Free Speech Bill Considered", category: "Free Speech & Press", state: "Texas" },
+      'Gun Policy': { id: 1211, headline: "Texas Constitutional Carry Law Implementation", category: "Gun Policy", state: "Texas" },
+      'Health Policy': { id: 1212, headline: "Texas Medicaid Expansion Debate Continues", category: "Health Policy", state: "Texas" },
+      'Immigration & Migration': { id: 1213, headline: "Texas Border Security Funding Approved", category: "Immigration & Migration", state: "Texas" },
+      'International Affairs': { id: 1214, headline: "Texas Mexico Trade Relations Strengthened", category: "International Affairs", state: "Texas" },
+      'LGBT Acceptance': { id: 1215, headline: "Texas LGBTQ+ Rights Legislation Debated", category: "LGBT Acceptance", state: "Texas" },
+      'National Conditions': { id: 1216, headline: "Texas Voter ID Law Modifications Proposed", category: "National Conditions", state: "Texas" },
+      'Privacy Rights': { id: 1217, headline: "Texas Data Protection Bill Introduced", category: "Privacy Rights", state: "Texas" },
+      'Religion & Government': { id: 1218, headline: "Texas Religious Liberty Act Provisions", category: "Religion & Government", state: "Texas" },
+      'Social Security & Medicare': { id: 1219, headline: "Texas Senior Services Program Enhanced", category: "Social Security & Medicare", state: "Texas" },
+      'Technology Policy Issues': { id: 1220, headline: "Texas Tech Industry Regulation Reviewed", category: "Technology Policy Issues", state: "Texas" }
+    },
+    'Florida': {
+      'Abortion': { id: 1301, headline: "Florida Abortion Restriction Laws Updated", category: "Abortion", state: "Florida" },
+      'Climate, Energy & Environment': { id: 1302, headline: "Florida Climate Resilience Infrastructure Plan", category: "Climate, Energy & Environment", state: "Florida" },
+      'Criminal Justice': { id: 1303, headline: "Florida Prison System Reform Initiative", category: "Criminal Justice", state: "Florida" },
+      'Death Penalty': { id: 1304, headline: "Florida Death Penalty Appeal Process Reformed", category: "Death Penalty", state: "Florida" },
+      'Defense & National Security': { id: 1305, headline: "Florida Military Base Modernization Project", category: "Defense & National Security", state: "Florida" },
+      'Discrimination & Prejudice': { id: 1306, headline: "Florida Anti-Bias Training Program Implemented", category: "Discrimination & Prejudice", state: "Florida" },
+      'Drug Policy': { id: 1307, headline: "Florida Opioid Crisis Response Enhanced", category: "Drug Policy", state: "Florida" },
+      'Economy & Work': { id: 1308, headline: "Florida Economic Development Zones Expanded", category: "Economy & Work", state: "Florida" },
+      'Education': { id: 1309, headline: "Florida School Choice Program Modified", category: "Education", state: "Florida" },
+      'Free Speech & Press': { id: 1310, headline: "Florida Public Records Access Laws Reviewed", category: "Free Speech & Press", state: "Florida" },
+      'Gun Policy': { id: 1311, headline: "Florida Gun Safety Training Requirements", category: "Gun Policy", state: "Florida" },
+      'Health Policy': { id: 1312, headline: "Florida Addresses Healthcare Access in Rural Communities", category: "Health Policy", state: "Florida" },
+      'Immigration & Migration': { id: 1313, headline: "Florida Immigration Enforcement Policies", category: "Immigration & Migration", state: "Florida" },
+      'International Affairs': { id: 1314, headline: "Florida Latin America Trade Partnership", category: "International Affairs", state: "Florida" },
+      'LGBT Acceptance': { id: 1315, headline: "Florida LGBTQ+ Policy Legislation Reviewed", category: "LGBT Acceptance", state: "Florida" },
+      'National Conditions': { id: 1316, headline: "Florida Election Security Measures Enhanced", category: "National Conditions", state: "Florida" },
+      'Privacy Rights': { id: 1317, headline: "Florida Student Data Privacy Act Proposed", category: "Privacy Rights", state: "Florida" },
+      'Religion & Government': { id: 1318, headline: "Florida Religious Expression Protection Bill", category: "Religion & Government", state: "Florida" },
+      'Social Security & Medicare': { id: 1319, headline: "Florida Medicare Advantage Program Expansion", category: "Social Security & Medicare", state: "Florida" },
+      'Technology Policy Issues': { id: 1320, headline: "Florida Digital Infrastructure Investment", category: "Technology Policy Issues", state: "Florida" }
+    }
+  };
+
+  // Get state-specific articles based on user's state and current filter
+  const getStateSpecificArticles = (filter: string) => {
+    console.log('getStateSpecificArticles called:', { userState, filter, zipCode });
+
+    if (!userState) {
+      console.log('No userState available');
+      return [];
+    }
+
+    const stateArticles = stateSpecificNewsByState[userState.state];
+    if (!stateArticles) {
+      console.log('No state articles for state:', userState.state);
+      return [];
+    }
+
+    // For "view-all", "for-you", and "top-stories" filters, return ALL state articles
+    if (filter === 'view-all' || filter === 'for-you' || filter === 'top-stories') {
+      const allStateArticles = Object.values(stateArticles);
+      console.log('Returning ALL state articles for filter:', { state: userState.state, filter, count: allStateArticles.length });
+      return allStateArticles;
+    }
+
+    // For specific category filters, find the matching category
+    const selectedCategory = issueCategories.find(cat => cat.id === filter);
+    if (selectedCategory && selectedCategory.id !== 'view-all' && stateArticles[selectedCategory.label]) {
+      const article = stateArticles[selectedCategory.label];
+      console.log('Returning state article for category:', { state: userState.state, category: selectedCategory.label, article });
+      return [article];
+    }
+
+    // No matching articles
+    return [];
+  };
+
+  const stateSpecificArticles = getStateSpecificArticles(selectedFilter);
 
   // Mock news stories data - 3 stories for each issue category
   const newsStories = [
@@ -496,7 +804,10 @@ export default function Home() {
   ];
 
   // Get all real campaigns from the service and transform them for the homepage
-  const allCampaigns = campaignsService.getAllCampaigns().filter(campaign => campaign.isActive);
+  const allCampaigns = campaignsService.getAllCampaigns()
+    .filter(campaign => campaign.isActive)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
 
   const campaignStories = allCampaigns.map(campaign => ({
     id: campaign.id,
@@ -512,14 +823,6 @@ export default function Home() {
     opposeCount: campaign.opposeCount
   }));
 
-  // Prepare issue categories for dropdown with "View all" option
-  const issueCategories = [
-    { id: 'view-all', label: 'View all' },
-    ...SITE_ISSUE_CATEGORIES.map(category => ({
-      id: category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and'),
-      label: category
-    }))
-  ];
 
   // Fisher-Yates shuffle algorithm with deterministic seed for SSR
   const shuffleArray = (array: any[]) => {
@@ -556,6 +859,23 @@ export default function Home() {
       } else {
         stories = newsStories.filter(story => story.category === selectedCategory.label);
         campaigns = campaignStories.filter(campaign => campaign.policyIssue === selectedCategory.label);
+      }
+    }
+
+    // Add state-specific articles if available and appropriate for the filter
+    if (stateSpecificArticles.length > 0) {
+      // For view-all, for-you, and top-stories, always show all state-specific articles
+      if (selectedFilter === 'view-all' || selectedFilter === 'for-you' || selectedFilter === 'top-stories') {
+        stories = [...stateSpecificArticles, ...stories];
+      } else {
+        // For specific category filters, only show state articles that match the category
+        const selectedCategory = issueCategories.find(cat => cat.id === selectedFilter);
+        if (selectedCategory) {
+          const matchingStateArticles = stateSpecificArticles.filter(article =>
+            article.category === selectedCategory.label
+          );
+          stories = [...matchingStateArticles, ...stories];
+        }
       }
     }
 
@@ -786,18 +1106,41 @@ export default function Home() {
             // News Story Card
             return (
               <div key={item.id} className="md:mb-8 md:px-4 snap-start md:snap-none md:h-auto md:min-h-0 flex items-start pt-4 md:items-center md:pt-0 md:block">
-                <Card className="relative my-2 md:my-0 w-full md:w-full overflow-hidden md:h-auto">
+                <Link href={`/article/${item.id}`}>
+                  <Card className="relative my-2 md:my-0 w-full md:w-full overflow-hidden md:h-auto hover:shadow-md transition-shadow cursor-pointer">
                   {/* Mobile Layout - Image on top */}
                   <div className="md:hidden">
-                    <div className="w-full aspect-square bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                    <div className="relative w-full aspect-square bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
                       <div className="text-muted-foreground/50 text-sm">News Image</div>
+                      <div className="absolute bottom-4 left-4">
+                        <Badge variant="secondary" className="text-xs px-2 py-1">{item.category}</Badge>
+                      </div>
                     </div>
                     <CardContent className="p-6">
-                      <Link href={`/issues/${convertCategoryToSlug(item.category)}`}>
-                        <Badge variant="secondary" className="mb-2 w-fit text-xs px-2 py-1 hover:bg-secondary/80 transition-colors cursor-pointer">{item.category}</Badge>
-                      </Link>
+                      {item.state && (
+                        <div className="mb-3">
+                          <Badge variant="default" className="text-xs px-2 py-1">{item.state}</Badge>
+                        </div>
+                      )}
                       <h3 className="text-lg font-bold mb-3 line-clamp-2">{item.headline}</h3>
-                      <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{item.description}</p>
+                      {!item.state && (
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                          Congressional leaders advance comprehensive legislative package addressing key policy priorities. Advocacy organizations mobilize grassroots support for upcoming committee hearings and floor votes.
+                        </p>
+                      )}
+                      <div className="text-xs text-muted-foreground mb-4 flex flex-wrap gap-x-1">
+                        <span className="hover:underline cursor-pointer">New York Times</span> •
+                        <span className="hover:underline cursor-pointer">Wall Street Journal</span> •
+                        <span className="hover:underline cursor-pointer">Reuters</span> •
+                        <span className="hover:underline cursor-pointer">Associated Press</span> •
+                        <span className="hover:underline cursor-pointer">BBC News</span> •
+                        <span className="hover:underline cursor-pointer">The Guardian</span> •
+                        <span className="hover:underline cursor-pointer">Financial Times</span> •
+                        <span className="hover:underline cursor-pointer">Bloomberg</span> •
+                        <span className="hover:underline cursor-pointer">Washington Post</span> •
+                        <span className="hover:underline cursor-pointer">Politico</span> •
+                        <span className="hover:underline cursor-pointer">NPR</span>
+                      </div>
                       <div className="flex items-center justify-between">
                         <Button size="sm" variant="outline" className="text-xs">
                           Voice Opinion
@@ -809,15 +1152,37 @@ export default function Home() {
 
                   {/* Desktop Layout - Image left, content right */}
                   <div className="hidden md:flex h-64">
-                    <div className="w-64 h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
+                    <div className="relative w-64 h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
                       <div className="text-muted-foreground/50 text-sm">News Image</div>
+                      <div className="absolute bottom-4 left-4">
+                        <Badge variant="secondary" className="text-xs px-2 py-1">{item.category}</Badge>
+                      </div>
                     </div>
                     <CardContent className="flex-1 p-6">
-                      <Link href={`/issues/${convertCategoryToSlug(item.category)}`}>
-                        <Badge variant="secondary" className="mb-2 w-fit text-xs px-2 py-1 hover:bg-secondary/80 transition-colors cursor-pointer">{item.category}</Badge>
-                      </Link>
+                      {item.state && (
+                        <div className="mb-3">
+                          <Badge variant="default" className="text-xs px-2 py-1">{item.state}</Badge>
+                        </div>
+                      )}
                       <h3 className="text-lg font-bold mb-3 line-clamp-2">{item.headline}</h3>
-                      <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{item.description}</p>
+                      {!item.state && (
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                          Bipartisan coalition works to advance critical legislation addressing national priorities. Key stakeholders engage in strategic advocacy efforts as bill moves through legislative process.
+                        </p>
+                      )}
+                      <div className="text-xs text-muted-foreground mb-4 flex flex-wrap gap-x-1">
+                        <span className="hover:underline cursor-pointer">CNN</span> •
+                        <span className="hover:underline cursor-pointer">Fox News</span> •
+                        <span className="hover:underline cursor-pointer">NBC News</span> •
+                        <span className="hover:underline cursor-pointer">CBS News</span> •
+                        <span className="hover:underline cursor-pointer">ABC News</span> •
+                        <span className="hover:underline cursor-pointer">MSNBC</span> •
+                        <span className="hover:underline cursor-pointer">Politico</span> •
+                        <span className="hover:underline cursor-pointer">USA Today</span> •
+                        <span className="hover:underline cursor-pointer">The Hill</span> •
+                        <span className="hover:underline cursor-pointer">Associated Press</span> •
+                        <span className="hover:underline cursor-pointer">Reuters</span>
+                      </div>
                       <div className="flex items-center justify-between">
                         <Button size="sm" variant="outline" className="text-xs">
                           Voice Opinion
@@ -826,7 +1191,8 @@ export default function Home() {
                       </div>
                     </CardContent>
                   </div>
-                </Card>
+                  </Card>
+                </Link>
               </div>
             );
           }

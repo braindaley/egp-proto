@@ -68,14 +68,12 @@ export function PopularBills() {
       <div className="max-w-[1280px] mx-auto px-4">
         {/* Desktop - Horizontal scrolling with static title */}
         <div className="hidden md:flex items-center gap-4 py-2">
-          <h2 className="text-sm font-semibold text-muted-foreground flex-shrink-0">Popular Bills in Congress</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground flex-shrink-0">Popular Bills</h2>
           <div className="flex gap-3 overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent flex-1">
             {bills.map((bill) => (
               <Link
                 key={`${bill.type}-${bill.number}`}
                 href={bill.url}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="flex-shrink-0 group"
                 style={{ maxWidth: '314px' }}
               >
@@ -94,15 +92,14 @@ export function PopularBills() {
 
         {/* Mobile - Stacked list with title on top */}
         <div className="md:hidden py-2">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-1.5">Popular Bills in Congress</h2>
-          <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-1.5">Popular Bills</h2>
+          <div className="flex gap-3 overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
             {bills.map((bill) => (
               <Link
                 key={`${bill.type}-${bill.number}`}
                 href={bill.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block group"
+                className="flex-shrink-0 group"
+                style={{ maxWidth: '280px' }}
               >
                 <div className="flex items-center gap-2 py-1.5 px-1.5 rounded-lg hover:bg-muted/50 transition-colors">
                   <Badge variant="outline" className="flex-shrink-0">

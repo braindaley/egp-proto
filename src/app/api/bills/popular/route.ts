@@ -51,7 +51,7 @@ function parseBillsFromContent(content: string): Partial<Bill>[] {
             continue;
         }
 
-        const billUrl = `https://www.congress.gov/bill/${congress}th-congress/${billTypeSlug}/${billNumber}`;
+        const billUrl = `/federal/bill/${congress}/${type.toLowerCase().replace(/\./g, '')}/` + billNumber;
 
         const bill: Partial<Bill> = {
             congress,

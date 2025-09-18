@@ -11,6 +11,7 @@ import { CongressSelector } from './congress-selector';
 import { ZipCodeChanger } from './ZipCodeManager';
 import { useState, useEffect } from 'react';
 import type { Congress } from '@/types';
+import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
 
 function getFallbackCongresses(): Congress[] {
   console.warn('Using fallback congress data.');
@@ -27,6 +28,7 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
   const { user, loading, logout } = useAuth();
   const [congresses, setCongresses] = useState<Congress[]>(initialCongresses.length > 0 ? initialCongresses : getFallbackCongresses());
   const [selectedCongress, setSelectedCongress] = useState<string>('');
+  const [browseModalOpen, setBrowseModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (congresses.length > 0) {
@@ -46,6 +48,17 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
 
   const billsHref = selectedCongress ? `/federal/bill/${selectedCongress}` : '/federal/bills';
   const congressHref = selectedCongress ? `/federal/congress/${selectedCongress}` : '/federal/congress';
+
+  // Helper function to convert category to URL slug
+  const convertCategoryToSlug = (category: string): string => {
+    return category
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  };
 
   const renderAuthContent = () => {
     if (loading) {
@@ -85,7 +98,7 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
             </Button>
         </>
     );
-  }
+  };
 
   return (
     <header className="bg-background border-b sticky top-0 z-50">
@@ -118,76 +131,94 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                   <span className="sr-only">Open menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent>
+              <SheetContent className="flex flex-col">
                 <SheetHeader>
                   <SheetTitle className="sr-only">Main Navigation</SheetTitle>
                 </SheetHeader>
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold mb-4">Navigation</h3>
+                <div className="p-4 pb-2">
+                  <h3 className="text-lg font-semibold mb-4">Policy Issues</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto px-4 pb-4">
                   <div className="space-y-4">
-                    {!user && (
-                      <>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Your Location</label>
-                          <ZipCodeChanger />
-                        </div>
-                        <Separator />
-                      </>
-                    )}
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Congress Session</label>
-                      <CongressSelector 
-                          congresses={congresses}
-                          selectedCongress={selectedCongress}
-                          setSelectedCongress={handleSetSelectedCongress}
-                      />
+                    {/* Policy Issues Navigation */}
+                    <div className="space-y-1">
+                      {SITE_ISSUE_CATEGORIES.map((category) => (
+                        <SheetClose key={category} asChild>
+                          <Link
+                            href={`/issues/${convertCategoryToSlug(category)}/homepage`}
+                            className="block w-full text-left p-2 rounded-md hover:bg-accent text-sm"
+                          >
+                            {category}
+                          </Link>
+                        </SheetClose>
+                      ))}
                     </div>
-                    
-                    <Separator />
-                    
-
-                    <SheetClose asChild>
-                      <Link href="/for-you" className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          For You
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/following" className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          Following
-                      </Link>
-                    </SheetClose>
-                    
-                    <Separator />
-
-                    <SheetClose asChild>
-                      <Link href="/issues" className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          Issues
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/organizations" className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          Organizations
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/campaigns" className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          Campaigns
-                      </Link>
-                    </SheetClose>
 
                     <Separator />
 
-                    <SheetClose asChild>
-                      <Link href="/federal" className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          Federal
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/state" className="block w-full text-left p-2 rounded-md hover:bg-accent">
-                          State
-                      </Link>
-                    </SheetClose>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start p-2 text-sm font-medium text-muted-foreground"
+                      onClick={() => setBrowseModalOpen(true)}
+                    >
+                      Browse
+                    </Button>
+
+                    {/* Browse Modal */}
+                    <Sheet open={browseModalOpen} onOpenChange={setBrowseModalOpen}>
+                      <SheetContent>
+                        <SheetHeader>
+                          <SheetTitle>Browse</SheetTitle>
+                        </SheetHeader>
+                        <div className="p-4">
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Congress Session</label>
+                              <CongressSelector
+                                  congresses={congresses}
+                                  selectedCongress={selectedCongress}
+                                  setSelectedCongress={handleSetSelectedCongress}
+                              />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-2">
+                              <SheetClose asChild>
+                                <Link href="/for-you" className="block w-full text-left p-3 rounded-md hover:bg-accent">
+                                    For You
+                                </Link>
+                              </SheetClose>
+                            <SheetClose asChild>
+                              <Link href="/following" className="block w-full text-left p-3 rounded-md hover:bg-accent">
+                                  Following
+                              </Link>
+                            </SheetClose>
+                            <SheetClose asChild>
+                              <Link href="/organizations" className="block w-full text-left p-3 rounded-md hover:bg-accent">
+                                  Organizations
+                              </Link>
+                            </SheetClose>
+                            <SheetClose asChild>
+                              <Link href="/campaigns" className="block w-full text-left p-3 rounded-md hover:bg-accent">
+                                  Campaigns
+                              </Link>
+                            </SheetClose>
+                            <SheetClose asChild>
+                              <Link href="/federal" className="block w-full text-left p-3 rounded-md hover:bg-accent">
+                                  Federal
+                              </Link>
+                            </SheetClose>
+                              <SheetClose asChild>
+                                <Link href="/state" className="block w-full text-left p-3 rounded-md hover:bg-accent">
+                                    State
+                                </Link>
+                              </SheetClose>
+                            </div>
+                          </div>
+                        </div>
+                      </SheetContent>
+                    </Sheet>
 
                     <Separator />
                     
@@ -234,6 +265,16 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                             </>
                         )}
                     </div>
+
+                    {!user && (
+                      <>
+                        <Separator />
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Your Location</label>
+                          <ZipCodeChanger />
+                        </div>
+                      </>
+                    )}
 
                   </div>
                 </div>

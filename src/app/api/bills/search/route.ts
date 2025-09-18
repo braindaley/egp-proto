@@ -29,13 +29,17 @@ interface CongressBill {
 }
 
 function transformApiBillToBill(apiBill: CongressBill, assignedSubjects: string[] = []): Bill {
+  // Generate internal URL instead of using the congress.gov API URL
+  const billTypeSlug = (apiBill.type ?? '').toLowerCase().replace(/\./g, '');
+  const internalUrl = `/federal/bill/${apiBill.congress ?? 119}/${billTypeSlug}/${apiBill.number ?? ''}`;
+
   return {
     congress: (apiBill.congress ?? 119) as number,
     number: (apiBill.number ?? '') as string,
     type: (apiBill.type ?? '') as string,
     title: (apiBill.title ?? '') as string,
     shortTitle: `${apiBill.type ?? ''} ${apiBill.number ?? ''} - ${apiBill.title ?? ''}`,
-    url: (apiBill.url ?? '') as string,
+    url: internalUrl,
     latestAction: apiBill.latestAction ?? {
       actionDate: (apiBill.updateDate ?? new Date().toISOString()) as string,
       text: 'No recent action available'
