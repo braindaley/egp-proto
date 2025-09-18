@@ -957,29 +957,6 @@ export default function Home() {
               >
                 Top Stories
               </Badge>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-3 text-sm"
-                  >
-                    {issueCategories.find(cat => cat.id === selectedFilter)?.label || 'Issues'}
-                    <ChevronDown className="ml-1 h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto">
-                  {issueCategories.map((category) => (
-                    <DropdownMenuItem
-                      key={category.id}
-                      onClick={() => setSelectedFilter(category.id)}
-                      className="cursor-pointer"
-                    >
-                      {category.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
               </div>
             </div>
           </div>
