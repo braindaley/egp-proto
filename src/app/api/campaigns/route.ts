@@ -26,7 +26,9 @@ export async function POST(request: Request) {
       billType,
       billNumber,
       congress,
-      stance
+      stance,
+      campaignType,
+      issueTitle
     } = body;
 
     // Get userId if not provided
@@ -44,11 +46,13 @@ export async function POST(request: Request) {
       userId: effectiveUserId,
       groupSlug: groupSlug || '',
       groupName: groupName || '',
-      name: name || `${bill?.title || billTitle || 'Campaign'}`,
+      campaignType: campaignType || 'Legislation',
+      name: name || `${bill?.title || billTitle || issueTitle || 'Campaign'}`,
       billNumber: billNumber || bill?.number,
       billType: billType || bill?.type,
       congress: congress || bill?.congress || '119',
-      billTitle: billTitle || bill?.title || '',
+      billTitle: billTitle || bill?.title || issueTitle || '',
+      issueTitle: issueTitle || null,
       stance: stance || position?.toLowerCase() || 'support',
       position: position || (stance === 'support' ? 'Support' : 'Oppose'),
       reasoning: reasoning || '',
@@ -60,27 +64,46 @@ export async function POST(request: Request) {
       updatedAt: new Date()
     };
 
-    // Validate required fields
-    if (!campaignData.billNumber || !campaignData.billType) {
-      return NextResponse.json(
-        { error: 'Missing required bill information' },
-        { status: 400 }
-      );
+    // Validate required fields based on campaign type
+    if (campaignData.campaignType === 'Issue') {
+      if (!campaignData.issueTitle) {
+        return NextResponse.json(
+          { error: 'Missing required issue information' },
+          { status: 400 }
+        );
+      }
+    } else {
+      if (!campaignData.billNumber || !campaignData.billType) {
+        return NextResponse.json(
+          { error: 'Missing required bill information' },
+          { status: 400 }
+        );
+      }
     }
 
-    // Check if campaign already exists for this GROUP and bill
-    // (allowing different groups to campaign for the same bill)
+    // Check if campaign already exists for this GROUP and bill/issue
+    // (allowing different groups to campaign for the same bill/issue)
     if (campaignData.groupSlug) {
-      const existingSnapshot = await adminDb
+      let query = adminDb
         .collection('campaigns')
-        .where('groupSlug', '==', campaignData.groupSlug)
-        .where('billType', '==', campaignData.billType)
-        .where('billNumber', '==', campaignData.billNumber)
-        .get();
+        .where('groupSlug', '==', campaignData.groupSlug);
+
+      if (campaignData.campaignType === 'Issue') {
+        query = query
+          .where('campaignType', '==', 'Issue')
+          .where('issueTitle', '==', campaignData.issueTitle);
+      } else {
+        query = query
+          .where('billType', '==', campaignData.billType)
+          .where('billNumber', '==', campaignData.billNumber);
+      }
+
+      const existingSnapshot = await query.get();
 
       if (!existingSnapshot.empty) {
+        const itemType = campaignData.campaignType === 'Issue' ? 'issue' : 'bill';
         return NextResponse.json(
-          { error: 'This organization already has a campaign for this bill' },
+          { error: `This organization already has a campaign for this ${itemType}` },
           { status: 409 }
         );
       }

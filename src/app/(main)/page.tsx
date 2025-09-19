@@ -962,12 +962,11 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Mobile Filters - Keep as is */}
-        <div className="md:hidden border-b">
-          <div
-            className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-          >
-            <div className="flex gap-2 px-4 py-6 min-w-max">
+        {/* Mobile Filters and Headline */}
+        <div className="md:hidden">
+          <div className="px-4 py-6">
+            <div className="text-2xl font-medium mb-4">eGutenbergPress.org</div>
+            <div className="flex gap-2">
               <Badge
                 variant={selectedFilter === 'for-you' ? 'default' : 'outline'}
                 className={`cursor-pointer transition-colors whitespace-nowrap ${
@@ -990,20 +989,6 @@ export default function Home() {
               >
                 Top Stories
               </Badge>
-              {issueCategories.map((category) => (
-                <Badge
-                  key={category.id}
-                  variant={selectedFilter === category.id ? 'default' : 'outline'}
-                  className={`cursor-pointer transition-colors whitespace-nowrap ${
-                    selectedFilter === category.id
-                      ? ''
-                      : 'hover:bg-secondary'
-                  }`}
-                  onClick={() => setSelectedFilter(category.id)}
-                >
-                  {category.label}
-                </Badge>
-              ))}
             </div>
           </div>
         </div>

@@ -20,6 +20,8 @@ import { Search, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { campaignsService } from '@/lib/campaigns';
 import type { Bill } from '@/types';
+import type { SiteIssueCategory } from '@/lib/policy-area-mapping';
+import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
 import debounce from 'lodash/debounce';
 
 // Force dynamic rendering to prevent prerendering issues
@@ -60,10 +62,12 @@ function CreateCampaignPageContent() {
     const { user, loading: authLoading } = useAuth();
     
     const [selectedGroup, setSelectedGroup] = useState<string>(searchParams.get('group') || '');
-    const [campaignType, setCampaignType] = useState<'Legislation' | 'Town Hall Calling' | 'Candidate Advocacy' | 'Voter Registration' | 'Voter Poll'>('Legislation');
+    const [campaignType, setCampaignType] = useState<'Legislation' | 'Issue' | 'Town Hall Calling' | 'Candidate Advocacy' | 'Voter Registration' | 'Voter Poll'>('Legislation');
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Bill[]>([]);
     const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+    const [selectedIssue, setSelectedIssue] = useState<SiteIssueCategory | null>(null);
+    const [customIssue, setCustomIssue] = useState('');
     const [position, setPosition] = useState<'Support' | 'Oppose'>('Support');
     const [reasoning, setReasoning] = useState('');
     const [actionButtonText, setActionButtonText] = useState('Voice your opinion');
@@ -100,34 +104,64 @@ function CreateCampaignPageContent() {
     }, [searchQuery, searchBills]);
 
     const handleSave = async () => {
-        if (!selectedGroup || !selectedBill || !reasoning) {
-            alert('Please fill in all required fields');
-            return;
+        // Validate required fields based on campaign type
+        if (campaignType === 'Issue') {
+            if (!selectedGroup || (!selectedIssue && !customIssue) || !reasoning) {
+                alert('Please fill in all required fields');
+                return;
+            }
+        } else {
+            if (!selectedGroup || !selectedBill || !reasoning) {
+                alert('Please fill in all required fields');
+                return;
+            }
         }
 
         setIsSaving(true);
         try {
             const groupName = advocacyGroups.find(g => g.slug === selectedGroup)?.name || '';
-            
-            const response = await fetch('/api/campaigns', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: user?.uid,
-                    groupSlug: selectedGroup,
-                    groupName,
+
+            let requestBody: any = {
+                userId: user?.uid,
+                groupSlug: selectedGroup,
+                groupName,
+                position,
+                reasoning,
+                actionButtonText,
+                campaignType
+            };
+
+            if (campaignType === 'Issue') {
+                // For Issue campaigns
+                const issueTitle = selectedIssue || customIssue;
+                requestBody = {
+                    ...requestBody,
+                    issueTitle,
+                    // Use issue data instead of bill data
+                    billTitle: issueTitle,
+                    billType: 'ISSUE',
+                    billNumber: issueTitle?.replace(/[^a-z0-9-]/g, '').toLowerCase() || 'custom-issue',
+                    congress: '119' // Default congress for categorization
+                };
+            } else {
+                // For Legislation campaigns
+                requestBody = {
+                    ...requestBody,
                     bill: {
                         congress: selectedBill.congress,
                         type: selectedBill.type,
                         number: selectedBill.number,
                         title: selectedBill.title
-                    },
-                    position,
-                    reasoning,
-                    actionButtonText
-                })
+                    }
+                };
+            }
+
+            const response = await fetch('/api/campaigns', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {
@@ -172,7 +206,7 @@ function CreateCampaignPageContent() {
             <header className="mb-8">
                 <h1 className="text-3xl font-bold font-headline">Create New Campaign</h1>
                 <p className="text-muted-foreground mt-2">
-                    Create a new advocacy campaign for a bill.
+                    Create a new advocacy campaign for legislation or issues.
                 </p>
             </header>
 
@@ -201,12 +235,13 @@ function CreateCampaignPageContent() {
                     {/* Campaign Type */}
                     <div className="space-y-2">
                         <Label htmlFor="campaign-type">Campaign Type</Label>
-                        <Select value={campaignType} onValueChange={(value) => setCampaignType(value as 'Legislation' | 'Town Hall Calling' | 'Candidate Advocacy' | 'Voter Registration' | 'Voter Poll')}>
+                        <Select value={campaignType} onValueChange={(value) => setCampaignType(value as 'Legislation' | 'Issue' | 'Town Hall Calling' | 'Candidate Advocacy' | 'Voter Registration' | 'Voter Poll')}>
                             <SelectTrigger id="campaign-type">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Legislation">Legislation</SelectItem>
+                                <SelectItem value="Issue">Issue</SelectItem>
                                 <SelectItem value="Town Hall Calling">Town Hall Calling</SelectItem>
                                 <SelectItem value="Candidate Advocacy">Candidate Advocacy</SelectItem>
                                 <SelectItem value="Voter Registration">Voter Registration</SelectItem>
@@ -215,74 +250,133 @@ function CreateCampaignPageContent() {
                         </Select>
                     </div>
 
-                    {/* Bill Search */}
-                    <div className="space-y-2">
-                        <Label htmlFor="bill-search">Select Bill *</Label>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                id="bill-search"
-                                placeholder="Search for a bill by number or title..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10"
-                            />
-                        </div>
-                        
-                        {/* Search Results */}
-                        {searchQuery && !selectedBill && (isSearching || searchResults.length > 0) && (
-                            <Card className="mt-2 max-h-64 overflow-y-auto">
-                                <CardContent className="p-2">
-                                    {isSearching ? (
-                                        <div className="flex items-center justify-center p-4">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            <span className="ml-2">Searching...</span>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-1">
-                                            {searchResults.map((bill) => (
-                                                <button
-                                                    key={`${bill.type}-${bill.number}`}
-                                                    onClick={() => {
-                                                        setSelectedBill(bill);
-                                                        setSearchQuery(`${bill.type} ${bill.number} - ${bill.title}`);
-                                                        setSearchResults([]);
-                                                    }}
-                                                    className="w-full text-left p-2 hover:bg-accent rounded-md transition-colors"
-                                                >
-                                                    <div className="font-medium">{bill.type} {bill.number}</div>
-                                                    <div className="text-sm text-muted-foreground line-clamp-1">
-                                                        {bill.title}
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        )}
+                    {/* Bill Search or Issue Selection */}
+                    {campaignType === 'Issue' ? (
+                        <div className="space-y-2">
+                            <Label htmlFor="issue-select">Select Issue *</Label>
+                            <Select
+                                value={selectedIssue || ''}
+                                onValueChange={(value) => {
+                                    if (value === 'other') {
+                                        setSelectedIssue(null);
+                                    } else {
+                                        setSelectedIssue(value as SiteIssueCategory);
+                                        setCustomIssue('');
+                                    }
+                                }}
+                            >
+                                <SelectTrigger id="issue-select">
+                                    <SelectValue placeholder="Select an issue" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {SITE_ISSUE_CATEGORIES.map((issue) => (
+                                        <SelectItem key={issue} value={issue}>
+                                            {issue}
+                                        </SelectItem>
+                                    ))}
+                                    <SelectItem value="other">Other (specify below)</SelectItem>
+                                </SelectContent>
+                            </Select>
 
-                        {/* Selected Bill Display */}
-                        {selectedBill && (
-                            <Card className="mt-2 bg-secondary/50">
-                                <CardContent className="p-4">
-                                    <div className="font-medium">Selected: {selectedBill.type} {selectedBill.number}</div>
-                                    <div className="text-sm text-muted-foreground">{selectedBill.title}</div>
-                                    <Link 
-                                        href={`/bill/${selectedBill.congress}/${selectedBill.type.toLowerCase()}/${selectedBill.number}`}
-                                        target="_blank"
-                                        className="text-sm text-primary hover:underline mt-1 inline-block"
-                                    >
-                                        View bill details →
-                                    </Link>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
+                            {/* Custom Issue Input */}
+                            {!selectedIssue && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="custom-issue">Custom Issue *</Label>
+                                    <Input
+                                        id="custom-issue"
+                                        placeholder="Enter your custom issue"
+                                        value={customIssue}
+                                        onChange={(e) => setCustomIssue(e.target.value)}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Selected Issue Display */}
+                            {(selectedIssue || customIssue) && (
+                                <Card className="mt-2 bg-secondary/50">
+                                    <CardContent className="p-4">
+                                        <div className="font-medium">Selected Issue: {selectedIssue || customIssue}</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            This campaign will focus on the {selectedIssue || customIssue} issue
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <Label htmlFor="bill-search">Select Bill *</Label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    id="bill-search"
+                                    placeholder="Search for a bill by number or title..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-10"
+                                />
+                            </div>
+
+                            {/* Search Results */}
+                            {searchQuery && !selectedBill && (isSearching || searchResults.length > 0) && (
+                                <Card className="mt-2 max-h-64 overflow-y-auto">
+                                    <CardContent className="p-2">
+                                        {isSearching ? (
+                                            <div className="flex items-center justify-center p-4">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <span className="ml-2">Searching...</span>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-1">
+                                                {searchResults.map((bill) => (
+                                                    <button
+                                                        key={`${bill.type}-${bill.number}`}
+                                                        onClick={() => {
+                                                            setSelectedBill(bill);
+                                                            setSearchQuery(`${bill.type} ${bill.number} - ${bill.title}`);
+                                                            setSearchResults([]);
+                                                        }}
+                                                        className="w-full text-left p-2 hover:bg-accent rounded-md transition-colors"
+                                                    >
+                                                        <div className="font-medium">{bill.type} {bill.number}</div>
+                                                        <div className="text-sm text-muted-foreground line-clamp-1">
+                                                            {bill.title}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            {/* Selected Bill Display */}
+                            {selectedBill && (
+                                <Card className="mt-2 bg-secondary/50">
+                                    <CardContent className="p-4">
+                                        <div className="font-medium">Selected: {selectedBill.type} {selectedBill.number}</div>
+                                        <div className="text-sm text-muted-foreground">{selectedBill.title}</div>
+                                        <Link
+                                            href={`/bill/${selectedBill.congress}/${selectedBill.type.toLowerCase()}/${selectedBill.number}`}
+                                            target="_blank"
+                                            className="text-sm text-primary hover:underline mt-1 inline-block"
+                                        >
+                                            View bill details →
+                                        </Link>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+                    )}
 
                     {/* Position */}
                     <div className="space-y-2">
-                        <Label htmlFor="position">Position *</Label>
+                        <Label htmlFor="position">
+                            {campaignType === 'Issue'
+                                ? `Choose Your Position on ${selectedIssue || customIssue || 'this issue'}. Do you support or oppose this issue?`
+                                : 'Position *'
+                            }
+                        </Label>
                         <Select value={position} onValueChange={(value) => setPosition(value as 'Support' | 'Oppose')}>
                             <SelectTrigger id="position">
                                 <SelectValue />
@@ -299,7 +393,10 @@ function CreateCampaignPageContent() {
                         <Label htmlFor="reasoning">Reasoning *</Label>
                         <Textarea
                             id="reasoning"
-                            placeholder="Explain why your organization supports or opposes this bill. You can use Markdown formatting."
+                            placeholder={campaignType === 'Issue'
+                                ? "Explain why your organization supports or opposes this issue. You can use Markdown formatting."
+                                : "Explain why your organization supports or opposes this bill. You can use Markdown formatting."
+                            }
                             value={reasoning}
                             onChange={(e) => setReasoning(e.target.value)}
                             rows={8}
@@ -325,7 +422,12 @@ function CreateCampaignPageContent() {
                     <div className="flex gap-4 pt-4">
                         <Button
                             onClick={handleSave}
-                            disabled={!selectedGroup || !selectedBill || !reasoning || isSaving}
+                            disabled={
+                                !selectedGroup ||
+                                !reasoning ||
+                                isSaving ||
+                                (campaignType === 'Issue' ? (!selectedIssue && !customIssue) : !selectedBill)
+                            }
                         >
                             {isSaving ? (
                                 <>

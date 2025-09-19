@@ -60,9 +60,9 @@ export default function CampaignDetailPage({
         async function loadData() {
             if (!groupName || !billId) return;
 
-            // Parse billId (format: hr-14, s-51, etc.)
-            const [billType, billNumber] = billId.split('-');
-            
+            // Parse billId (format: hr-14, s-51, issue-xxx, etc.)
+            const [billType, billNumber] = billId.split('-', 2);
+
             if (!billType || !billNumber) {
                 notFound();
                 return;
@@ -73,12 +73,24 @@ export default function CampaignDetailPage({
             
             try {
                 const db = getFirestore(app);
-                const campaignsQuery = query(
-                    collection(db, 'campaigns'),
-                    where('groupSlug', '==', groupName),
-                    where('billType', '==', billType.toUpperCase()),
-                    where('billNumber', '==', billNumber)
-                );
+                let campaignsQuery;
+
+                // Handle Issue campaigns vs Bill campaigns
+                if (billType.toLowerCase() === 'issue') {
+                    campaignsQuery = query(
+                        collection(db, 'campaigns'),
+                        where('groupSlug', '==', groupName),
+                        where('campaignType', '==', 'Issue'),
+                        where('billNumber', '==', billNumber)
+                    );
+                } else {
+                    campaignsQuery = query(
+                        collection(db, 'campaigns'),
+                        where('groupSlug', '==', groupName),
+                        where('billType', '==', billType.toUpperCase()),
+                        where('billNumber', '==', billNumber)
+                    );
+                }
                 
                 const querySnapshot = await getDocs(campaignsQuery);
                 if (!querySnapshot.empty) {
@@ -88,12 +100,14 @@ export default function CampaignDetailPage({
                         id: doc.id,
                         groupSlug: data.groupSlug,
                         groupName: data.groupName || groupName,
+                        campaignType: data.campaignType || 'Legislation',
                         bill: {
                             congress: data.congress || 119, // Use congress from Firebase if available
                             type: data.billType,
                             number: data.billNumber,
-                            title: data.billTitle
+                            title: data.billTitle || data.issueTitle
                         },
+                        issueTitle: data.issueTitle,
                         position: data.stance === 'support' ? 'Support' : data.stance === 'oppose' ? 'Oppose' : data.position || 'Support',
                         reasoning: data.reasoning,
                         actionButtonText: data.actionButtonText || 'Voice your opinion',
@@ -126,8 +140,11 @@ export default function CampaignDetailPage({
                 return;
             }
 
-            // Fetch full bill details from API
-            const billInfo = await getBillDetails(campaignData.bill.congress, billType, billNumber);
+            // Fetch full bill details from API (only for legislation campaigns)
+            let billInfo = null;
+            if (campaignData.campaignType === 'Legislation') {
+                billInfo = await getBillDetails(campaignData.bill.congress, billType, billNumber);
+            }
             
             // Process markdown reasoning
             const reasoning = await processMarkdown(campaignData.reasoning);
@@ -195,14 +212,17 @@ export default function CampaignDetailPage({
                             You've been invited to voice your opinion
                         </h1>
                         <p className="text-sm text-muted-foreground text-left mt-2">
-                            {fullBill.title || `${campaign.bill.type.toUpperCase()} ${campaign.bill.number}`}
+                            {campaign.campaignType === 'Issue'
+                                ? campaign.issueTitle || 'Issue Campaign'
+                                : fullBill.title || `${campaign.bill.type.toUpperCase()} ${campaign.bill.number}`
+                            }
                         </p>
                     </CardHeader>
                     <CardContent>
-                        {/* AI Bill Overview Section */}
-                        {billDetails && ((billDetails.allSummaries && billDetails.allSummaries.length > 0) || (billDetails.summaries?.items && billDetails.summaries.items.length > 0)) && (
+                        {/* AI Bill Overview Section - Only for legislation campaigns */}
+                        {campaign.campaignType !== 'Issue' && billDetails && ((billDetails.allSummaries && billDetails.allSummaries.length > 0) || (billDetails.summaries?.items && billDetails.summaries.items.length > 0)) && (
                             <div className="mb-6">
-                                <SummaryDisplay 
+                                <SummaryDisplay
                                     summary={billDetails.allSummaries?.[0] || billDetails.summaries?.items?.[0]}
                                     showPoliticalPerspectives={false}
                                 />
