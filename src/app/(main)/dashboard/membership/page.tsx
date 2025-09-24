@@ -188,7 +188,7 @@ export default function MembershipPage() {
                           </Badge>
                         </CardTitle>
                         <CardDescription className="text-base mt-2">
-                          <span className="font-semibold">$20/year</span>
+                          <span className="font-semibold">$24/year ($6/quarter)</span>
                         </CardDescription>
                       </div>
                     </div>
@@ -215,10 +215,10 @@ export default function MembershipPage() {
                       <div className="bg-secondary/50 rounded-lg p-4 border">
                         <div className="text-center">
                           <div className="text-3xl font-bold text-foreground mb-1">
-                            $20
+                            $6
                           </div>
                           <div className="text-sm text-muted-foreground mb-2">
-                            per year
+                            bills every 3 months
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">
                             Cancel anytime • No commitment
@@ -232,7 +232,7 @@ export default function MembershipPage() {
                           Upgrade to Premium
                         </Button>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Secure checkout • Just $20 per year
+                          Secure checkout • Just $24 per year ($6/quarter)
                         </p>
                       </div>
                     </div>
