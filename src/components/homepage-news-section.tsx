@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -10,6 +10,8 @@ import { campaignsService } from '@/lib/campaigns';
 import { useAuth } from '@/hooks/use-auth';
 import { HomeAdvocacySummary } from '@/components/home-advocacy-summary';
 import { useZipCode } from '@/hooks/use-zip-code';
+import { useMembersByZip } from '@/hooks/useMembersByZip';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface NewsStory {
   id: number;
@@ -39,16 +41,115 @@ interface StateBill {
   url?: string;
 }
 
+interface FederalRepresentative {
+  name: string;
+  party: string;
+  officeTitle: string;
+  districtNumber?: number;
+  bioguideId?: string;
+  imageUrl?: string;
+}
+
+interface StateRepresentative {
+  name: string;
+  party: string;
+  chamber: 'Senate' | 'House';
+  district?: number;
+  imageUrl?: string;
+  profileUrl?: string;
+}
+
 interface HomepageNewsSectionProps {
   newsStories: NewsStory[];
 }
+
+const mockStateRepresentatives: Record<string, StateRepresentative[]> = {
+  'CA': [
+    {
+      name: 'Alex Padilla',
+      party: 'Democrat',
+      chamber: 'Senate',
+      imageUrl: 'https://www.govinfo.gov/content/pkg/CDOC-117sdoc3/html/images/CDOC-117sdoc3-4.jpg'
+    },
+    {
+      name: 'Laphonza Butler',
+      party: 'Democrat',
+      chamber: 'Senate',
+      imageUrl: 'https://www.govinfo.gov/content/pkg/CDOC-118sdoc4/html/images/CDOC-118sdoc4-13.jpg'
+    },
+    {
+      name: 'Nancy Skinner',
+      party: 'Democrat',
+      chamber: 'House',
+      district: 9,
+      imageUrl: 'https://sd09.senate.ca.gov/sites/sd09.senate.ca.gov/files/headshot%20Skinner%202022.jpg'
+    }
+  ],
+  'NY': [
+    {
+      name: 'Chuck Schumer',
+      party: 'Democrat',
+      chamber: 'Senate'
+    },
+    {
+      name: 'Kirsten Gillibrand',
+      party: 'Democrat',
+      chamber: 'Senate'
+    },
+    {
+      name: 'Brad Hoylman-Sigal',
+      party: 'Democrat',
+      chamber: 'House',
+      district: 47
+    }
+  ],
+  'TX': [
+    {
+      name: 'John Cornyn',
+      party: 'Republican',
+      chamber: 'Senate'
+    },
+    {
+      name: 'Ted Cruz',
+      party: 'Republican',
+      chamber: 'Senate'
+    },
+    {
+      name: 'José Menéndez',
+      party: 'Democrat',
+      chamber: 'House',
+      district: 26
+    }
+  ],
+  'FL': [
+    {
+      name: 'Marco Rubio',
+      party: 'Republican',
+      chamber: 'Senate'
+    },
+    {
+      name: 'Rick Scott',
+      party: 'Republican',
+      chamber: 'Senate'
+    },
+    {
+      name: 'Lauren Book',
+      party: 'Democrat',
+      chamber: 'House',
+      district: 35
+    }
+  ]
+};
 
 export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
   const [latestBills, setLatestBills] = useState<Bill[]>([]);
   const [stateBills, setStateBills] = useState<StateBill[]>([]);
   const [userState, setUserState] = useState<{ name: string; code: string } | null>(null);
+  const [federalRepsWithImages, setFederalRepsWithImages] = useState<FederalRepresentative[]>([]);
+  const [stateReps, setStateReps] = useState<StateRepresentative[]>([]);
   const { user, loading: authLoading } = useAuth();
   const { zipCode } = useZipCode();
+  const { representatives: federalReps, isLoading: federalLoading } = useMembersByZip(zipCode);
   // Mix up the stories to get diverse categories
   // Instead of taking the first 3 (all abortion), let's pick from different positions
   const firstStory = newsStories[4];  // Climate story (index 4)
@@ -383,7 +484,40 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
     ]
   };
 
-  // Set state bills based on user's zip code
+  // Fetch federal representative images
+  useEffect(() => {
+    const fetchMemberImages = async () => {
+      if (!federalReps || federalReps.length === 0) {
+        setFederalRepsWithImages([]);
+        return;
+      }
+
+      const updatedMembers = await Promise.all(
+        federalReps.map(async (rep) => {
+          if (rep.bioguideId) {
+            try {
+              const response = await fetch(`/api/congress/member/${rep.bioguideId}`);
+              if (response.ok) {
+                const memberData = await response.json();
+                return {
+                  ...rep,
+                  imageUrl: memberData.depiction?.imageUrl
+                };
+              }
+            } catch (error) {
+              console.error(`Failed to fetch image for ${rep.bioguideId}:`, error);
+            }
+          }
+          return { ...rep, imageUrl: undefined };
+        })
+      );
+      setFederalRepsWithImages(updatedMembers);
+    };
+
+    fetchMemberImages();
+  }, [federalReps]);
+
+  // Set state bills and representatives based on user's zip code
   useEffect(() => {
     const state = getStateFromZip(zipCode || '90210'); // Default to CA zip
     console.log('State detection:', { zipCode, state });
@@ -394,6 +528,10 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
       const bills = mockStateBills[state.code] || mockStateBills['CA'];
       console.log('State bills loaded:', { stateCode: state.code, billCount: bills.length, bills });
       setStateBills(bills);
+
+      // Set state representatives
+      const stateReps = mockStateRepresentatives[state.code] || [];
+      setStateReps(stateReps);
     }
   }, [zipCode]);
 
@@ -414,6 +552,116 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
     return text.substring(0, maxLength) + '...';
   };
 
+  // Helper functions for representatives
+  const getPartyColor = (party: string) => {
+    if (party === 'Democrat' || party === 'Democratic' || party === 'D') {
+      return 'bg-blue-600';
+    } else if (party === 'Republican' || party === 'R') {
+      return 'bg-red-600';
+    }
+    return 'bg-gray-600';
+  };
+
+  const getInitials = (name: string) => {
+    const parts = name.split(' ').filter(p => p.length > 0);
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  const getPartyAbbreviation = (party: string) => {
+    if (party === 'Democrat' || party === 'Democratic') return 'D';
+    if (party === 'Republican') return 'R';
+    return party.charAt(0).toUpperCase();
+  };
+
+  // Representative Card Component
+  const RepresentativeCard = ({
+    rep,
+    type = 'federal',
+    isFederal = true
+  }: {
+    rep: FederalRepresentative | StateRepresentative;
+    type?: 'federal' | 'state';
+    isFederal?: boolean;
+  }) => {
+    const isState = !isFederal && 'chamber' in rep;
+    const title = isFederal
+      ? ('officeTitle' in rep ? (rep.officeTitle.includes('Senate') ? 'Senator' : `Rep. - District ${rep.districtNumber}`) : '')
+      : (isState ? (rep.chamber === 'Senate' ? 'State Senator' : `State Rep.${rep.district ? ` - District ${rep.district}` : ''}`) : '');
+
+    return (
+      <div className="flex items-center justify-between space-x-3">
+        <div className="flex items-center space-x-3 flex-1">
+          <Avatar className="h-[60px] w-[60px]">
+            <AvatarImage src={rep.imageUrl} alt={rep.name} />
+            <AvatarFallback className="text-base">
+              {getInitials(rep.name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            {isFederal && 'bioguideId' in rep ? (
+              <Link href={`/federal/congress/119/states/${userState?.code.toLowerCase()}/${rep.bioguideId}`}>
+                <p className="text-sm font-medium truncate hover:text-primary cursor-pointer">{rep.name}</p>
+              </Link>
+            ) : (
+              <Link href={`/state/${userState?.code.toLowerCase()}`}>
+                <p className="text-sm font-medium truncate hover:text-primary cursor-pointer">{rep.name}</p>
+              </Link>
+            )}
+            <div className="flex items-center space-x-2">
+              <Badge
+                className={`${getPartyColor(rep.party)} text-white text-xs px-1.5 py-0`}
+              >
+                {getPartyAbbreviation(rep.party)}
+              </Badge>
+              <span className="text-xs text-muted-foreground truncate">
+                {title}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-start">
+          {isFederal && 'bioguideId' in rep ? (
+            <Link href={`/advocacy-message?member=${rep.bioguideId}&congress=119`}>
+              <Button
+                size="sm"
+                className="text-xs px-3 py-1 bg-white text-black hover:bg-gray-100 border border-gray-200"
+              >
+                Voice Opinion
+              </Button>
+            </Link>
+          ) : (
+            <Button
+              size="sm"
+              className="text-xs px-3 py-1 bg-white text-black hover:bg-gray-100 border border-gray-200 opacity-50 cursor-not-allowed"
+              disabled
+            >
+              Voice Opinion
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Sort federal representatives: Senators first, then House rep
+  const sortedFederalReps = [...federalRepsWithImages].sort((a, b) => {
+    const aIsSenator = a.officeTitle.includes('Senate');
+    const bIsSenator = b.officeTitle.includes('Senate');
+    if (aIsSenator && !bIsSenator) return -1;
+    if (!aIsSenator && bIsSenator) return 1;
+    return 0;
+  });
+
+  // Sort state representatives: Senators first, then House reps
+  const sortedStateReps = [...stateReps].sort((a, b) => {
+    if (a.chamber === 'Senate' && b.chamber === 'House') return -1;
+    if (a.chamber === 'House' && b.chamber === 'Senate') return 1;
+    return 0;
+  });
+
   if (!newsStories || newsStories.length < 3) {
     return null;
   }
@@ -432,15 +680,21 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
                   <div className="text-muted-foreground/50 text-sm">Mission Image</div>
                 </div>
                 <CardContent className="p-0 pt-6">
-                  <h2 className="text-xl font-bold mb-4">Our mission</h2>
+                  <h2 className="text-xl font-bold mb-4">Features</h2>
                   <p className="text-muted-foreground mb-4">
-                    eGutenberg Press is a serious platform built to help you make a real difference. Your messages go directly to your representatives—unlike social media, your voice here has measurable impact.
+                    <strong>Direct Impact</strong> - Send messages to policymakers in just a few clicks.
                   </p>
                   <p className="text-muted-foreground mb-4">
-                    Advocacy groups and organizations support this tool, but to be heard you must be a registered voter. Signing up is quick and simple.
+                    <strong>All-in-One Hub</strong> - Access everything you need for advocacy in one place: messages, updates, campaigns, and insights.
+                  </p>
+                  <p className="text-muted-foreground mb-4">
+                    <strong>Personalized Advocacy</strong> - Verified voter info allows us to autofill your profile and letters with demographic context.
+                  </p>
+                  <p className="text-muted-foreground mb-4">
+                    <strong>Curated Updates</strong> - Stay informed with the latest bills, campaigns, and national + local news tailored to the issues you engage with.
                   </p>
                   <p className="text-muted-foreground mb-6">
-                    Ready to act?
+                    <strong>Action Oriented</strong> - Support campaigns, explore issues you care about, and compare insights across districts to see how your community stacks up.
                   </p>
 
                   <div className="flex items-center gap-4">
@@ -462,50 +716,74 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
             )}
           </div>
 
-          {/* Column 2: Two stacked news stories - 4 columns */}
+          {/* Column 2: Representatives - 4 columns */}
           <div className="md:col-span-4 space-y-8">
-            {secondStory && (
-              <Link href="/article/1">
-                <Card className="hover:shadow-md transition-shadow cursor-pointer mb-8">
-                  <div className="relative aspect-video bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                    <div className="text-muted-foreground/50 text-sm">News Image</div>
-                    <div className="absolute bottom-3 left-3">
-                      <Badge variant="secondary" className="text-xs">{secondStory.category}</Badge>
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h4 className="text-base font-semibold mb-4 line-clamp-2">{secondStory.headline}</h4>
-                    <div className="flex items-center justify-between">
-                      <Button size="sm" variant="outline" className="text-xs">
-                        Voice Opinion
-                      </Button>
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            )}
+            {/* Federal Representatives */}
+            <Card className="h-fit">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">
+                  <Link
+                    href={`/federal/congress/119/states/${userState?.code.toLowerCase()}`}
+                    className="flex items-center gap-2 hover:text-primary transition-colors"
+                  >
+                    My Federal Representatives
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {federalLoading || !zipCode ? (
+                  <p className="text-sm text-muted-foreground">
+                    {!zipCode ? 'Add your zip code to see your representatives' : 'Loading...'}
+                  </p>
+                ) : sortedFederalReps.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No federal representatives found for your area</p>
+                ) : (
+                  <>
+                    {sortedFederalReps.slice(0, 3).map((member, index) => (
+                      <RepresentativeCard
+                        key={`${member.bioguideId || index}`}
+                        rep={member}
+                        type="federal"
+                        isFederal={true}
+                      />
+                    ))}
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
-            {thirdStory && (
-              <Link href="/article/2">
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="relative aspect-video bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                    <div className="text-muted-foreground/50 text-sm">News Image</div>
-                    <div className="absolute bottom-3 left-3">
-                      <Badge variant="secondary" className="text-xs">{thirdStory.category}</Badge>
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h4 className="text-base font-semibold mb-4 line-clamp-2">{thirdStory.headline}</h4>
-                    <div className="flex items-center justify-between">
-                      <Button size="sm" variant="outline" className="text-xs">
-                        Voice Opinion
-                      </Button>
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+            {/* State Representatives */}
+            {userState && (
+              <Card className="h-fit">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">
+                    <Link
+                      href={`/state/${userState.code.toLowerCase()}`}
+                      className="flex items-center gap-2 hover:text-primary transition-colors"
+                    >
+                      My {userState.name} Representatives
+                      <ExternalLink className="h-4 w-4" />
+                    </Link>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {sortedStateReps.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No state representatives found for your area</p>
+                  ) : (
+                    <>
+                      {sortedStateReps.slice(0, 3).map((member, index) => (
+                        <RepresentativeCard
+                          key={`${member.name}-${index}`}
+                          rep={member}
+                          type="state"
+                          isFederal={false}
+                        />
+                      ))}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
             )}
           </div>
 

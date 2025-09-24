@@ -285,6 +285,14 @@ export default function MemberDetailPage() {
                         <span>{member.district}</span>
                       </div>
                     </div>
+                    <div className="mt-4">
+                      <Button
+                        size="lg"
+                        className="bg-black text-white hover:bg-gray-800"
+                      >
+                        Voice Opinion
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

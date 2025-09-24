@@ -17,12 +17,24 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
     const legislatorsDataUrl = 'https://unitedstates.github.io/congress-legislators/legislators-current.json';
 
     const [congressResponse, legislatorsResponse] = await Promise.all([
-      fetch(memberApiUrl, { next: { revalidate: 3600 } }),
-      fetch(legislatorsDataUrl, { next: { revalidate: 3600 } })
+      fetch(memberApiUrl, {
+        next: { revalidate: 3600 },
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      }).catch(err => {
+        console.error(`[MemberDetailPage] Network error fetching Congress API: ${err.message}`);
+        return null;
+      }),
+      fetch(legislatorsDataUrl, {
+        next: { revalidate: 3600 },
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      }).catch(err => {
+        console.error(`[MemberDetailPage] Network error fetching legislators data: ${err.message}`);
+        return null;
+      })
     ]);
 
-    if (!congressResponse.ok) {
-      console.error(`[MemberDetailPage] Failed to fetch member from Congress API. Status: ${congressResponse.status}`);
+    if (!congressResponse || !congressResponse.ok) {
+      console.error(`[MemberDetailPage] Failed to fetch member from Congress API. Status: ${congressResponse?.status || 'Network Error'}`);
       return null;
     }
 
@@ -35,14 +47,14 @@ async function getMemberDetails(bioguideId: string): Promise<Member | null> {
     }
 
     // Add extended IDs from the second data source
-    if (legislatorsResponse.ok) {
+    if (legislatorsResponse && legislatorsResponse.ok) {
         const legislatorsData: LegislatorData[] = await legislatorsResponse.json();
         const legislator = legislatorsData.find(leg => leg.id?.bioguide === bioguideId);
         if (legislator) {
             member.extendedIds = legislator.id;
         }
     } else {
-        console.warn(`[MemberDetailPage] Could not fetch extended legislators data. Status: ${legislatorsResponse.status}`);
+        console.warn(`[MemberDetailPage] Could not fetch extended legislators data. Status: ${legislatorsResponse?.status || 'Network Error'}`);
     }
 
     // Add mock email address

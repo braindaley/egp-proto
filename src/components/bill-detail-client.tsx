@@ -516,7 +516,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                       <li key={index} className="flex items-center justify-between p-2 border rounded-md">
                                           <span className="font-semibold text-sm">{sponsor.fullName} ({sponsor.party}-{sponsor.state})</span>
                                           <Button asChild variant="link" size="sm" className="h-auto p-0">
-                                              <Link href={`/federal/congress/${bill.congress}/${sponsor.state.toLowerCase()}/${sponsor.bioguideId}`}>
+                                              <Link href={`/federal/congress/${bill.congress}/states/${sponsor.state.toLowerCase()}/${sponsor.bioguideId}`}>
                                                   View Member <ArrowRight className="ml-1 h-3 w-3" />
                                               </Link>
                                           </Button>
@@ -539,7 +539,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                                       <li key={index} className="flex items-center justify-between p-2 border rounded-md">
                                           <span className="font-semibold text-sm">{cosponsor.fullName} ({cosponsor.party}-{cosponsor.state})</span>
                                           <Button asChild variant="link" size="sm" className="h-auto p-0">
-                                              <Link href={`/federal/congress/${bill.congress}/${cosponsor.state.toLowerCase()}/${cosponsor.bioguideId}`}>
+                                              <Link href={`/federal/congress/${bill.congress}/states/${cosponsor.state.toLowerCase()}/${cosponsor.bioguideId}`}>
                                                    View Member <ArrowRight className="ml-1 h-3 w-3" />
                                               </Link>
                                           </Button>

@@ -38,9 +38,18 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
 
 // Helper function to generate dummy emails for members
 function generateMemberEmail(member: any): string {
-  const firstName = member.firstName || member.name?.split(' ')[0] || 'member';
-  const lastName = member.lastName || member.name?.split(' ').slice(-1)[0] || 'congress';
-  const bioguideId = member.bioguideId || Math.random().toString(36).substring(7);
+  // Handle various member data structures
+  const firstName = member?.firstName ||
+                   member?.name?.split(' ')[0] ||
+                   member?.directOrderName?.split(' ')[0] ||
+                   member?.officialName?.split(' ')[0] ||
+                   'member';
+  const lastName = member?.lastName ||
+                  member?.name?.split(' ').slice(-1)[0] ||
+                  member?.directOrderName?.split(' ').slice(-1)[0] ||
+                  member?.officialName?.split(' ').slice(-1)[0] ||
+                  'congress';
+  const bioguideId = member?.bioguideId || member?.id || Math.random().toString(36).substring(7);
   return `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${bioguideId}@congress.gov`;
 }
 
@@ -97,6 +106,8 @@ const AdvocacyMessageContent: React.FC = () => {
     'profession',
     'militaryService'
   ]);
+  const [selectedPolicyIssues, setSelectedPolicyIssues] = useState<string[]>([]);
+  const [targetMember, setTargetMember] = useState<any>(null);
   const [nickname, setNickname] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   
@@ -171,7 +182,11 @@ const AdvocacyMessageContent: React.FC = () => {
   const congress = searchParams.get('congress');
   const billType = searchParams.get('type');
   const billNumber = searchParams.get('number');
+  const memberBioguideId = searchParams.get('member');
   const isVerified = searchParams.get('verified') === 'true';
+
+  // Check if this is a member contact flow (not bill-specific)
+  const isMemberContact = !!memberBioguideId && !billType && !billNumber;
 
   // Check for verified user from session storage
   useEffect(() => {
@@ -240,10 +255,34 @@ const AdvocacyMessageContent: React.FC = () => {
     }
   }, [congress, billType, billNumber]);
 
+  // Fetch member details for member contact flow
+  useEffect(() => {
+    const fetchMember = async () => {
+      if (!isMemberContact || !memberBioguideId) return;
+
+      try {
+        const response = await fetch(`/api/congress/member/${memberBioguideId}`);
+        if (response.ok) {
+          const memberData = await response.json();
+          const memberWithEmail = {
+            ...memberData.member,
+            email: generateMemberEmail(memberData.member)
+          };
+          setTargetMember(memberWithEmail);
+          setSelectedMembers([memberWithEmail]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch member details:', error);
+      }
+    };
+
+    fetchMember();
+  }, [isMemberContact, memberBioguideId]);
+
   // Prepare available members
   useEffect(() => {
     const fetchMembers = async () => {
-      if (!bill) return;
+      if (!bill || isMemberContact) return;
 
       // Add dummy emails to congressional reps
       const repsWithEmails = congressionalReps.map(rep => ({
@@ -434,14 +473,23 @@ const AdvocacyMessageContent: React.FC = () => {
       return;
     }
 
+    // Determine location based on user's zip code for more realistic suggestions
+    let city = 'Springfield';
+    let state = 'IL';
+    let suggestedZips = ['62701', '62702', '62703', '62704', '62705'];
+
+    if (zipCode && zipCode.startsWith('927')) {
+      // California - Orange County area
+      city = 'Fountain Valley';
+      state = 'CA';
+      suggestedZips = ['92708', '92706', '92707', '92704', '92705'];
+    }
+
     // Mock address suggestions - in real implementation, this would call Google Places API
-    const mockSuggestions = [
-      `${query} Main St, Springfield, IL 62701`,
-      `${query} Oak Ave, Springfield, IL 62702`,
-      `${query} Elm St, Springfield, IL 62703`,
-      `${query} Pine St, Springfield, IL 62704`,
-      `${query} Maple Dr, Springfield, IL 62705`
-    ];
+    const mockSuggestions = suggestedZips.map((zip, index) => {
+      const streets = ['Main St', 'Oak Ave', 'Elm St', 'Pine St', 'Maple Dr'];
+      return `${query} ${streets[index]}, ${city}, ${state} ${zip}`;
+    });
 
     setAddressSuggestions(mockSuggestions);
     setShowAddressSuggestions(true);
@@ -491,21 +539,29 @@ const AdvocacyMessageContent: React.FC = () => {
       const zipMatch = address.match(/\d{5}(?:-\d{4})?/);
       const extractedZip = zipMatch ? zipMatch[0] : '12345';
 
+      // Determine city/state based on zip code
+      let mockCity = 'Springfield';
+      let mockState = 'IL';
+      if (extractedZip && extractedZip.startsWith('927')) {
+        mockCity = 'Fountain Valley';
+        mockState = 'CA';
+      }
+
       const mockMatches: VerificationMatch[] = [
         {
           id: '1',
           fullName: `${firstName} ${lastName}`,
           address: address,
-          city: 'Springfield',
-          state: 'IL',
+          city: mockCity,
+          state: mockState,
           zipCode: extractedZip
         },
         {
           id: '2',
           fullName: `${firstName} ${lastName}`,
           address: address.replace(/\d+/, (match) => String(parseInt(match) + 100)),
-          city: 'Springfield',
-          state: 'IL',
+          city: mockCity,
+          state: mockState,
           zipCode: extractedZip
         }
       ];
@@ -1019,6 +1075,68 @@ const AdvocacyMessageContent: React.FC = () => {
     </Card>
   );
 
+  // Step 2: Policy Issues (for member contact flow)
+  const renderStep2_PolicyIssues = () => {
+    const policyIssues = [
+      'Climate, Energy and Environment',
+      'Economy and Work',
+      'Education',
+      'Healthcare',
+      'Immigration and Migration',
+      'Criminal Justice',
+      'Housing',
+      'Social Security and Medicare',
+      'Privacy Rights',
+      'Free Speech and Press',
+      'Religion and Government',
+      'Other'
+    ];
+
+    return (
+      <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
+        <CardHeader className="bg-background">
+          <div className="text-sm font-medium text-muted-foreground mb-2">Step 2</div>
+          <CardTitle>Choose Policy Issues</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Select the policy areas you'd like to discuss with {targetMember?.directOrderName || 'this member'}.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6 flex-1 flex flex-col bg-background">
+          <div>
+            <h3 className="font-semibold mb-4 text-lg">What issues would you like to address?</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {policyIssues.map((issue) => (
+                <div key={issue} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={issue}
+                    checked={selectedPolicyIssues.includes(issue)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedPolicyIssues([...selectedPolicyIssues, issue]);
+                      } else {
+                        setSelectedPolicyIssues(selectedPolicyIssues.filter(i => i !== issue));
+                      }
+                    }}
+                  />
+                  <Label htmlFor={issue} className="text-sm">{issue}</Label>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-auto pt-4">
+            <Button
+              onClick={() => setStep(4)} // Skip AI help step (3) and go directly to write message (4)
+              disabled={selectedPolicyIssues.length === 0}
+              size="lg"
+            >
+              Continue
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   // Step 2: Get Help Writing (Optional)
   const renderStep2_AIHelp = () => (
     <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
@@ -1140,7 +1258,7 @@ const AdvocacyMessageContent: React.FC = () => {
             Back
           </Button>
           <Button
-            onClick={() => setStep(5)}
+            onClick={() => setStep(isMemberContact ? 7 : 5)} // Skip upload media (5) and select outreach (6) for member contact
             disabled={!message}
             size="lg"
           >
@@ -1259,7 +1377,8 @@ const AdvocacyMessageContent: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-6 flex-1 flex flex-col">
           <p className="text-sm text-muted-foreground">
-            To make sure your message reaches the right elected official—whether federal, state, or local—we need to quickly verify who you are. Once verified your message will be more important to your representative.
+            <strong>Verification = Impact</strong><br/><br/>
+We verify your voter registration to ensure your messages are taken seriously by policymakers. Verified info also allows us to autofill your profile and personalize your letters with relevant demographic insights, giving your voice more weight.
           </p>
           
           {verificationStep === 'initial' && (
@@ -2460,7 +2579,8 @@ const AdvocacyMessageContent: React.FC = () => {
               <h3 className="font-semibold mb-3">Before We Deliver Your Message</h3>
               <div className="bg-muted rounded-lg p-6 space-y-6">
                 <p className="text-sm text-muted-foreground">
-                  To make sure your message reaches the right elected official—whether federal, state, or local—we need to quickly verify who you are. This ensures your opinion is counted and not mistaken for spam.
+                  <strong>Verification = Impact</strong><br/><br/>
+We verify your voter registration to ensure your messages are taken seriously by policymakers. Verified info also allows us to autofill your profile and personalize your letters with relevant demographic insights, giving your voice more weight.
                 </p>
                 
                 {verificationStep === 'initial' && (
@@ -3413,7 +3533,7 @@ const AdvocacyMessageContent: React.FC = () => {
       <div className="w-full flex-1 flex flex-col overflow-auto p-0 md:container md:mx-auto md:px-8 md:pb-8 md:max-w-2xl">
       {/* Step Content */}
       {step === 1 && renderRoutingStep()} {/* Help us verify that you are a registered voter */}
-      {step === 2 && renderStep1_Position()} {/* Choose Your Position */}
+      {step === 2 && (isMemberContact ? renderStep2_PolicyIssues() : renderStep1_Position())} {/* Choose Your Position OR Policy Issues */}
       {step === 3 && renderStep2_AIHelp()} {/* Get Help Writing (Optional) */}
       {step === 4 && renderStep3_WriteMessage()} {/* Write Your Message */}
       {step === 5 && renderStep4_UploadMedia()} {/* Add Supporting Files (Optional) */}

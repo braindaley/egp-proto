@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { ExternalLink, User, Star, History, Info, ChevronsUpDown, MapPin, X, BarChart3, Building2, Phone, Hash } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from './ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -174,6 +175,14 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                 <h1 className="font-headline text-3xl md:text-4xl font-bold text-primary mb-3">
                   {member.directOrderName}
                 </h1>
+                <Link href={`/advocacy-message?member=${member.bioguideId}&congress=${congress}`}>
+                  <Button
+                    size="lg"
+                    className="bg-black text-white hover:bg-gray-800"
+                  >
+                    Voice Opinion
+                  </Button>
+                </Link>
               </div>
             </div>
             <Separator />
