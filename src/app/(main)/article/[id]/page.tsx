@@ -9,7 +9,8 @@ import Link from 'next/link';
 
 // Mock article data - in a real app this would come from an API
 const getArticleData = (id: string) => {
-  const articles: Record<string, any> = {
+  // First check for specific articles
+  const specificArticles: Record<string, any> = {
     '1': {
       id: 1,
       headline: "Worker Rights Protection Act Strengthens Union Organizing",
@@ -72,7 +73,56 @@ If enacted, the legislation would represent the most significant federal gun saf
     }
   };
 
-  return articles[id] || null;
+  // If we have a specific article, return it
+  if (specificArticles[id]) {
+    return specificArticles[id];
+  }
+
+  // Generate a generic article for any other ID
+  const categories = [
+    "Abortion", "Climate, Energy & Environment", "Criminal Justice", "Death Penalty",
+    "Defense & National Security", "Discrimination & Prejudice", "Drug Policy",
+    "Economy & Work", "Education", "Free Speech & Press", "Gun Policy", "Health Policy",
+    "Immigration & Migration", "International Affairs", "LGBT Acceptance",
+    "National Conditions", "Privacy Rights", "Religion & Government",
+    "Social Security & Medicare", "Technology Policy Issues"
+  ];
+
+  // Get a consistent category based on the ID
+  const categoryIndex = parseInt(id) % categories.length;
+  const category = categories[categoryIndex];
+
+  return {
+    id: parseInt(id),
+    headline: `Important Legislative Update on ${category}`,
+    category: category,
+    image: "/api/placeholder/800/400",
+    content: `Congressional leaders are advancing significant legislation addressing ${category.toLowerCase()} policy priorities. This comprehensive bill represents a major step forward in addressing key challenges facing Americans across the nation.
+
+The proposed legislation includes several critical provisions designed to strengthen protections and expand opportunities for affected communities. Lawmakers from both parties have engaged in extensive negotiations to craft a balanced approach that addresses various stakeholder concerns while maintaining focus on core policy objectives.
+
+Advocacy organizations have mobilized grassroots campaigns to build support for the legislation, organizing town halls and community meetings nationwide. "This bill represents exactly the kind of forward-thinking policy we need," said a spokesperson for the National Policy Coalition. "It addresses real challenges facing families and communities across America."
+
+Various stakeholder groups have provided input during the legislative process, with many expressing support for key provisions. Industry representatives, advocacy organizations, and community leaders have participated in committee hearings and stakeholder meetings to help shape the final legislation.
+
+Policy experts suggest that the bill could have significant positive impacts if enacted. Research indicates that similar measures in other jurisdictions have led to improved outcomes and stronger protections for affected communities.
+
+The legislation is expected to advance through both chambers of Congress in the coming weeks, with supporters working to build bipartisan coalitions. Committee leadership has indicated optimism about the bill's prospects and timeline for consideration.
+
+Recent polling shows strong public support for the policy changes outlined in the legislation, with majorities of Americans across party lines expressing approval for the proposed reforms. This grassroots backing is expected to play a key role in building momentum for passage.
+
+If signed into law, this legislation would represent one of the most significant policy advances in this area in recent years, reflecting growing recognition of the need for comprehensive reform and strengthened protections.`,
+    sources: [
+      { name: "Associated Press", icon: "https://apnews.com/favicon.ico", url: "https://apnews.com" },
+      { name: "Reuters", icon: "https://www.reuters.com/favicon.ico", url: "https://reuters.com" },
+      { name: "CNN", icon: "https://cnn.com/favicon.ico", url: "https://cnn.com" },
+      { name: "NBC News", icon: "https://www.nbcnews.com/favicon.ico", url: "https://nbcnews.com" },
+      { name: "CBS News", icon: "https://www.cbsnews.com/favicon.ico", url: "https://cbsnews.com" },
+      { name: "Politico", icon: "https://www.politico.com/favicon.ico", url: "https://politico.com" },
+      { name: "The Hill", icon: "https://thehill.com/favicon.ico", url: "https://thehill.com" },
+      { name: "Washington Post", icon: "https://www.washingtonpost.com/favicon.ico", url: "https://washingtonpost.com" }
+    ]
+  };
 };
 
 export default function ArticlePage() {

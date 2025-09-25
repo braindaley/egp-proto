@@ -6,7 +6,7 @@ import { getFirestore, collection, query, where, getDocs, orderBy } from 'fireba
 import { app } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -15,22 +15,34 @@ import { Mail, FileText, Users, Clock, CheckCircle } from 'lucide-react';
 interface MessageActivity {
   id: string;
   userId: string;
-  billNumber: string;
-  billType: string;
-  congress: string;
-  billShortTitle: string;
-  billCurrentStatus: string;
+  billNumber?: string;
+  billType?: string;
+  congress?: string;
+  billShortTitle?: string;
+  billCurrentStatus?: string;
   userStance: 'support' | 'oppose';
   messageContent: string;
   recipients: Array<{
     name: string;
     bioguideId: string;
     email: string;
-    party: string;
-    role: string;
+    party?: string;
+    role?: string;
   }>;
   sentAt: any;
   deliveryStatus: string;
+  personalDataIncluded?: any;
+  verifiedUserInfo?: {
+    fullName: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    constituentDescription?: string;
+  };
+  userInfo?: any;
+  isGeneralAdvocacy?: boolean;
+  topic?: string;
 }
 
 interface GroupedMessages {
@@ -82,20 +94,23 @@ const MessageHistory: React.FC = () => {
         const groupedData: { [key: string]: GroupedMessages } = {};
         
         messagesData.forEach(message => {
-          const billKey = `${message.congress}-${message.billType}-${message.billNumber}`;
-          
+          // For general advocacy messages (member contact), create a unique key
+          const billKey = message.isGeneralAdvocacy || (!message.billNumber && !message.billType)
+            ? `general-${message.id}`
+            : `${message.congress}-${message.billType}-${message.billNumber}`;
+
           if (!groupedData[billKey]) {
             groupedData[billKey] = {
               billKey,
-              billNumber: message.billNumber,
-              billType: message.billType?.toUpperCase(),
-              congress: message.congress,
-              billShortTitle: message.billShortTitle,
-              billCurrentStatus: message.billCurrentStatus,
+              billNumber: message.billNumber || '',
+              billType: message.billType?.toUpperCase() || '',
+              congress: message.congress || '',
+              billShortTitle: message.billShortTitle || (message.isGeneralAdvocacy ? message.topic || 'General Advocacy' : ''),
+              billCurrentStatus: message.billCurrentStatus || '',
               activities: []
             };
           }
-          
+
           groupedData[billKey].activities.push(message);
         });
         
@@ -141,120 +156,57 @@ const MessageHistory: React.FC = () => {
         ) : groupedMessages.length === 0 ? (
           <p>No messages sent yet. Start by advocating for a bill!</p>
         ) : (
-          <Accordion type="single" collapsible className="w-full space-y-2">
-            {groupedMessages.map((group) => {
-              const latestActivity = group.activities[0];
-              const allRecipients = latestActivity?.recipients || [];
-              const lastSentDate = latestActivity?.sentAt?.toDate();
-              
-              // Format recipients with FirstLast format and limit display
-              const formattedRecipients = allRecipients.map(r => {
-                const nameParts = r.name.split(' ');
-                const firstName = nameParts[0] || '';
-                const lastName = nameParts[nameParts.length - 1] || '';
-                return `${firstName}${lastName}`;
-              });
-              
-              const displayRecipients = formattedRecipients.length > 2 
-                ? `${formattedRecipients.slice(0, 2).join(', ')} (${formattedRecipients.length - 2} more)`
-                : formattedRecipients.join(', ');
-              
-              return (
-                <AccordionItem 
-                  key={group.billKey} 
-                  value={group.billKey} 
-                  className="border rounded-lg transition-all hover:shadow-md bg-white border-gray-200"
-                >
-                  <AccordionTrigger className="hover:no-underline px-4 py-3">
-                    <div className="flex items-start gap-3 w-full pr-4 text-left">
-                      {/* Bill Type Avatar */}
-                      <Avatar className="h-10 w-10 flex-shrink-0 mt-1">
-                        <AvatarFallback className={`text-xs font-bold ${group.billType === 'HR' ? 'bg-blue-100 text-blue-700' : group.billType === 'S' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                          {group.billType}
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      <div className="flex-1 min-w-0">
-                        {/* First Line: Recipients and Bill Title */}
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm text-muted-foreground">To:</span>
-                              <span className="text-sm font-medium">{displayRecipients}</span>
-                              <span className="text-sm text-muted-foreground ml-2">RE:</span>
-                              <span className="text-sm font-medium">{group.billShortTitle}</span>
-                            </div>
-                          </div>
-                          <Badge 
-                            variant={latestActivity?.userStance === 'support' ? 'default' : 'destructive'} 
-                            className="text-xs px-2 py-0.5 flex-shrink-0"
-                          >
-                            {latestActivity?.userStance === 'support' ? 'Support' : 'Oppose'}
-                          </Badge>
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            {/* Table Header */}
+            <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+              <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
+                <div className="col-span-4">Recipients</div>
+                <div className="col-span-5">Subject</div>
+                <div className="col-span-3">Date</div>
+              </div>
+            </div>
+
+            {/* Table Body */}
+            <div className="divide-y divide-gray-200">
+              {groupedMessages.map((group) =>
+                group.activities.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => window.location.href = `/letter/${activity.id}`}
+                  >
+                    <div className="grid grid-cols-12 gap-4 items-center">
+                      {/* Recipients */}
+                      <div className="col-span-4">
+                        <div className="text-sm font-medium text-gray-900 truncate">
+                          {activity.recipients.map(r => r.name).join(', ')}
                         </div>
-                        
-                        {/* Second Line: Bill Number and Status */}
-                        <div className="flex items-center justify-between">
-                          <div className="text-xs text-muted-foreground">
-                            Status: {group.billCurrentStatus}
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm font-semibold">
-                              {group.billType} {group.billNumber}
-                            </span>
-                          </div>
+                      </div>
+
+                      {/* Subject */}
+                      <div className="col-span-5">
+                        <div className="text-sm text-gray-900 truncate">
+                          {activity.isGeneralAdvocacy || (!activity.billNumber && !activity.billType) ?
+                            `${activity.topic || 'General Advocacy'} - ${activity.recipients.map(r => r.name).join(', ')}` :
+                            group.billShortTitle ?
+                              `RE: ${group.billType} ${group.billNumber} - ${group.billShortTitle}` :
+                              'General Advocacy Message'
+                          }
+                        </div>
+                      </div>
+
+                      {/* Date */}
+                      <div className="col-span-3">
+                        <div className="text-sm text-gray-500">
+                          {format(activity.sentAt?.toDate() || new Date(), 'MMM d, yyyy')}
                         </div>
                       </div>
                     </div>
-                  </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  <div className="space-y-4 border-t pt-4">
-                    {group.activities.map((activity, index) => (
-                      <div key={activity.id} className="bg-white rounded-lg border shadow-sm">
-                        {/* Message Header */}
-                        <div className="p-4 border-b bg-gray-50/50">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm">
-                                <span className="font-semibold">RE:</span> {group.billType} {group.billNumber}: {group.billShortTitle}
-                              </span>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {format(activity.sentAt?.toDate() || new Date(), 'MMM d, yyyy \'at\' h:mm a')}
-                            </div>
-                          </div>
-                          
-                          {/* Recipients */}
-                          <div className="text-sm text-muted-foreground">
-                            <span className="font-medium">To:</span> {activity.recipients.map(r => r.name).join(', ')}
-                          </div>
-                        </div>
-                        
-                        {/* Message Content */}
-                        <div className="p-4">
-                          <div className="prose prose-sm max-w-none">
-                            <p className="whitespace-pre-wrap text-gray-700 leading-relaxed mb-4">
-                              {activity.messageContent}
-                            </p>
-                            
-                            {/* Message Signature */}
-                            <div className="border-t pt-4 mt-6 text-sm text-gray-600">
-                              <p className="font-medium">Sincerely,</p>
-                              <p className="mt-1">Your Constituent</p>
-                              <div className="mt-2 text-xs text-muted-foreground italic">
-                                This message was sent via the Electronic Government Platform on {format(activity.sentAt?.toDate() || new Date(), 'MMMM d, yyyy \'at\' h:mm a')}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
                   </div>
-                </AccordionContent>
-              </AccordionItem>
-            );
-            })}
-          </Accordion>
+                ))
+              )}
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

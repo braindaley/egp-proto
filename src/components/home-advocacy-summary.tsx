@@ -43,16 +43,16 @@ export function HomeAdvocacySummary() {
                 <div className="text-sm text-muted-foreground">Bills Engaged</div>
               </div>
 
-              <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-green-600 mb-1 flex items-center justify-center gap-1">
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1 flex items-center justify-center gap-1">
                   <ThumbsUp className="h-4 w-4" />
                   {activityStats.supportedCount}
                 </div>
                 <div className="text-sm text-muted-foreground">Supported</div>
               </div>
 
-              <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-red-600 mb-1 flex items-center justify-center gap-1">
+              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-black dark:text-white mb-1 flex items-center justify-center gap-1">
                   <ThumbsDown className="h-4 w-4" />
                   {activityStats.opposedCount}
                 </div>

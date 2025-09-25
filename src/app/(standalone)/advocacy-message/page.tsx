@@ -248,6 +248,81 @@ const AdvocacyMessageContent: React.FC = () => {
     loadUserProfile();
   }, [user]);
 
+  // Member contact flow uses completely different step numbers
+  const memberSteps = {
+    policy: 1,      // Choose policy issues
+    aiHelp: 2,      // AI help (optional)
+    writeMessage: 3, // Write message
+    personalInfo: 4, // Personal information
+    review: 5,      // Review message
+    sending: 6      // Sending screen
+  };
+
+  const billSteps = {
+    position: 1,     // Choose position
+    aiHelp: 2,       // AI help (optional)
+    writeMessage: 3, // Write message
+    uploadMedia: 4,  // Upload media (optional)
+    selectReps: 5,   // Select representatives
+    personalInfo: 6, // Personal information
+    review: 7,       // Review message
+    sending: 8       // Sending screen
+  };
+
+  // Get the current step number to display
+  const getDisplayStep = (): number => {
+    if (isMemberContact) {
+      if (step === 2) return 1; // Policy Issues
+      if (step === 3) return 2; // AI Help
+      if (step === 4) return 3; // Write Message
+      if (step === 7) return 4; // Personal Info
+      if (step === 8) return 5; // Review
+      if (step === 12) return 6; // Sending
+      return 0; // Don't show step number
+    } else {
+      if (step === 2) return 1; // Choose Position
+      if (step === 3) return 2; // AI Help
+      if (step === 4) return 3; // Write Message
+      if (step === 5) return 4; // Upload Media
+      if (step === 6) return 5; // Select Representatives
+      if (step === 7) return 6; // Personal Info
+      if (step === 8) return 7; // Review
+      if (step === 12) return 8; // Sending
+      return 0; // Don't show step number
+    }
+  };
+
+  // Simple back navigation for member contact
+  const goBack = () => {
+    if (isMemberContact) {
+      if (step === 2) return; // Can't go back from first step (Policy Issues)
+      else if (step === 3) setStep(2); // AI Help → Policy Issues
+      else if (step === 4) setStep(3); // Write Message → AI Help
+      else if (step === 7) setStep(4); // Personal Info → Write Message
+      else if (step === 8) setStep(7); // Review → Personal Info
+      else if (step === 12) setStep(8); // Sending Error → Review
+    } else {
+      // Bill contact back navigation
+      if (step === 2) return; // Can't go back from first step (Position)
+      else if (step === 3) setStep(2); // AI Help → Position
+      else if (step === 4) setStep(3); // Write Message → AI Help
+      else if (step === 5) setStep(4); // Upload Media → Write Message
+      else if (step === 6) setStep(5); // Select Reps → Upload Media
+      else if (step === 7) setStep(6); // Personal Info → Select Reps
+      else if (step === 8) setStep(7); // Review → Personal Info
+      else if (step === 9) setStep(8); // Delivery → Review
+      else if (step === 12) setStep(8); // Sending Error → Review
+    }
+  };
+
+  // Skip verification step for logged-in users
+  useEffect(() => {
+    // Only set initial step if user is logged in, not loading, and currently on step 1
+    if (user && !loading && step === 1 && !isVerified) {
+      setStep(2);
+    }
+  }, [user, loading, step, isVerified]);
+
   // Fetch bill details
   useEffect(() => {
     if (congress && billType && billNumber) {
@@ -265,8 +340,8 @@ const AdvocacyMessageContent: React.FC = () => {
         if (response.ok) {
           const memberData = await response.json();
           const memberWithEmail = {
-            ...memberData.member,
-            email: generateMemberEmail(memberData.member)
+            ...memberData,
+            email: generateMemberEmail(memberData)
           };
           setTargetMember(memberWithEmail);
           setSelectedMembers([memberWithEmail]);
@@ -768,11 +843,14 @@ const AdvocacyMessageContent: React.FC = () => {
         userStance: userStance,
         messageContent: message,
         recipients: selectedMembers.map(member => ({
-          name: member.fullName || member.name || 'Unknown',
+          name: member.directOrderName || member.fullName || member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unknown',
           bioguideId: member.bioguideId || '',
           email: member.email || '',
           party: member.party || member.partyName || '',
-          role: member.role || 'Representative'
+          role: member.officeTitle?.toLowerCase().includes('senate') ||
+                member.chamber?.toLowerCase() === 'senate' ||
+                member.url?.includes('/senate/') ||
+                member.terms?.some((term: any) => term.chamber?.toLowerCase() === 'senate') ? 'Senator' : 'Representative'
         })),
         personalDataIncluded: selectedPersonalData,
         constituentDescription: constituentDescription || null,
@@ -794,6 +872,22 @@ const AdvocacyMessageContent: React.FC = () => {
           constituentDescription: verifiedUserInfo.constituentDescription || null
         };
       }
+
+      // For logged-in users (not verified), save their personal data from personalDataFields
+      if (user && !verifiedUserInfo) {
+        const selectedFieldsData: any = {};
+        selectedPersonalData.forEach(fieldKey => {
+          const field = personalDataFields.find(f => f.key === fieldKey);
+          if (field && field.available) {
+            selectedFieldsData[fieldKey] = field.value;
+          }
+        });
+
+        // Create userInfo object for logged-in members
+        if (Object.keys(selectedFieldsData).length > 0) {
+          messageActivity.userInfo = selectedFieldsData;
+        }
+      }
       
       // Add bill information if available
       if (bill && billNumber && billType && congress) {
@@ -805,7 +899,11 @@ const AdvocacyMessageContent: React.FC = () => {
       } else {
         // Mark as general advocacy message (not tied to specific bill)
         messageActivity.isGeneralAdvocacy = true;
-        messageActivity.topic = 'General Advocacy';
+        messageActivity.topic = isMemberContact && targetMember
+          ? selectedPolicyIssues.length > 0
+            ? `${selectedPolicyIssues.join(', ')} - ${targetMember.directOrderName || targetMember.fullName || targetMember.name || 'Representative'}`
+            : `Member Contact: ${targetMember.directOrderName || targetMember.fullName || targetMember.name || 'Representative'}`
+          : 'General Advocacy';
       }
       
       const docRef = await addDoc(collection(db, 'user_messages'), messageActivity);
@@ -844,7 +942,9 @@ const AdvocacyMessageContent: React.FC = () => {
   const renderStep1 = () => (
     <Card className="flex-1 flex flex-col">
       <CardHeader>
-        <div className="text-sm font-medium text-muted-foreground mb-2">Step 6</div>
+        {getDisplayStep() > 0 && (
+          <div className="text-sm font-medium text-muted-foreground mb-2">Step {getDisplayStep()}</div>
+        )}
         <CardTitle>Select representatives to send your message</CardTitle>
         <p className="text-sm text-muted-foreground mt-2">
           We've preselected your congressional representatives to make the most impact
@@ -987,7 +1087,7 @@ const AdvocacyMessageContent: React.FC = () => {
 
         <div className="flex-1"></div>
         <div className="flex justify-between mt-auto pt-6">
-          <Button variant="outline" onClick={() => setStep(5)}>
+          <Button variant="outline" onClick={goBack}>
             Back
           </Button>
           <Button
@@ -1005,7 +1105,9 @@ const AdvocacyMessageContent: React.FC = () => {
   const renderStep1_Position = () => (
     <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
       <CardHeader className="bg-background">
-        <div className="text-sm font-medium text-muted-foreground mb-2">Step 2</div>
+        {getDisplayStep() > 0 && (
+          <div className="text-sm font-medium text-muted-foreground mb-2">Step {getDisplayStep()}</div>
+        )}
         <CardTitle>
           {bill ? (
             `Choose Your Position on ${billType?.toUpperCase()}${billNumber}`
@@ -1057,7 +1159,7 @@ const AdvocacyMessageContent: React.FC = () => {
         <div className="flex-1"></div>
         <div className="flex justify-between mt-auto pt-6">
           <Button
-            onClick={() => setStep(1)}
+            onClick={goBack}
             variant="outline"
             size="lg"
           >
@@ -1095,7 +1197,9 @@ const AdvocacyMessageContent: React.FC = () => {
     return (
       <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
         <CardHeader className="bg-background">
-          <div className="text-sm font-medium text-muted-foreground mb-2">Step 2</div>
+          {getDisplayStep() > 0 && (
+          <div className="text-sm font-medium text-muted-foreground mb-2">Step {getDisplayStep()}</div>
+        )}
           <CardTitle>Choose Policy Issues</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
             Select the policy areas you'd like to discuss with {targetMember?.directOrderName || 'this member'}.
@@ -1141,7 +1245,9 @@ const AdvocacyMessageContent: React.FC = () => {
   const renderStep2_AIHelp = () => (
     <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
       <CardHeader className="bg-background">
-        <div className="text-sm font-medium text-muted-foreground mb-2">Step 3</div>
+        {getDisplayStep() > 0 && (
+          <div className="text-sm font-medium text-muted-foreground mb-2">Step {getDisplayStep()}</div>
+        )}
         <CardTitle>Writing Your Message</CardTitle>
         <p className="text-sm text-muted-foreground mt-2">
           Would you like us to personalize your letter using relevant details from your profile?
@@ -1197,7 +1303,7 @@ const AdvocacyMessageContent: React.FC = () => {
         <div className="flex-1"></div>
         <div className="flex justify-between mt-auto pt-6">
           <Button
-            onClick={() => setStep(2)}
+            onClick={goBack}
             variant="outline"
             size="lg"
           >
@@ -1224,7 +1330,9 @@ const AdvocacyMessageContent: React.FC = () => {
   const renderStep3_WriteMessage = () => (
     <Card className="flex-1 flex flex-col border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
       <CardHeader className="bg-background">
-        <div className="text-sm font-medium text-muted-foreground mb-2">Step 4</div>
+        {getDisplayStep() > 0 && (
+          <div className="text-sm font-medium text-muted-foreground mb-2">Step {getDisplayStep()}</div>
+        )}
         <CardTitle>Write Your Message</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 flex-1 flex flex-col bg-background">
@@ -1251,14 +1359,20 @@ const AdvocacyMessageContent: React.FC = () => {
         <div className="flex-1"></div>
         <div className="flex justify-between mt-auto pt-6">
           <Button
-            onClick={() => setStep(3)}
+            onClick={goBack}
             variant="outline"
             size="lg"
           >
             Back
           </Button>
           <Button
-            onClick={() => setStep(isMemberContact ? 7 : 5)} // Skip upload media (5) and select outreach (6) for member contact
+            onClick={() => {
+              if (isMemberContact) {
+                setStep(7); // Go to personal info for member contact
+              } else {
+                setStep(5); // Go to upload media for regular flow
+              }
+            }}
             disabled={!message}
             size="lg"
           >
@@ -1273,7 +1387,9 @@ const AdvocacyMessageContent: React.FC = () => {
   const renderStep4_UploadMedia = () => (
     <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
       <CardHeader className="bg-background">
-        <div className="text-sm font-medium text-muted-foreground mb-2">Step 5</div>
+        {getDisplayStep() > 0 && (
+          <div className="text-sm font-medium text-muted-foreground mb-2">Step {getDisplayStep()}</div>
+        )}
         <CardTitle>Add Supporting Files (Optional)</CardTitle>
         <p className="text-sm text-muted-foreground mt-2">
           You can attach photos, documents, or other files to support your message. This step is completely optional.
@@ -1349,7 +1465,7 @@ const AdvocacyMessageContent: React.FC = () => {
         <div className="flex-1"></div>
         <div className="flex justify-between mt-auto pt-6">
           <Button
-            onClick={() => setStep(4)}
+            onClick={goBack}
             variant="outline"
             size="lg"
           >
@@ -1372,7 +1488,9 @@ const AdvocacyMessageContent: React.FC = () => {
     return (
       <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
         <CardHeader className="bg-background">
-          <div className="text-sm font-medium text-muted-foreground mb-2">Step 1</div>
+          {!user && (
+            <div className="text-sm font-medium text-muted-foreground mb-2">Step 1</div>
+          )}
           <CardTitle>Help us verify that you are a registered voter</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 flex-1 flex flex-col">
@@ -1845,7 +1963,9 @@ We verify your voter registration to ensure your messages are taken seriously by
     return (
       <Card className="flex-1 flex flex-col">
         <CardHeader>
-          <div className="text-sm font-medium text-muted-foreground mb-2">Step 7</div>
+          {getDisplayStep() > 0 && (
+            <div className="text-sm font-medium text-muted-foreground mb-2">Step {getDisplayStep()}</div>
+          )}
           <CardTitle>Personal Information</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
             Select information you'd like to include about yourself
@@ -2231,7 +2351,7 @@ We verify your voter registration to ensure your messages are taken seriously by
 
           <div className="flex-1"></div>
           <div className="flex justify-between mt-auto pt-6">
-            <Button variant="outline" onClick={() => setStep(6)}>
+            <Button variant="outline" onClick={goBack}>
               Back
             </Button>
             <Button onClick={async () => {
@@ -2438,7 +2558,7 @@ We verify your voter registration to ensure your messages are taken seriously by
 
           <div className="flex-1"></div>
           <div className="flex justify-between mt-auto pt-6">
-            <Button variant="outline" onClick={() => setStep(8)}>
+            <Button variant="outline" onClick={goBack}>
               Back
             </Button>
             <Button onClick={() => setStep(12)}>
@@ -2456,11 +2576,16 @@ We verify your voter registration to ensure your messages are taken seriously by
     
     // Generate salutation based on member type
     const getSalutation = (member: any) => {
-      const lastName = member.lastName || member.fullName?.split(' ').slice(-1)[0] || member.name?.split(' ').slice(-1)[0] || '';
-      // Check if member is a senator based on officeTitle or chamber
-      const isSenator = member.officeTitle?.toLowerCase().includes('senate') || 
-                       member.chamber?.toLowerCase() === 'senate' || 
-                       member.url?.includes('/senate/');
+      const lastName = member.lastName ||
+                      member.fullName?.split(' ').slice(-1)[0] ||
+                      member.name?.split(' ').slice(-1)[0] ||
+                      member.directOrderName?.split(' ').slice(-1)[0] ||
+                      'Representative';
+      // Check if member is a senator based on officeTitle, chamber, or terms
+      const isSenator = member.officeTitle?.toLowerCase().includes('senate') ||
+                       member.chamber?.toLowerCase() === 'senate' ||
+                       member.url?.includes('/senate/') ||
+                       member.terms?.some((term: any) => term.chamber?.toLowerCase() === 'senate');
       const title = isSenator ? 'Senator' : 'Representative';
       return `Dear ${title} ${lastName}`;
     };
@@ -2468,7 +2593,9 @@ We verify your voter registration to ensure your messages are taken seriously by
     return (
       <Card className="flex-1 flex flex-col">
         <CardHeader>
-          <div className="text-sm font-medium text-muted-foreground mb-2">Step 8</div>
+          {getDisplayStep() > 0 && (
+            <div className="text-sm font-medium text-muted-foreground mb-2">Step {getDisplayStep()}</div>
+          )}
           <CardTitle>Review Message</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
             Review your message before sending. Make sure everything looks correct and complete.
@@ -2843,13 +2970,13 @@ We verify your voter registration to ensure your messages are taken seriously by
 
           <div className="flex-1"></div>
           <div className="flex justify-between mt-auto pt-6">
-            <Button variant="outline" onClick={() => setStep(7)}>
+            <Button variant="outline" onClick={goBack}>
               Back
             </Button>
-            {/* Continue button - go to delivery step */}
+            {/* Continue button - skip delivery step for authenticated users */}
             {(user || verifiedUserInfo) && (
-              <Button onClick={() => setStep(9)}>
-                Continue
+              <Button onClick={() => user ? setStep(12) : setStep(9)}>
+                {user ? 'Send Message' : 'Continue'}
               </Button>
             )}
           </div>
@@ -3023,7 +3150,7 @@ We verify your voter registration to ensure your messages are taken seriously by
       return (
         <Card>
           <CardHeader>
-            <CardTitle>Step 5: Send Message</CardTitle>
+            <CardTitle>Send Message</CardTitle>
             <CardDescription>
               Ready to send your message to {selectedMembers.length} representative{selectedMembers.length !== 1 ? 's' : ''}
             </CardDescription>
@@ -3122,10 +3249,10 @@ We verify your voter registration to ensure your messages are taken seriously by
     return renderStep4();
   };
 
-  // useEffect hooks for Step 9 - moved to component level to follow Rules of Hooks
+  // useEffect hooks for Step 9 and 12 (sending) - moved to component level to follow Rules of Hooks
   useEffect(() => {
-    // Reset and start sending when entering Step 9
-    if (step === 9 && !isSending && !messageSent) {
+    // Reset and start sending when entering Step 9 or Step 12
+    if ((step === 9 || step === 12) && !isSending && !messageSent) {
       setIsSending(true);
       setSendingError(null);
       setMessageSent(false);
@@ -3133,7 +3260,7 @@ We verify your voter registration to ensure your messages are taken seriously by
   }, [step, isSending, messageSent]);
 
   useEffect(() => {
-    if (step === 9 && isSending && !messageSent) {
+    if ((step === 9 || step === 12) && isSending && !messageSent) {
       const sendMessage = async () => {
         try {
           // Import Firebase functions
@@ -3149,11 +3276,14 @@ We verify your voter registration to ensure your messages are taken seriously by
             userStance: userStance,
             messageContent: message,
             recipients: selectedMembers.map(member => ({
-              name: member.fullName || member.name || 'Unknown',
+              name: member.directOrderName || member.fullName || member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unknown',
               bioguideId: member.bioguideId || '',
               email: member.email || '',
               party: member.party || member.partyName || '',
-              role: member.role || 'Representative'
+              role: member.officeTitle?.toLowerCase().includes('senate') ||
+                    member.chamber?.toLowerCase() === 'senate' ||
+                    member.url?.includes('/senate/') ||
+                    member.terms?.some((term: any) => term.chamber?.toLowerCase() === 'senate') ? 'Senator' : 'Representative'
             })),
             personalDataIncluded: selectedPersonalData,
             constituentDescription: constituentDescription || null,
@@ -3172,6 +3302,21 @@ We verify your voter registration to ensure your messages are taken seriously by
               constituentDescription: verifiedUserInfo.constituentDescription || null
             };
           }
+
+          // For logged-in users (not verified), save their personal data from personalDataFields
+          if (user && !verifiedUserInfo) {
+            const selectedFieldsData: any = {};
+            selectedPersonalData.forEach(fieldKey => {
+              const field = personalDataFields.find(f => f.key === fieldKey);
+              if (field && field.available) {
+                selectedFieldsData[fieldKey] = field.value;
+              }
+            });
+            // Create userInfo object for logged-in members
+            if (Object.keys(selectedFieldsData).length > 0) {
+              messageActivity.userInfo = selectedFieldsData;
+            }
+          }
           
           // Add bill information if available
           if (bill && billNumber && billType && congress) {
@@ -3183,7 +3328,11 @@ We verify your voter registration to ensure your messages are taken seriously by
           } else {
             // Mark as general advocacy message (not tied to specific bill)
             messageActivity.isGeneralAdvocacy = true;
-            messageActivity.topic = 'General Advocacy';
+            messageActivity.topic = isMemberContact && targetMember
+              ? selectedPolicyIssues.length > 0
+                ? `${selectedPolicyIssues.join(', ')} - ${targetMember.directOrderName || targetMember.fullName || targetMember.name || 'Representative'}`
+                : `Member Contact: ${targetMember.directOrderName || targetMember.fullName || targetMember.name || 'Representative'}`
+              : 'General Advocacy';
           }
           
           const docRef = await addDoc(collection(db, 'user_messages'), messageActivity);
@@ -3247,7 +3396,7 @@ We verify your voter registration to ensure your messages are taken seriously by
             <CardDescription>{sendingError}</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button onClick={() => setStep(8)} className="mt-4">
+            <Button onClick={goBack} className="mt-4">
               Back to Review
             </Button>
           </CardContent>
