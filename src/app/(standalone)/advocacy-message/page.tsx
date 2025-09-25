@@ -272,46 +272,108 @@ const AdvocacyMessageContent: React.FC = () => {
   // Get the current step number to display
   const getDisplayStep = (): number => {
     if (isMemberContact) {
-      if (step === 2) return 1; // Policy Issues
-      if (step === 3) return 2; // AI Help
-      if (step === 4) return 3; // Write Message
-      if (step === 7) return 4; // Personal Info
-      if (step === 8) return 5; // Review
-      if (step === 12) return 6; // Sending
-      return 0; // Don't show step number
+      // Members: not logged in flow (1-8) vs logged in flow (1-6)
+      if (!user) {
+        // Not logged in flow: Verification → Policy → Write → Supporting Files → Personal → Review → Delivery → Success
+        if (step === 1) return 1; // Help us verify that you are a registered voter
+        if (step === 2) return 2; // Choose policy issue
+        if (step === 4) return 3; // Write Your Message
+        if (step === 5) return 4; // Add Supporting Files
+        if (step === 7) return 5; // Personal Information
+        if (step === 8) return 6; // Review Message
+        if (step === 9) return 7; // Message delivery (choose email)
+        if (step === 10) return 8; // Success screen (create account or login)
+        return 0;
+      } else {
+        // Logged in flow - skip verification and delivery steps: Policy → Write → Supporting Files → Personal → Review → Success
+        if (step === 2) return 1; // Choose policy issue
+        if (step === 4) return 2; // Write Your Message
+        if (step === 5) return 3; // Add Supporting Files
+        if (step === 7) return 4; // Personal Information
+        if (step === 8) return 5; // Review Message
+        if (step === 10) return 6; // Success screen (view dashboard)
+        return 0;
+      }
     } else {
-      if (step === 2) return 1; // Choose Position
-      if (step === 3) return 2; // AI Help
-      if (step === 4) return 3; // Write Message
-      if (step === 5) return 4; // Upload Media
-      if (step === 6) return 5; // Select Representatives
-      if (step === 7) return 6; // Personal Info
-      if (step === 8) return 7; // Review
-      if (step === 12) return 8; // Sending
-      return 0; // Don't show step number
+      // Bills/campaigns: not logged in flow (1-10) vs logged in flow (1-8)
+      if (!user) {
+        // Not logged in flow
+        if (step === 1) return 1; // Help us verify that you are a registered voter
+        if (step === 2) return 2; // Choose Your Position
+        if (step === 3) return 3; // Writing Your Message - help writing?
+        if (step === 4) return 4; // Write Your Message
+        if (step === 5) return 5; // Add Supporting Files
+        if (step === 6) return 6; // Select representatives to send your message
+        if (step === 7) return 7; // Personal Information
+        if (step === 8) return 8; // Review Message
+        if (step === 9) return 9; // Message delivery (choose email)
+        if (step === 10) return 10; // Success screen (create account or login)
+        return 0;
+      } else {
+        // Logged in flow - skip verification and delivery steps
+        if (step === 2) return 1; // Choose Your Position
+        if (step === 3) return 2; // Writing Your Message - help writing?
+        if (step === 4) return 3; // Write Your Message
+        if (step === 5) return 4; // Add Supporting Files
+        if (step === 6) return 5; // Select representatives to send your message
+        if (step === 7) return 6; // Personal Information
+        if (step === 8) return 7; // Review Message
+        if (step === 10) return 8; // Success screen (view dashboard)
+        return 0;
+      }
     }
   };
 
-  // Simple back navigation for member contact
+  // Back navigation that handles both logged in and not logged in flows
   const goBack = () => {
     if (isMemberContact) {
-      if (step === 2) return; // Can't go back from first step (Policy Issues)
-      else if (step === 3) setStep(2); // AI Help → Policy Issues
-      else if (step === 4) setStep(3); // Write Message → AI Help
-      else if (step === 7) setStep(4); // Personal Info → Write Message
-      else if (step === 8) setStep(7); // Review → Personal Info
-      else if (step === 12) setStep(8); // Sending Error → Review
+      if (!user) {
+        // Members not logged in flow: Verification → Policy → Write → Supporting Files → Personal → Review → Delivery → Success
+        if (step === 1) return; // Can't go back from first step (verification)
+        else if (step === 2) setStep(1); // Policy Issues → verification
+        else if (step === 4) setStep(2); // Write Message → Policy Issues (skip AI Help step 3)
+        else if (step === 5) setStep(4); // Supporting Files → Write Message
+        else if (step === 7) setStep(5); // Personal Info → Supporting Files
+        else if (step === 8) setStep(7); // Review → Personal Info
+        else if (step === 9) setStep(8); // Delivery → Review
+        else if (step === 10) setStep(9); // Success → Delivery
+        else if (step === 12) setStep(8); // Sending Error → Review
+      } else {
+        // Members logged in flow: Policy → Write → Supporting Files → Personal → Review → Success (skip verification step 1 and delivery step 9)
+        if (step === 2) return; // Can't go back from first step (Policy Issues)
+        else if (step === 4) setStep(2); // Write Message → Policy Issues (skip AI Help step 3)
+        else if (step === 5) setStep(4); // Supporting Files → Write Message
+        else if (step === 7) setStep(5); // Personal Info → Supporting Files
+        else if (step === 8) setStep(7); // Review → Personal Info
+        else if (step === 10) setStep(8); // Success → Review
+        else if (step === 12) setStep(8); // Sending Error → Review
+      }
     } else {
-      // Bill contact back navigation
-      if (step === 2) return; // Can't go back from first step (Position)
-      else if (step === 3) setStep(2); // AI Help → Position
-      else if (step === 4) setStep(3); // Write Message → AI Help
-      else if (step === 5) setStep(4); // Upload Media → Write Message
-      else if (step === 6) setStep(5); // Select Reps → Upload Media
-      else if (step === 7) setStep(6); // Personal Info → Select Reps
-      else if (step === 8) setStep(7); // Review → Personal Info
-      else if (step === 9) setStep(8); // Delivery → Review
-      else if (step === 12) setStep(8); // Sending Error → Review
+      if (!user) {
+        // Bills/campaigns not logged in flow
+        if (step === 1) return; // Can't go back from first step (verification)
+        else if (step === 2) setStep(1); // Position → verification
+        else if (step === 3) setStep(2); // AI Help → Position
+        else if (step === 4) setStep(3); // Write Message → AI Help
+        else if (step === 5) setStep(4); // Supporting Files → Write Message
+        else if (step === 6) setStep(5); // Select Representatives → Supporting Files
+        else if (step === 7) setStep(6); // Personal Info → Select Representatives
+        else if (step === 8) setStep(7); // Review → Personal Info
+        else if (step === 9) setStep(8); // Delivery → Review
+        else if (step === 10) setStep(9); // Success → Delivery
+        else if (step === 12) setStep(8); // Sending Error → Review
+      } else {
+        // Bills/campaigns logged in flow (skip verification step 1 and delivery step 9)
+        if (step === 2) return; // Can't go back from first step (Position)
+        else if (step === 3) setStep(2); // AI Help → Position
+        else if (step === 4) setStep(3); // Write Message → AI Help
+        else if (step === 5) setStep(4); // Supporting Files → Write Message
+        else if (step === 6) setStep(5); // Select Representatives → Supporting Files
+        else if (step === 7) setStep(6); // Personal Info → Select Representatives
+        else if (step === 8) setStep(7); // Review → Personal Info
+        else if (step === 10) setStep(8); // Success → Review
+        else if (step === 12) setStep(8); // Sending Error → Review
+      }
     }
   };
 
@@ -1368,7 +1430,7 @@ const AdvocacyMessageContent: React.FC = () => {
           <Button
             onClick={() => {
               if (isMemberContact) {
-                setStep(7); // Go to personal info for member contact
+                setStep(5); // Go to supporting files for member contact
               } else {
                 setStep(5); // Go to upload media for regular flow
               }
@@ -1472,7 +1534,13 @@ const AdvocacyMessageContent: React.FC = () => {
             Back
           </Button>
           <Button
-            onClick={() => setStep(6)}
+            onClick={() => {
+              if (isMemberContact) {
+                setStep(7); // Go to personal info for member contact (skip select outreach)
+              } else {
+                setStep(6); // Go to select outreach for bills flow
+              }
+            }}
             size="lg"
           >
             Continue
@@ -3683,10 +3751,10 @@ We verify your voter registration to ensure your messages are taken seriously by
       {/* Step Content */}
       {step === 1 && renderRoutingStep()} {/* Help us verify that you are a registered voter */}
       {step === 2 && (isMemberContact ? renderStep2_PolicyIssues() : renderStep1_Position())} {/* Choose Your Position OR Policy Issues */}
-      {step === 3 && renderStep2_AIHelp()} {/* Get Help Writing (Optional) */}
+      {step === 3 && !isMemberContact && renderStep2_AIHelp()} {/* Get Help Writing (Optional) - Bills only */}
       {step === 4 && renderStep3_WriteMessage()} {/* Write Your Message */}
       {step === 5 && renderStep4_UploadMedia()} {/* Add Supporting Files (Optional) */}
-      {step === 6 && renderStep1()} {/* Select Outreach */}
+      {step === 6 && !isMemberContact && renderStep1()} {/* Select Outreach - Bills only */}
       {step === 7 && renderPersonalInfoStep()} {/* Personal Information */}
       {step === 8 && renderStep3()} {/* Review Message */}
       {step === 9 && renderDeliveryStep()} {/* Message Delivery */}
