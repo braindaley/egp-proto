@@ -680,7 +680,7 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
                   <div className="text-muted-foreground/50 text-sm">Mission Image</div>
                 </div>
                 <CardContent className="p-0 pt-6">
-                  <h2 className="text-xl font-bold mb-4">Features</h2>
+                  <h2 className="text-xl font-bold mb-4">What is eGutenbergPress?</h2>
                   <p className="text-muted-foreground mb-4">
                     <strong>Direct Impact</strong> - Send messages to policymakers in just a few clicks.
                   </p>
