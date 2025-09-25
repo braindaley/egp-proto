@@ -189,7 +189,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {chamberName && (
                 <div>
-                  <h4 className="font-semibold text-muted-foreground">{chamberName === 'House' ? 'House' : 'Senate'}</h4>
+                  <h4 className="font-semibold text-muted-foreground">Chamber</h4>
                   <p>{chamberName}</p>
                 </div>
               )}

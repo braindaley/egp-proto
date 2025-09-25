@@ -53,8 +53,36 @@ async function fetchMembers(
 
         allMembers.forEach((member: any) => {
             if (!member.terms?.item) return;
-            const hasSenateTerm = member.terms.item.some((term: any) => term.chamber === 'Senate');
-            if (hasSenateTerm) {
+
+            // Special case for Jim Banks - known to be a Senator for 119th Congress
+            // This is a temporary workaround until Congress API data is updated
+            if (member.bioguideId === 'B001299' && congress === '119') {
+                // Add a synthetic Senate term for 2025 so the MemberCard displays correctly
+                const syntheticSenateTerm = {
+                    startYear: 2025,
+                    endYear: null,
+                    chamber: 'Senate',
+                    memberType: 'Senator',
+                    stateCode: 'IN',
+                    party: member.partyName || 'Republican'
+                };
+
+                // Add the synthetic term to the beginning of the terms array
+                if (member.terms?.item) {
+                    member.terms.item = [syntheticSenateTerm, ...member.terms.item];
+                } else {
+                    member.terms = { item: [syntheticSenateTerm] };
+                }
+
+                senators.push(member);
+                return;
+            }
+
+            // Use the same logic as MemberCard: get the most recent term
+            const allTerms = [...member.terms.item].sort((a: any, b: any) => b.startYear - a.startYear);
+            const mostRecentTerm = allTerms[0];
+
+            if (mostRecentTerm && mostRecentTerm.chamber === 'Senate') {
                 senators.push(member);
             } else {
                 representatives.push(member);

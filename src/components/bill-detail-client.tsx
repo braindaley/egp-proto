@@ -22,14 +22,16 @@ import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 import { extractSubjectsFromApiResponse } from '@/lib/subjects';
 import { useWatchedBills } from '@/hooks/use-watched-bills';
 import { campaignsService } from '@/lib/campaigns';
+import { BillProgress, type BillProgressStage } from '@/components/BillProgress';
+import { RepresentativeVotes } from '@/components/RepresentativeVotes';
 
 const getBillStatus = (latestAction: any): string => {
     if (!latestAction?.text) return 'Introduced';
-    
+
     const actionText = latestAction.text.toLowerCase();
-    
-    if (actionText.includes('became law') || 
-        actionText.includes('signed into law') || 
+
+    if (actionText.includes('became law') ||
+        actionText.includes('signed into law') ||
         actionText.includes('became public law') ||
         actionText.includes('public law no') ||
         actionText.includes('signed by president')) {
@@ -47,8 +49,47 @@ const getBillStatus = (latestAction: any): string => {
     if (actionText.includes('committee') || actionText.includes('referred to')) {
         return 'In Committee';
     }
-    
+
     return 'Introduced';
+};
+
+const getBillProgressStage = (latestAction: any, actions?: any): BillProgressStage => {
+    if (!latestAction?.text && !actions) return 'introduced';
+
+    // Check all actions if available for a more accurate determination
+    const allActionsText = actions?.items?.map((a: any) => a.text?.toLowerCase()).join(' ') || '';
+    const latestActionText = latestAction?.text?.toLowerCase() || '';
+    const combinedText = allActionsText + ' ' + latestActionText;
+
+    if (combinedText.includes('became law') ||
+        combinedText.includes('signed into law') ||
+        combinedText.includes('became public law') ||
+        combinedText.includes('public law no') ||
+        combinedText.includes('signed by president')) {
+        return 'signed';
+    }
+
+    if (combinedText.includes('to president') ||
+        combinedText.includes('presented to president') ||
+        combinedText.includes('cleared for white house')) {
+        return 'to-sign';
+    }
+
+    // Check if passed both chambers
+    const passedHouse = combinedText.includes('passed house') ||
+                       (combinedText.includes('passed') && combinedText.includes('house'));
+    const passedSenate = combinedText.includes('passed senate') ||
+                        (combinedText.includes('passed') && combinedText.includes('senate'));
+
+    if (passedHouse && passedSenate) {
+        return 'to-sign';
+    } else if (passedSenate) {
+        return 'passed-senate';
+    } else if (passedHouse) {
+        return 'passed-house';
+    }
+
+    return 'introduced';
 };
 
 export function BillDetailClient({ bill }: { bill: Bill }) {
@@ -343,7 +384,21 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                   </p>
                 </div>
               )}
-              
+
+              {/* Bill Progress Timeline */}
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg flex justify-center">
+                <BillProgress stage={getBillProgressStage(bill.latestAction, bill.actions)} />
+              </div>
+
+              {/* Representative Votes Section */}
+              <RepresentativeVotes
+                congress={bill.congress!}
+                billType={bill.type!}
+                billNumber={bill.number!}
+                latestAction={bill.latestAction}
+                actions={bill.actions}
+              />
+
               {/* Campaigns Section */}
               {campaigns.length > 0 && (
                 <div className="mt-4 pt-4 border-t">

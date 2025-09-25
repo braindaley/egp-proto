@@ -18,14 +18,13 @@ function calculateYearsOfService(firstTermStartYear: number): number {
   return Math.max(1, currentYear - firstTermStartYear);
 }
 
-function getCurrentTerm(member: Member) {
+function getCurrentTerm(member: Member, congress?: string) {
   if (!member.terms?.item) return null;
-  const currentYear = new Date().getFullYear();
-  // Find a term that is currently active.
-  const activeTerm = member.terms.item.find(term => term.startYear <= currentYear && term.endYear >= currentYear);
-  if (activeTerm) return activeTerm;
-  // Fallback to the most recent term if no strictly active one is found
-  return [...member.terms.item].sort((a, b) => b.startYear - a.startYear)[0];
+
+  // Use the same logic as the detail page: get the most recent term
+  // Sort terms by startYear descending and take the first one
+  const allTerms = [...member.terms.item].sort((a, b) => b.startYear - a.startYear);
+  return allTerms[0] || null;
 }
 
 function getFirstTerm(member: Member) {
@@ -79,7 +78,7 @@ function getLeadershipPosition(member: Member): string | null {
 }
 
 export function MemberCard({ member, congress }: MemberCardProps) {
-  const currentTerm = getCurrentTerm(member);
+  const currentTerm = getCurrentTerm(member, congress);
   const firstTerm = getFirstTerm(member);
   const yearsOfService = firstTerm ? calculateYearsOfService(firstTerm.startYear) : 0;
   const currentlyServing = isCurrentlyServing(member);
@@ -87,9 +86,9 @@ export function MemberCard({ member, congress }: MemberCardProps) {
   const detailUrl = `/federal/congress/${congress}/states/${member.state.toLowerCase()}/${member.bioguideId}`;
   
   const partyColor = member.partyName === 'Democratic' || member.partyName === 'Democrat'
-    ? 'bg-blue-600' 
-    : member.partyName === 'Republican' 
-    ? 'bg-red-600' 
+    ? 'bg-blue-600'
+    : member.partyName === 'Republican'
+    ? 'bg-red-600'
     : 'bg-gray-500';
 
   const chamberDisplay = currentTerm?.chamber === 'Senate' ? 'Senator' : 'Representative';
