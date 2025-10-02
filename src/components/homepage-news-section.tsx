@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Eye, ExternalLink } from 'lucide-react';
+import { Eye, ExternalLink, ArrowRight } from 'lucide-react';
 import { campaignsService } from '@/lib/campaigns';
 import { useAuth } from '@/hooks/use-auth';
 import { HomeAdvocacySummary } from '@/components/home-advocacy-summary';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { BillProgress } from '@/components/BillProgress';
 
 interface NewsStory {
   id: number;
@@ -160,6 +161,19 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
   const allCampaigns = campaignsService.getAllCampaigns()
     .filter(campaign => campaign.isActive)
     .slice(0, 4); // Get first 4 campaigns
+
+  // Bill CTA for home news feed
+  const billCTA = {
+    id: 'bill-cta-climate',
+    type: 'billCTA',
+    billNumber: 'H.R. 3838',
+    billTitle: 'Clean Energy Innovation and Deployment Act',
+    aiOverview: 'This comprehensive climate bill establishes a framework to achieve net-zero emissions by 2050 through investments in renewable energy infrastructure, carbon capture technology, and green job creation.',
+    stage: 'passed-house' as const,
+    nextPhase: 'Voice your opinion before the Senate vote in April',
+    category: 'Climate, Energy & Environment',
+    url: '/federal/bill/119/hr/3838'
+  };
 
   // Helper to get state from zip code
   const getStateFromZip = (zip: string): { name: string; code: string } | null => {
@@ -682,16 +696,10 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
                 <CardContent className="p-0 pt-6">
                   <h2 className="text-xl font-bold mb-4">What is eGutenbergPress?</h2>
                   <p className="text-muted-foreground mb-4">
-                    <strong>Direct Impact</strong> - Send messages to policymakers in just a few clicks.
-                  </p>
-                  <p className="text-muted-foreground mb-4">
                     <strong>All-in-One Hub</strong> - Access everything you need for advocacy in one place: messages, updates, campaigns, and insights.
                   </p>
                   <p className="text-muted-foreground mb-4">
                     <strong>Personalized Advocacy</strong> - Verified voter info allows us to autofill your profile and letters with demographic context.
-                  </p>
-                  <p className="text-muted-foreground mb-4">
-                    <strong>Curated Updates</strong> - Stay informed with the latest bills, campaigns, and national + local news tailored to the issues you engage with.
                   </p>
                   <p className="text-muted-foreground mb-6">
                     <strong>Action Oriented</strong> - Support campaigns, explore issues you care about, and compare insights across districts to see how your community stacks up.

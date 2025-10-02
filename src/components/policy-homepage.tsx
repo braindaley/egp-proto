@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { X, ChevronDown, Eye, ThumbsUp, ThumbsDown, ArrowRight, ExternalLink } from 'lucide-react';
+import { BillProgress } from '@/components/BillProgress';
 import Link from 'next/link';
 import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
 import { campaignsService } from '@/lib/campaigns';
@@ -217,7 +218,7 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
   };
 
   // Get current user state
-  const currentUserState = getUserStateFromZip(zipCode || '90210');
+  const currentUserState = useMemo(() => getUserStateFromZip(zipCode || '90210'), [zipCode]);
 
   // Prepare issue categories for dropdown with "View all" option
   const issueCategories = useMemo(() => [
@@ -227,6 +228,120 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
       label: category
     }))
   ], []);
+
+  // Mock Bill CTA data - bills that have passed committee and house
+  const billCTAByCategory: Record<string, any> = {
+    'Abortion': {
+      id: 'bill-cta-abortion',
+      type: 'billCTA',
+      billNumber: 'H.R. 1234',
+      billTitle: 'Women\'s Health Protection Act',
+      aiOverview: 'This legislation would codify the right to access abortion services nationwide, superseding state-level restrictions. The bill includes protections for healthcare providers and ensures insurance coverage for reproductive health services.',
+      stage: 'passed-house',
+      nextPhase: 'Voice your opinion before the Senate vote',
+      category: 'Abortion',
+      url: '/federal/bill/119/hr/1234'
+    },
+    'Climate, Energy & Environment': {
+      id: 'bill-cta-climate',
+      type: 'billCTA',
+      billNumber: 'H.R. 3838',
+      billTitle: 'Clean Energy Innovation and Deployment Act',
+      aiOverview: 'This comprehensive climate bill establishes a framework to achieve net-zero emissions by 2050 through investments in renewable energy infrastructure, carbon capture technology, and green job creation. It includes tax incentives for clean energy adoption and penalties for excessive carbon emissions.',
+      stage: 'passed-house',
+      nextPhase: 'Voice your opinion before the Senate vote in April',
+      category: 'Climate, Energy & Environment',
+      url: '/federal/bill/119/hr/3838'
+    },
+    'Criminal Justice': {
+      id: 'bill-cta-criminal-justice',
+      type: 'billCTA',
+      billNumber: 'H.R. 2567',
+      billTitle: 'Second Chance Reauthorization Act',
+      aiOverview: 'This bill reauthorizes and expands the Second Chance Act, providing federal funding for reentry programs, job training, and substance abuse treatment for formerly incarcerated individuals. It aims to reduce recidivism rates and support successful community reintegration.',
+      stage: 'passed-house',
+      nextPhase: 'Voice your opinion before the Senate vote',
+      category: 'Criminal Justice',
+      url: '/federal/bill/119/hr/2567'
+    },
+    'Economy & Work': {
+      id: 'bill-cta-economy',
+      type: 'billCTA',
+      billNumber: 'H.R. 4521',
+      billTitle: 'Fair Wage and Worker Protection Act',
+      aiOverview: 'This legislation raises the federal minimum wage to $15 per hour over three years, strengthens collective bargaining rights, and enhances workplace safety protections. It includes provisions for paid family leave and prohibits wage theft.',
+      stage: 'passed-house',
+      nextPhase: 'Contact your Senator before the April vote',
+      category: 'Economy & Work',
+      url: '/federal/bill/119/hr/4521'
+    },
+    'Education': {
+      id: 'bill-cta-education',
+      type: 'billCTA',
+      billNumber: 'H.R. 3345',
+      billTitle: 'Student Debt Relief and College Affordability Act',
+      aiOverview: 'This bill provides $10,000 in student loan forgiveness for federal loan borrowers, makes community college tuition-free, and increases Pell Grant funding. It also caps loan repayment at 5% of discretionary income and expands access to income-driven repayment plans.',
+      stage: 'passed-house',
+      nextPhase: 'Voice your opinion before the Senate vote',
+      category: 'Education',
+      url: '/federal/bill/119/hr/3345'
+    },
+    'Gun Policy': {
+      id: 'bill-cta-gun',
+      type: 'billCTA',
+      billNumber: 'H.R. 8',
+      billTitle: 'Bipartisan Background Checks Act',
+      aiOverview: 'This legislation requires background checks for all firearm sales and transfers, including private transactions and gun shows. It includes exceptions for certain transfers between family members and temporary transfers for hunting or sporting events.',
+      stage: 'passed-house',
+      nextPhase: 'Contact your Senator before the critical April vote',
+      category: 'Gun Policy',
+      url: '/federal/bill/119/hr/8'
+    },
+    'Health Policy': {
+      id: 'bill-cta-health',
+      type: 'billCTA',
+      billNumber: 'H.R. 1976',
+      billTitle: 'Lower Drug Costs Now Act',
+      aiOverview: 'This bill empowers Medicare to negotiate prescription drug prices, caps out-of-pocket drug costs for seniors, and penalizes pharmaceutical companies for excessive price increases. It also invests savings into expanding dental, vision, and hearing coverage under Medicare.',
+      stage: 'passed-house',
+      nextPhase: 'Voice your opinion before the Senate vote',
+      category: 'Health Policy',
+      url: '/federal/bill/119/hr/1976'
+    },
+    'Immigration & Migration': {
+      id: 'bill-cta-immigration',
+      type: 'billCTA',
+      billNumber: 'H.R. 6',
+      billTitle: 'American Dream and Promise Act',
+      aiOverview: 'This legislation provides a pathway to citizenship for Dreamers, TPS holders, and DED recipients. It allows eligible individuals who came to the U.S. as children to apply for permanent residence and eventually citizenship, subject to background checks and other requirements.',
+      stage: 'passed-house',
+      nextPhase: 'Contact your Senator before the April vote',
+      category: 'Immigration & Migration',
+      url: '/federal/bill/119/hr/6'
+    },
+    'Privacy Rights': {
+      id: 'bill-cta-privacy',
+      type: 'billCTA',
+      billNumber: 'H.R. 2701',
+      billTitle: 'American Data Privacy and Protection Act',
+      aiOverview: 'This comprehensive data privacy bill establishes national standards for data collection, use, and transfer. It grants individuals rights to access, correct, and delete their personal data, and requires companies to minimize data collection and obtain consent for sensitive data processing.',
+      stage: 'passed-house',
+      nextPhase: 'Voice your opinion before the Senate vote',
+      category: 'Privacy Rights',
+      url: '/federal/bill/119/hr/2701'
+    },
+    'Technology Policy Issues': {
+      id: 'bill-cta-tech',
+      type: 'billCTA',
+      billNumber: 'H.R. 3611',
+      billTitle: 'AI Accountability and Transparency Act',
+      aiOverview: 'This bill establishes a regulatory framework for artificial intelligence systems, requiring impact assessments for high-risk AI applications, transparency in algorithmic decision-making, and prohibiting discriminatory AI practices. It creates an AI oversight body within the FTC.',
+      stage: 'passed-house',
+      nextPhase: 'Voice your opinion before the Senate vote in May',
+      category: 'Technology Policy Issues',
+      url: '/federal/bill/119/hr/3611'
+    }
+  };
 
   // State-specific news articles for each policy category
   const stateSpecificNewsByState: Record<string, Record<string, any>> = {
@@ -912,7 +1027,6 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
 
     // Add state-specific articles if available and appropriate for the filter
     if (stateSpecificArticles.length > 0) {
-      const selectedCategory = issueCategories.find(cat => cat.id === selectedFilter);
       if (selectedCategory) {
         const matchingStateArticles = stateSpecificArticles.filter(article =>
           article.category === selectedCategory.label
@@ -924,6 +1038,14 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
     // Combine stories and campaigns, then randomize
     const combinedContent = [...stories, ...campaigns];
     const shuffled = shuffleArray(combinedContent);
+
+    // Insert bill CTA in third position if available for this category
+    if (selectedCategory && selectedCategory.id !== 'view-all') {
+      const billCTA = billCTAByCategory[selectedCategory.label];
+      if (billCTA && shuffled.length >= 3) {
+        shuffled.splice(2, 0, billCTA); // Insert at index 2 (third position)
+      }
+    }
 
     return shuffled;
   };
@@ -1130,7 +1252,74 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
         {/* Main Content Container - All filtered stories */}
         <div className="md:snap-none snap-y snap-mandatory md:overflow-visible md:pb-8">
           {filteredStories.map((item, index) => {
-            if (item.type === 'campaign') {
+            if (item.type === 'billCTA') {
+              // Bill CTA Card
+              return (
+                <div key={item.id} className="md:mb-8 md:px-4 snap-start md:snap-none md:h-auto md:min-h-0 flex items-start pt-4 md:items-center md:pt-0 md:block">
+                  <Card className="relative my-2 md:my-0 w-full md:w-full overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background">
+                    {/* Mobile Layout */}
+                    <div className="md:hidden">
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Badge variant="default" className="text-sm px-3 py-1 font-bold">{item.billNumber}</Badge>
+                          <Badge variant="outline" className="text-xs px-2 py-1">Action Needed</Badge>
+                        </div>
+                        <h3 className="text-xl font-bold mb-4 leading-tight">{item.billTitle}</h3>
+
+                        <div className="mb-6">
+                          <h4 className="text-sm font-semibold mb-2 text-muted-foreground">AI Overview</h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{item.aiOverview}</p>
+                        </div>
+
+                        <div className="mb-6 bg-gray-50 rounded-lg p-4 flex justify-center">
+                          <BillProgress stage={item.stage} />
+                        </div>
+
+                        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center gap-4">
+                          <p className="text-sm font-semibold text-primary flex-1">{item.nextPhase}</p>
+                          <Button size="lg" className="text-base flex-shrink-0" asChild>
+                            <Link href="/advocacy-message">
+                              Voice your opinion
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </div>
+
+                    {/* Desktop Layout */}
+                    <div className="hidden md:block">
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Badge variant="default" className="text-xs px-2 py-1 font-bold">{item.billNumber}</Badge>
+                          <Badge variant="outline" className="text-xs px-2 py-1">Action Needed</Badge>
+                        </div>
+                        <h3 className="text-lg font-bold mb-3 leading-tight">{item.billTitle}</h3>
+
+                        <div className="mb-4">
+                          <h4 className="text-xs font-semibold mb-2 text-muted-foreground">AI Overview</h4>
+                          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{item.aiOverview}</p>
+                        </div>
+
+                        <div className="mb-4 bg-gray-50 rounded-lg p-3 flex justify-center">
+                          <BillProgress stage={item.stage} />
+                        </div>
+
+                        <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-center gap-3">
+                          <p className="text-xs font-semibold text-primary flex-1">{item.nextPhase}</p>
+                          <Button size="sm" className="text-xs flex-shrink-0" asChild>
+                            <Link href="/advocacy-message">
+                              Voice your opinion
+                              <ArrowRight className="ml-1 h-3 w-3" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </div>
+                  </Card>
+                </div>
+              );
+            } else if (item.type === 'campaign') {
               // Campaign Card
               const isSupport = item.position === 'Support';
               const badgeVariant = isSupport ? 'default' : 'destructive';

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type BillProgressStage = 'introduced' | 'passed-house' | 'passed-senate' | 'to-sign' | 'signed';
+export type BillProgressStage = 'introduced' | 'in-committee' | 'passed-house' | 'passed-senate' | 'to-sign' | 'signed';
 
 interface BillProgressProps {
   stage?: BillProgressStage;
@@ -8,9 +8,12 @@ interface BillProgressProps {
 }
 
 export function BillProgress({ stage = 'introduced', className = '' }: BillProgressProps) {
-  const stages: BillProgressStage[] = ['introduced', 'passed-house', 'passed-senate', 'to-sign', 'signed'];
-  const stageLabels = ['Introduced', 'Passed House', 'Passed Senate', 'To President', 'Signed'];
-  const currentStageIndex = stages.indexOf(stage);
+  const stages: BillProgressStage[] = ['in-committee', 'passed-house', 'passed-senate', 'to-sign', 'signed'];
+  const stageLabels = ['In Committee', 'Passed House', 'Passed Senate', 'To President', 'Signed'];
+
+  // Map 'introduced' to 'in-committee' for backward compatibility
+  const normalizedStage = stage === 'introduced' ? 'in-committee' : stage;
+  const currentStageIndex = stages.indexOf(normalizedStage);
 
   return (
     <div className={`flex gap-2 items-center ${className}`}>
