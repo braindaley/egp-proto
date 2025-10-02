@@ -160,7 +160,22 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
   // Get campaigns for the Recent Campaigns list
   const allCampaigns = campaignsService.getAllCampaigns()
     .filter(campaign => campaign.isActive)
-    .slice(0, 4); // Get first 4 campaigns
+    .slice(0, 3); // Get first 3 campaigns
+
+  // Add candidate campaign as 4th item
+  const candidateCampaign = {
+    id: 'candidate-1',
+    groupName: 'League of Women Voters',
+    groupSlug: 'league-of-women-voters',
+    position: 'Support',
+    bill: {
+      type: 'CANDIDATE',
+      number: '1',
+      title: 'Maria Alvarez vs James Whitman',
+      congress: 119
+    },
+    isActive: true
+  };
 
   // Bill CTA for home news feed
   const billCTA = {
@@ -810,7 +825,7 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
                   </Link>
                 </h3>
                 <ul className="space-y-2 list-disc list-inside">
-                  {allCampaigns.map(campaign => {
+                  {allCampaigns.map((campaign, index) => {
                     const isSupport = campaign.position === 'Support';
 
                     return (
@@ -830,6 +845,21 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
                       </li>
                     );
                   })}
+                  {/* Candidate Campaign as 4th item */}
+                  <li className="text-sm text-muted-foreground">
+                    <Link
+                      href={`/campaigns/${candidateCampaign.groupSlug}/candidate-${candidateCampaign.bill.number}`}
+                      className="hover:text-foreground transition-colors"
+                    >
+                      <span className="ml-[-5px]">
+                        <span className="font-medium">{candidateCampaign.groupName}</span>{' '}
+                        <span className="text-green-700">
+                          {candidateCampaign.position.toLowerCase()}s
+                        </span>{' '}
+                        {candidateCampaign.bill.title}
+                      </span>
+                    </Link>
+                  </li>
                 </ul>
               </div>
 

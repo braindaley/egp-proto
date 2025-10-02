@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink, Users, Calendar, BarChart, Mic, Edit, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { WatchButton } from '@/components/WatchButton';
+import CandidateCampaignCard from '@/components/candidate-campaign-card';
 import type { Bill, ApiCollection, Sponsor, Cosponsor, Committee, Summary, TextVersion, RelatedBill, Subject, PolicyArea } from '@/types';
 import { getBillTypeSlug } from '@/lib/utils';
 import { parseSimpleMarkdown } from '@/lib/markdown-utils';
@@ -178,12 +179,14 @@ export default function GroupDetailPage({ params }: { params: { groupName: strin
             // Process campaigns with data (simplified for client-side)
             const campaignsWithData = campaigns.map((campaign: any) => ({
                 id: campaign.id || Math.random().toString(),
+                campaignType: campaign.campaignType || 'Legislation',
                 bill: {
                     congress: campaign.congress || campaign.bill?.congress,
                     type: campaign.billType || campaign.bill?.type,
                     number: campaign.billNumber || campaign.bill?.number,
                     title: campaign.billTitle || campaign.bill?.title
                 },
+                candidate: campaign.candidate,
                 position: campaign.stance === 'support' ? 'Support' : campaign.stance === 'oppose' ? 'Oppose' : campaign.position,
                 reasoning: campaign.reasoning,
                 actionButtonText: campaign.actionButtonText,
@@ -282,13 +285,35 @@ export default function GroupDetailPage({ params }: { params: { groupName: strin
                         <h2 className="text-2xl font-bold font-headline text-center">Priority Legislation</h2>
                         <div className="space-y-4 md:space-y-6">
                             {priorityBillsWithData.map((item, index) => {
+                                // Render candidate campaigns with CandidateCampaignCard
+                                if ((item.campaignType === 'Candidate' || item.campaignType === 'Candidate Advocacy') && item.candidate) {
+                                    return (
+                                        <CandidateCampaignCard
+                                            key={index}
+                                            candidate1Name={item.candidate.candidate1Name}
+                                            candidate1Bio={item.candidate.candidate1Bio}
+                                            candidate2Name={item.candidate.candidate2Name}
+                                            candidate2Bio={item.candidate.candidate2Bio}
+                                            selectedCandidate={item.candidate.selectedCandidate}
+                                            position={item.position}
+                                            reasoning={item.reasoning}
+                                            actionButtonText={item.actionButtonText}
+                                            supportCount={item.supportCount}
+                                            opposeCount={item.opposeCount}
+                                            groupSlug={groupName}
+                                            groupName={groupData.name}
+                                        />
+                                    );
+                                }
+
+                                // Render legislation/issue campaigns with existing card structure
                                 const isSupport = item.position === 'Support';
                                 const badgeVariant = isSupport ? 'default' : 'destructive';
                                 const PositionIcon = isSupport ? ThumbsUp : ThumbsDown;
                                 const billTypeSlug = getBillTypeSlug(item.bill.type);
-                                
+
                                 const currentUserAction = userActions[item.id];
-                                
+
                                 return (
                                     <Card key={index} className="shadow-md hover:shadow-lg transition-shadow">
                                         <CardHeader className="pb-4">

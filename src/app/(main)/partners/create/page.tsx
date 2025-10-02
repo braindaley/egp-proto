@@ -68,11 +68,19 @@ function CreateCampaignPageContent() {
     const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
     const [selectedIssue, setSelectedIssue] = useState<SiteIssueCategory | null>(null);
     const [customIssue, setCustomIssue] = useState('');
-    const [position, setPosition] = useState<'Support' | 'Oppose'>('Support');
+    const [issueSpecificTitle, setIssueSpecificTitle] = useState('');
+    const [position, setPosition] = useState<string>('Support');
     const [reasoning, setReasoning] = useState('');
     const [actionButtonText, setActionButtonText] = useState('Voice your opinion');
     const [isSearching, setIsSearching] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Candidate campaign fields
+    const [candidate1Name, setCandidate1Name] = useState('');
+    const [candidate1Bio, setCandidate1Bio] = useState('');
+    const [candidate2Name, setCandidate2Name] = useState('');
+    const [candidate2Bio, setCandidate2Bio] = useState('');
+    const [selectedCandidate, setSelectedCandidate] = useState<1 | 2>(1);
 
     // Debounced search function
     const searchBills = useCallback(
@@ -106,8 +114,13 @@ function CreateCampaignPageContent() {
     const handleSave = async () => {
         // Validate required fields based on campaign type
         if (campaignType === 'Issue') {
-            if (!selectedGroup || (!selectedIssue && !customIssue) || !reasoning) {
+            if (!selectedGroup || !selectedIssue || !issueSpecificTitle || !reasoning) {
                 alert('Please fill in all required fields');
+                return;
+            }
+        } else if (campaignType === 'Candidate Advocacy') {
+            if (!selectedGroup || !candidate1Name || !candidate2Name || !reasoning) {
+                alert('Please fill in all required fields (both candidate names and reasoning)');
                 return;
             }
         } else {
@@ -131,16 +144,34 @@ function CreateCampaignPageContent() {
                 campaignType
             };
 
-            if (campaignType === 'Issue') {
+            if (campaignType === 'Candidate Advocacy') {
+                // For Candidate campaigns
+                requestBody = {
+                    ...requestBody,
+                    candidate: {
+                        candidate1Name,
+                        candidate1Bio,
+                        candidate2Name,
+                        candidate2Bio,
+                        selectedCandidate
+                    },
+                    // Use candidate data for display
+                    billTitle: `${candidate1Name} vs ${candidate2Name}`,
+                    billType: 'CANDIDATE',
+                    billNumber: `${selectedCandidate}`,
+                    congress: '119' // Default congress for categorization
+                };
+            } else if (campaignType === 'Issue') {
                 // For Issue campaigns
-                const issueTitle = selectedIssue || customIssue;
+                const issueTitle = selectedIssue;
                 requestBody = {
                     ...requestBody,
                     issueTitle,
+                    issueSpecificTitle,
                     // Use issue data instead of bill data
-                    billTitle: issueTitle,
+                    billTitle: issueSpecificTitle,
                     billType: 'ISSUE',
-                    billNumber: issueTitle?.replace(/[^a-z0-9-]/g, '').toLowerCase() || 'custom-issue',
+                    billNumber: issueTitle?.replace(/[^a-z0-9-]/g, '').toLowerCase() || 'issue',
                     congress: '119' // Default congress for categorization
                 };
             } else {
@@ -250,19 +281,15 @@ function CreateCampaignPageContent() {
                         </Select>
                     </div>
 
-                    {/* Bill Search or Issue Selection */}
+                    {/* Bill Search, Issue Selection, or Candidate Entry */}
                     {campaignType === 'Issue' ? (
                         <div className="space-y-2">
                             <Label htmlFor="issue-select">Select Issue *</Label>
                             <Select
                                 value={selectedIssue || ''}
                                 onValueChange={(value) => {
-                                    if (value === 'other') {
-                                        setSelectedIssue(null);
-                                    } else {
-                                        setSelectedIssue(value as SiteIssueCategory);
-                                        setCustomIssue('');
-                                    }
+                                    setSelectedIssue(value as SiteIssueCategory);
+                                    setCustomIssue('');
                                 }}
                             >
                                 <SelectTrigger id="issue-select">
@@ -274,34 +301,77 @@ function CreateCampaignPageContent() {
                                             {issue}
                                         </SelectItem>
                                     ))}
-                                    <SelectItem value="other">Other (specify below)</SelectItem>
                                 </SelectContent>
                             </Select>
 
-                            {/* Custom Issue Input */}
-                            {!selectedIssue && (
+                            {/* Issue Specific Title */}
+                            {selectedIssue && (
                                 <div className="space-y-2">
-                                    <Label htmlFor="custom-issue">Custom Issue *</Label>
+                                    <Label htmlFor="issue-specific-title">Issue Specific Title *</Label>
                                     <Input
-                                        id="custom-issue"
-                                        placeholder="Enter your custom issue"
-                                        value={customIssue}
-                                        onChange={(e) => setCustomIssue(e.target.value)}
+                                        id="issue-specific-title"
+                                        placeholder="e.g., Protect Voting Rights Act, Clean Water Initiative"
+                                        value={issueSpecificTitle}
+                                        onChange={(e) => setIssueSpecificTitle(e.target.value)}
                                     />
+                                    <p className="text-xs text-muted-foreground">
+                                        This will appear as the title on the campaign card
+                                    </p>
                                 </div>
                             )}
-
-                            {/* Selected Issue Display */}
-                            {(selectedIssue || customIssue) && (
-                                <Card className="mt-2 bg-secondary/50">
-                                    <CardContent className="p-4">
-                                        <div className="font-medium">Selected Issue: {selectedIssue || customIssue}</div>
-                                        <div className="text-sm text-muted-foreground">
-                                            This campaign will focus on the {selectedIssue || customIssue} issue
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )}
+                        </div>
+                    ) : campaignType === 'Candidate Advocacy' ? (
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="candidate1-name">Candidate 1 Name *</Label>
+                                <Input
+                                    id="candidate1-name"
+                                    placeholder="e.g., John Smith"
+                                    value={candidate1Name}
+                                    onChange={(e) => setCandidate1Name(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="candidate1-bio">Candidate 1 Bio (Optional)</Label>
+                                <Textarea
+                                    id="candidate1-bio"
+                                    placeholder="Brief background about this candidate"
+                                    value={candidate1Bio}
+                                    onChange={(e) => setCandidate1Bio(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="candidate2-name">Candidate 2 Name *</Label>
+                                <Input
+                                    id="candidate2-name"
+                                    placeholder="e.g., Jane Doe"
+                                    value={candidate2Name}
+                                    onChange={(e) => setCandidate2Name(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="candidate2-bio">Candidate 2 Bio (Optional)</Label>
+                                <Textarea
+                                    id="candidate2-bio"
+                                    placeholder="Brief background about this candidate"
+                                    value={candidate2Bio}
+                                    onChange={(e) => setCandidate2Bio(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Which candidate does your organization support? *</Label>
+                                <Select value={selectedCandidate.toString()} onValueChange={(value) => setSelectedCandidate(parseInt(value) as 1 | 2)}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="1">{candidate1Name || 'Candidate 1'}</SelectItem>
+                                        <SelectItem value="2">{candidate2Name || 'Candidate 2'}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     ) : (
                         <div className="space-y-2">
@@ -370,32 +440,46 @@ function CreateCampaignPageContent() {
                     )}
 
                     {/* Position */}
-                    <div className="space-y-2">
-                        <Label htmlFor="position">
-                            {campaignType === 'Issue'
-                                ? `Choose Your Position on ${selectedIssue || customIssue || 'this issue'}. Do you support or oppose this issue?`
-                                : 'Position *'
-                            }
-                        </Label>
-                        <Select value={position} onValueChange={(value) => setPosition(value as 'Support' | 'Oppose')}>
-                            <SelectTrigger id="position">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Support">Support</SelectItem>
-                                <SelectItem value="Oppose">Oppose</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {campaignType !== 'Candidate Advocacy' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="position">
+                                {campaignType === 'Issue'
+                                    ? `Your Position on ${selectedIssue || 'this issue'} *`
+                                    : 'Position *'
+                                }
+                            </Label>
+                            {campaignType === 'Issue' ? (
+                                <Input
+                                    id="position"
+                                    placeholder="e.g., Support, Oppose, Reform Needed, etc."
+                                    value={position}
+                                    onChange={(e) => setPosition(e.target.value as any)}
+                                />
+                            ) : (
+                            <Select value={position} onValueChange={(value) => setPosition(value as 'Support' | 'Oppose')}>
+                                <SelectTrigger id="position">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Support">Support</SelectItem>
+                                    <SelectItem value="Oppose">Oppose</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            )}
+                        </div>
+                    )}
 
                     {/* Reasoning */}
                     <div className="space-y-2">
                         <Label htmlFor="reasoning">Reasoning *</Label>
                         <Textarea
                             id="reasoning"
-                            placeholder={campaignType === 'Issue'
-                                ? "Explain why your organization supports or opposes this issue. You can use Markdown formatting."
-                                : "Explain why your organization supports or opposes this bill. You can use Markdown formatting."
+                            placeholder={
+                                campaignType === 'Issue'
+                                    ? "Explain why your organization supports or opposes this issue. You can use Markdown formatting."
+                                    : campaignType === 'Candidate Advocacy'
+                                    ? `Explain why your organization supports ${selectedCandidate === 1 ? (candidate1Name || 'Candidate 1') : (candidate2Name || 'Candidate 2')}. You can use Markdown formatting.`
+                                    : "Explain why your organization supports or opposes this bill. You can use Markdown formatting."
                             }
                             value={reasoning}
                             onChange={(e) => setReasoning(e.target.value)}
@@ -426,7 +510,9 @@ function CreateCampaignPageContent() {
                                 !selectedGroup ||
                                 !reasoning ||
                                 isSaving ||
-                                (campaignType === 'Issue' ? (!selectedIssue && !customIssue) : !selectedBill)
+                                (campaignType === 'Issue' ? (!selectedIssue || !issueSpecificTitle) :
+                                 campaignType === 'Candidate Advocacy' ? (!candidate1Name || !candidate2Name) :
+                                 !selectedBill)
                             }
                         >
                             {isSaving ? (

@@ -24,14 +24,20 @@ interface AdvocacyBillCardProps {
     opposeCount: number;
     groupSlug?: string;
     groupName?: string;
+    campaignType?: 'Legislation' | 'Issue';
+    issueCategory?: string;
 }
 
-const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning, actionButtonText, supportCount, opposeCount, groupSlug, groupName }) => {
+const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning, actionButtonText, supportCount, opposeCount, groupSlug, groupName, campaignType, issueCategory }) => {
     const { user } = useAuth();
     const { isWatchedBill, toggleWatchBill } = useWatchedBills();
     const router = useRouter();
-    const isWatched = isWatchedBill(bill.congress!, bill.type!, bill.number!);
-    if (!bill.type || !bill.number || !bill.congress) {
+
+    // For Issue campaigns, skip validation checks
+    const isIssueCampaign = campaignType === 'Issue';
+    const isWatched = !isIssueCampaign ? isWatchedBill(bill.congress!, bill.type!, bill.number!) : false;
+
+    if (!isIssueCampaign && (!bill.type || !bill.number || !bill.congress)) {
       return (
         <Card className="flex flex-col h-full items-center justify-center text-center">
             <CardHeader>
@@ -44,17 +50,26 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
       )
     }
 
-    const billId = `${bill.type.toUpperCase()} ${bill.number}`;
-    const billTitle = bill.title || `Legislation ${billId}`;
-    const billTypeSlug = getBillTypeSlug(bill.type);
+    const billId = isIssueCampaign ? issueCategory || bill.title : `${bill.type!.toUpperCase()} ${bill.number}`;
+    const billTitle = bill.title || (isIssueCampaign ? 'Issue Campaign' : `Legislation ${billId}`);
+    const billTypeSlug = !isIssueCampaign ? getBillTypeSlug(bill.type!) : '';
+
+    // For Issue campaigns, create a formatted title: "Education: Department of Education"
+    const displayTitle = isIssueCampaign && issueCategory
+        ? `${issueCategory}: ${billTitle}`
+        : billTitle;
 
     const isSupport = position.toLowerCase() === 'support';
     const badgeVariant = isSupport ? 'default' : 'destructive';
     const PositionIcon = isSupport ? ThumbsUp : ThumbsDown;
 
     const handleVoiceOpinionClick = () => {
-        // Always go directly to advocacy message page - verification is now handled in Step 3
-        router.push(`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}`);
+        // For Issue campaigns, use issue parameter; for Legislation, use bill parameters
+        if (isIssueCampaign && issueCategory) {
+            router.push(`/advocacy-message?issue=${encodeURIComponent(issueCategory)}`);
+        } else {
+            router.push(`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}`);
+        }
     };
 
 
@@ -69,8 +84,8 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                             <p className="text-sm font-medium text-muted-foreground">
                                 {groupName} urges you to {position.toLowerCase()} {billId}
                             </p>
-                            <Badge variant={badgeVariant} className="flex items-center gap-2 text-sm px-2 py-1 shrink-0">
-                                <PositionIcon className="h-3 w-3" />
+                            <Badge variant={badgeVariant} className={`flex items-center ${isIssueCampaign ? '' : 'gap-2'} text-sm px-2 py-1 shrink-0`}>
+                                {!isIssueCampaign && PositionIcon && <PositionIcon className="h-3 w-3" />}
                                 <span>{position}</span>
                             </Badge>
                         </div>
@@ -78,9 +93,13 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                     
                     {/* 3. H2: Bill Short Title */}
                     <CardTitle className="text-lg sm:text-xl font-bold leading-tight">
-                        <Link href={`/federal/bill/${bill.congress}/${billTypeSlug}/${bill.number}`} className="hover:underline">
-                            {billTitle}
-                        </Link>
+                        {isIssueCampaign ? (
+                            <span>{displayTitle}</span>
+                        ) : (
+                            <Link href={`/federal/bill/${bill.congress}/${billTypeSlug}/${bill.number}`} className="hover:underline">
+                                {billTitle}
+                            </Link>
+                        )}
                     </CardTitle>
                 </div>
             </CardHeader>

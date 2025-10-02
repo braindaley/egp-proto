@@ -17,6 +17,7 @@ import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
 import { campaignsService } from '@/lib/campaigns';
 import { PopularBills } from '@/components/popular-bills';
 import { HomepageNewsSection } from '@/components/homepage-news-section';
+import { CandidateCampaignFeedCard } from '@/components/candidate-campaign-feed-card';
 import { useZipCode } from '@/hooks/use-zip-code';
 
 export default function Home() {
@@ -224,7 +225,8 @@ export default function Home() {
       stage: 'passed-house',
       nextPhase: 'Voice your opinion before the Senate vote in April',
       category: 'Climate, Energy & Environment',
-      url: '/federal/bill/119/hr/3838'
+      url: '/federal/bill/119/hr/3838',
+      congress: '119'
     },
     'Economy & Work': {
       id: 'bill-cta-economy',
@@ -235,7 +237,8 @@ export default function Home() {
       stage: 'passed-house',
       nextPhase: 'Contact your Senator before the April vote',
       category: 'Economy & Work',
-      url: '/federal/bill/119/hr/4521'
+      url: '/federal/bill/119/hr/4521',
+      congress: '119'
     },
     'Gun Policy': {
       id: 'bill-cta-gun',
@@ -246,7 +249,8 @@ export default function Home() {
       stage: 'passed-house',
       nextPhase: 'Contact your Senator before the critical April vote',
       category: 'Gun Policy',
-      url: '/federal/bill/119/hr/8'
+      url: '/federal/bill/119/hr/8',
+      congress: '119'
     }
   };
 
@@ -858,7 +862,10 @@ export default function Home() {
     billTitle: campaign.bill.title || `${campaign.bill.type} ${campaign.bill.number}`,
     description: campaign.reasoning,
     supportCount: campaign.supportCount,
-    opposeCount: campaign.opposeCount
+    opposeCount: campaign.opposeCount,
+    congress: campaign.bill.congress || '119',
+    billType: campaign.bill.type,
+    billNumberOnly: campaign.bill.number
   }));
 
 
@@ -940,6 +947,46 @@ export default function Home() {
       const climateBillCTA = billCTAByCategory['Climate, Energy & Environment'];
       if (climateBillCTA && shuffled.length >= 2) {
         shuffled.splice(2, 0, climateBillCTA); // Insert at index 2 (third position)
+      }
+
+      // Insert Education Issue campaign at position 4 (index 3) for for-you feed
+      const educationIssueCampaign = {
+        id: 'education-dept-education-issue',
+        type: 'campaign',
+        organization: 'League of Women Voters',
+        groupSlug: 'league-of-women-voters',
+        position: 'Save the Dept of Education',
+        policyIssue: 'Education',
+        billNumber: 'Education',
+        billTitle: 'Department of Education',
+        description: 'The Department of Education plays a crucial role in ensuring equal access to quality education for all Americans. We must protect federal support for schools, students, and educators.',
+        supportCount: 0,
+        opposeCount: 0,
+        issueCategory: 'Education' // Add issue category for pre-selection
+      };
+      if (shuffled.length >= 3) {
+        shuffled.splice(3, 0, educationIssueCampaign); // Insert at index 3 (fourth position)
+      }
+
+      // Insert Candidate campaign at position 5 (index 4) for for-you feed
+      const candidateCampaign = {
+        id: 'candidate-maria-alvarez',
+        type: 'candidateCampaign',
+        organization: 'League of Women Voters',
+        groupSlug: 'league-of-women-voters',
+        position: 'Support',
+        policyIssue: 'National Conditions',
+        candidate1Name: 'Maria Alvarez',
+        candidate1Bio: 'Maria Alvarez is a community organizer who has spent the last 15 years fighting for affordable housing and small business growth in her district.',
+        candidate2Name: 'James Whitman',
+        candidate2Bio: 'James Whitman is a former technology executive and veteran who believes in modernizing government through innovation.',
+        selectedCandidate: 1,
+        reasoning: 'The League of Women Voters supports Maria Alvarez because she has a clear track record of putting people first. She\'s spent years working at the community level, pushing for affordable housing, stronger renter protections, and opportunities for small businesses.',
+        supportCount: 0,
+        opposeCount: 0
+      };
+      if (shuffled.length >= 4) {
+        shuffled.splice(4, 0, candidateCampaign); // Insert at index 4 (fifth position)
       }
     }
 
@@ -1079,7 +1126,7 @@ export default function Home() {
                       <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center gap-4">
                         <p className="text-sm font-semibold text-primary flex-1">{item.nextPhase}</p>
                         <Button size="lg" className="text-base flex-shrink-0" asChild>
-                          <Link href="/advocacy-message">
+                          <Link href={`/advocacy-message?congress=${item.congress || '119'}&type=${item.billNumber.split(' ')[0].replace(/\./g, '')}&number=${item.billNumber.split(' ')[1]}`}>
                             Voice your opinion
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Link>
@@ -1109,7 +1156,7 @@ export default function Home() {
                       <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-center gap-3">
                         <p className="text-xs font-semibold text-primary flex-1">{item.nextPhase}</p>
                         <Button size="sm" className="text-xs flex-shrink-0" asChild>
-                          <Link href="/advocacy-message">
+                          <Link href={`/advocacy-message?congress=${item.congress || '119'}&type=${item.billNumber.split(' ')[0].replace(/\./g, '')}&number=${item.billNumber.split(' ')[1]}`}>
                             Voice your opinion
                             <ArrowRight className="ml-1 h-3 w-3" />
                           </Link>
@@ -1123,8 +1170,16 @@ export default function Home() {
           } else if (item.type === 'campaign') {
             // Campaign Card
             const isSupport = item.position === 'Support';
-            const badgeVariant = isSupport ? 'default' : 'destructive';
-            const PositionIcon = isSupport ? ThumbsUp : ThumbsDown;
+            const isOppose = item.position === 'Oppose';
+            const badgeVariant = isSupport ? 'default' : isOppose ? 'destructive' : 'secondary';
+            const PositionIcon = isSupport ? ThumbsUp : isOppose ? ThumbsDown : null;
+
+            // Build advocacy URL with query params if bill info is available
+            const advocacyUrl = item.billType && item.billNumberOnly
+              ? `/advocacy-message?congress=${item.congress || '119'}&type=${item.billType.toUpperCase()}&number=${item.billNumberOnly}`
+              : item.issueCategory
+                ? `/advocacy-message?issue=${encodeURIComponent(item.issueCategory)}`
+                : '/advocacy-message';
 
             return (
               <div key={item.id} className="md:mb-8 md:px-4 snap-start md:snap-none md:h-auto md:min-h-0 flex items-start pt-4 md:items-center md:pt-0 md:block">
@@ -1138,16 +1193,16 @@ export default function Home() {
                       <div className="mb-6">
                         <div className="text-base text-muted-foreground font-semibold mb-3">{item.organization}</div>
                         <Badge variant={badgeVariant} className="flex items-center gap-1 text-base px-4 py-2 w-fit">
-                          <PositionIcon className="h-5 w-5" />
+                          {PositionIcon && <PositionIcon className="h-5 w-5" />}
                           <span>{item.position}</span>
                         </Badge>
                       </div>
                       <h3 className="text-2xl font-bold mb-8 line-clamp-2 leading-tight">{item.billNumber}: {item.billTitle}</h3>
-                      <p className="text-muted-foreground text-lg mb-8 flex-1 overflow-hidden leading-relaxed">{item.description}</p>
+                      <p className="text-muted-foreground text-lg mb-8 flex-1 overflow-hidden leading-relaxed line-clamp-3">{item.description}</p>
 
                       <div className="flex items-center justify-between mt-auto">
                         <Button size="lg" variant="outline" className="text-base px-6 py-3" asChild>
-                          <Link href={`/campaigns/${item.groupSlug}/${item.billNumber.toLowerCase().replace(' ', '-')}`}>
+                          <Link href={advocacyUrl}>
                             {item.position} Issue
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Link>
@@ -1166,7 +1221,7 @@ export default function Home() {
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-xs text-muted-foreground">{item.organization}</div>
                         <Badge variant={badgeVariant} className="flex items-center gap-1 text-xs px-2 py-1">
-                          <PositionIcon className="h-3 w-3" />
+                          {PositionIcon && <PositionIcon className="h-3 w-3" />}
                           <span>{item.position}</span>
                         </Badge>
                       </div>
@@ -1174,7 +1229,7 @@ export default function Home() {
                       <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{item.description}</p>
                       <div className="flex items-center justify-between">
                         <Button size="sm" variant="outline" className="text-xs" asChild>
-                          <Link href={`/campaigns/${item.groupSlug}/${item.billNumber.toLowerCase().replace(' ', '-')}`}>
+                          <Link href={advocacyUrl}>
                             {item.position} Issue
                             <ArrowRight className="ml-1 h-3 w-3" />
                           </Link>
@@ -1186,12 +1241,31 @@ export default function Home() {
                 </Card>
               </div>
             );
+          } else if (item.type === 'candidateCampaign') {
+            // Candidate Campaign Card
+            return (
+              <div key={item.id} className="md:mb-8 md:px-4 snap-start md:snap-none md:h-auto md:min-h-0 flex items-start pt-4 md:items-center md:pt-0 md:block">
+                <CandidateCampaignFeedCard
+                  candidate1Name={item.candidate1Name}
+                  candidate1Bio={item.candidate1Bio}
+                  candidate2Name={item.candidate2Name}
+                  candidate2Bio={item.candidate2Bio}
+                  selectedCandidate={item.selectedCandidate}
+                  position={item.position}
+                  reasoning={item.reasoning}
+                  supportCount={item.supportCount}
+                  opposeCount={item.opposeCount}
+                  groupSlug={item.groupSlug}
+                  groupName={item.organization}
+                  policyIssue={item.policyIssue}
+                />
+              </div>
+            );
           } else {
             // News Story Card
             return (
               <div key={item.id} className="md:mb-8 md:px-4 snap-start md:snap-none md:h-auto md:min-h-0 flex items-start pt-4 md:items-center md:pt-0 md:block">
-                <Link href={`/article/${item.id}`}>
-                  <Card className="relative my-2 md:my-0 w-full md:w-full overflow-hidden md:h-auto hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="relative my-2 md:my-0 w-full md:w-full overflow-hidden md:h-auto">
                   {/* Mobile Layout - Image on top */}
                   <div className="md:hidden">
                     <div className="relative w-full aspect-square bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
@@ -1206,7 +1280,9 @@ export default function Home() {
                           <Badge variant="default" className="text-xs px-2 py-1">{item.state}</Badge>
                         </div>
                       )}
-                      <h3 className="text-lg font-bold mb-3 line-clamp-2">{item.headline}</h3>
+                      <Link href={`/article/${item.id}`}>
+                        <h3 className="text-lg font-bold mb-3 line-clamp-2 hover:underline cursor-pointer">{item.headline}</h3>
+                      </Link>
                       {!item.state && (
                         <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                           Congressional leaders advance comprehensive legislative package addressing key policy priorities. Advocacy organizations mobilize grassroots support for upcoming committee hearings and floor votes.
@@ -1226,8 +1302,10 @@ export default function Home() {
                         <span className="hover:underline cursor-pointer">NPR</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <Button size="sm" variant="outline" className="text-xs">
-                          Voice Opinion
+                        <Button size="sm" variant="outline" className="text-xs" asChild>
+                          <Link href={`/advocacy-message?issue=${encodeURIComponent(item.category)}`}>
+                            Voice Opinion
+                          </Link>
                         </Button>
                         <Eye className="h-4 w-4 text-muted-foreground" />
                       </div>
@@ -1248,7 +1326,9 @@ export default function Home() {
                           <Badge variant="default" className="text-xs px-2 py-1">{item.state}</Badge>
                         </div>
                       )}
-                      <h3 className="text-lg font-bold mb-3 line-clamp-2">{item.headline}</h3>
+                      <Link href={`/article/${item.id}`}>
+                        <h3 className="text-lg font-bold mb-3 line-clamp-2 hover:underline cursor-pointer">{item.headline}</h3>
+                      </Link>
                       {!item.state && (
                         <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                           Bipartisan coalition works to advance critical legislation addressing national priorities. Key stakeholders engage in strategic advocacy efforts as bill moves through legislative process.
@@ -1268,15 +1348,16 @@ export default function Home() {
                         <span className="hover:underline cursor-pointer">Reuters</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <Button size="sm" variant="outline" className="text-xs">
-                          Voice Opinion
+                        <Button size="sm" variant="outline" className="text-xs" asChild>
+                          <Link href={`/advocacy-message?issue=${encodeURIComponent(item.category)}`}>
+                            Voice Opinion
+                          </Link>
                         </Button>
                         <Eye className="h-4 w-4 text-muted-foreground" />
                       </div>
                     </CardContent>
                   </div>
-                  </Card>
-                </Link>
+                </Card>
               </div>
             );
           }

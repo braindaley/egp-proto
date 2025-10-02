@@ -19,6 +19,7 @@ import { useMembersByZip } from '@/hooks/useMembersByZip';
 import { SummaryDisplay } from '@/components/bill-summary-display';
 import Link from 'next/link';
 import type { Member, Bill, Sponsor } from '@/types';
+import { AdvocacyMessageCandidate } from '@/components/AdvocacyMessageCandidate';
 
 // Helper function to fetch bill details
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
@@ -184,9 +185,36 @@ const AdvocacyMessageContent: React.FC = () => {
   const billNumber = searchParams.get('number');
   const memberBioguideId = searchParams.get('member');
   const isVerified = searchParams.get('verified') === 'true';
+  const policyIssueParam = searchParams.get('issue');
+  const candidate1Name = searchParams.get('candidate1');
+  const candidate2Name = searchParams.get('candidate2');
+  const candidate1Bio = searchParams.get('candidate1Bio');
+  const candidate2Bio = searchParams.get('candidate2Bio');
 
   // Check if this is a member contact flow (not bill-specific)
-  const isMemberContact = !!memberBioguideId && !billType && !billNumber;
+  // Either has member param OR has issue param but no bill params
+  const isMemberContact = (!!memberBioguideId && !billType && !billNumber) ||
+                          (!!policyIssueParam && !billType && !billNumber && !memberBioguideId);
+
+  // Check if this is a candidate campaign flow
+  const isCandidateFlow = !!candidate1Name && !!candidate2Name;
+
+  // Determine which flow to use and render appropriate component
+  // TODO: Split into separate components for better maintainability
+  // - AdvocacyMessageBill: for legislation (has congress, type, number)
+  // - AdvocacyMessageIssue: for issues, member contact, news (has issue or member params)
+  // - AdvocacyMessageCandidate: for candidate campaigns (has candidate1, candidate2)
+
+  if (isCandidateFlow) {
+    return (
+      <AdvocacyMessageCandidate
+        candidate1Name={candidate1Name!}
+        candidate1Bio={candidate1Bio || undefined}
+        candidate2Name={candidate2Name!}
+        candidate2Bio={candidate2Bio || undefined}
+      />
+    );
+  }
 
   // Check for verified user from session storage
   useEffect(() => {
@@ -415,6 +443,13 @@ const AdvocacyMessageContent: React.FC = () => {
 
     fetchMember();
   }, [isMemberContact, memberBioguideId]);
+
+  // Pre-select policy issue from URL parameter
+  useEffect(() => {
+    if (policyIssueParam && !selectedPolicyIssues.includes(policyIssueParam)) {
+      setSelectedPolicyIssues([policyIssueParam]);
+    }
+  }, [policyIssueParam]);
 
   // Prepare available members
   useEffect(() => {
@@ -1242,18 +1277,26 @@ const AdvocacyMessageContent: React.FC = () => {
   // Step 2: Policy Issues (for member contact flow)
   const renderStep2_PolicyIssues = () => {
     const policyIssues = [
-      'Climate, Energy and Environment',
-      'Economy and Work',
-      'Education',
-      'Healthcare',
-      'Immigration and Migration',
+      'Abortion',
+      'Climate, Energy & Environment',
       'Criminal Justice',
-      'Housing',
-      'Social Security and Medicare',
+      'Death Penalty',
+      'Defense & National Security',
+      'Discrimination & Prejudice',
+      'Drug Policy',
+      'Economy & Work',
+      'Education',
+      'Free Speech & Press',
+      'Gun Policy',
+      'Health Policy',
+      'Immigration & Migration',
+      'International Affairs',
+      'LGBT Acceptance',
+      'National Conditions',
       'Privacy Rights',
-      'Free Speech and Press',
-      'Religion and Government',
-      'Other'
+      'Religion & Government',
+      'Social Security & Medicare',
+      'Technology Policy Issues'
     ];
 
     return (

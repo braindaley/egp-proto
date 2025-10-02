@@ -57,12 +57,19 @@ export default function EditCampaignPage() {
     const params = useParams();
     const { user, loading: authLoading } = useAuth();
     const [campaign, setCampaign] = useState<Campaign | null>(null);
-    const [position, setPosition] = useState<'Support' | 'Oppose'>('Support');
+    const [position, setPosition] = useState<string>('Support');
     const [reasoning, setReasoning] = useState('');
     const [actionButtonText, setActionButtonText] = useState('Voice your opinion');
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Candidate fields
+    const [candidate1Name, setCandidate1Name] = useState('');
+    const [candidate1Bio, setCandidate1Bio] = useState('');
+    const [candidate2Name, setCandidate2Name] = useState('');
+    const [candidate2Bio, setCandidate2Bio] = useState('');
+    const [selectedCandidate, setSelectedCandidate] = useState<1 | 2>(1);
 
     const groupSlug = params?.groupSlug as string;
     const campaignId = params?.id as string;
@@ -96,6 +103,15 @@ export default function EditCampaignPage() {
                 setPosition(foundCampaign.stance === 'support' ? 'Support' : foundCampaign.stance === 'oppose' ? 'Oppose' : foundCampaign.position || 'Support');
                 setReasoning(foundCampaign.reasoning || '');
                 setActionButtonText(foundCampaign.actionButtonText || 'Voice your opinion');
+
+                // Set candidate fields if this is a candidate campaign
+                if ((foundCampaign.campaignType === 'Candidate' || foundCampaign.campaignType === 'Candidate Advocacy') && foundCampaign.candidate) {
+                    setCandidate1Name(foundCampaign.candidate.candidate1Name || '');
+                    setCandidate1Bio(foundCampaign.candidate.candidate1Bio || '');
+                    setCandidate2Name(foundCampaign.candidate.candidate2Name || '');
+                    setCandidate2Bio(foundCampaign.candidate.candidate2Bio || '');
+                    setSelectedCandidate(foundCampaign.candidate.selectedCandidate || 1);
+                }
             } catch (err) {
                 setError('Failed to load campaign');
                 console.error('Error loading campaign:', err);
@@ -111,6 +127,14 @@ export default function EditCampaignPage() {
         if (!campaign || !reasoning) {
             alert('Please fill in all required fields');
             return;
+        }
+
+        // Validate candidate campaigns
+        if (campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') {
+            if (!candidate1Name || !candidate2Name) {
+                alert('Please enter both candidate names');
+                return;
+            }
         }
 
         setIsSaving(true);
@@ -151,7 +175,16 @@ export default function EditCampaignPage() {
                     body: JSON.stringify({
                         position,
                         reasoning,
-                        actionButtonText
+                        actionButtonText,
+                        ...((campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') && {
+                            candidate: {
+                                candidate1Name,
+                                candidate1Bio,
+                                candidate2Name,
+                                candidate2Bio,
+                                selectedCandidate
+                            }
+                        })
                     })
                 });
 
@@ -246,7 +279,14 @@ export default function EditCampaignPage() {
                 </div>
                 <h1 className="text-3xl font-bold font-headline">Edit Campaign</h1>
                 <p className="text-muted-foreground mt-2">
-                    {campaign.bill ? `Edit campaign for ${campaign.bill.type} ${campaign.bill.number}` : 'Edit campaign'}
+                    {campaign.campaignType === 'Issue'
+                        ? `Edit ${campaign.issueTitle || 'issue'} campaign`
+                        : (campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy')
+                            ? `Edit candidate campaign`
+                            : campaign.bill
+                                ? `Edit campaign for ${campaign.bill.type} ${campaign.bill.number}`
+                                : 'Edit campaign'
+                    }
                 </p>
                 {campaign?.isStatic && (
                     <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
@@ -270,41 +310,142 @@ export default function EditCampaignPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Bill</Label>
-                        <Input 
-                            value={campaign.bill ? `${campaign.bill.type} ${campaign.bill.number}${campaign.bill.title ? ` - ${campaign.bill.title}` : ''}` : 'Bill information not available'} 
-                            disabled 
-                        />
-                        {campaign.bill && (
-                            <Link 
-                                href={`/bill/${campaign.bill.congress}/${campaign.bill.type.toLowerCase()}/${campaign.bill.number}`}
-                                target="_blank"
-                                className="text-sm text-primary hover:underline inline-block"
-                            >
-                                View bill details →
-                            </Link>
-                        )}
+                        <Label>Campaign Type</Label>
+                        <Input value={campaign.campaignType || 'Legislation'} disabled />
                     </div>
 
+                    {campaign.campaignType === 'Issue' ? (
+                        <>
+                            <div className="space-y-2">
+                                <Label>Issue Category</Label>
+                                <Input value={campaign.issueTitle || 'N/A'} disabled />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Issue Specific Title</Label>
+                                <Input
+                                    value={campaign.bill?.title || 'N/A'}
+                                    disabled
+                                />
+                            </div>
+                        </>
+                    ) : (campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') ? (
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="candidate1-name">Candidate 1 Name *</Label>
+                                <Input
+                                    id="candidate1-name"
+                                    placeholder="e.g., John Smith"
+                                    value={candidate1Name}
+                                    onChange={(e) => setCandidate1Name(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="candidate1-bio">Candidate 1 Bio (Optional)</Label>
+                                <Textarea
+                                    id="candidate1-bio"
+                                    placeholder="Brief background about this candidate"
+                                    value={candidate1Bio}
+                                    onChange={(e) => setCandidate1Bio(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="candidate2-name">Candidate 2 Name *</Label>
+                                <Input
+                                    id="candidate2-name"
+                                    placeholder="e.g., Jane Doe"
+                                    value={candidate2Name}
+                                    onChange={(e) => setCandidate2Name(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="candidate2-bio">Candidate 2 Bio (Optional)</Label>
+                                <Textarea
+                                    id="candidate2-bio"
+                                    placeholder="Brief background about this candidate"
+                                    value={candidate2Bio}
+                                    onChange={(e) => setCandidate2Bio(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="selected-candidate">Which candidate does your organization support? *</Label>
+                                <Select value={selectedCandidate.toString()} onValueChange={(value) => setSelectedCandidate(parseInt(value) as 1 | 2)}>
+                                    <SelectTrigger id="selected-candidate">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="1">{candidate1Name || 'Candidate 1'}</SelectItem>
+                                        <SelectItem value="2">{candidate2Name || 'Candidate 2'}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="space-y-2">
+                            <Label>Bill</Label>
+                            <Input
+                                value={campaign.bill ? `${campaign.bill.type} ${campaign.bill.number}${campaign.bill.title ? ` - ${campaign.bill.title}` : ''}` : 'Bill information not available'}
+                                disabled
+                            />
+                            {campaign.bill && (
+                                <Link
+                                    href={`/bill/${campaign.bill.congress}/${campaign.bill.type.toLowerCase()}/${campaign.bill.number}`}
+                                    target="_blank"
+                                    className="text-sm text-primary hover:underline inline-block"
+                                >
+                                    View bill details →
+                                </Link>
+                            )}
+                        </div>
+                    )}
+
                     {/* Editable fields */}
-                    <div className="space-y-2">
-                        <Label htmlFor="position">Position *</Label>
-                        <Select value={position} onValueChange={(value) => setPosition(value as 'Support' | 'Oppose')}>
-                            <SelectTrigger id="position">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Support">Support</SelectItem>
-                                <SelectItem value="Oppose">Oppose</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {campaign.campaignType !== 'Candidate' && campaign.campaignType !== 'Candidate Advocacy' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="position">
+                                {campaign.campaignType === 'Issue'
+                                    ? `Your Position on ${campaign.issueTitle || 'this issue'} *`
+                                    : 'Position *'
+                                }
+                            </Label>
+                            {campaign.campaignType === 'Issue' ? (
+                                <Input
+                                    id="position"
+                                    placeholder="e.g., Support, Oppose, Reform Needed, etc."
+                                    value={position}
+                                    onChange={(e) => setPosition(e.target.value)}
+                                />
+                            ) : (
+                                <Select value={position} onValueChange={(value) => setPosition(value)}>
+                                    <SelectTrigger id="position">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Support">Support</SelectItem>
+                                        <SelectItem value="Oppose">Oppose</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
+                    )}
 
                     <div className="space-y-2">
                         <Label htmlFor="reasoning">Reasoning *</Label>
                         <Textarea
                             id="reasoning"
-                            placeholder="Explain why your organization supports or opposes this bill. You can use Markdown formatting."
+                            placeholder={
+                                campaign.campaignType === 'Issue'
+                                    ? "Explain why your organization supports or opposes this issue. You can use Markdown formatting."
+                                    : (campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy')
+                                    ? `Explain why your organization supports ${selectedCandidate === 1 ? candidate1Name || 'Candidate 1' : candidate2Name || 'Candidate 2'}. You can use Markdown formatting.`
+                                    : "Explain why your organization supports or opposes this bill. You can use Markdown formatting."
+                            }
                             value={reasoning}
                             onChange={(e) => setReasoning(e.target.value)}
                             rows={8}
@@ -330,7 +471,7 @@ export default function EditCampaignPage() {
                     <div className="flex gap-4 pt-4">
                         <Button
                             onClick={handleSave}
-                            disabled={!reasoning || isSaving}
+                            disabled={!reasoning || isSaving || ((campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') && (!candidate1Name || !candidate2Name))}
                         >
                             {isSaving ? (
                                 <>
@@ -344,10 +485,13 @@ export default function EditCampaignPage() {
                         <Button variant="outline" asChild>
                             <Link href={`/partners/groups/${groupSlug}/campaigns`}>Cancel</Link>
                         </Button>
-                        {campaign.bill && campaign.groupSlug && (
+                        {campaign.groupSlug && (
                             <Button variant="outline" asChild>
-                                <Link 
-                                    href={`/campaigns/${campaign.groupSlug}/${campaign.bill.type.toLowerCase()}-${campaign.bill.number}`}
+                                <Link
+                                    href={campaign.campaignType === 'Issue'
+                                        ? `/campaigns/${campaign.groupSlug}/issue-${campaign.issueTitle?.replace(/[^a-z0-9-]/g, '').toLowerCase() || 'unknown'}`
+                                        : `/campaigns/${campaign.groupSlug}/${campaign.bill?.type.toLowerCase()}-${campaign.bill?.number}`
+                                    }
                                     target="_blank"
                                 >
                                     View Live Campaign

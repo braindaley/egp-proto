@@ -21,9 +21,11 @@ export async function GET(
         bill: data.bill || ((data.billType || data.billNumber || data.billTitle || data.congress) ? {
           type: data.billType,
           number: data.billNumber,
-          title: data.billTitle,
+          title: data.billTitle || data.issueSpecificTitle,
           congress: data.congress,
         } : undefined),
+        campaignType: data.campaignType || 'Legislation',
+        issueTitle: data.issueTitle,
         isStatic: false,
       };
       return NextResponse.json({ campaign });

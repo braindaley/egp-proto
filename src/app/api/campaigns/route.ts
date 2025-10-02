@@ -28,7 +28,9 @@ export async function POST(request: Request) {
       congress,
       stance,
       campaignType,
-      issueTitle
+      issueTitle,
+      issueSpecificTitle,
+      candidate
     } = body;
 
     // Get userId if not provided
@@ -47,12 +49,14 @@ export async function POST(request: Request) {
       groupSlug: groupSlug || '',
       groupName: groupName || '',
       campaignType: campaignType || 'Legislation',
-      name: name || `${bill?.title || billTitle || issueTitle || 'Campaign'}`,
+      name: name || `${bill?.title || billTitle || issueTitle || candidate?.candidate1Name || 'Campaign'}`,
       billNumber: billNumber || bill?.number,
       billType: billType || bill?.type,
       congress: congress || bill?.congress || '119',
-      billTitle: billTitle || bill?.title || issueTitle || '',
+      billTitle: billTitle || bill?.title || issueSpecificTitle || issueTitle || '',
       issueTitle: issueTitle || null,
+      issueSpecificTitle: issueSpecificTitle || null,
+      candidate: candidate || null,
       stance: stance || position?.toLowerCase() || 'support',
       position: position || (stance === 'support' ? 'Support' : 'Oppose'),
       reasoning: reasoning || '',
@@ -72,6 +76,13 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
+    } else if (campaignData.campaignType === 'Candidate') {
+      if (!campaignData.candidate || !campaignData.candidate.candidate1Name || !campaignData.candidate.candidate2Name) {
+        return NextResponse.json(
+          { error: 'Missing required candidate information (both candidate names required)' },
+          { status: 400 }
+        );
+      }
     } else {
       if (!campaignData.billNumber || !campaignData.billType) {
         return NextResponse.json(
@@ -81,8 +92,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // Check if campaign already exists for this GROUP and bill/issue
-    // (allowing different groups to campaign for the same bill/issue)
+    // Check if campaign already exists for this GROUP and bill/issue/candidate
+    // (allowing different groups to campaign for the same bill/issue/candidate)
     if (campaignData.groupSlug) {
       let query = adminDb
         .collection('campaigns')
@@ -91,7 +102,13 @@ export async function POST(request: Request) {
       if (campaignData.campaignType === 'Issue') {
         query = query
           .where('campaignType', '==', 'Issue')
-          .where('issueTitle', '==', campaignData.issueTitle);
+          .where('issueTitle', '==', campaignData.issueTitle)
+          .where('issueSpecificTitle', '==', campaignData.issueSpecificTitle);
+      } else if (campaignData.campaignType === 'Candidate') {
+        query = query
+          .where('campaignType', '==', 'Candidate')
+          .where('candidate.candidate1Name', '==', campaignData.candidate.candidate1Name)
+          .where('candidate.candidate2Name', '==', campaignData.candidate.candidate2Name);
       } else {
         query = query
           .where('billType', '==', campaignData.billType)
@@ -101,7 +118,8 @@ export async function POST(request: Request) {
       const existingSnapshot = await query.get();
 
       if (!existingSnapshot.empty) {
-        const itemType = campaignData.campaignType === 'Issue' ? 'issue' : 'bill';
+        const itemType = campaignData.campaignType === 'Issue' ? 'issue' :
+                        campaignData.campaignType === 'Candidate' ? 'candidate race' : 'bill';
         return NextResponse.json(
           { error: `This organization already has a campaign for this ${itemType}` },
           { status: 409 }

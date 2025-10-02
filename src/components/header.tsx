@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Landmark, LogOut, User, Loader2, Menu, Building2 } from 'lucide-react';
+import { Landmark, LogOut, User, Loader2, Menu, Building2, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -12,6 +12,43 @@ import { ZipCodeChanger } from './ZipCodeManager';
 import { useState, useEffect } from 'react';
 import type { Congress } from '@/types';
 import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from '@/components/ui/navigation-menu';
+
+const advocacyGroups = [
+  { name: 'League of Women Voters', slug: 'league-of-women-voters' },
+  { name: 'Brennan Center for Justice', slug: 'brennan-center-for-justice' },
+  { name: 'Common Cause', slug: 'common-cause' },
+  { name: 'Fair Elections Center', slug: 'fair-elections-center' },
+  { name: 'FairVote', slug: 'fairvote' },
+  { name: 'Vote Smart', slug: 'vote-smart' },
+  { name: 'VoteRiders', slug: 'voteriders' },
+  { name: 'Rock the Vote', slug: 'rock-the-vote' },
+  { name: 'Mi Familia Vota', slug: 'mi-familia-vota' },
+  { name: 'Black Voters Matter', slug: 'black-voters-matter' },
+  { name: 'When We All Vote', slug: 'when-we-all-vote' },
+  { name: 'Fair Fight Action', slug: 'fair-fight-action' },
+  { name: 'Campaign Legal Center', slug: 'campaign-legal-center' },
+  { name: 'BallotReady', slug: 'ballotready' },
+  { name: 'Democracy Works (TurboVote)', slug: 'democracy-works-turbovote' },
+  { name: 'HeadCount', slug: 'headcount' },
+  { name: 'State Voices', slug: 'state-voices' },
+  { name: 'Asian Americans Advancing Justice', slug: 'asian-americans-advancing-justice' },
+  { name: 'NAACP Legal Defense Fund', slug: 'naacp-legal-defense-fund' },
+  { name: 'Voto Latino', slug: 'voto-latino' },
+  { name: 'Alliance for Youth Action', slug: 'alliance-for-youth-action' },
+  { name: 'National Vote at Home Institute', slug: 'national-vote-at-home-institute' },
+  { name: 'National Voter Registration Day', slug: 'national-voter-registration-day' },
+  { name: 'Democracy NC', slug: 'democracy-nc' },
+  { name: 'The Civics Center', slug: 'the-civics-center' },
+  { name: 'No Labels', slug: 'no-labels' },
+].sort((a, b) => a.name.localeCompare(b.name));
 
 function getFallbackCongresses(): Congress[] {
   console.warn('Using fallback congress data.');
@@ -113,8 +150,45 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
           </div>
           
           {/* Center Section - Main Nav */}
-          <nav className="flex items-center gap-4">
-            {/* Navigation moved to off-canvas menu */}
+          <nav className="hidden lg:flex items-center gap-4 absolute left-1/2 transform -translate-x-1/2">
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger>Issues</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid w-[600px] xl:w-[1240px] grid-cols-3 xl:grid-cols-5 gap-3 p-4">
+                      {SITE_ISSUE_CATEGORIES.map((category) => (
+                        <NavigationMenuLink key={category} asChild>
+                          <Link
+                            href={`/issues/${convertCategoryToSlug(category)}`}
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          >
+                            <div className="text-sm font-medium leading-none">{category}</div>
+                          </Link>
+                        </NavigationMenuLink>
+                      ))}
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger>Organizations</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid w-[600px] xl:w-[1240px] grid-cols-2 xl:grid-cols-4 gap-3 p-4">
+                      {advocacyGroups.map((group) => (
+                        <NavigationMenuLink key={group.slug} asChild>
+                          <Link
+                            href={`/organizations/${group.slug}`}
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          >
+                            <div className="text-sm font-medium leading-none">{group.name}</div>
+                          </Link>
+                        </NavigationMenuLink>
+                      ))}
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
           </nav>
 
           {/* Right Section - Auth and Menu */}
@@ -135,26 +209,8 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                 <SheetHeader>
                   <SheetTitle className="sr-only">Main Navigation</SheetTitle>
                 </SheetHeader>
-                <div className="p-4 pb-2">
-                  <h3 className="text-lg font-semibold mb-4">Policy Issues</h3>
-                </div>
                 <div className="flex-1 overflow-y-auto px-4 pb-4">
                   <div className="space-y-4">
-                    {/* Policy Issues Navigation */}
-                    <div className="space-y-1">
-                      {SITE_ISSUE_CATEGORIES.map((category) => (
-                        <SheetClose key={category} asChild>
-                          <Link
-                            href={`/${convertCategoryToSlug(category)}`}
-                            className="block w-full text-left p-2 rounded-md hover:bg-accent text-sm"
-                          >
-                            {category}
-                          </Link>
-                        </SheetClose>
-                      ))}
-                    </div>
-
-                    <Separator />
 
                     <Button
                       variant="ghost"
@@ -184,21 +240,6 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                             <Separator />
 
                             <div className="space-y-2">
-                              <SheetClose asChild>
-                                <Link href="/for-you" className="block w-full text-left p-3 rounded-md hover:bg-accent">
-                                    For You
-                                </Link>
-                              </SheetClose>
-                            <SheetClose asChild>
-                              <Link href="/following" className="block w-full text-left p-3 rounded-md hover:bg-accent">
-                                  Following
-                              </Link>
-                            </SheetClose>
-                            <SheetClose asChild>
-                              <Link href="/issues" className="block w-full text-left p-3 rounded-md hover:bg-accent">
-                                  Issues
-                              </Link>
-                            </SheetClose>
                             <SheetClose asChild>
                               <Link href="/organizations" className="block w-full text-left p-3 rounded-md hover:bg-accent">
                                   Organizations

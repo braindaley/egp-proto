@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import AdvocacyBillCard from '@/components/advocacy-bill-card';
+import CandidateCampaignCard from '@/components/candidate-campaign-card';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { campaignsService } from '@/lib/campaigns';
 import { getAdvocacyGroupData } from '@/lib/advocacy-groups';
@@ -108,6 +109,7 @@ export default function CampaignDetailPage({
                             title: data.billTitle || data.issueTitle
                         },
                         issueTitle: data.issueTitle,
+                        candidate: data.candidate,
                         position: data.stance === 'support' ? 'Support' : data.stance === 'oppose' ? 'Oppose' : data.position || 'Support',
                         reasoning: data.reasoning,
                         actionButtonText: data.actionButtonText || 'Voice your opinion',
@@ -220,7 +222,7 @@ export default function CampaignDetailPage({
                     </CardHeader>
                     <CardContent>
                         {/* AI Bill Overview Section - Only for legislation campaigns */}
-                        {campaign.campaignType !== 'Issue' && billDetails && ((billDetails.allSummaries && billDetails.allSummaries.length > 0) || (billDetails.summaries?.items && billDetails.summaries.items.length > 0)) && (
+                        {campaign.campaignType !== 'Issue' && campaign.campaignType !== 'Candidate' && campaign.campaignType !== 'Candidate Advocacy' && billDetails && ((billDetails.allSummaries && billDetails.allSummaries.length > 0) || (billDetails.summaries?.items && billDetails.summaries.items.length > 0)) && (
                             <div className="mb-6">
                                 <SummaryDisplay
                                     summary={billDetails.allSummaries?.[0] || billDetails.summaries?.items?.[0]}
@@ -228,16 +230,35 @@ export default function CampaignDetailPage({
                                 />
                             </div>
                         )}
-                        <AdvocacyBillCard 
-                            bill={fullBill}
-                            position={campaign.position}
-                            reasoning={processedReasoning}
-                            actionButtonText={campaign.actionButtonText}
-                            supportCount={campaign.supportCount}
-                            opposeCount={campaign.opposeCount}
-                            groupSlug={groupName}
-                            groupName={groupData.name}
-                        />
+                        {(campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') && campaign.candidate ? (
+                            <CandidateCampaignCard
+                                candidate1Name={campaign.candidate.candidate1Name}
+                                candidate1Bio={campaign.candidate.candidate1Bio}
+                                candidate2Name={campaign.candidate.candidate2Name}
+                                candidate2Bio={campaign.candidate.candidate2Bio}
+                                selectedCandidate={campaign.candidate.selectedCandidate}
+                                position={campaign.position}
+                                reasoning={campaign.reasoning}
+                                actionButtonText={campaign.actionButtonText}
+                                supportCount={campaign.supportCount}
+                                opposeCount={campaign.opposeCount}
+                                groupSlug={groupName}
+                                groupName={groupData.name}
+                            />
+                        ) : (
+                            <AdvocacyBillCard
+                                bill={fullBill}
+                                position={campaign.position}
+                                reasoning={processedReasoning}
+                                actionButtonText={campaign.actionButtonText}
+                                supportCount={campaign.supportCount}
+                                opposeCount={campaign.opposeCount}
+                                groupSlug={groupName}
+                                groupName={groupData.name}
+                                campaignType={campaign.campaignType}
+                                issueCategory={campaign.issueTitle}
+                            />
+                        )}
                     </CardContent>
                 </Card>
             </div>

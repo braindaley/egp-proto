@@ -53,6 +53,9 @@ interface Campaign {
     supportCount: number;
     opposeCount: number;
     isStatic?: boolean;
+    campaignType?: string;
+    issueTitle?: string;
+    issueSpecificTitle?: string;
 }
 
 interface OtherCampaign {
@@ -191,10 +194,23 @@ export default function GroupCampaignsPage() {
                     allCampaigns = staticCampaignsData;
                 }
                 
-                console.log(`Loading ${allCampaigns.length} campaigns for ${groupSlug}:`, allCampaigns.map(c => ({ id: c.id, type: c.bill?.type, number: c.bill?.number, isStatic: c.isStatic })));
-                setCampaigns(allCampaigns);
+                // Sort campaigns: Legislation first, then Issues, and by creation date (newest first)
+                const sortedCampaigns = allCampaigns.sort((a, b) => {
+                    // First sort by type: Legislation before Issue
+                    const aType = a.campaignType === 'Issue' ? 1 : 0;
+                    const bType = b.campaignType === 'Issue' ? 1 : 0;
+                    if (aType !== bType) return aType - bType;
+
+                    // Then by creation date (newest first)
+                    const aDate = a.createdAt?.toDate?.() || new Date(0);
+                    const bDate = b.createdAt?.toDate?.() || new Date(0);
+                    return bDate.getTime() - aDate.getTime();
+                });
+
+                console.log(`Loading ${sortedCampaigns.length} campaigns for ${groupSlug}:`, sortedCampaigns.map(c => ({ id: c.id, type: c.bill?.type, number: c.bill?.number, campaignType: c.campaignType, isStatic: c.isStatic })));
+                setCampaigns(sortedCampaigns);
                 // Fetch other campaigns after setting campaigns
-                await fetchOtherCampaigns(allCampaigns);
+                await fetchOtherCampaigns(sortedCampaigns);
             } catch (error) {
                 console.error('Error fetching campaigns:', error);
                 setCampaigns([]);
@@ -295,10 +311,23 @@ export default function GroupCampaignsPage() {
                         
                         allCampaigns = staticCampaignsData;
                     }
-                    
-                    setCampaigns(allCampaigns);
+
+                    // Sort campaigns: Legislation first, then Issues, and by creation date (newest first)
+                    const sortedCampaigns = allCampaigns.sort((a, b) => {
+                        // First sort by type: Legislation before Issue
+                        const aType = a.campaignType === 'Issue' ? 1 : 0;
+                        const bType = b.campaignType === 'Issue' ? 1 : 0;
+                        if (aType !== bType) return aType - bType;
+
+                        // Then by creation date (newest first)
+                        const aDate = a.createdAt?.toDate?.() || new Date(0);
+                        const bDate = b.createdAt?.toDate?.() || new Date(0);
+                        return bDate.getTime() - aDate.getTime();
+                    });
+
+                    setCampaigns(sortedCampaigns);
                     // Refresh other campaigns too
-                    await fetchOtherCampaigns(allCampaigns);
+                    await fetchOtherCampaigns(sortedCampaigns);
                 } catch (error) {
                     console.error('Error refreshing campaigns:', error);
                 }
@@ -517,8 +546,16 @@ export default function GroupCampaignsPage() {
                                                     <div className="flex justify-between items-start">
                                                         <div className="flex-1">
                                                             <CardTitle className="text-lg">
-                                                                {campaign.bill.type} {campaign.bill.number}
-                                                                {campaign.bill.title && ` - ${campaign.bill.title}`}
+                                                                {campaign.campaignType === 'Issue' ? (
+                                                                    <>
+                                                                        {campaign.issueTitle} - {campaign.issueSpecificTitle || campaign.bill.title}
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        {campaign.bill.type} {campaign.bill.number}
+                                                                        {campaign.bill.title && ` - ${campaign.bill.title}`}
+                                                                    </>
+                                                                )}
                                                             </CardTitle>
                                                             <div className="flex gap-2 mt-2">
                                                                 <Badge variant={campaign.position === 'Support' ? 'default' : 'destructive'}>

@@ -4,13 +4,21 @@ export interface Campaign {
   id: string;
   groupSlug: string;
   groupName: string;
-  bill: {
+  campaignType?: 'Legislation' | 'Issue' | 'Candidate';
+  bill?: {
     congress: number;
     type: string;
     number: string;
     title?: string;
   };
-  position: 'Support' | 'Oppose';
+  candidate?: {
+    candidate1Name: string;
+    candidate1Bio?: string;
+    candidate2Name: string;
+    candidate2Bio?: string;
+    selectedCandidate: 1 | 2;
+  };
+  position: 'Support' | 'Oppose' | string;
   reasoning: string;
   actionButtonText: string;
   supportCount: number;
