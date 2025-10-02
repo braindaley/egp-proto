@@ -145,7 +145,7 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                       {SITE_ISSUE_CATEGORIES.map((category) => (
                         <SheetClose key={category} asChild>
                           <Link
-                            href={`/issues/${convertCategoryToSlug(category)}/homepage`}
+                            href={`/${convertCategoryToSlug(category)}`}
                             className="block w-full text-left p-2 rounded-md hover:bg-accent text-sm"
                           >
                             {category}
