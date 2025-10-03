@@ -22,7 +22,7 @@ import { useZipCode } from '@/hooks/use-zip-code';
 
 export default function Home() {
   const [showCard, setShowCard] = useState(true);
-  const [selectedFilter, setSelectedFilter] = useState<string>('for-you');
+  const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const { zipCode } = useZipCode();
 
   // Helper function to convert category to URL slug
@@ -361,22 +361,14 @@ export default function Home() {
       return [];
     }
 
-    // For "view-all", "for-you", and "top-stories" filters, return ALL state articles
-    if (filter === 'view-all' || filter === 'for-you' || filter === 'top-stories') {
+    // For "all" filter, return ALL state articles
+    if (filter === 'all' || filter === 'news') {
       const allStateArticles = Object.values(stateArticles);
       console.log('Returning ALL state articles for filter:', { state: userState.state, filter, count: allStateArticles.length });
       return allStateArticles;
     }
 
-    // For specific category filters, find the matching category
-    const selectedCategory = issueCategories.find(cat => cat.id === filter);
-    if (selectedCategory && selectedCategory.id !== 'view-all' && stateArticles[selectedCategory.label]) {
-      const article = stateArticles[selectedCategory.label];
-      console.log('Returning state article for category:', { state: userState.state, category: selectedCategory.label, article });
-      return [article];
-    }
-
-    // No matching articles
+    // For campaigns and bills filters, don't return state news articles
     return [];
   };
 
@@ -889,47 +881,80 @@ export default function Home() {
 
   // Filter stories based on selected filter
   const getFilteredStories = () => {
-    let stories;
-    let campaigns;
+    let stories = newsStories;
+    let campaigns = campaignStories;
 
-    if (selectedFilter === 'for-you' || selectedFilter === 'top-stories' || selectedFilter === 'view-all') {
-      stories = newsStories;
-      campaigns = campaignStories;
+    // Add state-specific articles
+    if (stateSpecificArticles.length > 0 && (selectedFilter === 'all' || selectedFilter === 'news')) {
+      stories = [...stateSpecificArticles, ...stories];
+    }
+
+    // Apply content type filter
+    let filteredStories = stories;
+    let filteredCampaigns = campaigns;
+    let includeBillCTAs = false;
+
+    if (selectedFilter === 'news') {
+      filteredCampaigns = [];
+      includeBillCTAs = false;
+    } else if (selectedFilter === 'campaigns') {
+      filteredStories = [];
+      includeBillCTAs = false;  // Don't show bill CTAs in campaigns
+    } else if (selectedFilter === 'bills') {
+      filteredStories = [];
+      filteredCampaigns = [];  // Don't show regular campaigns, only bill CTAs
+      includeBillCTAs = true;
     } else {
-      // Find the category name from the filter ID
-      const selectedCategory = issueCategories.find(cat => cat.id === selectedFilter);
-      if (!selectedCategory || selectedCategory.id === 'view-all') {
-        stories = newsStories;
-        campaigns = campaignStories;
-      } else {
-        stories = newsStories.filter(story => story.category === selectedCategory.label);
-        campaigns = campaignStories.filter(campaign => campaign.policyIssue === selectedCategory.label);
-      }
+      // 'all' filter
+      includeBillCTAs = true;
     }
 
-    // Add state-specific articles if available and appropriate for the filter
-    if (stateSpecificArticles.length > 0) {
-      // For view-all, for-you, and top-stories, always show all state-specific articles
-      if (selectedFilter === 'view-all' || selectedFilter === 'for-you' || selectedFilter === 'top-stories') {
-        stories = [...stateSpecificArticles, ...stories];
-      } else {
-        // For specific category filters, only show state articles that match the category
-        const selectedCategory = issueCategories.find(cat => cat.id === selectedFilter);
-        if (selectedCategory) {
-          const matchingStateArticles = stateSpecificArticles.filter(article =>
-            article.category === selectedCategory.label
-          );
-          stories = [...matchingStateArticles, ...stories];
-        }
-      }
+    // Combine stories and campaigns, then randomize
+    const combinedContent = [...filteredStories, ...filteredCampaigns];
+
+    // Define special campaign items
+    const educationIssueCampaign = {
+      id: 'education-dept-education-issue',
+      type: 'campaign',
+      organization: 'League of Women Voters',
+      groupSlug: 'league-of-women-voters',
+      position: 'Save the Dept of Education',
+      policyIssue: 'Education',
+      billNumber: 'Education',
+      billTitle: 'Department of Education',
+      description: 'The Department of Education plays a crucial role in ensuring equal access to quality education for all Americans. We must protect federal support for schools, students, and educators.',
+      supportCount: 0,
+      opposeCount: 0,
+      issueCategory: 'Education'
+    };
+
+    const candidateCampaign = {
+      id: 'candidate-maria-alvarez',
+      type: 'candidateCampaign',
+      organization: 'League of Women Voters',
+      groupSlug: 'league-of-women-voters',
+      position: 'Support',
+      policyIssue: 'National Conditions',
+      candidate1Name: 'Maria Alvarez',
+      candidate1Bio: 'Maria Alvarez is a community organizer who has spent the last 15 years fighting for affordable housing and small business growth in her district.',
+      candidate2Name: 'James Whitman',
+      candidate2Bio: 'James Whitman is a former technology executive and veteran who believes in modernizing government through innovation.',
+      selectedCandidate: 1,
+      reasoning: 'The League of Women Voters supports Maria Alvarez because she has a clear track record of putting people first. She\'s spent years working at the community level, pushing for affordable housing, stronger renter protections, and opportunities for small businesses.',
+      supportCount: 0,
+      opposeCount: 0
+    };
+
+    // Add special campaigns for 'campaigns' filter
+    if (selectedFilter === 'campaigns') {
+      combinedContent.push(educationIssueCampaign);
+      combinedContent.push(candidateCampaign);
     }
 
-    // Combine stories and campaigns, then randomize with special positioning
-    const combinedContent = [...stories, ...campaigns];
-    const shuffled = shuffleArray(combinedContent);
+    // Only shuffle and add special items for 'all' view
+    if (selectedFilter === 'all') {
+      const shuffled = shuffleArray(combinedContent);
 
-    // For 'for-you' view, ensure Black Voters Matter HR 1 campaign is in position #2
-    if (selectedFilter === 'for-you') {
       const blackVotersHR1Index = shuffled.findIndex(item =>
         item.type === 'campaign' &&
         item.organization === 'Black Voters Matter' &&
@@ -937,71 +962,40 @@ export default function Home() {
       );
 
       if (blackVotersHR1Index !== -1 && blackVotersHR1Index !== 1) {
-        // Remove the card from its current position
         const [blackVotersCard] = shuffled.splice(blackVotersHR1Index, 1);
-        // Insert it at position 1 (index 1 = #2 spot after mission card)
         shuffled.splice(1, 0, blackVotersCard);
       }
 
-      // Insert climate bill CTA at position 3 (index 2) for for-you feed
-      const climateBillCTA = billCTAByCategory['Climate, Energy & Environment'];
-      if (climateBillCTA && shuffled.length >= 2) {
-        shuffled.splice(2, 0, climateBillCTA); // Insert at index 2 (third position)
-      }
-
-      // Insert Education Issue campaign at position 4 (index 3) for for-you feed
-      const educationIssueCampaign = {
-        id: 'education-dept-education-issue',
-        type: 'campaign',
-        organization: 'League of Women Voters',
-        groupSlug: 'league-of-women-voters',
-        position: 'Save the Dept of Education',
-        policyIssue: 'Education',
-        billNumber: 'Education',
-        billTitle: 'Department of Education',
-        description: 'The Department of Education plays a crucial role in ensuring equal access to quality education for all Americans. We must protect federal support for schools, students, and educators.',
-        supportCount: 0,
-        opposeCount: 0,
-        issueCategory: 'Education' // Add issue category for pre-selection
-      };
-      if (shuffled.length >= 3) {
-        shuffled.splice(3, 0, educationIssueCampaign); // Insert at index 3 (fourth position)
-      }
-
-      // Insert Candidate campaign at position 5 (index 4) for for-you feed
-      const candidateCampaign = {
-        id: 'candidate-maria-alvarez',
-        type: 'candidateCampaign',
-        organization: 'League of Women Voters',
-        groupSlug: 'league-of-women-voters',
-        position: 'Support',
-        policyIssue: 'National Conditions',
-        candidate1Name: 'Maria Alvarez',
-        candidate1Bio: 'Maria Alvarez is a community organizer who has spent the last 15 years fighting for affordable housing and small business growth in her district.',
-        candidate2Name: 'James Whitman',
-        candidate2Bio: 'James Whitman is a former technology executive and veteran who believes in modernizing government through innovation.',
-        selectedCandidate: 1,
-        reasoning: 'The League of Women Voters supports Maria Alvarez because she has a clear track record of putting people first. She\'s spent years working at the community level, pushing for affordable housing, stronger renter protections, and opportunities for small businesses.',
-        supportCount: 0,
-        opposeCount: 0
-      };
-      if (shuffled.length >= 4) {
-        shuffled.splice(4, 0, candidateCampaign); // Insert at index 4 (fifth position)
-      }
-    }
-
-    // Insert bill CTA in third position if available for specific categories
-    if (selectedFilter !== 'for-you' && selectedFilter !== 'top-stories' && selectedFilter !== 'view-all') {
-      const selectedCategory = issueCategories.find(cat => cat.id === selectedFilter);
-      if (selectedCategory) {
-        const billCTA = billCTAByCategory[selectedCategory.label];
-        if (billCTA && shuffled.length >= 3) {
-          shuffled.splice(2, 0, billCTA); // Insert at index 2 (third position)
+      if (includeBillCTAs) {
+        const climateBillCTA = billCTAByCategory['Climate, Energy & Environment'];
+        if (climateBillCTA && shuffled.length >= 2) {
+          shuffled.splice(2, 0, climateBillCTA);
         }
       }
+
+      if (shuffled.length >= 3) {
+        shuffled.splice(3, 0, educationIssueCampaign);
+      }
+
+      if (shuffled.length >= 4) {
+        shuffled.splice(4, 0, candidateCampaign);
+      }
+
+      return shuffled;
     }
 
-    return shuffled;
+    // For 'bills' filter only, add bill CTAs
+    if (selectedFilter === 'bills' && includeBillCTAs) {
+      // Add all available bill CTAs
+      Object.values(billCTAByCategory).forEach(billCTA => {
+        if (billCTA) {
+          combinedContent.push(billCTA);
+        }
+      });
+    }
+
+    // For other filters, just return the combined content without shuffling
+    return combinedContent;
   };
 
   const filteredStories = getFilteredStories();
@@ -1034,31 +1028,49 @@ export default function Home() {
         {/* Desktop Filters */}
         <div className="hidden md:block py-10">
           <div className="px-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-4">
               <div className="text-2xl font-medium">eGutenbergPress.org</div>
               <div className="flex items-center gap-2">
-              <Badge
-                variant={selectedFilter === 'for-you' ? 'default' : 'outline'}
-                className={`cursor-pointer transition-colors text-sm px-3 py-1 ${
-                  selectedFilter === 'for-you'
-                    ? ''
-                    : 'hover:bg-secondary'
-                }`}
-                onClick={() => setSelectedFilter('for-you')}
-              >
-                For You
-              </Badge>
-              <Badge
-                variant={selectedFilter === 'top-stories' ? 'default' : 'outline'}
-                className={`cursor-pointer transition-colors text-sm px-3 py-1 ${
-                  selectedFilter === 'top-stories'
-                    ? ''
-                    : 'hover:bg-secondary'
-                }`}
-                onClick={() => setSelectedFilter('top-stories')}
-              >
-                Top Stories
-              </Badge>
+                <button
+                  className={`cursor-pointer transition-colors text-sm px-4 py-1.5 rounded-full border ${
+                    selectedFilter === 'all'
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'bg-transparent text-foreground border-border hover:bg-secondary'
+                  }`}
+                  onClick={() => setSelectedFilter('all')}
+                >
+                  For You
+                </button>
+                <button
+                  className={`cursor-pointer transition-colors text-sm px-4 py-1.5 rounded-full border ${
+                    selectedFilter === 'news'
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'bg-transparent text-foreground border-border hover:bg-secondary'
+                  }`}
+                  onClick={() => setSelectedFilter('news')}
+                >
+                  News
+                </button>
+                <button
+                  className={`cursor-pointer transition-colors text-sm px-4 py-1.5 rounded-full border ${
+                    selectedFilter === 'campaigns'
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'bg-transparent text-foreground border-border hover:bg-secondary'
+                  }`}
+                  onClick={() => setSelectedFilter('campaigns')}
+                >
+                  Campaigns
+                </button>
+                <button
+                  className={`cursor-pointer transition-colors text-sm px-4 py-1.5 rounded-full border ${
+                    selectedFilter === 'bills'
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'bg-transparent text-foreground border-border hover:bg-secondary'
+                  }`}
+                  onClick={() => setSelectedFilter('bills')}
+                >
+                  Bills
+                </button>
               </div>
             </div>
           </div>
@@ -1068,29 +1080,47 @@ export default function Home() {
         <div className="md:hidden">
           <div className="px-4 py-6">
             <div className="text-2xl font-medium mb-4">eGutenbergPress.org</div>
-            <div className="flex gap-2">
-              <Badge
-                variant={selectedFilter === 'for-you' ? 'default' : 'outline'}
-                className={`cursor-pointer transition-colors whitespace-nowrap ${
-                  selectedFilter === 'for-you'
-                    ? ''
-                    : 'hover:bg-secondary'
+            <div className="flex gap-2 overflow-x-auto">
+              <button
+                className={`cursor-pointer transition-colors text-sm px-4 py-1.5 rounded-full border whitespace-nowrap ${
+                  selectedFilter === 'all'
+                    ? 'bg-foreground text-background border-foreground'
+                    : 'bg-transparent text-foreground border-border hover:bg-secondary'
                 }`}
-                onClick={() => setSelectedFilter('for-you')}
+                onClick={() => setSelectedFilter('all')}
               >
                 For You
-              </Badge>
-              <Badge
-                variant={selectedFilter === 'top-stories' ? 'default' : 'outline'}
-                className={`cursor-pointer transition-colors whitespace-nowrap ${
-                  selectedFilter === 'top-stories'
-                    ? ''
-                    : 'hover:bg-secondary'
+              </button>
+              <button
+                className={`cursor-pointer transition-colors text-sm px-4 py-1.5 rounded-full border whitespace-nowrap ${
+                  selectedFilter === 'news'
+                    ? 'bg-foreground text-background border-foreground'
+                    : 'bg-transparent text-foreground border-border hover:bg-secondary'
                 }`}
-                onClick={() => setSelectedFilter('top-stories')}
+                onClick={() => setSelectedFilter('news')}
               >
-                Top Stories
-              </Badge>
+                News
+              </button>
+              <button
+                className={`cursor-pointer transition-colors text-sm px-4 py-1.5 rounded-full border whitespace-nowrap ${
+                  selectedFilter === 'campaigns'
+                    ? 'bg-foreground text-background border-foreground'
+                    : 'bg-transparent text-foreground border-border hover:bg-secondary'
+                }`}
+                onClick={() => setSelectedFilter('campaigns')}
+              >
+                Campaigns
+              </button>
+              <button
+                className={`cursor-pointer transition-colors text-sm px-4 py-1.5 rounded-full border whitespace-nowrap ${
+                  selectedFilter === 'bills'
+                    ? 'bg-foreground text-background border-foreground'
+                    : 'bg-transparent text-foreground border-border hover:bg-secondary'
+                }`}
+                onClick={() => setSelectedFilter('bills')}
+              >
+                Bills
+              </button>
             </div>
           </div>
         </div>

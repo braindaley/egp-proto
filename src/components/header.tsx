@@ -101,7 +101,7 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
     if (loading) {
       return <div className="h-9 w-[140px] flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>;
     }
-    
+
     if (user) {
         return (
             <>
@@ -117,14 +117,10 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                         Partners
                     </Link>
                 </Button>
-                <Button variant="outline" size="sm" onClick={logout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
-                </Button>
             </>
         );
     }
-    
+
     return (
         <>
             <Button variant="ghost" size="sm" asChild>
@@ -240,16 +236,6 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                             <Separator />
 
                             <div className="space-y-2">
-                            <SheetClose asChild>
-                              <Link href="/organizations" className="block w-full text-left p-3 rounded-md hover:bg-accent">
-                                  Organizations
-                              </Link>
-                            </SheetClose>
-                            <SheetClose asChild>
-                              <Link href="/campaigns" className="block w-full text-left p-3 rounded-md hover:bg-accent">
-                                  Campaigns
-                              </Link>
-                            </SheetClose>
                             <SheetClose asChild>
                               <Link href="/federal" className="block w-full text-left p-3 rounded-md hover:bg-accent">
                                   Federal
