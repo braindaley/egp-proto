@@ -97,6 +97,9 @@ const AdvocacyMessageContent: React.FC = () => {
   const [aiHelpChoice, setAiHelpChoice] = useState<'yes' | 'no' | ''>('');
   const [message, setMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [billOverview, setBillOverview] = useState<string>('');
+  const [newsOverview, setNewsOverview] = useState<string>('');
+  const [isLoadingOverview, setIsLoadingOverview] = useState(false);
   const [selectedPersonalData, setSelectedPersonalData] = useState<string[]>([
     'fullName',
     'fullAddress',
@@ -190,6 +193,9 @@ const AdvocacyMessageContent: React.FC = () => {
   const candidate2Name = searchParams.get('candidate2');
   const candidate1Bio = searchParams.get('candidate1Bio');
   const candidate2Bio = searchParams.get('candidate2Bio');
+  const newsTitle = searchParams.get('newsTitle');
+  const newsUrl = searchParams.get('newsUrl');
+  const campaignId = searchParams.get('campaignId');
 
   // Check if this is a member contact flow (not bill-specific)
   // Either has member param OR has issue param but no bill params
@@ -198,6 +204,9 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Check if this is a candidate campaign flow
   const isCandidateFlow = !!candidate1Name && !!candidate2Name;
+
+  // Check if this is a campaign context (e.g., from a campaign page)
+  const isCampaignContext = !!campaignId;
 
   // Determine which flow to use and render appropriate component
   // TODO: Split into separate components for better maintainability
@@ -419,6 +428,83 @@ const AdvocacyMessageContent: React.FC = () => {
       getBillDetails(congress, billType, billNumber).then(setBill);
     }
   }, [congress, billType, billNumber]);
+
+  // Fetch AI overview for bills
+  useEffect(() => {
+    const fetchBillOverview = async () => {
+      if (!bill) return;
+
+      setIsLoadingOverview(true);
+      try {
+        const response = await fetch('/api/ai/generate-bill-overview', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            billTitle: bill.title || bill.shortTitle,
+            billNumber: `${bill.type} ${bill.number}`,
+            billSummary: bill.summaries?.items?.[0]?.text || bill.title
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setBillOverview(data.overview);
+        }
+      } catch (error) {
+        console.error('Failed to fetch bill overview:', error);
+      } finally {
+        setIsLoadingOverview(false);
+      }
+    };
+
+    fetchBillOverview();
+  }, [bill]);
+
+  // Fetch AI overview for news articles
+  useEffect(() => {
+    const fetchNewsOverview = async () => {
+      if (!newsTitle) return;
+
+      setIsLoadingOverview(true);
+      try {
+        const response = await fetch('/api/ai/generate-news-summary', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            newsTitle,
+            newsUrl,
+            newsContent: '' // Could be enhanced to fetch actual content if needed
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setNewsOverview(data.summary);
+        }
+      } catch (error) {
+        console.error('Failed to fetch news summary:', error);
+      } finally {
+        setIsLoadingOverview(false);
+      }
+    };
+
+    fetchNewsOverview();
+  }, [newsTitle, newsUrl]);
+
+  // Handle campaign context
+  useEffect(() => {
+    if (campaignId) {
+      // In a real implementation, this would fetch campaign details
+      // For now, we'll just log that we're in a campaign context
+      console.log('Campaign context detected:', campaignId);
+      // The campaign would typically include bill information, news articles, or candidate info
+      // which would be passed through the URL params
+    }
+  }, [campaignId]);
 
   // Fetch member details for member contact flow
   useEffect(() => {
@@ -1208,17 +1294,74 @@ const AdvocacyMessageContent: React.FC = () => {
         <CardTitle>
           {bill ? (
             `Choose Your Position on ${billType?.toUpperCase()}${billNumber}`
+          ) : newsTitle ? (
+            'Take a Position on This Issue'
+          ) : campaignId ? (
+            'Join This Campaign'
           ) : (
             'Choose Your Position'
           )}
         </CardTitle>
         <p className="text-sm text-muted-foreground mt-2">
-          First, let us know whether you support or oppose this legislation. This helps us understand your viewpoint.
+          {newsTitle ?
+            'First, let us know whether you agree or disagree with the position in this article.' :
+            campaignId ?
+            'First, let us know whether you support this campaign\'s goals.' :
+            'First, let us know whether you support or oppose this legislation. This helps us understand your viewpoint.'
+          }
         </p>
       </CardHeader>
       <CardContent className="space-y-6 flex-1 flex flex-col bg-background">
+        {/* Display AI Overview for Bills */}
+        {bill && (
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2 text-sm">AI Overview</h3>
+            {isLoadingOverview ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Generating overview...</span>
+              </div>
+            ) : billOverview ? (
+              <p className="text-sm text-muted-foreground leading-relaxed">{billOverview}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {bill.title || bill.shortTitle}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Display AI Summary for News Articles */}
+        {newsTitle && (
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-2 text-sm">Article Summary</h3>
+            <p className="text-sm font-medium mb-2">{newsTitle}</p>
+            {isLoadingOverview ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Generating summary...</span>
+              </div>
+            ) : newsOverview ? (
+              <p className="text-sm text-muted-foreground leading-relaxed">{newsOverview}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                This article discusses current events relevant to policy decisions.
+              </p>
+            )}
+            {newsUrl && (
+              <a href={newsUrl} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline mt-2 inline-block">
+                View original article →
+              </a>
+            )}
+          </div>
+        )}
+
         <div>
-          <h3 className="font-semibold mb-4 text-lg">Do you support or oppose this bill?</h3>
+          <h3 className="font-semibold mb-4 text-lg">
+            {newsTitle ? 'Do you support or oppose the position in this article?' :
+             'Do you support or oppose this bill?'}
+          </h3>
           <div className="flex flex-col sm:flex-row gap-4">
             <Button
               variant={userStance === 'support' ? 'default' : 'outline'}
@@ -1232,7 +1375,9 @@ const AdvocacyMessageContent: React.FC = () => {
               </svg>
               <div className="text-center">
                 <div className="font-semibold">Support</div>
-                <div className="text-sm opacity-75">I am in favor of this bill</div>
+                <div className="text-sm opacity-75">
+                  {newsTitle ? 'I agree with this article' : 'I am in favor of this bill'}
+                </div>
               </div>
             </Button>
             <Button
@@ -1247,7 +1392,9 @@ const AdvocacyMessageContent: React.FC = () => {
               </svg>
               <div className="text-center">
                 <div className="font-semibold">Oppose</div>
-                <div className="text-sm opacity-75">I am against this bill</div>
+                <div className="text-sm opacity-75">
+                  {newsTitle ? 'I disagree with this article' : 'I am against this bill'}
+                </div>
               </div>
             </Button>
           </div>
