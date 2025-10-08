@@ -113,13 +113,19 @@ export default function InterestsPage() {
   const handleCancel = () => {
     router.push('/dashboard');
   };
-  
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
   if (loading) {
     return <p>Loading interests...</p>;
   }
 
   if (!user) {
-    router.push('/login');
     return null;
   }
 

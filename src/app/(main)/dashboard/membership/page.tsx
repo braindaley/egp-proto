@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Check, Mail, Users, Video, MessageCircle, Heart, BarChart3, Share2 } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Check, Heart, Eye, TrendingUp, Filter, BarChart3, Mail } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,13 +15,19 @@ export default function MembershipPage() {
   const { user, loading } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
-  
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
   if (loading) {
     return <p>Loading membership...</p>;
   }
 
   if (!user) {
-    router.push('/login');
     return null;
   }
 
@@ -36,34 +42,29 @@ export default function MembershipPage() {
 
   const premiumBenefits = [
     {
-      icon: Mail,
-      title: 'Mailed Physical Letters',
-      description: 'Receive printed advocacy letters and materials directly to your mailbox'
-    },
-    {
       icon: Heart,
       title: 'Support the Organization',
       description: 'Help fund our advocacy efforts and keep the platform running'
     },
     {
-      icon: Users,
-      title: 'Monthly Meet-ups',
-      description: 'Join exclusive in-person gatherings with fellow advocates in your area'
+      icon: Eye,
+      title: 'View Sent Messages and Responses',
+      description: 'Access a complete history of all your advocacy messages and track official responses you receive'
     },
     {
-      icon: Video,
-      title: 'Group Zoom Sessions',
-      description: 'Participate in virtual discussions and strategy sessions with other members'
+      icon: TrendingUp,
+      title: 'View Advocacy Impact',
+      description: 'See detailed analytics on how your advocacy efforts are making a difference, including engagement metrics and response rates'
     },
     {
-      icon: MessageCircle,
-      title: 'Messaging Between Users',
-      description: 'Connect and coordinate with other advocates through our secure messaging system'
+      icon: Filter,
+      title: 'Customized Feed Based on Policy Interests',
+      description: 'Get a personalized feed of legislation and advocacy opportunities tailored to your specific policy interests and priorities'
     },
     {
-      icon: Share2,
-      title: 'Receive and post all responses',
-      description: 'Share responses to your transmittals with your peers'
+      icon: Mail,
+      title: 'Email Digest Options',
+      description: 'Customizable email summaries of legislation matching your interests (daily, weekly, or monthly)'
     }
   ];
 
@@ -228,9 +229,11 @@ export default function MembershipPage() {
 
                       {/* CTA Button */}
                       <div className="text-center">
-                        <Button size="lg" className="font-semibold px-8">
-                          Upgrade to Premium
-                        </Button>
+                        <Link href="/membership/signup">
+                          <Button size="lg" className="font-semibold px-8">
+                            Upgrade to Premium
+                          </Button>
+                        </Link>
                         <p className="text-xs text-muted-foreground mt-2">
                           Secure checkout • Just $24 per year ($6/quarter)
                         </p>

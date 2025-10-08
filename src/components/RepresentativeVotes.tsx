@@ -170,7 +170,9 @@ export function RepresentativeVotes({
         );
 
         if (!response.ok) {
-          throw new Error('Failed to fetch vote data');
+          console.log('[RepresentativeVotes] ⚠️ Vote data not available (API returned', response.status, ')');
+          setLoading(false);
+          return;
         }
 
         const data = await response.json();

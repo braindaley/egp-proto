@@ -12,7 +12,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Sparkles, Loader2, AlertCircle, User, Search, X, CheckCircle, Mail, Shield, UserPlus, Upload, File, Image, ChevronLeft, ChevronRight, Check, AtSign, Globe } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, Loader2, AlertCircle, User, Search, X, CheckCircle, Mail, Shield, UserPlus, Upload, File, Image, ChevronLeft, ChevronRight, Check, AtSign, Globe, Crown, Heart, Eye, TrendingUp, Filter, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
@@ -162,6 +163,7 @@ const AdvocacyMessageContent: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [accountError, setAccountError] = useState<string | null>(null);
+  const [accountType, setAccountType] = useState<'free' | 'membership' | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -312,18 +314,17 @@ const AdvocacyMessageContent: React.FC = () => {
     if (isMemberContact) {
       // Members: not logged in flow (1-8) vs logged in flow (1-6)
       if (!user) {
-        // Not logged in flow: Verification → Policy → Write → Supporting Files → Personal → Review → Delivery → Success
+        // Not logged in flow: Verification → Policy → Write → Supporting Files → Personal → Review → Success
         if (step === 1) return 1; // Help us verify that you are a registered voter
         if (step === 2) return 2; // Choose policy issue
         if (step === 4) return 3; // Write Your Message
         if (step === 5) return 4; // Add Supporting Files
         if (step === 7) return 5; // Personal Information
         if (step === 8) return 6; // Review Message
-        if (step === 9) return 7; // Message delivery (choose email)
-        if (step === 10) return 8; // Success screen (create account or login)
+        if (step === 10) return 7; // Success screen (create account or login)
         return 0;
       } else {
-        // Logged in flow - skip verification and delivery steps: Policy → Write → Supporting Files → Personal → Review → Success
+        // Logged in flow - skip verification: Policy → Write → Supporting Files → Personal → Review → Success
         if (step === 2) return 1; // Choose policy issue
         if (step === 4) return 2; // Write Your Message
         if (step === 5) return 3; // Add Supporting Files
@@ -333,7 +334,7 @@ const AdvocacyMessageContent: React.FC = () => {
         return 0;
       }
     } else {
-      // Bills/campaigns: not logged in flow (1-10) vs logged in flow (1-8)
+      // Bills/campaigns: not logged in flow (1-9) vs logged in flow (1-8)
       if (!user) {
         // Not logged in flow
         if (step === 1) return 1; // Help us verify that you are a registered voter
@@ -344,11 +345,10 @@ const AdvocacyMessageContent: React.FC = () => {
         if (step === 6) return 6; // Select representatives to send your message
         if (step === 7) return 7; // Personal Information
         if (step === 8) return 8; // Review Message
-        if (step === 9) return 9; // Message delivery (choose email)
-        if (step === 10) return 10; // Success screen (create account or login)
+        if (step === 10) return 9; // Success screen (create account or login)
         return 0;
       } else {
-        // Logged in flow - skip verification and delivery steps
+        // Logged in flow - skip verification
         if (step === 2) return 1; // Choose Your Position
         if (step === 3) return 2; // Writing Your Message - help writing?
         if (step === 4) return 3; // Write Your Message
@@ -366,18 +366,17 @@ const AdvocacyMessageContent: React.FC = () => {
   const goBack = () => {
     if (isMemberContact) {
       if (!user) {
-        // Members not logged in flow: Verification → Policy → Write → Supporting Files → Personal → Review → Delivery → Success
+        // Members not logged in flow: Verification → Policy → Write → Supporting Files → Personal → Review → Success
         if (step === 1) return; // Can't go back from first step (verification)
         else if (step === 2) setStep(1); // Policy Issues → verification
         else if (step === 4) setStep(2); // Write Message → Policy Issues (skip AI Help step 3)
         else if (step === 5) setStep(4); // Supporting Files → Write Message
         else if (step === 7) setStep(5); // Personal Info → Supporting Files
         else if (step === 8) setStep(7); // Review → Personal Info
-        else if (step === 9) setStep(8); // Delivery → Review
-        else if (step === 10) setStep(9); // Success → Delivery
+        else if (step === 10) setStep(8); // Success → Review
         else if (step === 12) setStep(8); // Sending Error → Review
       } else {
-        // Members logged in flow: Policy → Write → Supporting Files → Personal → Review → Success (skip verification step 1 and delivery step 9)
+        // Members logged in flow: Policy → Write → Supporting Files → Personal → Review → Success
         if (step === 2) return; // Can't go back from first step (Policy Issues)
         else if (step === 4) setStep(2); // Write Message → Policy Issues (skip AI Help step 3)
         else if (step === 5) setStep(4); // Supporting Files → Write Message
@@ -397,11 +396,10 @@ const AdvocacyMessageContent: React.FC = () => {
         else if (step === 6) setStep(5); // Select Representatives → Supporting Files
         else if (step === 7) setStep(6); // Personal Info → Select Representatives
         else if (step === 8) setStep(7); // Review → Personal Info
-        else if (step === 9) setStep(8); // Delivery → Review
-        else if (step === 10) setStep(9); // Success → Delivery
+        else if (step === 10) setStep(8); // Success → Review
         else if (step === 12) setStep(8); // Sending Error → Review
       } else {
-        // Bills/campaigns logged in flow (skip verification step 1 and delivery step 9)
+        // Bills/campaigns logged in flow
         if (step === 2) return; // Can't go back from first step (Position)
         else if (step === 3) setStep(2); // AI Help → Position
         else if (step === 4) setStep(3); // Write Message → AI Help
@@ -608,15 +606,10 @@ const AdvocacyMessageContent: React.FC = () => {
     // Use verified user info if available
     if (verifiedUserInfo) {
       const addressValue = `${verifiedUserInfo.address}, ${verifiedUserInfo.city}, ${verifiedUserInfo.state} ${verifiedUserInfo.zipCode}`;
+      // For verified guest users, only return the fields they actually provided (name and address)
       return [
         { key: 'fullName', label: 'Full Name', value: verifiedUserInfo.fullName, available: true },
         { key: 'fullAddress', label: 'Full Address', value: addressValue, available: true },
-        { key: 'birthYear', label: 'Birth Year', value: '1990', available: true },
-        { key: 'gender', label: 'Gender', value: 'Prefer not to say', available: true },
-        { key: 'politicalAffiliation', label: 'Political Affiliation', value: 'Independent', available: true },
-        { key: 'education', label: 'Education', value: 'Bachelor\'s Degree', available: true },
-        { key: 'profession', label: 'Profession', value: 'Professional', available: true },
-        { key: 'militaryService', label: 'Military Service', value: 'No', available: true },
       ];
     }
     
@@ -1000,21 +993,24 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Handle send message
   const handleSend = async () => {
+    // Use targetMember for member contact flow, selectedMembers for bill flow
+    const membersToSend = isMemberContact && targetMember ? [targetMember] : selectedMembers;
+
     // Validate required fields
-    if (!message || !userStance || selectedMembers.length === 0) {
+    if (!message || !userStance || membersToSend.length === 0) {
       alert('Please complete all required fields before sending.');
       return;
     }
-    
+
     try {
       // Import Firebase functions
       const { getFirestore, collection, addDoc, Timestamp } = await import('firebase/firestore');
       const { app } = await import('@/lib/firebase');
       const db = getFirestore(app);
-      
+
       // Clear sessionStorage after successful send
       sessionStorage.removeItem('verifiedUser');
-      
+
       // Build message activity object with proper null handling
       const messageActivity: any = {
         userId: user?.uid || (verifiedUserInfo ? 'verified-' + Date.now() : 'guest-' + Date.now()),
@@ -1022,7 +1018,7 @@ const AdvocacyMessageContent: React.FC = () => {
         isGuestUser: !user && !verifiedUserInfo,
         userStance: userStance,
         messageContent: message,
-        recipients: selectedMembers.map(member => ({
+        recipients: membersToSend.map(member => ({
           name: member.directOrderName || member.fullName || member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unknown',
           bioguideId: member.bioguideId || '',
           email: member.email || '',
@@ -1103,17 +1099,26 @@ const AdvocacyMessageContent: React.FC = () => {
           }
         }));
       }
-      
-      
-      // Navigate to confirmation page with recipient count and message status
-      const recipientCount = selectedMembers.length;
-      const isVerifiedSend = !user && verifiedUserInfo;
-      router.push(`/advocacy-message/confirmation?count=${recipientCount}&verified=${isVerifiedSend}`);
-      
+
+
+      // Mark message as sent
+      setMessageSent(true);
+
+      // For logged-in users, redirect to dashboard after a delay
+      if (user) {
+        setTimeout(() => {
+          router.push('/dashboard?message=sent');
+        }, 2000);
+      } else {
+        // For non-logged-in users, show account creation options after a delay
+        setTimeout(() => {
+          setStep(10); // Go to account creation step
+        }, 2000);
+      }
+
     } catch (error) {
       console.error('Error saving message:', error);
-      // Show error to user
-      alert('Failed to send message. Please try again.');
+      setSendingError('Failed to send message. Please try again.');
       // Don't navigate away on error
     }
   };
@@ -2833,7 +2838,7 @@ We verify your voter registration to ensure your messages are taken seriously by
   // Step 6: Review Message
   const renderStep3 = () => {
     const selectedPersonalFields = personalDataFields.filter(f => selectedPersonalData.includes(f.key));
-    
+
     // Generate salutation based on member type
     const getSalutation = (member: any) => {
       const lastName = member.lastName ||
@@ -2849,7 +2854,10 @@ We verify your voter registration to ensure your messages are taken seriously by
       const title = isSenator ? 'Senator' : 'Representative';
       return `Dear ${title} ${lastName}`;
     };
-    
+
+    // Use targetMember for member contact flow, selectedMembers for bill flow
+    const membersToPreview = isMemberContact && targetMember ? [targetMember] : selectedMembers;
+
     return (
       <Card className="flex-1 flex flex-col">
         <CardHeader>
@@ -2861,35 +2869,37 @@ We verify your voter registration to ensure your messages are taken seriously by
             Review your message before sending. Make sure everything looks correct and complete.
           </p>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 flex-1 flex flex-col">
           {/* Letter Navigation */}
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Letter Preview ({currentLetterIndex + 1} of {selectedMembers.length})</h3>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentLetterIndex(Math.max(0, currentLetterIndex - 1))}
-                disabled={currentLetterIndex === 0}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {selectedMembers[currentLetterIndex]?.fullName || selectedMembers[currentLetterIndex]?.name}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentLetterIndex(Math.min(selectedMembers.length - 1, currentLetterIndex + 1))}
-                disabled={currentLetterIndex === selectedMembers.length - 1}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+          {membersToPreview.length > 1 && (
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Letter Preview ({currentLetterIndex + 1} of {membersToPreview.length})</h3>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentLetterIndex(Math.max(0, currentLetterIndex - 1))}
+                  disabled={currentLetterIndex === 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {membersToPreview[currentLetterIndex]?.fullName || membersToPreview[currentLetterIndex]?.name || membersToPreview[currentLetterIndex]?.directOrderName}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentLetterIndex(Math.min(membersToPreview.length - 1, currentLetterIndex + 1))}
+                  disabled={currentLetterIndex === membersToPreview.length - 1}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Formatted Letter */}
-          {selectedMembers[currentLetterIndex] && (
+          {membersToPreview[currentLetterIndex] && (
             <div className="bg-white border rounded-lg p-8 shadow-sm" style={{ fontFamily: 'serif', lineHeight: '1.6' }}>
               {/* Date */}
               <div className="text-right mb-8">
@@ -2903,12 +2913,12 @@ We verify your voter registration to ensure your messages are taken seriously by
               {/* Recipient Address */}
               <div className="mb-8">
                 <div className="font-semibold">
-                  {getSalutation(selectedMembers[currentLetterIndex]).replace('Dear ', '')}
+                  {getSalutation(membersToPreview[currentLetterIndex]).replace('Dear ', '')}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
-                  {selectedMembers[currentLetterIndex].officeTitle ||
-                   (selectedMembers[currentLetterIndex].chamber?.toLowerCase() === 'senate' ||
-                    selectedMembers[currentLetterIndex].url?.includes('/senate/') ? 'United States Senate' : 'House of Representatives')}
+                  {membersToPreview[currentLetterIndex].officeTitle ||
+                   (membersToPreview[currentLetterIndex].chamber?.toLowerCase() === 'senate' ||
+                    membersToPreview[currentLetterIndex].url?.includes('/senate/') ? 'United States Senate' : 'House of Representatives')}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Washington, DC 20515
@@ -2917,7 +2927,7 @@ We verify your voter registration to ensure your messages are taken seriously by
 
               {/* Salutation */}
               <div className="mb-6">
-                {getSalutation(selectedMembers[currentLetterIndex])},
+                {getSalutation(membersToPreview[currentLetterIndex])},
               </div>
 
               {/* Message Body */}
@@ -3233,10 +3243,10 @@ We verify your voter registration to ensure your messages are taken seriously by
             <Button variant="outline" onClick={goBack}>
               Back
             </Button>
-            {/* Continue button - skip delivery step for authenticated users */}
+            {/* Continue button - skip delivery step for all users */}
             {(user || verifiedUserInfo) && (
-              <Button onClick={() => user ? setStep(12) : setStep(9)}>
-                {user ? 'Send Message' : 'Continue'}
+              <Button onClick={() => setStep(12)}>
+                Send Message
               </Button>
             )}
           </div>
@@ -3245,154 +3255,255 @@ We verify your voter registration to ensure your messages are taken seriously by
     );
   };
 
-  // Step 4: Create Account
+  // Step 4: Create Account - Choose account type
   const renderStep4 = () => {
     return (
-      <Card className="max-w-2xl mx-auto">
+      <Card className="max-w-4xl mx-auto">
         <CardHeader className="text-center pb-8">
-          <CardTitle className="text-xl font-bold text-primary mb-2">Create your account!</CardTitle>
+          <CardTitle className="text-2xl font-bold text-primary mb-2">Your message has been sent!</CardTitle>
           <CardDescription className="text-lg">
-            To keep track of your sent messages, login or sign up
+            Create an account to track your advocacy efforts
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8">
-          {/* Benefits Section */}
-          <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-6 space-y-6">
-            <h3 className="font-semibold text-lg text-center text-primary">Benefits of creating an account</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-start space-x-4 p-4 bg-white/60 rounded-lg">
-                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="font-medium text-foreground">Track Your Messages</h4>
-                  <p className="text-sm text-muted-foreground mt-1">Keep all your sent messages organized in one place</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4 p-4 bg-white/60 rounded-lg">
-                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="font-medium text-foreground">Receive Responses</h4>
-                  <p className="text-sm text-muted-foreground mt-1">Get replies from representatives directly</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4 p-4 bg-white/60 rounded-lg">
-                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="font-medium text-foreground">Save Preferences</h4>
-                  <p className="text-sm text-muted-foreground mt-1">Set defaults for faster future messaging</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4 p-4 bg-white/60 rounded-lg">
-                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="font-medium text-foreground">Monitor Impact</h4>
-                  <p className="text-sm text-muted-foreground mt-1">Track your advocacy efforts and their results</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="space-y-4">
-            <Button
-              className="w-full h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-              size="lg"
+        <CardContent className="space-y-6">
+          {/* Two Options Side by Side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Free Account Option */}
+            <button
               onClick={() => {
-                // Save message data to session storage before redirect
-                const messageData = {
-                  bill,
-                  selectedMembers,
-                  userStance,
-                  message,
-                  selectedPersonalData,
-                  verifiedUserInfo
-                };
-                sessionStorage.setItem('pendingMessage', JSON.stringify(messageData));
-                router.push(`/signup?returnTo=${encodeURIComponent('/advocacy-message/send')}`);
+                setAccountType('free');
+                setStep(11); // Go to email/password form
               }}
+              className="border rounded-lg p-6 space-y-4 text-left hover:border-primary hover:shadow-lg transition-all"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
-              Sign Up - It's Free!
-            </Button>
+              <div className="text-center">
+                <h3 className="text-xl font-semibold mb-2">Create Free Account</h3>
+                <p className="text-sm text-muted-foreground">Track your advocacy messages for free</p>
+              </div>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-muted" />
+              <div className="space-y-3 py-4">
+                <div className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <span>Send advocacy messages</span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Already have an account?</span>
+
+              <div className="pt-4">
+                <div className="w-full bg-secondary text-center py-3 rounded-md font-medium">
+                  Continue →
+                </div>
               </div>
+            </button>
+
+            {/* Premium Membership Option */}
+            <button
+              onClick={() => {
+                setAccountType('membership');
+                setStep(11); // Go to email/password form
+              }}
+              className="border-2 border-primary rounded-lg p-6 space-y-4 relative bg-primary/5 text-left hover:shadow-xl transition-all"
+            >
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <Badge className="bg-primary text-primary-foreground">Recommended</Badge>
+              </div>
+
+              <div className="text-center">
+                <h3 className="text-xl font-semibold mb-2 flex items-center justify-center gap-2">
+                  <Crown className="h-5 w-5 text-primary" />
+                  Become a Member
+                </h3>
+                <p className="text-sm text-muted-foreground mb-2">$6/quarter ($24/year)</p>
+              </div>
+
+              <div className="space-y-2 py-2">
+                <div className="flex items-start gap-2 text-sm">
+                  <Heart className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <span>Support the Organization</span>
+                </div>
+                <div className="flex items-start gap-2 text-sm">
+                  <Eye className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <span>View Messages & Responses</span>
+                </div>
+                <div className="flex items-start gap-2 text-sm">
+                  <TrendingUp className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <span>Advocacy Impact Analytics</span>
+                </div>
+                <div className="flex items-start gap-2 text-sm">
+                  <Filter className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <span>Customized Feed</span>
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <div className="w-full bg-primary text-primary-foreground text-center py-3 rounded-md font-medium flex items-center justify-center gap-2">
+                  <Crown className="h-4 w-4" />
+                  Continue →
+                </div>
+              </div>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Step 11: Email/Password Form (based on selected account type)
+  const renderStep11 = () => {
+    const isMembership = accountType === 'membership';
+
+    const handleSignup = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsCreatingAccount(true);
+
+      try {
+        // Import Firebase modules
+        const { app } = await import('@/lib/firebase');
+        const { getAuth, createUserWithEmailAndPassword } = await import('firebase/auth');
+        const { getFirestore, doc, setDoc } = await import('firebase/firestore');
+
+        // Create account with Firebase Auth
+        const auth = getAuth(app);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const newUser = userCredential.user;
+
+        // Create user profile in Firestore
+        const db = getFirestore(app);
+        const userRef = doc(db, 'users', newUser.uid);
+        await setDoc(userRef, {
+          email: newUser.email,
+          name: verifiedUserInfo?.name || '',
+          address: verifiedUserInfo?.address || '',
+          city: verifiedUserInfo?.city || '',
+          state: verifiedUserInfo?.state || '',
+          zipCode: verifiedUserInfo?.zipCode || '',
+          membershipTier: isMembership ? 'pending' : 'free',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+
+        // If membership, set flag and redirect to membership signup
+        if (isMembership) {
+          sessionStorage.setItem('membershipSignupIntent', 'true');
+          router.push('/membership/signup');
+        } else {
+          // Free account - redirect to dashboard
+          router.push('/dashboard?message=sent');
+        }
+      } catch (error: any) {
+        console.error('Error creating account:', error);
+        if (error.code === 'auth/email-already-in-use') {
+          alert('An account with this email already exists. Please log in instead.');
+        } else {
+          alert('Failed to create account. Please try again.');
+        }
+      } finally {
+        setIsCreatingAccount(false);
+      }
+    };
+
+    return (
+      <Card className="max-w-xl mx-auto">
+        <CardHeader className="text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            {isMembership && <Crown className="h-6 w-6 text-primary" />}
+            <CardTitle className="text-2xl font-bold">
+              {isMembership ? 'Become a Member' : 'Create Free Account'}
+            </CardTitle>
+          </div>
+          <CardDescription>
+            {isMembership
+              ? 'Enter your email and password to continue to membership checkout'
+              : 'Enter your email and password to create your free account'
+            }
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+              />
             </div>
 
-            <Button
-              className="w-full h-12 text-base font-medium"
-              size="lg"
-              variant="outline"
-              onClick={() => {
-                // Save message data to session storage before redirect
-                const messageData = {
-                  bill,
-                  selectedMembers,
-                  userStance,
-                  message,
-                  selectedPersonalData,
-                  verifiedUserInfo
-                };
-                sessionStorage.setItem('pendingMessage', JSON.stringify(messageData));
-                router.push(`/login?returnTo=${encodeURIComponent('/advocacy-message/send')}`);
-              }}
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-              </svg>
-              Login
-            </Button>
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Create a password"
+                required
+                minLength={6}
+              />
+              <p className="text-xs text-muted-foreground">
+                Must be at least 6 characters
+              </p>
+            </div>
 
-          {/* Navigation */}
-          <div className="flex justify-between items-center mt-auto pt-6 border-t">
-            <Button variant="outline" onClick={() => setStep(8)} className="px-6">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </Button>
-            {verifiedUserInfo && (
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  // Allow verified users to skip account creation and send as verified
-                  handleSend();
-                }}
-                className="text-muted-foreground hover:text-foreground px-6"
-              >
-                Skip (Send as Verified User)
-                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Button>
+            {isMembership && (
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mt-4">
+                <h4 className="font-semibold mb-2">What you'll get:</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start gap-2">
+                    <Heart className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Support the Organization</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Eye className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>View Messages & Responses</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <TrendingUp className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Advocacy Impact Analytics</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Filter className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Customized Feed</span>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-primary/20">
+                  <p className="font-semibold text-center">$6/quarter ($24/year)</p>
+                </div>
+              </div>
             )}
-          </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep(10)}
+                className="flex-1"
+              >
+                Back
+              </Button>
+              <Button
+                type="submit"
+                disabled={isCreatingAccount}
+                className="flex-1"
+              >
+                {isCreatingAccount ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : isMembership ? (
+                  <>
+                    Continue to Checkout
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                ) : (
+                  'Create Account'
+                )}
+              </Button>
+            </div>
+          </form>
         </CardContent>
       </Card>
     );
@@ -3518,11 +3629,14 @@ We verify your voter registration to ensure your messages are taken seriously by
     if (step === 12 && isSending && !messageSent) {
       const sendMessage = async () => {
         try {
+          // Use targetMember for member contact flow, selectedMembers for bill flow
+          const membersToSend = isMemberContact && targetMember ? [targetMember] : selectedMembers;
+
           // Import Firebase functions
           const { getFirestore, collection, addDoc, Timestamp } = await import('firebase/firestore');
           const { app } = await import('@/lib/firebase');
           const db = getFirestore(app);
-          
+
           // Build message activity object with proper null handling
           const messageActivity: any = {
             userId: user?.uid || (verifiedUserInfo ? 'verified-' + Date.now() : 'guest-' + Date.now()),
@@ -3530,7 +3644,7 @@ We verify your voter registration to ensure your messages are taken seriously by
             isGuestUser: !user && !verifiedUserInfo,
             userStance: userStance,
             messageContent: message,
-            recipients: selectedMembers.map(member => ({
+            recipients: membersToSend.map(member => ({
               name: member.directOrderName || member.fullName || member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unknown',
               bioguideId: member.bioguideId || '',
               email: member.email || '',
@@ -3613,19 +3727,18 @@ We verify your voter registration to ensure your messages are taken seriously by
           setTimeout(() => {
             setIsSending(false);
             setMessageSent(true);
-            
+
             // Clear verified user session storage only after successful send
             sessionStorage.removeItem('verifiedUser');
-            
+
             // After another moment, show the account creation form
             setTimeout(() => {
               if (user) {
-                // If already authenticated, go to confirmation page
-                const recipientCount = selectedMembers.length;
-                router.push(`/advocacy-message/confirmation?count=${recipientCount}`);
+                // If already authenticated, go to dashboard
+                router.push(`/dashboard?message=sent`);
               } else {
-                // Show account creation step
-                setStep(13);
+                // Show account creation step (step 10)
+                setStep(10);
               }
             }, 2000);
           }, 2000);
@@ -3643,6 +3756,9 @@ We verify your voter registration to ensure your messages are taken seriously by
 
   // Step 6: Sending Screen
   const renderStep6 = () => {
+    // Use targetMember for member contact flow, selectedMembers for bill flow
+    const membersToSend = isMemberContact && targetMember ? [targetMember] : selectedMembers;
+
     if (sendingError) {
       return (
         <Card>
@@ -3668,12 +3784,12 @@ We verify your voter registration to ensure your messages are taken seriously by
             </div>
             <CardTitle className="text-2xl">Message Sent Successfully!</CardTitle>
             <CardDescription>
-              Your message has been sent to {selectedMembers.length} representative{selectedMembers.length !== 1 ? 's' : ''}
+              Your message has been sent to {membersToSend.length} representative{membersToSend.length !== 1 ? 's' : ''}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-muted-foreground">
-              {user ? 'Redirecting to confirmation page...' : 'Create an account to save this message and track responses...'}
+              {user ? 'Redirecting to dashboard...' : 'Preparing account creation options...'}
             </p>
           </CardContent>
         </Card>
@@ -3688,19 +3804,19 @@ We verify your voter registration to ensure your messages are taken seriously by
           </div>
           <CardTitle className="text-2xl">Sending Your Message</CardTitle>
           <CardDescription>
-            Delivering to {selectedMembers.length} representative{selectedMembers.length !== 1 ? 's' : ''}...
+            Delivering to {membersToSend.length} representative{membersToSend.length !== 1 ? 's' : ''}...
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="bg-secondary/20 rounded-lg p-6 min-h-[200px] flex items-center justify-center">
             <div className="space-y-2 w-full max-w-md">
-              {selectedMembers.map((member, index) => (
+              {membersToSend.map((member, index) => (
                 <div key={member.bioguideId || member.email} className="flex items-center space-x-3 animate-pulse">
                   <Mail className="h-5 w-5 text-blue-500" />
                   <div className="h-2 bg-gray-200 rounded-full flex-1">
                     <div className="h-full bg-blue-500 rounded-full animate-pulse" style={{width: '75%'}} />
                   </div>
-                  <span className="text-sm text-muted-foreground">{member.fullName || member.name}</span>
+                  <span className="text-sm text-muted-foreground">{member.fullName || member.name || member.directOrderName}</span>
                 </div>
               ))}
             </div>
@@ -3722,179 +3838,6 @@ We verify your voter registration to ensure your messages are taken seriously by
     }
   }, [step, notificationEmail, email]);
 
-  // Step 7: Account Creation Form
-  const renderStep7 = () => {
-    const handleSignup = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setIsCreatingAccount(true);
-      setAccountError(null);
-
-      try {
-        // Import Firebase auth functions directly
-        const { getAuth, createUserWithEmailAndPassword } = await import('firebase/auth');
-        const { app } = await import('@/lib/firebase');
-        const auth = getAuth(app);
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        
-        // Save user profile data from Step 3 verification
-        if (verifiedUserInfo) {
-          const { getFirestore, doc, setDoc } = await import('firebase/firestore');
-          const db = getFirestore(app);
-          
-          // Parse name from fullName
-          const nameParts = verifiedUserInfo.fullName.split(' ');
-          const firstName = nameParts[0] || '';
-          const lastName = nameParts.slice(1).join(' ') || '';
-          
-          const userProfile = {
-            uid: userCredential.user.uid,
-            email: email,
-            firstName: firstName,
-            lastName: lastName,
-            address: verifiedUserInfo.address,
-            city: verifiedUserInfo.city,
-            state: verifiedUserInfo.state,
-            zipCode: verifiedUserInfo.zipCode,
-            constituentDescription: constituentDescription || null,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          
-          await setDoc(doc(db, 'users', userCredential.user.uid), userProfile);
-          console.log('Successfully saved user profile data');
-        }
-        
-        // Link the pending message to the new account
-        const { linkPendingMessageToUser } = await import('@/lib/link-pending-message');
-        const linked = await linkPendingMessageToUser(userCredential.user.uid);
-        
-        if (linked) {
-          console.log('Successfully linked message to new account');
-        }
-        
-        // Redirect to dashboard
-        router.push('/dashboard');
-      } catch (error: any) {
-        setAccountError(error.message || 'Failed to create account');
-      } finally {
-        setIsCreatingAccount(false);
-      }
-    };
-
-    const handleSkip = () => {
-      // Clear pending message data and go to home
-      sessionStorage.removeItem('pendingMessageId');
-      sessionStorage.removeItem('pendingMessageData');
-      router.push('/');
-    };
-
-    return (
-      <Card className="max-w-md mx-auto">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Shield className="h-12 w-12 text-primary" />
-          </div>
-          <CardTitle className="text-2xl">Save Your Message!</CardTitle>
-          <CardDescription>
-            Create a free account to save the message you just sent and track responses from representatives
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center space-x-2 text-stone-800">
-              <CheckCircle className="h-5 w-5" />
-              <span className="font-medium">Message sent successfully!</span>
-            </div>
-            <p className="text-sm text-stone-700 mt-1">
-              Your message was delivered to {selectedMembers.length} representative{selectedMembers.length !== 1 ? 's' : ''}.
-            </p>
-          </div>
-
-          <form onSubmit={handleSignup} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="your@email.com"
-                required
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Create a password"
-                minLength={6}
-                required
-                autoComplete="new-password"
-              />
-            </div>
-
-            {accountError && (
-              <div className="text-amber-600 text-sm bg-amber-50 border border-amber-200 rounded p-2">
-                {accountError}
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              disabled={isCreatingAccount}
-              className="w-full"
-              size="lg"
-            >
-              {isCreatingAccount ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Account...
-                </>
-              ) : (
-                <>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Create Account & Save Message
-                </>
-              )}
-            </Button>
-          </form>
-
-          <div className="mt-4 pt-4 border-t text-center">
-            <p className="text-sm text-muted-foreground mb-2">
-              Already have an account?
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/login?returnTo=${encodeURIComponent('/dashboard')}&linkMessage=true`)}
-              className="w-full"
-            >
-              Sign In Instead
-            </Button>
-          </div>
-
-          <div className="mt-4 text-center">
-            <Button
-              variant="ghost"
-              onClick={handleSkip}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              Skip for now
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
 
   // Show loading state
   if (loading) {
@@ -3934,32 +3877,29 @@ We verify your voter registration to ensure your messages are taken seriously by
         </button>
       </div>
 
-      <div className="w-full flex-1 flex flex-col overflow-auto p-0 md:container md:mx-auto md:px-8 md:pb-8 md:max-w-2xl">
-      {/* Step Content */}
-      {step === 1 && renderRoutingStep()} {/* Help us verify that you are a registered voter */}
-      {step === 2 && (isMemberContact ? renderStep2_PolicyIssues() : renderStep1_Position())} {/* Choose Your Position OR Policy Issues */}
-      {step === 3 && !isMemberContact && renderStep2_AIHelp()} {/* Get Help Writing (Optional) - Bills only */}
-      {step === 4 && renderStep3_WriteMessage()} {/* Write Your Message */}
-      {step === 5 && renderStep4_UploadMedia()} {/* Add Supporting Files (Optional) */}
-      {step === 6 && !isMemberContact && renderStep1()} {/* Select Outreach - Bills only */}
-      {step === 7 && renderPersonalInfoStep()} {/* Personal Information */}
-      {step === 8 && renderStep3()} {/* Review Message */}
-      {step === 9 && renderDeliveryStep()} {/* Message Delivery */}
-      {step === 10 && renderStep4()} {/* Create Account */}
-      {step === 11 && renderStep5()} {/* Send Message */}
-      {step === 12 && renderStep6()} {/* Sending Screen */}
-      {step === 13 && renderStep7()} {/* Account Creation Form */}
+      {/* Main content */}
+      <div className="flex-1 container mx-auto px-8 max-w-2xl pb-8 overflow-y-auto flex flex-col pt-4">
+        {step === 1 && renderRoutingStep()} {/* Verification */}
+        {step === 2 && (isMemberContact ? renderStep2_PolicyIssues() : renderStep1_Position())} {/* Policy/Position */}
+        {step === 3 && renderStep2_AIHelp()} {/* Writing Help */}
+        {step === 4 && renderStep3_WriteMessage()} {/* Write Message */}
+        {step === 5 && renderStep4_UploadMedia()} {/* Add Supporting Files (Optional) */}
+        {step === 6 && !isMemberContact && renderStep1()} {/* Select Outreach - Bills only */}
+        {step === 7 && renderPersonalInfoStep()} {/* Personal Information */}
+        {step === 8 && renderStep3()} {/* Review Message */}
+        {step === 9 && renderDeliveryStep()} {/* Message Delivery */}
+        {step === 10 && renderStep4()} {/* Choose Account Type */}
+        {step === 11 && renderStep11()} {/* Email/Password Form */}
+        {step === 12 && renderStep6()} {/* Sending Screen */}
       </div>
     </div>
   );
-};
+}
 
-const AdvocacyMessagePage: React.FC = () => {
+export default function AdvocacyMessagePage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-secondary/30 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
       <AdvocacyMessageContent />
     </Suspense>
   );
-};
-
-export default AdvocacyMessagePage;
+}
