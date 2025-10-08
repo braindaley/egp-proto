@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { ExternalLink, Edit2, Trash2, Loader2, BarChart3, Mail, Menu, ChevronRight, Home, Users, Megaphone, Copy, Check } from 'lucide-react';
+import { ExternalLink, Edit2, Trash2, Loader2, BarChart3, Mail, Menu, ChevronRight, Home, Users, Megaphone, Copy, Check, PieChart } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
 // Force dynamic rendering to prevent prerendering issues
@@ -593,7 +593,7 @@ export default function GroupCampaignsPage() {
                                                                 variant="ghost"
                                                                 asChild
                                                             >
-                                                                <Link href={`/partners/performance/${campaign.id}`}>
+                                                                <Link href={(campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') ? `/partners/polls/${campaign.id}` : `/partners/performance/${campaign.id}`}>
                                                                     <BarChart3 className="h-4 w-4" />
                                                                 </Link>
                                                             </Button>

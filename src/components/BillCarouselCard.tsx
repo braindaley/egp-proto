@@ -7,10 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getBillTypeSlug } from '@/lib/utils';
-import { Users, ThumbsUp, ThumbsDown, Eye, ExternalLink, MessageSquareText } from 'lucide-react';
+import { Users, Mail, Eye, ExternalLink, MessageSquareText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
-import { getBillSupportData } from '@/lib/bill-support-data';
+import { useBillSupportCounts } from '@/hooks/use-bill-support-counts';
 import { useWatchedBills } from '@/hooks/use-watched-bills';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
@@ -29,7 +29,6 @@ interface BillCarouselCardProps {
 
 
 export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
-  const [supportStatus, setSupportStatus] = useState<'none' | 'supported' | 'opposed'>('none');
   const [explainerData, setExplainerData] = useState<BillCarouselOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { isWatchedBill, toggleWatchBill } = useWatchedBills();
@@ -39,8 +38,13 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
 
   const billTypeSlug = getBillTypeSlug(bill.type);
   const detailUrl = `/federal/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
-  
-  const { supportCount, opposeCount } = getBillSupportData(bill.congress, bill.type, bill.number);
+
+  // Get real support counts from Firestore
+  const { supportCount, opposeCount, loading: countsLoading } = useBillSupportCounts(
+    bill.congress,
+    bill.type,
+    bill.number
+  );
 
   const partyColor = bill.sponsorParty === 'R' ? 'bg-stone-600 text-white' 
                    : bill.sponsorParty === 'D' ? 'bg-slate-600 text-white'
@@ -139,17 +143,7 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
     e.preventDefault();
     e.stopPropagation();
   };
-  
-  const handleSupport = (e: React.MouseEvent) => {
-    handleInteractionClick(e);
-    setSupportStatus(prev => prev === 'supported' ? 'none' : 'supported');
-  };
 
-  const handleOppose = (e: React.MouseEvent) => {
-    handleInteractionClick(e);
-    setSupportStatus(prev => prev === 'opposed' ? 'none' : 'opposed');
-  };
-  
   const handleWatch = (e: React.MouseEvent) => {
     handleInteractionClick(e);
     
@@ -241,33 +235,31 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
           <span className="text-sm font-medium">58</span>
         </button>
         
-        <button
-          onClick={handleSupport}
-          className={`flex items-center gap-1 rounded-full px-3 py-2 transition-colors group ${
-            supportStatus === 'supported'
-              ? 'text-red-600 bg-red-50'
-              : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
-          }`}
+        <div
+          className="flex items-center gap-1 rounded-full px-3 py-2 text-green-600 bg-green-50"
+          title={`${countsLoading ? '...' : supportCount.toLocaleString()} ${supportCount === 1 ? 'person contacted' : 'people contacted'} their representative in support`}
         >
-          <ThumbsUp className="h-4 w-4" />
+          <Mail className="h-4 w-4" />
           <span className="text-sm font-medium">
-            {supportStatus === 'supported' ? (supportCount + 1).toLocaleString() : supportCount.toLocaleString()}
+            {countsLoading ? '...' : supportCount.toLocaleString()}
           </span>
-        </button>
-        
-        <button
-          onClick={handleOppose}
-          className={`flex items-center gap-1 rounded-full px-3 py-2 transition-colors group ${
-            supportStatus === 'opposed'
-              ? 'text-red-600 bg-red-50'
-              : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
-          }`}
+          <span className="text-sm font-medium hidden sm:inline">
+            support
+          </span>
+        </div>
+
+        <div
+          className="flex items-center gap-1 rounded-full px-3 py-2 text-red-600 bg-red-50"
+          title={`${countsLoading ? '...' : opposeCount.toLocaleString()} ${opposeCount === 1 ? 'person contacted' : 'people contacted'} their representative in opposition`}
         >
-          <ThumbsDown className="h-4 w-4" />
+          <Mail className="h-4 w-4" />
           <span className="text-sm font-medium">
-            {supportStatus === 'opposed' ? (opposeCount + 1).toLocaleString() : opposeCount.toLocaleString()}
+            {countsLoading ? '...' : opposeCount.toLocaleString()}
           </span>
-        </button>
+          <span className="text-sm font-medium hidden sm:inline">
+            oppose
+          </span>
+        </div>
         
         <button
           onClick={handleWatch}

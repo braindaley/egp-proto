@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Eye, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
 import { useZipCode } from '@/hooks/use-zip-code';
@@ -27,6 +25,81 @@ interface StateRepresentative {
   imageUrl?: string;
   profileUrl?: string;
 }
+
+interface LocalRepresentative {
+  name: string;
+  party: string;
+  position: string;
+  imageUrl?: string;
+  district?: string;
+}
+
+// Mock data for local representatives (city and school board)
+const mockCityCouncil: LocalRepresentative[] = [
+  {
+    name: 'Valerie Amezcua',
+    party: 'Nonpartisan',
+    position: 'Mayor',
+    imageUrl: 'https://www.santa-ana.org/sites/default/files/styles/employee/public/council-mayor-amezcua_1.jpg'
+  },
+  {
+    name: 'Johnathan Ryan Hernandez',
+    party: 'Nonpartisan',
+    position: 'Council Member - Ward 1',
+    imageUrl: 'https://www.santa-ana.org/sites/default/files/styles/employee/public/hernandez-headshot-web.jpg'
+  },
+  {
+    name: 'Jessie Lopez',
+    party: 'Nonpartisan',
+    position: 'Council Member - Ward 2',
+    imageUrl: 'https://www.santa-ana.org/sites/default/files/styles/employee/public/lopez-headshot.jpg'
+  },
+  {
+    name: 'Phil Bacerra',
+    party: 'Nonpartisan',
+    position: 'Council Member - Ward 3',
+    imageUrl: 'https://www.santa-ana.org/sites/default/files/styles/employee/public/bacerra-headshot.jpg'
+  },
+  {
+    name: 'Nelida Mendoza',
+    party: 'Nonpartisan',
+    position: 'Council Member - Ward 4',
+    imageUrl: 'https://www.santa-ana.org/sites/default/files/styles/employee/public/mendoza-headshot.jpg'
+  }
+];
+
+const mockSchoolBoard: LocalRepresentative[] = [
+  {
+    name: 'Carolyn Torres',
+    party: 'Nonpartisan',
+    position: 'Board President',
+    district: 'Area 1'
+  },
+  {
+    name: 'Rigo Rodriguez',
+    party: 'Nonpartisan',
+    position: 'Board Vice President',
+    district: 'Area 2'
+  },
+  {
+    name: 'Valerie Amezcua',
+    party: 'Nonpartisan',
+    position: 'Board Clerk',
+    district: 'Area 3'
+  },
+  {
+    name: 'Alfonso Alvarez',
+    party: 'Nonpartisan',
+    position: 'Board Member',
+    district: 'Area 4'
+  },
+  {
+    name: 'John Palacio',
+    party: 'Nonpartisan',
+    position: 'Board Member',
+    district: 'Area 5'
+  }
+];
 
 const mockStateRepresentatives: Record<string, StateRepresentative[]> = {
   'CA': [
@@ -278,7 +351,7 @@ export function HomeRepresentativesSection() {
     return stateMap[prefix] || { name: 'California', code: 'CA' }; // Default to CA
   };
 
-  // Fetch federal representative images
+  // Fetch federal representative images with caching
   useEffect(() => {
     const fetchMemberImages = async () => {
       if (!federalReps || federalReps.length === 0) {
@@ -289,13 +362,45 @@ export function HomeRepresentativesSection() {
       const updatedMembers = await Promise.all(
         federalReps.map(async (rep) => {
           if (rep.bioguideId) {
+            // Check cache first
+            const cacheKey = `member_image_${rep.bioguideId}`;
+            const cached = localStorage.getItem(cacheKey);
+
+            if (cached) {
+              try {
+                const { imageUrl, timestamp } = JSON.parse(cached);
+                const isExpired = Date.now() - timestamp > 1000 * 60 * 60 * 24; // 24 hours
+
+                if (!isExpired) {
+                  return { ...rep, imageUrl };
+                }
+              } catch (error) {
+                console.error(`Failed to parse cache for ${rep.bioguideId}:`, error);
+              }
+            }
+
+            // Fetch from API
             try {
               const response = await fetch(`/api/congress/member/${rep.bioguideId}`);
               if (response.ok) {
                 const memberData = await response.json();
+                const imageUrl = memberData.depiction?.imageUrl;
+
+                // Cache the result
+                if (imageUrl) {
+                  try {
+                    localStorage.setItem(cacheKey, JSON.stringify({
+                      imageUrl,
+                      timestamp: Date.now()
+                    }));
+                  } catch (error) {
+                    console.error(`Failed to cache image for ${rep.bioguideId}:`, error);
+                  }
+                }
+
                 return {
                   ...rep,
-                  imageUrl: memberData.depiction?.imageUrl
+                  imageUrl
                 };
               }
             } catch (error) {
@@ -345,60 +450,68 @@ export function HomeRepresentativesSection() {
     return party.charAt(0).toUpperCase();
   };
 
+  const SkeletonCard = () => (
+    <div className="flex-shrink-0 w-[180px]">
+      <div className="flex flex-col items-center space-y-3 p-4 rounded-lg border bg-card">
+        <div className="h-20 w-20 rounded-full bg-gray-200 animate-pulse" />
+        <div className="text-center w-full space-y-2">
+          <div className="h-4 bg-gray-200 rounded animate-pulse" />
+          <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4 mx-auto" />
+        </div>
+        <div className="w-full h-8 bg-gray-200 rounded animate-pulse" />
+      </div>
+    </div>
+  );
+
   const RepresentativeCard = ({
     rep,
     type = 'federal',
     isFederal = true
   }: {
-    rep: FederalRepresentative | StateRepresentative;
-    type?: 'federal' | 'state';
+    rep: FederalRepresentative | StateRepresentative | LocalRepresentative;
+    type?: 'federal' | 'state' | 'local';
     isFederal?: boolean;
   }) => {
     const isState = !isFederal && 'chamber' in rep;
+    const isLocal = type === 'local' && 'position' in rep;
+
     const title = isFederal
       ? ('officeTitle' in rep ? (rep.officeTitle.includes('Senate') ? 'Senator' : `Rep. - District ${rep.districtNumber}`) : '')
+      : isLocal
+      ? (rep as LocalRepresentative).position
       : (isState ? (rep.chamber === 'Senate' ? 'State Senator' : `State Rep.${rep.district ? ` - District ${rep.district}` : ''}`) : '');
 
     return (
-      <div className="flex items-center justify-between space-x-3">
-        <div className="flex items-center space-x-3 flex-1">
-          <Avatar className="h-10 w-10">
+      <div className="flex-shrink-0 w-[180px]">
+        <div className="flex flex-col items-center space-y-3 p-4 rounded-lg border bg-card hover:shadow-md transition-shadow">
+          <Avatar className="h-20 w-20">
             <AvatarImage src={rep.imageUrl} alt={rep.name} />
-            <AvatarFallback className="text-xs">
+            <AvatarFallback className="text-lg">
               {getInitials(rep.name)}
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{rep.name}</p>
-            <div className="flex items-center space-x-2">
-              <Badge
-                className={`${getPartyColor(rep.party)} text-white text-xs px-1.5 py-0`}
-              >
-                {getPartyAbbreviation(rep.party)}
-              </Badge>
-              <span className="text-xs text-muted-foreground truncate">
-                {title}
-              </span>
-            </div>
+          <div className="text-center w-full">
+            <p className="text-sm font-semibold line-clamp-2 mb-1">{rep.name}</p>
+            <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">
+              {title}
+            </p>
           </div>
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full h-8 text-xs bg-white text-black hover:bg-gray-100 border border-gray-200"
+            title={`Contact ${rep.name}`}
+            asChild={isFederal && 'bioguideId' in rep}
+          >
+            {isFederal && 'bioguideId' in rep ? (
+              <Link href={`/advocacy-message?member=${rep.bioguideId}&congress=119`}>
+                Voice Opinion
+              </Link>
+            ) : (
+              <div>Voice Opinion</div>
+            )}
+          </Button>
         </div>
-        <Button
-          variant="default"
-          size="sm"
-          className="h-8 px-3 text-xs bg-white text-black hover:bg-gray-100 border border-gray-200"
-          title={`Contact ${rep.name}`}
-          asChild
-        >
-          {isFederal && 'bioguideId' in rep ? (
-            <Link href={`/advocacy-message?member=${rep.bioguideId}&congress=119`}>
-              Contact
-            </Link>
-          ) : (
-            <div className="cursor-not-allowed opacity-50">
-              Contact
-            </div>
-          )}
-        </Button>
       </div>
     );
   };
@@ -416,80 +529,85 @@ export function HomeRepresentativesSection() {
     return 0;
   });
 
-  // Sort state representatives: Senators first, then House reps
-  const sortedStateReps = [...stateReps].sort((a, b) => {
-    if (a.chamber === 'Senate' && b.chamber === 'House') return -1;
-    if (a.chamber === 'House' && b.chamber === 'Senate') return 1;
-    return 0;
-  });
 
   return (
     <div className="w-full bg-background border-b">
-      <div className="max-w-[1280px] mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Federal Representatives */}
-          <Card className="h-fit">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">
-                <Link
-                  href={`/federal/congress/119/states/${userState?.code.toLowerCase()}`}
-                  className="flex items-center gap-2 hover:text-primary transition-colors"
-                >
-                  My Federal Representatives
-                  <ExternalLink className="h-4 w-4" />
-                </Link>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+      <div className="max-w-[1280px] mx-auto px-4 py-8 space-y-8">
+        {/* Federal Representatives */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-xl font-semibold">My Federal Representatives</h2>
+            <Link
+              href={`/federal/congress/119/states/${userState?.code.toLowerCase()}`}
+              className="text-primary hover:underline"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="overflow-x-auto pb-4">
+            <div className="flex gap-4">
               {federalLoading ? (
-                <p className="text-sm text-muted-foreground">Loading...</p>
+                <>
+                  <SkeletonCard />
+                  <SkeletonCard />
+                  <SkeletonCard />
+                </>
               ) : sortedFederalReps.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No federal representatives found for your area</p>
               ) : (
-                <>
-                  {sortedFederalReps.map((member, index) => (
-                    <RepresentativeCard
-                      key={`${member.bioguideId || index}`}
-                      rep={member}
-                      type="federal"
-                      isFederal={true}
-                    />
-                  ))}
-                </>
+                sortedFederalReps.map((member, index) => (
+                  <RepresentativeCard
+                    key={`${member.bioguideId || index}`}
+                    rep={member}
+                    type="federal"
+                    isFederal={true}
+                  />
+                ))
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+        </div>
 
-          {/* State Representatives */}
-          <Card className="h-fit">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">
-                <Link
-                  href={`/state/${userState?.code.toLowerCase()}`}
-                  className="flex items-center gap-2 hover:text-primary transition-colors"
-                >
-                  My {userState?.name} Representatives
-                  <ExternalLink className="h-4 w-4" />
-                </Link>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {sortedStateReps.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No state representatives found for your area</p>
-              ) : (
-                <>
-                  {sortedStateReps.map((member, index) => (
+        {/* Local Representatives - City Council & School Board */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-xl font-semibold">My Local Representatives</h2>
+          </div>
+          <div className="space-y-6">
+            {/* City Council */}
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">Santa Ana City Council</h3>
+              <div className="overflow-x-auto pb-4">
+                <div className="flex gap-4">
+                  {mockCityCouncil.map((member, index) => (
                     <RepresentativeCard
-                      key={`${member.name}-${index}`}
+                      key={`city-${index}`}
                       rep={member}
-                      type="state"
+                      type="local"
                       isFederal={false}
                     />
                   ))}
-                </>
-              )}
-            </CardContent>
-          </Card>
+                </div>
+              </div>
+            </div>
+
+            {/* School Board */}
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">SAUSD School Board</h3>
+              <div className="overflow-x-auto pb-4">
+                <div className="flex gap-4">
+                  {mockSchoolBoard.map((member, index) => (
+                    <RepresentativeCard
+                      key={`school-${index}`}
+                      rep={member}
+                      type="local"
+                      isFederal={false}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

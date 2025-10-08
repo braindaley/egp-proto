@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Bill, RelatedBill } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, ThumbsUp, ThumbsDown, Eye, MessageSquareText } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, Mail, Eye, MessageSquareText, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { getBillSupportData } from '@/lib/bill-support-data';
+import { useBillSupportCounts } from '@/hooks/use-bill-support-counts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -95,12 +95,13 @@ const getBillProgressStage = (latestAction: any, actions?: any): BillProgressSta
 export function BillDetailClient({ bill }: { bill: Bill }) {
   const { user } = useAuth();
   const router = useRouter();
-  
-  // Get initial support data and set up state
-  const initialSupportData = getBillSupportData(bill.congress!, bill.type!, bill.number!);
-  const [supportCount, setSupportCount] = useState(initialSupportData.supportCount);
-  const [opposeCount, setOpposeCount] = useState(initialSupportData.opposeCount);
-  const [userAction, setUserAction] = useState<'support' | 'oppose' | null>(null);
+
+  // Get real support counts from Firestore
+  const { supportCount, opposeCount, loading: countsLoading } = useBillSupportCounts(
+    bill.congress!,
+    bill.type!,
+    bill.number!
+  );
   const [campaigns, setCampaigns] = useState<any[]>([]);
   
   // Load campaigns for this bill from both static data and Firebase
@@ -220,54 +221,6 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
     router.push(`/advocacy-message?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`);
   };
 
-  const handleSupportOppose = async (action: 'support' | 'oppose') => {
-    if (!user) {
-      window.location.href = '/login';
-      return;
-    }
-
-    try {
-      // Store action in localStorage as temporary solution
-      const userActions = JSON.parse(localStorage.getItem('userBillActions') || '[]');
-      const newAction = {
-        id: Date.now().toString(),
-        userId: user.uid,
-        userEmail: user.email,
-        campaignId: `bill-${bill.congress}-${bill.type}-${bill.number}`,
-        billNumber: bill.number,
-        billType: bill.type,
-        congress: bill.congress,
-        billTitle: bill.title,
-        action: action,
-        timestamp: new Date().toISOString(),
-        groupName: 'Individual Action',
-        groupSlug: 'individual'
-      };
-      
-      userActions.push(newAction);
-      localStorage.setItem('userBillActions', JSON.stringify(userActions));
-
-      // Update local state to reflect the change immediately
-      if (action === 'support') {
-        setSupportCount(prev => prev + 1);
-      } else {
-        setOpposeCount(prev => prev + 1);
-      }
-
-      // Set user action state to show success on button
-      setUserAction(action);
-      
-      // Clear the success state after 2 seconds
-      setTimeout(() => {
-        setUserAction(null);
-      }, 2000);
-
-    } catch (error) {
-      console.error('Error recording support/oppose action:', error);
-      alert('There was an error recording your action. Please try again.');
-    }
-  };
-
 
   return (
     <div>
@@ -306,41 +259,31 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                   <span className="text-xs sm:text-sm font-medium">Voice your opinion</span>
                 </button>
                 
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleSupportOppose('support');
-                  }}
-                  className={`flex items-center gap-0.5 sm:gap-1 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 transition-colors group flex-shrink-0 ${
-                    userAction === 'support'
-                      ? 'text-red-600 bg-red-50'
-                      : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
-                  }`}
-                  title={user ? 'Support this bill' : 'Login to support this bill'}
+                <div
+                  className="flex items-center gap-1 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 text-green-600 bg-green-50 flex-shrink-0"
+                  title={`${countsLoading ? '...' : supportCount.toLocaleString()} ${supportCount === 1 ? 'person contacted' : 'people contacted'} their representative in support`}
                 >
-                  <ThumbsUp className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                  <Mail className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                   <span className="text-xs sm:text-sm font-medium">
-                    {supportCount.toLocaleString()}
+                    {countsLoading ? '...' : supportCount.toLocaleString()}
                   </span>
-                </button>
-                
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleSupportOppose('oppose');
-                  }}
-                  className={`flex items-center gap-0.5 sm:gap-1 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 transition-colors group flex-shrink-0 ${
-                    userAction === 'oppose'
-                      ? 'text-red-600 bg-red-50'
-                      : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
-                  }`}
-                  title={user ? 'Oppose this bill' : 'Login to oppose this bill'}
+                  <span className="text-xs sm:text-sm font-medium hidden sm:inline">
+                    support
+                  </span>
+                </div>
+
+                <div
+                  className="flex items-center gap-1 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 text-red-600 bg-red-50 flex-shrink-0"
+                  title={`${countsLoading ? '...' : opposeCount.toLocaleString()} ${opposeCount === 1 ? 'person contacted' : 'people contacted'} their representative in opposition`}
                 >
-                  <ThumbsDown className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                  <Mail className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                   <span className="text-xs sm:text-sm font-medium">
-                    {opposeCount.toLocaleString()}
+                    {countsLoading ? '...' : opposeCount.toLocaleString()}
                   </span>
-                </button>
+                  <span className="text-xs sm:text-sm font-medium hidden sm:inline">
+                    oppose
+                  </span>
+                </div>
                 
                 <button
                   onClick={(e) => {
@@ -421,13 +364,15 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground flex-wrap">
                           <div className="flex items-center gap-1">
-                            <ThumbsUp className="h-3 w-3 flex-shrink-0" />
+                            <Mail className="h-3 w-3 flex-shrink-0" />
                             <span>{campaign.supportCount.toLocaleString()}</span>
+                            <span className="hidden sm:inline">support</span>
                           </div>
                           <span>•</span>
                           <div className="flex items-center gap-1">
-                            <ThumbsDown className="h-3 w-3 flex-shrink-0" />
+                            <Mail className="h-3 w-3 flex-shrink-0" />
                             <span>{campaign.opposeCount.toLocaleString()}</span>
+                            <span className="hidden sm:inline">oppose</span>
                           </div>
                           <span>•</span>
                           <Link 

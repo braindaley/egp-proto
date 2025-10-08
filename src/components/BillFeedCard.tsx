@@ -7,11 +7,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { getBillTypeSlug, formatDate } from '@/lib/utils';
-import { Check, Dot, Users, Library, ArrowRight, ThumbsUp, ThumbsDown, Eye, Flame, TrendingUp, Award, ClipboardCheck, MessageSquareText, Tags, Share } from 'lucide-react';
+import { Check, Dot, Users, Library, ArrowRight, Mail, Eye, Flame, TrendingUp, Award, ClipboardCheck, MessageSquareText, Tags, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
-import { getBillSupportData } from '@/lib/bill-support-data';
+import { useBillSupportCounts } from '@/hooks/use-bill-support-counts';
 import { useWatchedBills } from '@/hooks/use-watched-bills';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
@@ -86,7 +86,6 @@ const ImportanceBadge = ({ score }: { score: number }) => {
 };
 
 export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }) {
-    const [supportStatus, setSupportStatus] = useState<'none' | 'supported' | 'opposed'>('none');
     const { isWatchedBill, toggleWatchBill } = useWatchedBills();
     const { user } = useAuth();
     const router = useRouter();
@@ -94,9 +93,13 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
 
     const billTypeSlug = getBillTypeSlug(bill.type);
     const detailUrl = `/federal/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
-    
-    // Get consistent mock support data
-    const { supportCount, opposeCount } = getBillSupportData(bill.congress, bill.type, bill.number);
+
+    // Get real support counts from Firestore
+    const { supportCount, opposeCount, loading: countsLoading } = useBillSupportCounts(
+        bill.congress,
+        bill.type,
+        bill.number
+    );
 
     const partyColor = bill.sponsorParty === 'R' ? 'bg-red-100 text-red-800' 
                      : bill.sponsorParty === 'D' ? 'bg-blue-100 text-blue-800'
@@ -106,17 +109,7 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
         e.preventDefault();
         e.stopPropagation();
     };
-    
-    const handleSupport = (e: React.MouseEvent) => {
-        handleInteractionClick(e);
-        setSupportStatus(prev => prev === 'supported' ? 'none' : 'supported');
-    };
 
-    const handleOppose = (e: React.MouseEvent) => {
-        handleInteractionClick(e);
-        setSupportStatus(prev => prev === 'opposed' ? 'none' : 'opposed');
-    };
-    
     const handleWatch = (e: React.MouseEvent) => {
         console.log('=== WATCH BUTTON CLICKED ===');
         handleInteractionClick(e);
@@ -225,32 +218,22 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                 >
                     Voice your opinion
                 </Button>
-                <Button 
-                    variant="outline" 
-                    size="sm"
-                    className={`flex items-center gap-1.5 transition-colors ${
-                        supportStatus === 'supported'
-                            ? 'bg-green-100 text-green-800 border-green-300'
-                            : 'text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200'
-                    }`}
-                    onClick={handleSupport}
+                <div
+                    className="flex items-center gap-1.5 text-green-600 bg-green-50 border border-green-200 rounded-md px-3 py-1.5 text-sm"
+                    title={`${countsLoading ? '...' : supportCount.toLocaleString()} ${supportCount === 1 ? 'person contacted' : 'people contacted'} their representative in support`}
                 >
-                    <ThumbsUp className="h-4 w-4" />
-                    {supportStatus === 'supported' ? 'Supported!' : supportCount.toLocaleString()}
-                </Button>
-                <Button 
-                    variant="outline" 
-                    size="sm"
-                    className={`flex items-center gap-1.5 transition-colors ${
-                        supportStatus === 'opposed'
-                            ? 'bg-red-100 text-red-800 border-red-300'
-                            : 'text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200'
-                    }`}
-                    onClick={handleOppose}
+                    <Mail className="h-4 w-4" />
+                    <span>{countsLoading ? '...' : supportCount.toLocaleString()}</span>
+                    <span className="hidden sm:inline">support</span>
+                </div>
+                <div
+                    className="flex items-center gap-1.5 text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-1.5 text-sm"
+                    title={`${countsLoading ? '...' : opposeCount.toLocaleString()} ${opposeCount === 1 ? 'person contacted' : 'people contacted'} their representative in opposition`}
                 >
-                    <ThumbsDown className="h-4 w-4" />
-                    {supportStatus === 'opposed' ? 'Opposed!' : opposeCount.toLocaleString()}
-                </Button>
+                    <Mail className="h-4 w-4" />
+                    <span>{countsLoading ? '...' : opposeCount.toLocaleString()}</span>
+                    <span className="hidden sm:inline">oppose</span>
+                </div>
                 <Button 
                     variant="outline"
                     size="sm"

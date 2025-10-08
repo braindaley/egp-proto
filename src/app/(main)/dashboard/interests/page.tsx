@@ -11,7 +11,7 @@ import { app } from '@/lib/firebase';
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3 } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, Lock, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +19,17 @@ export const dynamic = 'force-dynamic';
 export default function InterestsPage() {
   const { user, loading, refreshUserData } = useAuth();
   const { toast } = useToast();
+
+  // Check membership status from localStorage (for testing)
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsPremium(localStorage.getItem('testAsPremium') === 'true');
+    }
+  }, []);
+
+  const [overallView, setOverallView] = useState(2);
   const [policyInterests, setPolicyInterests] = useState({
     climateEnergyEnvironment: 2,
     criminalJustice: 2,
@@ -40,6 +51,7 @@ export default function InterestsPage() {
 
   useEffect(() => {
     if (user) {
+      setOverallView(user.overallView ?? 2);
       setPolicyInterests({
         climateEnergyEnvironment: user.policyInterests?.climateEnergyEnvironment ?? 2,
         criminalJustice: user.policyInterests?.criminalJustice ?? 2,
@@ -74,7 +86,7 @@ export default function InterestsPage() {
     setIsSaving(true);
     try {
       const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, { policyInterests }, { merge: true });
+      await setDoc(userRef, { overallView, policyInterests }, { merge: true });
       // Refresh the user data to update the AuthContext
       await refreshUserData();
       console.log('Policy interests saved successfully');
@@ -126,38 +138,53 @@ export default function InterestsPage() {
     { key: 'technology', label: 'Technology' },
   ];
 
-  const interestLevels = ['None', 'Low', 'Neutral', 'Medium', 'High'];
+  const viewLabels = ['Far Left', 'Center Left', 'Center / Moderate', 'Center Right', 'Far Right'];
+  const viewExplanations = [
+    'Strongly progressive or liberal views',
+    'Leans liberal but moderate',
+    'Balanced or neutral stance',
+    'Leans conservative but moderate',
+    'Strongly conservative views'
+  ];
 
   const dashboardNavItems = [
     { label: 'Dashboard', href: '/dashboard', icon: UserIcon },
+    { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
+    { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
     { label: 'Activity', href: '/dashboard/activity', icon: BarChart3 },
-    { label: 'Membership', href: '/dashboard/membership', icon: Crown },
-    { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
+    { label: 'Following', href: '/dashboard/following', icon: Eye },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings, isActive: true },
   ];
 
-  const PolicySlider = ({ 
-    id, 
-    value, 
-    onValueChange, 
-    label 
-  }: { 
-    id: string; 
-    value: number; 
+  const PolicySlider = ({
+    id,
+    value,
+    onValueChange,
+    label,
+    showExplanation = false
+  }: {
+    id: string;
+    value: number;
     onValueChange: (value: number) => void;
     label: string;
+    showExplanation?: boolean;
   }) => {
-    console.log(`PolicySlider ${label}: value=${value}, interestLevels[${value}]=${interestLevels[value]}`);
-    
+    console.log(`PolicySlider ${label}: value=${value}, viewLabels[${value}]=${viewLabels[value]}`);
+
     return (
       <div className="space-y-2">
         <div className="flex justify-between items-center">
           <Label htmlFor={id}>{label}</Label>
           <span className="text-sm text-muted-foreground">
-            {interestLevels[value]}
+            {viewLabels[value]}
           </span>
         </div>
+        {showExplanation && (
+          <p className="text-xs text-muted-foreground">
+            {viewExplanations[value]}
+          </p>
+        )}
         <div className="relative flex w-full touch-none select-none items-center">
           <div className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary">
           </div>
@@ -178,13 +205,13 @@ export default function InterestsPage() {
             <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
           </SliderPrimitive.Root>
         </div>
-        <div className="flex justify-between text-xs">
-          {interestLevels.map((level, index) => (
+        <div className="flex justify-between text-xs gap-1">
+          {viewLabels.map((level, index) => (
             <button
               key={level}
               type="button"
               className={cn(
-                "hover:text-foreground transition-colors cursor-pointer px-2 py-1 rounded border border-transparent hover:border-gray-300",
+                "hover:text-foreground transition-colors cursor-pointer px-2 py-1 rounded border border-transparent hover:border-gray-300 text-center flex-1",
                 value === index ? "text-foreground font-bold bg-blue-50 border-blue-200" : "text-muted-foreground"
               )}
               onClick={(e) => {
@@ -286,40 +313,94 @@ export default function InterestsPage() {
             <div className="w-full lg:max-w-[672px] lg:flex-1">
               <header className="mb-8">
                 <h1 className="text-3xl font-bold font-headline">
-                  Policy Issue Interests
+                  Political Views
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Set your interest level for different policy areas to help tailor your advocacy messages.
+                  Set your political perspective overall and for different policy areas to help tailor your advocacy messages.
                 </p>
               </header>
-              
+
               <main className="space-y-8">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Interest Levels</CardTitle>
-                    <CardDescription>
-                      Adjust your interest level for each policy area using the sliders below.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-          <div className="space-y-6">
-            {policyIssues.map((issue) => (
-              <PolicySlider
-                key={issue.key}
-                id={issue.key}
-                label={issue.label}
-                value={policyInterests[issue.key as keyof typeof policyInterests]}
-                onValueChange={(value) => handlePolicyInterestChange(issue.key, [value])}
-              />
-            ))}
-          </div>
-                  
-                  <div className="flex justify-end gap-2 mt-8">
-                    <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-                    <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
-                  </div>
-                  </CardContent>
-                </Card>
+                {isPremium ? (
+                  <>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Overall Political View</CardTitle>
+                        <CardDescription>
+                          Select your general political perspective across all issues.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <PolicySlider
+                          id="overallView"
+                          label="Overall View"
+                          value={overallView}
+                          onValueChange={setOverallView}
+                          showExplanation={true}
+                        />
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Policy-Specific Views</CardTitle>
+                        <CardDescription>
+                          Adjust your political perspective for each policy area using the sliders below.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+            <div className="space-y-6">
+              {policyIssues.map((issue) => (
+                <PolicySlider
+                  key={issue.key}
+                  id={issue.key}
+                  label={issue.label}
+                  value={policyInterests[issue.key as keyof typeof policyInterests]}
+                  onValueChange={(value) => handlePolicyInterestChange(issue.key, [value])}
+                />
+              ))}
+            </div>
+
+                    <div className="flex justify-end gap-2 mt-8">
+                      <Button variant="outline" onClick={handleCancel}>Cancel</Button>
+                      <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
+                    </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                ) : (
+                  <Card className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/90 z-10 flex items-center justify-center">
+                      <div className="text-center p-8">
+                        <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="text-xl font-semibold mb-2">Upgrade to Premium</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Customize your policy interests to receive personalized bill recommendations and advocacy opportunities
+                        </p>
+                        <Button asChild size="lg" className="gap-2">
+                          <Link href="/dashboard/membership">
+                            <Crown className="h-4 w-4" />
+                            Upgrade Now
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                    <CardHeader>
+                      <div className="h-6 bg-gray-200 rounded w-3/4 animate-pulse mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                          <div key={i} className="space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+                            <div className="h-2 bg-gray-200 rounded w-full animate-pulse"></div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </main>
             </div>
           </div>

@@ -10,9 +10,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Landmark, CalendarDays, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ArrowRight, Landmark, CalendarDays, Mail } from 'lucide-react';
 import { getBillTypeSlug } from '@/lib/utils';
-import { getBillSupportData } from '@/lib/bill-support-data';
+import { useBillSupportCounts } from '@/hooks/use-bill-support-counts';
 
 function formatDate(dateString: string) {
   if (!dateString) return 'N/A';
@@ -26,9 +26,13 @@ function formatDate(dateString: string) {
 export function BillCard({ bill }: { bill: Bill }) {
   const billTypeSlug = getBillTypeSlug(bill.type);
   const detailUrl = `/federal/bill/${bill.congress}/${billTypeSlug}/${bill.number}`;
-  
-  // Get consistent mock support data
-  const { supportCount, opposeCount } = getBillSupportData(bill.congress!, bill.type!, bill.number!);
+
+  // Get real support counts from Firestore
+  const { supportCount, opposeCount, loading: countsLoading } = useBillSupportCounts(
+    bill.congress!,
+    bill.type!,
+    bill.number!
+  );
 
   return (
     <Link href={detailUrl} className="flex">
@@ -60,17 +64,21 @@ export function BillCard({ bill }: { bill: Bill }) {
             {/* Support/Oppose counts */}
             <div className="flex items-center justify-around text-center py-2 border-t border-b">
                 <div className="flex items-center gap-2 text-green-600">
-                    <ThumbsUp className="h-4 w-4" />
+                    <Mail className="h-4 w-4" />
                     <div>
-                        <p className="font-bold text-sm">{supportCount.toLocaleString()}</p>
-                        <p className="text-xs font-medium">Supporters</p>
+                        <p className="font-bold text-sm" title={`${countsLoading ? '...' : supportCount.toLocaleString()} ${supportCount === 1 ? 'person contacted' : 'people contacted'} their representative in support`}>
+                            {countsLoading ? '...' : supportCount.toLocaleString()}
+                        </p>
+                        <p className="text-xs font-medium">Support</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 text-red-600">
-                    <ThumbsDown className="h-4 w-4" />
+                    <Mail className="h-4 w-4" />
                     <div>
-                        <p className="font-bold text-sm">{opposeCount.toLocaleString()}</p>
-                        <p className="text-xs font-medium">Opponents</p>
+                        <p className="font-bold text-sm" title={`${countsLoading ? '...' : opposeCount.toLocaleString()} ${opposeCount === 1 ? 'person contacted' : 'people contacted'} their representative in opposition`}>
+                            {countsLoading ? '...' : opposeCount.toLocaleString()}
+                        </p>
+                        <p className="text-xs font-medium">Oppose</p>
                     </div>
                 </div>
             </div>

@@ -24,6 +24,7 @@ import { CampaignPromisesCard } from './campaign-promises-card';
 import { LegislativeActivityCard } from './legislative-activity-card';
 import { NewsCard } from './news-card';
 import { CampaignFinanceCard } from './campaign-finance-card';
+import { CampaignFinanceDetailCard } from './campaign-finance-detail-card';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
 import { Separator } from './ui/separator';
@@ -197,10 +198,15 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                 <h4 className="font-semibold text-muted-foreground">Party</h4>
                 <p>{currentParty || 'Unknown'}</p>
               </div>
-              {member.district && (
+              {member.district ? (
                 <div>
                   <h4 className="font-semibold text-muted-foreground">District</h4>
                   <p>{member.state}-{member.district}</p>
+                </div>
+              ) : (
+                <div>
+                  <h4 className="font-semibold text-muted-foreground">State</h4>
+                  <p>{member.state}</p>
                 </div>
               )}
               {yearsOfService > 0 && (
@@ -214,7 +220,11 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
             <SimpleIdeologyChart bioguideId={member.bioguideId} />
           </CardContent>
         </Card>
-        
+
+        <NewsCard bioguideId={member.bioguideId} />
+        <LegislativeActivityCard member={member} />
+        <CampaignFinanceDetailCard member={member} />
+
         <Collapsible defaultOpen={false}>
           <CollapsibleTrigger asChild>
             <Button variant="outline" className="w-full flex items-center justify-between">
@@ -223,7 +233,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-8 mt-4">
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -263,7 +273,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
                     {Object.entries(member.extendedIds).map(([key, value]) => {
                       if (!value || (Array.isArray(value) && value.length === 0)) return null;
-                      
+
                       const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
                       return (
@@ -281,10 +291,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
             )}
           </CardContent>
         </Card>
-        
-        <CampaignFinanceCard member={member} congress={congress} state={member.state.toLowerCase()} bioguideId={member.bioguideId} />
-        <NewsCard bioguideId={member.bioguideId} />
-        <LegislativeActivityCard member={member} />
+
         <CommitteeAssignmentsCard member={member} congress={congress} />
         <CampaignPromisesCard member={member} congress={congress} />
         {allTerms.length > 0 && (

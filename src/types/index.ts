@@ -498,3 +498,60 @@ export interface CommitteeMeeting {
   };
   url?: string;
 }
+
+// Campaign Finance Types
+export interface CampaignFinanceDetails {
+  cycle: number;
+  cash_on_hand: number;
+  debts: number;
+  receipts: number;
+  disbursements: number;
+  large_contributions: number;
+  small_contributions: number;
+  pac_contributions: number;
+  candidate_contributions: number;
+  other_contributions: number;
+}
+
+export interface StateContributor {
+  state: string;
+  total: number;
+}
+
+export interface IndividualContributor {
+  employer: string;
+  total: number;
+}
+
+export interface StateContributorsResponse {
+  fec_id: string;
+  cycle: number;
+  state_totals: StateContributor[];
+}
+
+export interface IndividualContributorsResponse {
+  fec_id: string;
+  cycle: number;
+  top_contributors: IndividualContributor[];
+}
+
+// Presidential Election Types
+export interface PresidentialElectionRecord {
+  "State ID": string;
+  "State": string;
+  "Party": string;
+  "Year": number;
+  "Candidate Votes": number;
+  "Total Votes": number;
+}
+
+export interface PresidentialElectionResponse {
+  annotations: {
+    dataset_name: string;
+    source_name: string;
+    source_link: string;
+    topic: string;
+    subtopic: string;
+  };
+  data: PresidentialElectionRecord[];
+}

@@ -221,6 +221,7 @@ const AdvocacyMessageContent: React.FC = () => {
         candidate1Bio={candidate1Bio || undefined}
         candidate2Name={candidate2Name!}
         candidate2Bio={candidate2Bio || undefined}
+        campaignId={campaignId || undefined}
       />
     );
   }
@@ -767,7 +768,7 @@ const AdvocacyMessageContent: React.FC = () => {
   // Verification functions
   const handleVerificationSubmit = async () => {
     setVerificationError('');
-    
+
     if (!firstName || !lastName || !address) {
       setVerificationError('Please fill in all fields');
       return;
@@ -787,12 +788,12 @@ const AdvocacyMessageContent: React.FC = () => {
       setVerificationError('Please enter a complete address');
       return;
     }
-    
+
     setIsVerifying(true);
-    
+
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Extract zip code from address for mock data
       const zipMatch = address.match(/\d{5}(?:-\d{4})?/);
       const extractedZip = zipMatch ? zipMatch[0] : '12345';
@@ -805,27 +806,23 @@ const AdvocacyMessageContent: React.FC = () => {
         mockState = 'CA';
       }
 
-      const mockMatches: VerificationMatch[] = [
-        {
-          id: '1',
-          fullName: `${firstName} ${lastName}`,
-          address: address,
-          city: mockCity,
-          state: mockState,
-          zipCode: extractedZip
-        },
-        {
-          id: '2',
-          fullName: `${firstName} ${lastName}`,
-          address: address.replace(/\d+/, (match) => String(parseInt(match) + 100)),
-          city: mockCity,
-          state: mockState,
-          zipCode: extractedZip
-        }
-      ];
-      
-      setMatches(mockMatches);
-      setVerificationStep('selection');
+      // Skip the selection step and directly verify by name and address
+      const verifiedInfo = {
+        id: '1',
+        fullName: `${firstName} ${lastName}`,
+        address: address,
+        city: mockCity,
+        state: mockState,
+        zipCode: extractedZip,
+        constituentDescription: constituentDescription || null
+      };
+
+      setVerifiedUserInfo(verifiedInfo);
+      // Save the zip code to the useZipCode hook for member lookup
+      saveZipCode(extractedZip);
+
+      // Go directly to step 2 (choose position)
+      setStep(2);
     } catch (err) {
       setVerificationError('Unable to verify identity. Please try again.');
     } finally {
@@ -2351,223 +2348,228 @@ We verify your voter registration to ensure your messages are taken seriously by
                   )}
                 </div>
 
-                {/* Birth Year */}
-                <div>
-                  {personalDataFields.find(f => f.key === 'birthYear')?.available ? (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={selectedPersonalData.includes('birthYear')}
-                        onCheckedChange={() => togglePersonalData('birthYear')}
-                      />
-                      <Label className="cursor-pointer">
-                        <span>Birth Year</span>
-                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'birthYear')?.value})</span>
-                      </Label>
-                    </div>
-                  ) : (
+                {/* Only show additional fields for logged-in users */}
+                {user && (
+                  <>
+                    {/* Birth Year */}
                     <div>
-                      <Label htmlFor="profile-birth-year" className="text-sm font-medium">
-                        Birth Year
-                      </Label>
-                      <select
-                        id="profile-birth-year"
-                        value={profileBirthYear}
-                        onChange={(e) => handleFieldChange('birthYear', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      >
-                        <option value="">Select your birth year</option>
-                        {Array.from({ length: new Date().getFullYear() - 18 - 1900 + 1 }, (_, i) => new Date().getFullYear() - 18 - i).map(year => (
-                          <option key={year} value={year}>{year}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                {/* Gender */}
-                <div>
-                  {personalDataFields.find(f => f.key === 'gender')?.available ? (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={selectedPersonalData.includes('gender')}
-                        onCheckedChange={() => togglePersonalData('gender')}
-                      />
-                      <Label className="cursor-pointer">
-                        <span>Gender</span>
-                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'gender')?.value})</span>
-                      </Label>
-                    </div>
-                  ) : (
-                    <div>
-                      <Label htmlFor="profile-gender" className="text-sm font-medium">
-                        Gender
-                      </Label>
-                      <select
-                        id="profile-gender"
-                        value={profileGender}
-                        onChange={(e) => handleFieldChange('gender', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      >
-                        <option value="">Select your gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Non-binary">Non-binary</option>
-                        <option value="Other">Other</option>
-                        <option value="Prefer not to say">Prefer not to say</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                {/* Political Affiliation */}
-                <div>
-                  {personalDataFields.find(f => f.key === 'politicalAffiliation')?.available ? (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={selectedPersonalData.includes('politicalAffiliation')}
-                        onCheckedChange={() => togglePersonalData('politicalAffiliation')}
-                      />
-                      <Label className="cursor-pointer">
-                        <span>Political Affiliation</span>
-                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'politicalAffiliation')?.value})</span>
-                      </Label>
-                    </div>
-                  ) : (
-                    <div>
-                      <Label htmlFor="profile-political-affiliation" className="text-sm font-medium">
-                        Political Affiliation
-                      </Label>
-                      <select
-                        id="profile-political-affiliation"
-                        value={profilePoliticalAffiliation}
-                        onChange={(e) => handleFieldChange('politicalAffiliation', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      >
-                        <option value="">Select your political affiliation</option>
-                        <option value="Democrat">Democrat</option>
-                        <option value="Republican">Republican</option>
-                        <option value="Independent">Independent</option>
-                        <option value="Green Party">Green Party</option>
-                        <option value="Libertarian">Libertarian</option>
-                        <option value="No Affiliation">No Affiliation</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                {/* Education */}
-                <div>
-                  {personalDataFields.find(f => f.key === 'education')?.available ? (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={selectedPersonalData.includes('education')}
-                        onCheckedChange={() => togglePersonalData('education')}
-                      />
-                      <Label className="cursor-pointer">
-                        <span>Education</span>
-                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'education')?.value})</span>
-                      </Label>
-                    </div>
-                  ) : (
-                    <div>
-                      <Label htmlFor="profile-education" className="text-sm font-medium">
-                        Education
-                      </Label>
-                      <select
-                        id="profile-education"
-                        value={profileEducation}
-                        onChange={(e) => handleFieldChange('education', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      >
-                        <option value="">Select your education level</option>
-                        <option value="High School Diploma">High School Diploma</option>
-                        <option value="Some College">Some College</option>
-                        <option value="Associate's Degree">Associate's Degree</option>
-                        <option value="Bachelor's Degree">Bachelor's Degree</option>
-                        <option value="Master's Degree">Master's Degree</option>
-                        <option value="Doctoral Degree">Doctoral Degree</option>
-                        <option value="Professional Degree">Professional Degree</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                {/* Profession */}
-                <div>
-                  {personalDataFields.find(f => f.key === 'profession')?.available ? (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={selectedPersonalData.includes('profession')}
-                        onCheckedChange={() => togglePersonalData('profession')}
-                      />
-                      <Label className="cursor-pointer">
-                        <span>Profession</span>
-                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'profession')?.value})</span>
-                      </Label>
-                    </div>
-                  ) : (
-                    <div>
-                      <Label htmlFor="profile-profession" className="text-sm font-medium">
-                        Profession
-                      </Label>
-                      <input
-                        id="profile-profession"
-                        type="text"
-                        value={profileProfession}
-                        onChange={(e) => handleFieldChange('profession', e.target.value)}
-                        placeholder="Enter your profession"
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Military Service */}
-                <div>
-                  {personalDataFields.find(f => f.key === 'militaryService')?.available ? (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={selectedPersonalData.includes('militaryService')}
-                        onCheckedChange={() => togglePersonalData('militaryService')}
-                      />
-                      <Label className="cursor-pointer">
-                        <span>Military Service</span>
-                        <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'militaryService')?.value})</span>
-                      </Label>
-                    </div>
-                  ) : (
-                    <div>
-                      <Label className="text-sm font-medium">
-                        Military Service
-                      </Label>
-                      <div className="mt-2 space-y-2">
+                      {personalDataFields.find(f => f.key === 'birthYear')?.available ? (
                         <div className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            name="profile-military-service"
-                            id="military-yes"
-                            checked={profileMilitaryService === true}
-                            onChange={() => handleMilitaryServiceChange(true)}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                          <Checkbox
+                            checked={selectedPersonalData.includes('birthYear')}
+                            onCheckedChange={() => togglePersonalData('birthYear')}
                           />
-                          <Label htmlFor="military-yes" className="cursor-pointer">Yes</Label>
+                          <Label className="cursor-pointer">
+                            <span>Birth Year</span>
+                            <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'birthYear')?.value})</span>
+                          </Label>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            name="profile-military-service"
-                            id="military-no"
-                            checked={profileMilitaryService === false}
-                            onChange={() => handleMilitaryServiceChange(false)}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
-                          />
-                          <Label htmlFor="military-no" className="cursor-pointer">No</Label>
+                      ) : (
+                        <div>
+                          <Label htmlFor="profile-birth-year" className="text-sm font-medium">
+                            Birth Year
+                          </Label>
+                          <select
+                            id="profile-birth-year"
+                            value={profileBirthYear}
+                            onChange={(e) => handleFieldChange('birthYear', e.target.value)}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          >
+                            <option value="">Select your birth year</option>
+                            {Array.from({ length: new Date().getFullYear() - 18 - 1900 + 1 }, (_, i) => new Date().getFullYear() - 18 - i).map(year => (
+                              <option key={year} value={year}>{year}</option>
+                            ))}
+                          </select>
                         </div>
-                      </div>
+                      )}
                     </div>
-                  )}
-                </div>
+
+                    {/* Gender */}
+                    <div>
+                      {personalDataFields.find(f => f.key === 'gender')?.available ? (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={selectedPersonalData.includes('gender')}
+                            onCheckedChange={() => togglePersonalData('gender')}
+                          />
+                          <Label className="cursor-pointer">
+                            <span>Gender</span>
+                            <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'gender')?.value})</span>
+                          </Label>
+                        </div>
+                      ) : (
+                        <div>
+                          <Label htmlFor="profile-gender" className="text-sm font-medium">
+                            Gender
+                          </Label>
+                          <select
+                            id="profile-gender"
+                            value={profileGender}
+                            onChange={(e) => handleFieldChange('gender', e.target.value)}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          >
+                            <option value="">Select your gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Non-binary">Non-binary</option>
+                            <option value="Other">Other</option>
+                            <option value="Prefer not to say">Prefer not to say</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Political Affiliation */}
+                    <div>
+                      {personalDataFields.find(f => f.key === 'politicalAffiliation')?.available ? (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={selectedPersonalData.includes('politicalAffiliation')}
+                            onCheckedChange={() => togglePersonalData('politicalAffiliation')}
+                          />
+                          <Label className="cursor-pointer">
+                            <span>Political Affiliation</span>
+                            <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'politicalAffiliation')?.value})</span>
+                          </Label>
+                        </div>
+                      ) : (
+                        <div>
+                          <Label htmlFor="profile-political-affiliation" className="text-sm font-medium">
+                            Political Affiliation
+                          </Label>
+                          <select
+                            id="profile-political-affiliation"
+                            value={profilePoliticalAffiliation}
+                            onChange={(e) => handleFieldChange('politicalAffiliation', e.target.value)}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          >
+                            <option value="">Select your political affiliation</option>
+                            <option value="Democrat">Democrat</option>
+                            <option value="Republican">Republican</option>
+                            <option value="Independent">Independent</option>
+                            <option value="Green Party">Green Party</option>
+                            <option value="Libertarian">Libertarian</option>
+                            <option value="No Affiliation">No Affiliation</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Education */}
+                    <div>
+                      {personalDataFields.find(f => f.key === 'education')?.available ? (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={selectedPersonalData.includes('education')}
+                            onCheckedChange={() => togglePersonalData('education')}
+                          />
+                          <Label className="cursor-pointer">
+                            <span>Education</span>
+                            <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'education')?.value})</span>
+                          </Label>
+                        </div>
+                      ) : (
+                        <div>
+                          <Label htmlFor="profile-education" className="text-sm font-medium">
+                            Education
+                          </Label>
+                          <select
+                            id="profile-education"
+                            value={profileEducation}
+                            onChange={(e) => handleFieldChange('education', e.target.value)}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          >
+                            <option value="">Select your education level</option>
+                            <option value="High School Diploma">High School Diploma</option>
+                            <option value="Some College">Some College</option>
+                            <option value="Associate's Degree">Associate's Degree</option>
+                            <option value="Bachelor's Degree">Bachelor's Degree</option>
+                            <option value="Master's Degree">Master's Degree</option>
+                            <option value="Doctoral Degree">Doctoral Degree</option>
+                            <option value="Professional Degree">Professional Degree</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Profession */}
+                    <div>
+                      {personalDataFields.find(f => f.key === 'profession')?.available ? (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={selectedPersonalData.includes('profession')}
+                            onCheckedChange={() => togglePersonalData('profession')}
+                          />
+                          <Label className="cursor-pointer">
+                            <span>Profession</span>
+                            <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'profession')?.value})</span>
+                          </Label>
+                        </div>
+                      ) : (
+                        <div>
+                          <Label htmlFor="profile-profession" className="text-sm font-medium">
+                            Profession
+                          </Label>
+                          <input
+                            id="profile-profession"
+                            type="text"
+                            value={profileProfession}
+                            onChange={(e) => handleFieldChange('profession', e.target.value)}
+                            placeholder="Enter your profession"
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Military Service */}
+                    <div>
+                      {personalDataFields.find(f => f.key === 'militaryService')?.available ? (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={selectedPersonalData.includes('militaryService')}
+                            onCheckedChange={() => togglePersonalData('militaryService')}
+                          />
+                          <Label className="cursor-pointer">
+                            <span>Military Service</span>
+                            <span className="text-sm text-muted-foreground ml-2">({personalDataFields.find(f => f.key === 'militaryService')?.value})</span>
+                          </Label>
+                        </div>
+                      ) : (
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Military Service
+                          </Label>
+                          <div className="mt-2 space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="profile-military-service"
+                                id="military-yes"
+                                checked={profileMilitaryService === true}
+                                onChange={() => handleMilitaryServiceChange(true)}
+                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                              />
+                              <Label htmlFor="military-yes" className="cursor-pointer">Yes</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="profile-military-service"
+                                id="military-no"
+                                checked={profileMilitaryService === false}
+                                onChange={() => handleMilitaryServiceChange(false)}
+                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                              />
+                              <Label htmlFor="military-no" className="cursor-pointer">No</Label>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
               
             </div>
@@ -3245,11 +3247,6 @@ We verify your voter registration to ensure your messages are taken seriously by
 
   // Step 4: Create Account
   const renderStep4 = () => {
-    // Skip this step if user is already authenticated
-    if (user) {
-      return renderStep5();
-    }
-    
     return (
       <Card className="max-w-2xl mx-auto">
         <CardHeader className="text-center pb-8">
@@ -3274,7 +3271,7 @@ We verify your voter registration to ensure your messages are taken seriously by
                   <p className="text-sm text-muted-foreground mt-1">Keep all your sent messages organized in one place</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-4 p-4 bg-white/60 rounded-lg">
                 <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                   <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3286,7 +3283,7 @@ We verify your voter registration to ensure your messages are taken seriously by
                   <p className="text-sm text-muted-foreground mt-1">Get replies from representatives directly</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-4 p-4 bg-white/60 rounded-lg">
                 <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                   <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3298,7 +3295,7 @@ We verify your voter registration to ensure your messages are taken seriously by
                   <p className="text-sm text-muted-foreground mt-1">Set defaults for faster future messaging</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-4 p-4 bg-white/60 rounded-lg">
                 <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                   <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3312,12 +3309,12 @@ We verify your voter registration to ensure your messages are taken seriously by
               </div>
             </div>
           </div>
-          
+
           {/* Action Buttons */}
           <div className="space-y-4">
-            <Button 
-              className="w-full h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200" 
-              size="lg" 
+            <Button
+              className="w-full h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              size="lg"
               onClick={() => {
                 // Save message data to session storage before redirect
                 const messageData = {
@@ -3337,7 +3334,7 @@ We verify your voter registration to ensure your messages are taken seriously by
               </svg>
               Sign Up - It's Free!
             </Button>
-            
+
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-muted" />
@@ -3346,10 +3343,10 @@ We verify your voter registration to ensure your messages are taken seriously by
                 <span className="bg-background px-2 text-muted-foreground">Already have an account?</span>
               </div>
             </div>
-            
-            <Button 
-              className="w-full h-12 text-base font-medium" 
-              size="lg" 
+
+            <Button
+              className="w-full h-12 text-base font-medium"
+              size="lg"
               variant="outline"
               onClick={() => {
                 // Save message data to session storage before redirect
@@ -3371,7 +3368,7 @@ We verify your voter registration to ensure your messages are taken seriously by
               Login
             </Button>
           </div>
-          
+
           {/* Navigation */}
           <div className="flex justify-between items-center mt-auto pt-6 border-t">
             <Button variant="outline" onClick={() => setStep(8)} className="px-6">
@@ -3381,7 +3378,7 @@ We verify your voter registration to ensure your messages are taken seriously by
               Back
             </Button>
             {verifiedUserInfo && (
-              <Button 
+              <Button
                 variant="ghost"
                 onClick={() => {
                   // Allow verified users to skip account creation and send as verified
@@ -3507,10 +3504,10 @@ We verify your voter registration to ensure your messages are taken seriously by
     return renderStep4();
   };
 
-  // useEffect hooks for Step 9 and 12 (sending) - moved to component level to follow Rules of Hooks
+  // useEffect hooks for Step 12 (sending) - moved to component level to follow Rules of Hooks
   useEffect(() => {
-    // Reset and start sending when entering Step 9 or Step 12
-    if ((step === 9 || step === 12) && !isSending && !messageSent) {
+    // Reset and start sending when entering Step 12 (not Step 9 - that's the delivery form)
+    if (step === 12 && !isSending && !messageSent) {
       setIsSending(true);
       setSendingError(null);
       setMessageSent(false);
@@ -3518,7 +3515,7 @@ We verify your voter registration to ensure your messages are taken seriously by
   }, [step, isSending, messageSent]);
 
   useEffect(() => {
-    if ((step === 9 || step === 12) && isSending && !messageSent) {
+    if (step === 12 && isSending && !messageSent) {
       const sendMessage = async () => {
         try {
           // Import Firebase functions

@@ -49,6 +49,7 @@ interface AppRepresentative {
   phones?: string[];
   urls?: string[];
   bioguideId?: string;
+  stateCode?: string;
 }
 
 
@@ -415,19 +416,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Zip code is required' }, { status: 400 });
   }
 
+  // Get state info for later use
+  const districtInfo = getDistrictFromZip(zipCode);
+
   // First try to use Geocodio if API key is available
   const geocodioApiKey = process.env.GEOCODIO_API_KEY;
   if (geocodioApiKey) {
     // Use existing Geocodio logic
     const url = `https://api.geocod.io/v1.7/geocode?q=${zipCode}&fields=cd&api_key=${geocodioApiKey}`;
-    
+
     try {
       const response = await fetch(url);
       const geocodData: GeocodIoResponse = await response.json();
 
       if (response.ok) {
         const representatives = transformGeocodIoResponse(geocodData);
-        return NextResponse.json(representatives);
+        // Add stateCode to each representative
+        const repsWithState = representatives.map(rep => ({
+          ...rep,
+          stateCode: districtInfo?.stateCode
+        }));
+        return NextResponse.json(repsWithState);
       }
     } catch (error) {
       console.error(`[API /by-zip] Geocodio API error:`, error);
@@ -436,8 +445,7 @@ export async function GET(request: NextRequest) {
   
   // Fallback: Use ZIP to district mapping and Congress API
   console.log(`[API /by-zip] Using fallback method for ZIP ${zipCode}`);
-  const districtInfo = getDistrictFromZip(zipCode);
-  
+
   if (!districtInfo) {
     console.error(`[API /by-zip] Could not determine state/district for ZIP ${zipCode}`);
     // Return empty array instead of error to allow user to continue
@@ -445,5 +453,10 @@ export async function GET(request: NextRequest) {
   }
   
   const representatives = await fetchDistrictMembers(districtInfo.stateCode, districtInfo.district);
-  return NextResponse.json(representatives);
+  // Add stateCode to each representative
+  const repsWithState = representatives.map(rep => ({
+    ...rep,
+    stateCode: districtInfo.stateCode
+  }));
+  return NextResponse.json(repsWithState);
 }

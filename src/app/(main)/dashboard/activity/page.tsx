@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserActivity } from '@/hooks/use-user-activity';
 import { useRouter } from 'next/navigation';
@@ -8,7 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, ThumbsUp, ThumbsDown, Eye, Lock, TrendingUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { getStatusBadgeVariant } from '@/lib/bill-status-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +25,9 @@ interface BillRowProps {
     latestActionText: string;
     userStance: 'support' | 'oppose';
     sentAt: any;
+    billStatusLabel: string;
+    billStatusCategory: 'enacted' | 'passed' | 'active' | 'stalled';
+    billStatusDescription: string;
   };
 }
 
@@ -46,6 +51,9 @@ function BillRow({ bill }: BillRowProps) {
               <p className="leading-[20px] whitespace-pre">{bill.billType} {bill.billNumber}</p>
             </div>
           </div>
+          <Badge variant={getStatusBadgeVariant(bill.billStatusCategory)} className="text-xs">
+            {bill.billStatusLabel}
+          </Badge>
           <div className="basis-0 font-normal grow leading-[0] min-h-px min-w-px not-italic relative shrink-0 text-foreground text-[16px]">
             <p className="leading-[24px] font-medium">{bill.billTitle}</p>
           </div>
@@ -68,6 +76,15 @@ export default function ActivityPage() {
   const { activityStats, loading: activityLoading } = useUserActivity();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
+
+  // Check membership status from localStorage (for testing)
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsPremium(localStorage.getItem('testAsPremium') === 'true');
+    }
+  }, []);
   
   if (loading) {
     return <p>Loading activity...</p>;
@@ -80,11 +97,11 @@ export default function ActivityPage() {
 
   const dashboardNavItems = [
     { label: 'Dashboard', href: '/dashboard', icon: UserIcon },
+    { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
+    { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
     { label: 'Activity', href: '/dashboard/activity', icon: BarChart3, isActive: true },
     { label: 'Following', href: '/dashboard/following', icon: Eye },
-    { label: 'Membership', href: '/dashboard/membership', icon: Crown },
-    { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },
   ];
 
@@ -192,64 +209,98 @@ export default function ActivityPage() {
                     {activityLoading ? (
                       <p className="text-muted-foreground">Loading statistics...</p>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-green-600 mb-1">
-                            {activityStats.supportedCount}
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div className="text-center">
+                            <div className="text-3xl font-bold text-green-600 mb-1">
+                              {activityStats.supportedCount}
+                            </div>
+                            <div className="text-sm text-muted-foreground mb-2">Bills Supported</div>
+                            <div className="text-lg font-semibold text-green-600">
+                              {activityStats.supportedPercentage}%
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground mb-2">Bills Supported</div>
-                          <div className="text-lg font-semibold text-green-600">
-                            {activityStats.supportedPercentage}%
+
+                          <div className="text-center">
+                            <div className="text-3xl font-bold text-red-600 mb-1">
+                              {activityStats.opposedCount}
+                            </div>
+                            <div className="text-sm text-muted-foreground mb-2">Bills Opposed</div>
+                            <div className="text-lg font-semibold text-red-600">
+                              {activityStats.opposedPercentage}%
+                            </div>
+                          </div>
+
+                          <div className="text-center">
+                            <div className="text-3xl font-bold text-foreground mb-1">
+                              {activityStats.totalCount}
+                            </div>
+                            <div className="text-sm text-muted-foreground mb-2">Total Bills</div>
+                            <div className="text-lg font-semibold text-foreground">
+                              100%
+                            </div>
                           </div>
                         </div>
-                        
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-red-600 mb-1">
-                            {activityStats.opposedCount}
+
+                        {/* Advocacy Impact Section */}
+                        {activityStats.totalCount > 0 && (
+                          <div className="border-t pt-6">
+                            <div className="flex items-center gap-2 mb-4">
+                              <TrendingUp className="h-5 w-5 text-primary" />
+                              <h3 className="text-lg font-semibold">Advocacy Impact</h3>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="rounded-lg bg-muted p-4">
+                                <div className="text-sm text-muted-foreground mb-1">Success Rate</div>
+                                <div className="text-2xl font-bold text-green-600 mb-1">
+                                  {activityStats.successRate}%
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {activityStats.supportedEnacted} of {activityStats.supportedCount} supported bills became law
+                                </div>
+                              </div>
+
+                              <div className="rounded-lg bg-muted p-4">
+                                <div className="text-sm text-muted-foreground mb-1">Effectiveness Score</div>
+                                <div className="text-2xl font-bold text-blue-600 mb-1">
+                                  {activityStats.effectivenessScore}%
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Your advocacy aligned with the outcomes
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground mb-2">Bills Opposed</div>
-                          <div className="text-lg font-semibold text-red-600">
-                            {activityStats.opposedPercentage}%
-                          </div>
-                        </div>
-                        
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-foreground mb-1">
-                            {activityStats.totalCount}
-                          </div>
-                          <div className="text-sm text-muted-foreground mb-2">Total Bills</div>
-                          <div className="text-lg font-semibold text-foreground">
-                            100%
-                          </div>
-                        </div>
+                        )}
                       </div>
                     )}
                   </CardContent>
                 </Card>
 
                 {/* Bill Lists with Tabs */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Your Bill Positions</CardTitle>
-                    <CardDescription>
-                      Browse bills you've taken positions on, organized by your stance.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {activityLoading ? (
-                      <p className="text-muted-foreground">Loading bills...</p>
-                    ) : activityStats.totalCount === 0 ? (
-                      <div className="text-center py-8">
-                        <h3 className="text-xl font-semibold mb-2">No Activity Yet</h3>
-                        <p className="text-muted-foreground mb-4">
-                          You haven't taken any positions on bills yet. Start advocating to see your activity here.
-                        </p>
-                        <Button asChild>
-                          <Link href="/campaigns">Browse Campaigns</Link>
-                        </Button>
-                      </div>
-                    ) : (
-                      <Tabs defaultValue="supported" className="w-full">
+                {isPremium ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Your Bill Positions</CardTitle>
+                      <CardDescription>
+                        Browse bills you've taken positions on, organized by your stance.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {activityLoading ? (
+                        <p className="text-muted-foreground">Loading bills...</p>
+                      ) : activityStats.totalCount === 0 ? (
+                        <div className="text-center py-8">
+                          <h3 className="text-xl font-semibold mb-2">No Activity Yet</h3>
+                          <p className="text-muted-foreground mb-4">
+                            You haven't taken any positions on bills yet. Start advocating to see your activity here.
+                          </p>
+                          <Button asChild>
+                            <Link href="/campaigns">Browse Campaigns</Link>
+                          </Button>
+                        </div>
+                      ) : (
+                        <Tabs defaultValue="supported" className="w-full">
                         <TabsList className="grid w-full grid-cols-2">
                           <TabsTrigger value="supported" className="flex items-center gap-2">
                             <ThumbsUp className="h-4 w-4" />
@@ -308,10 +359,47 @@ export default function ActivityPage() {
                             </div>
                           )}
                         </TabsContent>
-                      </Tabs>
-                    )}
-                  </CardContent>
-                </Card>
+                        </Tabs>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {/* Skeleton Cards for Free Tier */}
+                    {[1, 2, 3].map((i) => (
+                      <Card key={i} className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/90 z-10 flex items-center justify-center">
+                          {i === 2 && (
+                            <div className="text-center p-8">
+                              <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                              <h3 className="text-xl font-semibold mb-2">Upgrade to Premium</h3>
+                              <p className="text-sm text-muted-foreground mb-4">
+                                View detailed bill positions and track your advocacy impact
+                              </p>
+                              <Button asChild size="lg" className="gap-2">
+                                <Link href="/dashboard/membership">
+                                  <Crown className="h-4 w-4" />
+                                  Upgrade Now
+                                </Link>
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        <CardHeader>
+                          <div className="h-6 bg-gray-200 rounded w-3/4 animate-pulse mb-2"></div>
+                          <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                            <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+                            <div className="h-4 bg-gray-200 rounded w-4/6 animate-pulse"></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </>
+                )}
               </main>
             </div>
           </div>

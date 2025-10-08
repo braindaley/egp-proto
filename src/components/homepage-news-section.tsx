@@ -49,6 +49,7 @@ interface FederalRepresentative {
   districtNumber?: number;
   bioguideId?: string;
   imageUrl?: string;
+  stateCode?: string;
 }
 
 interface StateRepresentative {
@@ -60,9 +61,84 @@ interface StateRepresentative {
   profileUrl?: string;
 }
 
+interface LocalRepresentative {
+  name: string;
+  party: string;
+  position: string;
+  imageUrl?: string;
+  district?: string;
+}
+
 interface HomepageNewsSectionProps {
   newsStories: NewsStory[];
 }
+
+// Mock data for local representatives (city and school board)
+const mockCityCouncil: LocalRepresentative[] = [
+  {
+    name: 'Valerie Amezcua',
+    party: 'Nonpartisan',
+    position: 'Mayor',
+    imageUrl: 'https://www.santa-ana.org/sites/default/files/styles/employee/public/council-mayor-amezcua_1.jpg'
+  },
+  {
+    name: 'Johnathan Ryan Hernandez',
+    party: 'Nonpartisan',
+    position: 'Council Member - Ward 1',
+    imageUrl: 'https://www.santa-ana.org/sites/default/files/styles/employee/public/hernandez-headshot-web.jpg'
+  },
+  {
+    name: 'Jessie Lopez',
+    party: 'Nonpartisan',
+    position: 'Council Member - Ward 2',
+    imageUrl: 'https://www.santa-ana.org/sites/default/files/styles/employee/public/lopez-headshot.jpg'
+  },
+  {
+    name: 'Phil Bacerra',
+    party: 'Nonpartisan',
+    position: 'Council Member - Ward 3',
+    imageUrl: 'https://www.santa-ana.org/sites/default/files/styles/employee/public/bacerra-headshot.jpg'
+  },
+  {
+    name: 'Nelida Mendoza',
+    party: 'Nonpartisan',
+    position: 'Council Member - Ward 4',
+    imageUrl: 'https://www.santa-ana.org/sites/default/files/styles/employee/public/mendoza-headshot.jpg'
+  }
+];
+
+const mockSchoolBoard: LocalRepresentative[] = [
+  {
+    name: 'Carolyn Torres',
+    party: 'Nonpartisan',
+    position: 'Board President',
+    district: 'Area 1'
+  },
+  {
+    name: 'Rigo Rodriguez',
+    party: 'Nonpartisan',
+    position: 'Board Vice President',
+    district: 'Area 2'
+  },
+  {
+    name: 'Valerie Amezcua',
+    party: 'Nonpartisan',
+    position: 'Board Clerk',
+    district: 'Area 3'
+  },
+  {
+    name: 'Alfonso Alvarez',
+    party: 'Nonpartisan',
+    position: 'Board Member',
+    district: 'Area 4'
+  },
+  {
+    name: 'John Palacio',
+    party: 'Nonpartisan',
+    position: 'Board Member',
+    district: 'Area 5'
+  }
+];
 
 const mockStateRepresentatives: Record<string, StateRepresentative[]> = {
   'CA': [
@@ -530,7 +606,8 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
                 const memberData = await response.json();
                 return {
                   ...rep,
-                  imageUrl: memberData.depiction?.imageUrl
+                  imageUrl: memberData.depiction?.imageUrl,
+                  stateCode: rep.stateCode // Preserve stateCode
                 };
               }
             } catch (error) {
@@ -611,65 +688,55 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
     type = 'federal',
     isFederal = true
   }: {
-    rep: FederalRepresentative | StateRepresentative;
-    type?: 'federal' | 'state';
+    rep: FederalRepresentative | StateRepresentative | LocalRepresentative;
+    type?: 'federal' | 'state' | 'local';
     isFederal?: boolean;
   }) => {
     const isState = !isFederal && 'chamber' in rep;
+    const isLocal = type === 'local' && 'position' in rep;
+
     const title = isFederal
       ? ('officeTitle' in rep ? (rep.officeTitle.includes('Senate') ? 'Senator' : `Rep. - District ${rep.districtNumber}`) : '')
+      : isLocal
+      ? (rep as LocalRepresentative).position
       : (isState ? (rep.chamber === 'Senate' ? 'State Senator' : `State Rep.${rep.district ? ` - District ${rep.district}` : ''}`) : '');
 
     return (
-      <div className="flex items-center justify-between space-x-3">
-        <div className="flex items-center space-x-3 flex-1">
-          <Avatar className="h-[60px] w-[60px]">
+      <div className="flex-shrink-0 w-[180px]">
+        <div className="flex flex-col items-center space-y-3 p-4 rounded-lg border bg-card hover:shadow-md transition-shadow">
+          <Avatar className="h-20 w-20">
             <AvatarImage src={rep.imageUrl} alt={rep.name} />
-            <AvatarFallback className="text-base">
+            <AvatarFallback className="text-lg">
               {getInitials(rep.name)}
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1 min-w-0">
-            {isFederal && 'bioguideId' in rep ? (
-              <Link href={`/federal/congress/119/states/${userState?.code.toLowerCase()}/${rep.bioguideId}`}>
-                <p className="text-sm font-medium truncate hover:text-primary cursor-pointer">{rep.name}</p>
+          <div className="text-center w-full">
+            {isFederal && 'bioguideId' in rep && 'stateCode' in rep && rep.stateCode ? (
+              <Link href={`/federal/congress/119/states/${rep.stateCode}/${rep.bioguideId}`} className="text-sm font-semibold line-clamp-2 mb-1 hover:underline block">
+                {rep.name}
               </Link>
             ) : (
-              <Link href={`/state/${userState?.code.toLowerCase()}`}>
-                <p className="text-sm font-medium truncate hover:text-primary cursor-pointer">{rep.name}</p>
-              </Link>
+              <p className="text-sm font-semibold line-clamp-2 mb-1">{rep.name}</p>
             )}
-            <div className="flex items-center space-x-2">
-              <Badge
-                className={`${getPartyColor(rep.party)} text-white text-xs px-1.5 py-0`}
-              >
-                {getPartyAbbreviation(rep.party)}
-              </Badge>
-              <span className="text-xs text-muted-foreground truncate">
-                {title}
-              </span>
-            </div>
+            <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">
+              {title}
+            </p>
           </div>
-        </div>
-        <div className="flex items-start">
-          {isFederal && 'bioguideId' in rep ? (
-            <Link href={`/advocacy-message?member=${rep.bioguideId}&congress=119`}>
-              <Button
-                size="sm"
-                className="text-xs px-3 py-1 bg-white text-black hover:bg-gray-100 border border-gray-200"
-              >
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full h-8 text-xs bg-white text-black hover:bg-gray-100 border border-gray-200"
+            title={`Contact ${rep.name}`}
+            asChild={isFederal && 'bioguideId' in rep}
+          >
+            {isFederal && 'bioguideId' in rep ? (
+              <Link href={`/advocacy-message?member=${rep.bioguideId}&congress=119`}>
                 Voice Opinion
-              </Button>
-            </Link>
-          ) : (
-            <Button
-              size="sm"
-              className="text-xs px-3 py-1 bg-white text-black hover:bg-gray-100 border border-gray-200 opacity-50 cursor-not-allowed"
-              disabled
-            >
-              Voice Opinion
-            </Button>
-          )}
+              </Link>
+            ) : (
+              <div>Voice Opinion</div>
+            )}
+          </Button>
         </div>
       </div>
     );
@@ -740,73 +807,80 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
           </div>
 
           {/* Column 2: Representatives - 4 columns */}
-          <div className="md:col-span-4 space-y-8">
+          <div className="md:col-span-4 space-y-6">
             {/* Federal Representatives */}
-            <Card className="h-fit">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">
-                  <Link
-                    href={`/federal/congress/119/states/${userState?.code.toLowerCase()}`}
-                    className="flex items-center gap-2 hover:text-primary transition-colors"
-                  >
-                    My Federal Representatives
-                    <ExternalLink className="h-4 w-4" />
-                  </Link>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {federalLoading || !zipCode ? (
-                  <p className="text-sm text-muted-foreground">
-                    {!zipCode ? 'Add your zip code to see your representatives' : 'Loading...'}
-                  </p>
-                ) : sortedFederalReps.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No federal representatives found for your area</p>
-                ) : (
-                  <>
-                    {sortedFederalReps.slice(0, 3).map((member, index) => (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="text-base font-semibold">My Federal Representatives</h3>
+                <Link
+                  href={`/federal/congress/119/states/${userState?.code.toLowerCase()}`}
+                  className="text-primary hover:underline"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Link>
+              </div>
+              <div className="overflow-x-auto pb-3">
+                <div className="flex gap-3">
+                  {federalLoading || !zipCode ? (
+                    <p className="text-sm text-muted-foreground">
+                      {!zipCode ? 'Add your zip code to see your representatives' : 'Loading...'}
+                    </p>
+                  ) : sortedFederalReps.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No federal representatives found for your area</p>
+                  ) : (
+                    sortedFederalReps.map((member, index) => (
                       <RepresentativeCard
                         key={`${member.bioguideId || index}`}
                         rep={member}
                         type="federal"
                         isFederal={true}
                       />
-                    ))}
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* State Representatives */}
-            {userState && (
-              <Card className="h-fit">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">
-                    <Link
-                      href={`/state/${userState.code.toLowerCase()}`}
-                      className="flex items-center gap-2 hover:text-primary transition-colors"
-                    >
-                      My {userState.name} Representatives
-                      <ExternalLink className="h-4 w-4" />
-                    </Link>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {sortedStateReps.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No state representatives found for your area</p>
-                  ) : (
-                    <>
-                      {sortedStateReps.slice(0, 3).map((member, index) => (
-                        <RepresentativeCard
-                          key={`${member.name}-${index}`}
-                          rep={member}
-                          type="state"
-                          isFederal={false}
-                        />
-                      ))}
-                    </>
+                    ))
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+            </div>
+
+            {/* Local Representatives - State, City, and School Board */}
+            {zipCode && userState && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="text-base font-semibold">My Local Representatives</h3>
+                </div>
+                <div className="overflow-x-auto pb-3">
+                  <div className="flex gap-3">
+                    {/* State Representatives */}
+                    {sortedStateReps.map((member, index) => (
+                      <RepresentativeCard
+                        key={`state-${index}`}
+                        rep={member}
+                        type="state"
+                        isFederal={false}
+                      />
+                    ))}
+
+                    {/* City Council */}
+                    {mockCityCouncil.map((member, index) => (
+                      <RepresentativeCard
+                        key={`city-${index}`}
+                        rep={member}
+                        type="local"
+                        isFederal={false}
+                      />
+                    ))}
+
+                    {/* School Board */}
+                    {mockSchoolBoard.map((member, index) => (
+                      <RepresentativeCard
+                        key={`school-${index}`}
+                        rep={member}
+                        type="local"
+                        isFederal={false}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 

@@ -183,20 +183,52 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger>Browse</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="w-[200px] p-4">
+                      <div className="grid grid-cols-1 gap-2">
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href="/federal"
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          >
+                            <div className="text-sm font-medium">Federal</div>
+                          </Link>
+                        </NavigationMenuLink>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href="/state"
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          >
+                            <div className="text-sm font-medium">State</div>
+                          </Link>
+                        </NavigationMenuLink>
+                      </div>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
           </nav>
 
           {/* Right Section - Auth and Menu */}
           <div className="flex items-center gap-2">
+            {/* Zip Code Input (shown when not logged in) */}
+            {!loading && !user && (
+              <div className="hidden md:block">
+                <ZipCodeChanger />
+              </div>
+            )}
+
             <div className="hidden md:flex items-center gap-2">
                 {renderAuthContent()}
             </div>
 
-            {/* Hamburger Menu (visible on all screens) */}
+            {/* Hamburger Menu (visible on mobile only) */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" className="lg:hidden">
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Open menu</span>
                 </Button>

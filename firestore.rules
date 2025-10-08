@@ -54,11 +54,17 @@ service cloud.firestore {
     match /state_census/{stateId} {
         allow read, write: if true; // Public census data
     }
-    
+
     match /district_census/{districtId} {
         allow read, write: if true; // Public census data
     }
-    
+
+    // Allow anyone to submit poll responses (both authenticated and guest users)
+    match /candidate_poll_responses/{responseId} {
+      allow create: if true;  // Anyone can submit a poll response
+      allow read: if request.auth != null;  // Only authenticated users can read poll responses
+    }
+
     // Fallback rule to deny all other access
     match /{document=**} {
       allow read, write: if false;

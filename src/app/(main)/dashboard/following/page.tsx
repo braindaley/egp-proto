@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, Heart, Eye } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, Heart, Eye, Lock } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +71,15 @@ export default function FollowingPage() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
+
+  // Check membership status from localStorage (for testing)
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsPremium(localStorage.getItem('testAsPremium') === 'true');
+    }
+  }, []);
   
   useEffect(() => {
     const fetchBillDetails = async () => {
@@ -149,11 +158,11 @@ export default function FollowingPage() {
 
   const dashboardNavItems = [
     { label: 'Dashboard', href: '/dashboard', icon: UserIcon },
+    { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
+    { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
     { label: 'Activity', href: '/dashboard/activity', icon: BarChart3 },
     { label: 'Following', href: '/dashboard/following', icon: Eye, isActive: true },
-    { label: 'Membership', href: '/dashboard/membership', icon: Crown },
-    { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },
   ];
 
@@ -249,61 +258,102 @@ export default function FollowingPage() {
               </header>
               
               <main className="space-y-8">
-                {/* Statistics Card */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Bills Being Watched</CardTitle>
-                    <CardDescription>
-                      You're currently following {watchedBills.length} bill{watchedBills.length !== 1 ? 's' : ''}.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-600 mb-1">
-                        {watchedBills.length}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Bills Followed</div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {isPremium ? (
+                  <>
+                    {/* Statistics Card */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Bills Being Watched</CardTitle>
+                        <CardDescription>
+                          You're currently following {watchedBills.length} bill{watchedBills.length !== 1 ? 's' : ''}.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-blue-600 mb-1">
+                            {watchedBills.length}
+                          </div>
+                          <div className="text-sm text-muted-foreground">Bills Followed</div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                {/* Bills List */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Your Followed Bills</CardTitle>
-                    <CardDescription>
-                      Bills you're tracking for legislative updates and progress.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loadingDetails ? (
-                      <p className="text-muted-foreground">Loading bill details...</p>
-                    ) : watchedBills.length === 0 ? (
-                      <div className="text-center py-8">
-                        <h3 className="text-xl font-semibold mb-2">No Bills Being Followed</h3>
-                        <p className="text-muted-foreground mb-4">
-                          You haven't started following any bills yet. Visit bill pages to start watching them.
+                    {/* Bills List */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Your Followed Bills</CardTitle>
+                        <CardDescription>
+                          Bills you're tracking for legislative updates and progress.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingDetails ? (
+                          <p className="text-muted-foreground">Loading bill details...</p>
+                        ) : watchedBills.length === 0 ? (
+                          <div className="text-center py-8">
+                            <h3 className="text-xl font-semibold mb-2">No Bills Being Followed</h3>
+                            <p className="text-muted-foreground mb-4">
+                              You haven't started following any bills yet. Visit bill pages to start watching them.
+                            </p>
+                            <Button asChild>
+                              <Link href="/campaigns">Browse Campaigns</Link>
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="bg-card rounded-lg border">
+                            <div className="p-4 border-b">
+                              <h3 className="text-xl font-semibold">
+                                {billsWithDetails.length} Bill{billsWithDetails.length !== 1 ? 's' : ''} Followed
+                              </h3>
+                            </div>
+                            <div className="divide-y divide-gray-200">
+                              {billsWithDetails.map((bill, index) => (
+                                <BillRow key={`${bill.type}-${bill.number}-${index}`} bill={bill} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </>
+                ) : (
+                  <>
+                    {/* Statistics Card for Non-Members */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Bills Being Watched</CardTitle>
+                        <CardDescription>
+                          You're currently following {watchedBills.length} bill{watchedBills.length !== 1 ? 's' : ''}.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-blue-600 mb-1">
+                            {watchedBills.length}
+                          </div>
+                          <div className="text-sm text-muted-foreground">Bills Followed</div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Upgrade Card */}
+                    <Card className="relative">
+                      <div className="text-center p-8">
+                        <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="text-xl font-semibold mb-2">Upgrade to Premium</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Track and follow bills to receive updates on legislative progress
                         </p>
-                        <Button asChild>
-                          <Link href="/campaigns">Browse Campaigns</Link>
+                        <Button asChild size="lg" className="gap-2">
+                          <Link href="/dashboard/membership">
+                            <Crown className="h-4 w-4" />
+                            Upgrade Now
+                          </Link>
                         </Button>
                       </div>
-                    ) : (
-                      <div className="bg-card rounded-lg border">
-                        <div className="p-4 border-b">
-                          <h3 className="text-xl font-semibold">
-                            {billsWithDetails.length} Bill{billsWithDetails.length !== 1 ? 's' : ''} Followed
-                          </h3>
-                        </div>
-                        <div className="divide-y divide-gray-200">
-                          {billsWithDetails.map((bill, index) => (
-                            <BillRow key={`${bill.type}-${bill.number}-${index}`} bill={bill} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </Card>
+                  </>
+                )}
               </main>
             </div>
           </div>

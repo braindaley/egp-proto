@@ -42,6 +42,7 @@ export interface User extends FirebaseUser {
   profession?: string;
   militaryService?: boolean;
   constituentDescription?: string;
+  overallView?: number;
   policyInterests?: {
     climateEnergyEnvironment?: number;
     criminalJustice?: number;
