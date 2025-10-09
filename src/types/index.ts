@@ -314,7 +314,6 @@ export interface Member {
   updateDate: string;
   news?: NewsArticle[];
   committeeAssignments?: string;
-  email?: string;
 }
 
 export interface Congress {

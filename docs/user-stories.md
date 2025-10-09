@@ -1,15 +1,24 @@
 # User Stories & Success Criteria
 
-This document outlines the user stories and success criteria for all personas in the advocacy platform.
+This document outlines the user stories and success criteria for all personas in the advocacy platform, organized by page template.
 
-**Version:** 1.0
-**Last Updated:** 2025-10-08
+**Version:** 2.1
+**Last Updated:** 2025-10-09
 
 ---
 
 ## Table of Contents
 
 1. [Regular User Stories](#regular-user-stories)
+   - [Homepage](#homepage)
+   - [Policy Issue Pages](#policy-issue-pages)
+   - [Bill Pages](#bill-pages)
+   - [News Pages](#news-pages)
+   - [Organization Pages](#organization-pages)
+   - [Advocacy & Messaging](#advocacy--messaging)
+   - [User Dashboard](#user-dashboard)
+   - [Account & Settings](#account--settings)
+   - [Premium Membership](#premium-membership)
 2. [Organization User Stories](#organization-user-stories)
 3. [Admin User Stories](#admin-user-stories)
 
@@ -17,534 +26,713 @@ This document outlines the user stories and success criteria for all personas in
 
 ## Regular User Stories
 
-Regular users are members of the public who use the platform to engage with legislation and contact their representatives.
+### Homepage
+**Page:** `/` (Homepage)
 
-### 1. Account Management
-
-#### US-001: Create Account
-**As a** visitor
-**I want to** create an account with email and password
-**So that** I can track my advocacy messages and save my preferences
-
-**Acceptance Criteria:**
-- User can sign up with valid email and password (min 6 characters)
-- Password is hashed and stored securely
-- User receives email verification link
-- Upon signup, user profile is created in database with default values
-- User is redirected to onboarding/profile setup flow
-- Session is established with secure JWT token
-
-**Technical Requirements:**
-- Firebase Auth OR custom JWT-based authentication
-- Email verification service (SendGrid, AWS SES, or similar)
-- Password must meet security requirements (min 6 chars, can add complexity later)
-- Store user in PostgreSQL `users` table
-
-**Success Metrics:**
-- 90%+ signup completion rate
-- < 2 second response time for account creation
-- Zero unencrypted password storage
-
----
-
-#### US-002: Login to Account
-**As a** registered user
-**I want to** log in with my credentials
-**So that** I can access my personalized dashboard and history
-
-**Acceptance Criteria:**
-- User can log in with email and password
-- Invalid credentials show clear error message
-- Successful login creates session and redirects to dashboard or intended page
-- "Remember me" option extends session duration
-- Password reset link available on login page
-- Account locked after 5 failed login attempts (unlocks after 15 minutes)
-
-**Technical Requirements:**
-- Secure session management with JWT
-- Rate limiting on login endpoint (max 5 attempts per 15 minutes)
-- Redirect to `returnTo` parameter if provided
-
----
-
-#### US-003: Reset Password
-**As a** user who forgot their password
-**I want to** reset my password via email
-**So that** I can regain access to my account
-
-**Acceptance Criteria:**
-- User can request password reset from login page
-- Password reset email sent to registered address
-- Reset link expires after 1 hour
-- User can set new password (min 6 characters)
-- Old password is immediately invalidated
-- User receives confirmation email after reset
-
-**Technical Requirements:**
-- Generate secure, time-limited reset tokens
-- Store reset tokens in database with expiration
-- Send email via email service provider
-
----
-
-#### US-004: Update Profile Information
-**As a** registered user
-**I want to** update my personal information
-**So that** my representatives can better understand me and my advocacy is more credible
-
-**Acceptance Criteria:**
-- User can update: First Name, Last Name, Address, City, State, ZIP Code
-- User can update: Birth Year, Gender, Political Affiliation, Education, Profession
-- User can update: Military Service status
-- User can set "constituent description" (custom narrative about themselves)
-- Form validation ensures required fields (name, address, zip) are complete
-- Changes are saved to database
-- User sees success confirmation
-
-**Technical Requirements:**
-- Update `users` table in PostgreSQL
-- Validate ZIP code format
-- Update `updated_at` timestamp
-- Refresh user session data
-
----
-
-### 2. Voter Registration & Verification
-
-#### US-005: Verify Voter Registration Status
+#### US-001: View Home Feed with Filters
 **As a** user
-**I want to** verify my voter registration status
-**So that** I can confirm I'm eligible to send advocacy messages
+**I want to** view a personalized feed with filterable content
+**So that** I can discover relevant bills, news, and campaigns
 
 **Acceptance Criteria:**
-- User prompted to verify voter registration before sending first message
-- User can search voter registration database by name and address
-- System displays matching registrations
-- User can confirm their registration match
-- User can manually enter registration information if not found
-- Verification status saved to user profile
-- Unregistered users see link to vote.gov
+- **Popular Bills Strip:** Horizontal scroll showing most active bills across all categories
+- **About/Activity Section:**
+  - Not logged in: "What is eGutenbergPress?" card with Get Started CTA
+  - Logged in: User's advocacy activity summary (messages, follows, engagement)
+- **Info Grid (3 columns):**
+  - Column 1: About/Activity card
+  - Column 2: My Federal Representatives, My Local Representatives (horizontal scroll)
+  - Column 3: "Take Action Together" (campaigns), "Act Before the Vote" (federal bills), "Important bills in [State]" (state bills)
+- **Filterable Feed with Tabs:**
+  - **For You** (logged-in default): Mixed personalized feed (news, campaigns, bills)
+    - Premium: Weighted by political view ratings (Far Left to Far Right)
+    - Free: Basic personalization (followed orgs, watched bills)
+  - **News:** News story cards with "Voice Opinion" CTA
+  - **Campaigns:** Campaign cards with "Take Action" CTA
+  - **Bills:** Bill action cards with "Watch" and "Take Action" CTAs
+  - Anonymous users: Default to "News" tab with popular content
+- Infinite scroll/pagination per tab
+- Selected filter persists during session
 
-**Technical Requirements:**
-- Integration with voter registration API (state-specific or national)
-- Store `voter_registration_verified` boolean in `users` table
-- Store `voter_registration_verified_at` timestamp
-- Fallback to manual entry if API unavailable
+**How It Works:**
+- Federal bills from Congress.gov, state bills from LegiScan
+- Content categorized into 20 policy areas
+- Anonymous: Sorted by engagement (support/oppose counts)
+- Logged-in: Prioritized by interests, followed orgs, watched bills
+- Premium: Weighted by political view settings per policy area
 
 ---
 
-### 3. Browsing Legislation
+### Policy Issue Pages
+**Page:** `/issues/{policy-slug}` (e.g., `/issues/climate-energy-and-environment`)
 
-#### US-006: Browse Federal Bills
+#### US-002: Browse Policy-Specific Content
 **As a** user
-**I want to** browse recent federal legislation
-**So that** I can stay informed about what Congress is working on
+**I want to** view all content for a specific policy issue
+**So that** I can focus on issues I care about
 
 **Acceptance Criteria:**
-- User can view feed of recent bills (last 30 days)
-- Bills show: Title, Bill Number, Sponsor, Latest Action, Status
-- Bills can be filtered by: Status, Chamber, Subject, Sponsor Party
-- Bills can be sorted by: Date Introduced, Last Action Date, Importance Score
-- Each bill shows AI-generated plain-language summary
-- Each bill has engagement metrics (support/oppose counts from campaigns)
-- Pagination loads 20 bills at a time
+- Page title: "{Policy Category} News & Action"
+- "← All Issues" back button
+- **Top Section (3 columns):**
+  - Column 1: US Map showing user's state (if zip provided)
+  - Column 2: Top 2-3 news stories for this policy
+  - Column 3: "Take Action Together" (campaigns), "Act Before the Vote" (federal bills), "Important bills in [State]" (state bills)
+- **Filterable Feed:** Same tabs as homepage (For You, News, Campaigns, Bills)
+  - All content filtered to selected policy category
+  - Premium users: Personalized by policy-specific political view
+  - Free users: Basic personalization
 
 **Technical Requirements:**
-- Query `bills` table with filters
-- Join with `bill_summaries` for AI summaries
-- Include `campaigns` aggregate data for engagement
-- Cache results for 5 minutes
-- Return total count for pagination
+- Map Congress.gov policy areas → 20 site categories
+- Map LegiScan subjects → 20 site categories
+- Separate API endpoints: `/api/feed/{filter}?policy={slug}`
+- Static routes for all 20 categories at build time
+- Cache policy-specific feeds for 1 hour
+- SEO: Dynamic metadata per policy
 
 ---
 
-#### US-007: View Bill Details
+#### US-003: Browse Federal Bills by Category
 **As a** user
-**I want to** view detailed information about a specific bill
-**So that** I can understand what it does before taking action
+**I want to** browse recent federal legislation by policy issue
+**So that** I can stay informed about Congress
 
 **Acceptance Criteria:**
-- Bill detail page shows: Full title, Bill number, Congress, Sponsors/Cosponsors
-- Shows: Current status, Latest action date and text, Policy area and subjects
-- Shows: Committee assignments, Related bills, Amendments
-- Shows: AI-generated plain-language summary
-- Shows: AI-generated "Support" and "Oppose" arguments
-- Shows: Full text links (PDF, HTML) from Congress.gov
-- Shows: Voting record if bill has been voted on
-- Shows: Active campaigns from organizations related to this bill
+- Bills grouped by policy issue categories
+- Bills show: Title, Number, Latest Action Date and Text
+- Filter by checkboxes (select multiple policy issues)
+- Selected filters display as removable badges
+- Bill count per category
+- Sorted by most recent action date
+- Limit: 20 bills per category
+
+**How It Works:**
+- Bills from Congress.gov organized by policy area
+- Up to 20 most recently active bills per category
+- Multiple category selection via checkboxes
+- Sorted by newest activity first
+
+---
+
+### Bill Pages
+
+#### US-004: View Federal Bill Details
+**Page:** `/federal/bill/{congress}/{type}/{number}` (e.g., `/federal/bill/119/hr/1`)
+
+**As a** user
+**I want to** view detailed information about a federal bill
+**So that** I can understand it before taking action
+
+**Acceptance Criteria:**
+- **Bill Information:** Full title, number, congress, sponsors/cosponsors
+- **Status & Actions:** Current status, latest action, policy area, subjects
+- **Committee & Related:** Committee assignments, related bills, amendments
+- **AI Content:** Plain-language summary, "Support" and "Oppose" arguments
+- **Full Text:** Links to PDF/HTML from Congress.gov
+- **Voting Record:** If bill has been voted on
+- **Active Campaigns:** Organization campaigns related to this bill
+- **Action Buttons:** "Watch" and "Take Action" CTAs
 
 **Technical Requirements:**
-- Fetch from `bills` table with all related data
-- Generate AI summary if not already cached
+- Fetch from `bills` table with relations
+- Generate AI summary if not cached
 - Query `campaigns` for this bill
 - Cache page for 1 hour
 
 ---
 
-#### US-008: Search Bills
+#### US-005: View State Bill Details
+**Page:** `/state/{state}/bill/{bill-id}` (e.g., `/state/ca/bill/AB123`)
+
 **As a** user
-**I want to** search for bills by keyword
-**So that** I can find legislation on topics I care about
-
-**Acceptance Criteria:**
-- Search bar accepts keywords (min 3 characters)
-- Search looks through: Title, Summary, Subjects, Sponsor name
-- Results ranked by relevance
-- Results show snippet with highlighted keywords
-- Can filter search results by Congress, Status, Chamber
-- Search history saved for logged-in users (last 10 searches)
-
-**Technical Requirements:**
-- Full-text search using PostgreSQL `tsvector`
-- Search index on `bills` table (title, summary, subjects)
-- Rank results by `ts_rank`
-- Return top 50 results
-
----
-
-#### US-009: Browse State Legislation
-**As a** user
-**I want to** browse bills in my state legislature
+**I want to** view state legislation details
 **So that** I can engage with local issues
 
 **Acceptance Criteria:**
-- User can select their state
-- View recent state bills (last 90 days)
-- Bills show: Title, Bill Number, Sponsor, Latest Action, Status
-- Can filter by: Chamber, Subject, Status
-- Each bill has link to full text on state legislature website
-- Integration with LegiScan API for state bill data
+- Bill info: Title, number, sponsor, latest action, status
+- Chamber, subject, status filters
+- Link to full text on state legislature website
+- LegiScan API integration
 
 **Technical Requirements:**
-- Store state bills in `state_bills` table
-- Sync from LegiScan API daily
+- Store in `state_bills` table
+- Sync from LegiScan daily
 - Filter by user's state from profile
 
 ---
 
-#### US-010: Follow Bills (Watch)
+### News Pages
+
+#### US-006: View Grouped News Story
+**Page:** `/news/{story-id}` (or similar)
+
 **As a** user
-**I want to** follow specific bills
-**So that** I get notified of updates
+**I want to** see news stories grouped when multiple outlets cover the same event
+**So that** I can understand different perspectives
 
 **Acceptance Criteria:**
-- User can click "Watch" button on any bill
-- Watched bills appear in "Following" section of dashboard
-- User receives notifications when watched bill has status change
-- User can unwatch bills
-- Notifications can be delivered via email (configurable frequency)
+- When multiple sources report same story, grouped into single card on feed
+- Story card shows: Primary headline, "X sources" badge, main image, excerpt
+- **Detail View:**
+  - All source headlines with logos/names
+  - Publication dates per source
+  - "Read on [Source]" links to original articles
+  - **AI Overview:** AI-generated summary combining all perspectives (see US-007)
+  - Related bills (if applicable)
+  - "Voice Your Opinion to Representatives" CTA
+- Sorted by source count (more sources = higher priority)
+- Visual indicator for political lean if applicable (Left, Center, Right)
 
 **Technical Requirements:**
-- Create entry in `user_watched_bills` table
-- Daily cron job checks for updates to watched bills
-- Send notification emails via email service
-- User can configure notification preferences in settings
+- Grouping algorithm: headline similarity, date proximity (48hrs), keyword overlap
+- Store in `news_story_groups` table
+- Junction table: `news_article_groups`
+- Cache grouped story pages for 3 hours
 
 ---
 
-### 4. Following Organizations
+#### US-007: View AI News Overview
+**As a** user
+**I want to** read an AI-generated news overview
+**So that** I can quickly understand the story from multiple perspectives
 
-#### US-011: Browse Advocacy Organizations
+**Acceptance Criteria:**
+- **AI Overview Section:**
+  - 3-5 paragraph summary synthesizing all sources
+  - Key Points: 4-6 bullet points of main facts
+  - Different Perspectives: Conflicting viewpoints highlighted
+  - Context: Background on why this matters
+  - Legislative Connection: Related bills identified
+- Labeled "AI-Generated Overview" with disclaimer
+- Neutral, fact-based tone
+- Toggle between "Overview" and "Source Articles" tabs
+- Regenerates when new sources added (max once per 6 hours)
+
+**Technical Requirements:**
+- AI: OpenAI GPT-4, Anthropic Claude, or similar
+- Input: All headlines, excerpts, full text from grouped sources
+- Store in `news_story_groups.ai_overview`
+- Cache 6 hours
+- Character limit: 800-1500 words
+
+---
+
+#### US-008: Take Action from News Story
+**As a** user
+**I want to** voice my opinion to representatives about a news story
+**So that** I can engage with current events
+
+**Acceptance Criteria:**
+- "Voice Your Opinion" CTA button on news detail page
+- Opens advocacy message composer with:
+  - Pre-filled context: News headline and summary
+  - Suggested recipients: Related bill sponsors/committee members (if applicable)
+  - Default recipients: User's own representatives
+  - Topic: Auto-populated from policy category
+  - Position options: Support or Oppose (if applicable)
+  - AI message draft option
+- After sending: Confirmation and account creation prompt (if anonymous)
+- Message logged with `news_story_id` reference
+
+**Technical Requirements:**
+- Store `news_story_id` in `user_messages`
+- Pass story context to message composer
+- AI includes news context in message generation
+- Track advocacy per news story for analytics
+
+---
+
+### Organization Pages
+
+#### US-009: Browse Organizations
+**Page:** `/organizations` (or similar)
+
 **As a** user
 **I want to** browse advocacy organizations
 **So that** I can find groups aligned with my values
 
 **Acceptance Criteria:**
-- User can view list of all organizations on the platform
-- Organizations show: Name, Logo, Description, Focus Areas, Active Campaigns Count
-- Can filter organizations by: Focus Area, Activity Level
-- Can sort by: Name, Active Campaigns, Total Actions
-- Each organization has profile page with full details
+- List of all platform organizations
+- Shows: Name, logo, description, focus areas, active campaigns count
+- Filter by: Focus area, activity level
+- Sort by: Name, active campaigns, total actions
+- Each org links to profile page
 
 **Technical Requirements:**
 - Query `organizations` table
-- Show `active_campaigns_count` from aggregate
-- Cache organization list for 10 minutes
+- Show `active_campaigns_count` aggregate
+- Cache list for 10 minutes
 
 ---
 
-#### US-012: Follow Organizations
+#### US-010: View Organization Profile
+**Page:** `/organizations/{org-slug}` (e.g., `/organizations/league-of-women-voters`)
+
+**As a** user
+**I want to** view an organization's public profile
+**So that** I can learn about them and their campaigns
+
+**Acceptance Criteria:**
+- **Header:**
+  - Name, logo
+  - "Follow" button (or "Following" badge)
+  - Short description/mission
+  - Website and social media links
+- **Organization Details:**
+  - Full description
+  - Nonprofit status (501c3, 501c4, etc.)
+  - Years active/established
+  - Policy focus areas (tags)
+  - Followers count
+- **Active Campaigns:**
+  - All active campaigns from this org
+  - Campaign cards: Bill number/title, position, reasoning preview, support/oppose counts
+  - Filter by: Status (Active, Ended), Type (Legislation, Issue, Candidate)
+  - Sort by: Most Recent, Most Popular
+- **Impact Stats:**
+  - Total messages sent
+  - Total actions taken
+  - Success rate (if applicable)
+- Mobile responsive, SEO optimized
+
+**Technical Requirements:**
+- Query `organizations` by slug
+- Aggregate: active campaigns, total actions, messages
+- Join `user_followed_organizations` for "Following" status
+- Cache profile for 10 minutes
+- SEO: Title, description, Open Graph tags
+
+---
+
+#### US-011: Follow Organizations
 **As a** user
 **I want to** follow advocacy organizations
 **So that** I can see their campaigns and receive updates
 
 **Acceptance Criteria:**
-- User can click "Follow" on any organization
-- Followed organizations appear in "Following" section
-- User's feed prioritizes bills from followed organizations' campaigns
-- User receives email updates about new campaigns (if opted in)
-- User can unfollow organizations
+- Click "Follow" on any organization page
+- Followed orgs appear in "Following" section of dashboard
+- Feed prioritizes bills from followed orgs' campaigns
+- Email updates about new campaigns (if opted in)
+- Can unfollow anytime
 
 **Technical Requirements:**
-- Create entry in `user_followed_organizations` table
-- Include followed orgs in feed algorithm
-- Send digest emails weekly (configurable)
+- Create entry in `user_followed_organizations`
+- Include in feed algorithm
+- Send weekly digest emails (configurable)
 
 ---
 
-### 5. Sending Advocacy Messages
+### Advocacy & Messaging
 
-#### US-013: Send Message to Representatives
-**As a** verified user
-**I want to** send an advocacy message to my representatives
-**So that** I can make my voice heard on legislation
+#### US-012: Watch Bills
+**Feature spans:** Bill detail pages, campaign cards, dashboard
+
+**As a** user
+**I want to** watch specific bills
+**So that** I can track them in my dashboard
 
 **Acceptance Criteria:**
-- User must be logged in and voter-verified to send messages
-- User is shown their representatives (House, both Senators) based on ZIP code
-- User can select which representatives to contact (can select all or subset)
-- User can choose position: Support or Oppose
-- User can write custom message or use AI to generate draft
-- User can include personal data fields (name, address, profession, etc.)
-- User can upload attachments (PDFs, images) up to 5MB total
-- User previews message before sending
-- User confirms and sends message
-- Message is logged in database with timestamp
-- User receives confirmation with tracking information
+- "Watch" button on bill pages and campaign cards
+- Watched bills appear in dashboard "Following" section
+- Shows: Title, number, latest action date/text, bill count
+- Can click to view full details
+- Can unwatch bills
+- Premium: Full list; Free: Count only
 
 **Technical Requirements:**
-- Lookup representatives via `members` table by ZIP code and congressional district
-- Generate AI message via OpenAI/Anthropic API
-- Store message in `user_messages` table
-- Send via email (primary) and/or postal mail service
-- Return confirmation number
-- Track delivery status
+- Entry in `user_watched_bills`
+- Daily cron checks for updates
+- Email notifications via email service
+- User configurable preferences
+
+---
+
+#### US-013: Send Advocacy Message - Multiple Entry Flows
+
+**As a** visitor or user
+**I want to** send advocacy messages to representatives
+**So that** I can make my voice heard
+
+**Common Flow for All Entry Points:**
+- **No login required** (anonymous mode)
+- Enter ZIP code → find representatives (House, both Senators)
+- Select which reps to contact (all or subset)
+- Write custom message or use AI to generate draft
+- Include personal data fields (name, address, profession, etc.)
+- Upload attachments (PDFs, images, max 5MB)
+- Preview before sending
+- Confirmation with tracking info
+- **After sending:** "Create account to track this message?" prompt
+- If account created, message linked to account
+
+**Entry Flow 1: From Bill Detail Page**
+- **Context:** Specific federal or state bill
+- **Pre-filled:**
+  - Subject: Bill number and title
+  - Bill context (summary) included
+  - Position: User selects Support or Oppose
+  - Default recipients: User's representatives (House rep, both Senators)
+- **Special Features:**
+  - "Related Campaigns" shown if organizations have campaigns on this bill
+  - AI generates message using bill summary and support/oppose arguments
+
+**Entry Flow 2: From Campaign Card**
+- **Context:** Organization campaign (bill, issue, or candidate)
+- **Pre-filled:**
+  - Subject: Campaign title
+  - Campaign context and organization's reasoning included
+  - Position: Pre-set to organization's position (Support/Oppose)
+  - Default recipients: User's representatives
+  - Target recipients: May be filtered by campaign (e.g., committee members)
+- **Special Features:**
+  - Organization name and logo shown
+  - Organization's reasoning displayed as context
+  - AI generates message aligned with campaign's position and reasoning
+  - Message tracked with `campaign_id` for organization analytics
+
+**Entry Flow 3: From News Story**
+- **Context:** News story from news detail page
+- **Pre-filled:**
+  - Subject: News headline
+  - News context (summary) included
+  - Topic: Policy category from news story
+  - Position: User selects Support or Oppose (if applicable)
+  - Suggested recipients: Bill sponsors/committee members (if story relates to legislation)
+  - Default recipients: User's representatives
+- **Special Features:**
+  - "Related Bills" shown if news connects to legislation
+  - AI generates message referencing the news story
+  - Message tracked with `news_story_id` for analytics
+
+**Entry Flow 4: From Policy/Issue Page**
+- **Context:** Specific policy category (e.g., Climate, Immigration)
+- **Pre-filled:**
+  - Subject: Policy category name
+  - Topic: Policy category
+  - Default recipients: User's representatives
+- **Special Features:**
+  - User can select specific bills or issues within that policy area
+  - AI generates message focused on policy area
+  - "Active Campaigns" shown for this policy area
+
+**Entry Flow 5: Direct/Generic Advocacy**
+- **Context:** No specific bill, campaign, or news (e.g., from homepage CTA, direct navigation)
+- **Pre-filled:**
+  - Nothing pre-filled
+- **Flow:**
+  - User enters ZIP code first
+  - Select representatives to contact
+  - User manually enters subject and topic
+  - Write message or use AI (AI needs subject/topic input from user)
+- **Special Features:**
+  - Most flexible flow
+  - User can optionally link to a bill, issue, or news story
+
+**Technical Requirements:**
+- Anonymous session token (UUID) for tracking
+- Store in `user_messages` with `user_id` = NULL initially
+- Store context: `bill_id`, `campaign_id`, `news_story_id`, `policy_category`, or NULL
+- Lookup reps via `members` by ZIP/district
+- AI message generation (OpenAI/Anthropic) with context-specific prompts
+- Send via email (primary) and/or postal mail
+- Link message after account creation via session token
+- Track analytics per entry flow type
 
 ---
 
 #### US-014: AI-Assisted Message Drafting
 **As a** user drafting a message
-**I want** AI to help me write an effective advocacy message
-**So that** I can communicate my position clearly
+**I want** AI to help write an effective message
+**So that** I can communicate clearly
 
 **Acceptance Criteria:**
-- User selects "Get AI Help" when composing message
-- AI generates personalized message based on:
-  - User's position (support/oppose)
-  - Bill summary and arguments
-  - User's personal information (if shared)
-  - User's constituent description (if provided)
-- User can regenerate message
-- User can edit AI-generated message
-- AI stays within character limits (500-2000 words recommended)
+- "Get AI Help" option when composing
+- AI generates based on:
+  - **Context:** Bill, campaign, news story, or policy area
+  - Position (support/oppose)
+  - Bill/campaign/news summary and arguments
+  - User's personal info (if shared)
+  - Constituent description (if provided)
+- Can regenerate message
+- Can edit AI-generated message
+- Stays within 500-2000 words
+
+**AI Prompt Variations by Entry Flow:**
+- **From Bill:** Include bill summary, support/oppose arguments, bill status
+- **From Campaign:** Include organization's reasoning, campaign position, bill context
+- **From News:** Include news headline, key facts, related legislation (if applicable)
+- **From Policy Area:** Focus on policy category, recent bills in that area
+- **Generic:** Use subject and topic provided by user
 
 **Technical Requirements:**
-- Call AI API (OpenAI GPT-4, Anthropic Claude)
-- Include bill context, user profile, and position in prompt
-- Return message in < 5 seconds
-- Cache API calls for same bill+position+user for 24 hours
+- OpenAI GPT-4 or Anthropic Claude
+- Include context, bill/campaign/news data, user profile, position in prompt
+- Return in < 5 seconds
+- Cache for same context+position+user for 24 hours
 
 ---
 
-#### US-015: View Message History
+### User Dashboard
+**Page:** `/dashboard/*`
+
+#### US-015: View Dashboard Overview
 **As a** user
-**I want to** view all messages I've sent
-**So that** I can track my advocacy efforts
+**I want to** view my advocacy activity dashboard
+**So that** I can track my engagement
 
 **Acceptance Criteria:**
-- User can view all sent messages in dashboard
-- Messages show: Date sent, Bill, Recipients, Position, Status
-- Can filter by: Date range, Bill, Representative, Status
-- Can sort by: Date, Bill, Representative
-- Free users can see messages from last 30 days
-- Premium users can see full history
+- **Activity Summary:**
+  - Messages sent count
+  - Bills watched count
+  - Organizations followed count
+  - Recent advocacy messages
+- **Following Section:**
+  - List of watched bills with latest actions
+  - List of followed organizations with new campaigns
+- **Message History:**
+  - Date sent, bill, recipients, position, status
+  - Filter by: Date range, bill, representative, status
+  - Sort by: Date, bill, representative
+  - Free: Last 30 days only
+  - Premium: Full history
 
 **Technical Requirements:**
-- Query `user_messages` table
+- Query `user_messages`, `user_watched_bills`, `user_followed_organizations`
 - Join with `bills` and `members` for display
-- Limit free users to `sent_at > NOW() - 30 days`
+- Free tier: `sent_at > NOW() - 30 days`
 - Paginate 20 messages per page
 
 ---
 
-### 6. Premium Membership
+### Account & Settings
 
-#### US-016: View Membership Options
+#### US-016: Verify Voter Registration (L2 Political)
 **As a** user
-**I want to** see membership options and benefits
-**So that** I can decide if I want to upgrade
+**I want to** verify my voter registration status
+**So that** I can increase message credibility
 
 **Acceptance Criteria:**
-- Membership page shows comparison: Free vs Premium
-- Premium benefits clearly listed:
-  - Support the organization
-  - Full message history (beyond 30 days)
-  - View official responses from representatives
-  - Advocacy impact analytics (response rates, engagement)
-  - Customized feed based on policy interests
-  - Email digest options (daily, weekly, monthly)
-- Pricing shown: $6 per quarter ($24/year)
-- "Upgrade to Premium" button available
-- FAQs about membership
+- Prompted before first message (optional but encouraged)
+- Enter: First/Last Name, Address, City, State, ZIP, Birth Year
+- System queries L2 Political voter database
+- Display matches: Name, Address, Party, Status
+- Confirm match or manually enter if not found
+- Unregistered: Link to vote.gov
+- Verified badge shown on messages to representatives
+- User sees basic info only (name, address, party, status)
 
 **Technical Requirements:**
-- Static page, no database calls
-- Link to `/membership/signup` for upgrade
+- L2 Political API (VoterMapping API) integration
+- Store `voter_registration_verified` boolean in `users`
+- Store `voter_registration_verified_at` timestamp
+- Store `l2_voter_id` (L2's unique ID)
+- **Store ALL L2 voter data in `users.l2_voter_data` JSONB** (698 variables from VM2 dataset)
+- Cache lookups 30 days per user
+- Privacy: Full L2 data NOT visible to user, only to org reports (anonymized aggregates)
+
+**L2 Data Stored (Complete VM2 Dataset - 698 variables):**
+Reference: https://www.l2-data.com/datamapping/voter-data-dictionary/
+
+**Key Categories:**
+1. Identity & Registration (~50 fields): LALVOTERID, name, address, registration dates, age, gender
+2. Political Affiliation (~20 fields): Party registration (current/historical)
+3. Geographic & Districts (~40 fields): Congressional, state, county, city, precinct, census data
+4. Voter History (~100 fields): Election participation, vote method, ballot dates, likely voter scores
+5. Modeled Demographics (~200 fields): Ethnicity, race, language, religion, income, education, occupation, marital status, home ownership, children
+6. Consumer & Lifestyle (~200 fields): Interests, media consumption, donations, subscriptions, vehicle, pets
+7. Contact Info (~20 fields): Phone, email, DNC flags
+8. Political Scores (~50 fields): Partisan scores, issue positions, turnout propensity, persuasion scores
+
+**Usage:**
+- User sees: Basic verification only
+- Platform uses: Complete dataset for org demographic reports (anonymized aggregates)
+- Reports: Age ranges, gender, ethnicity, districts, voting history, political scores
+- Never expose individual L2 data to orgs or other users
 
 ---
 
-#### US-017: Subscribe to Premium Membership
-**As a** free user
-**I want to** subscribe to premium membership via Stripe
+#### US-017: Create Account (Post-Message Flow)
+**As a** visitor who sent a message
+**I want to** create an account to track my message
+**So that** I can view my history and save preferences
+
+**Acceptance Criteria:**
+- Prompted AFTER sending first message
+- Value proposition: "Track your messages and impact"
+- Sign up with Auth0 (email/password, Google, social)
+- Email verification by Auth0
+- Profile created and linked to pending message
+- Message associated with new account
+- Redirected to dashboard showing first message
+- Session established with Auth0 JWT
+
+**Technical Requirements:**
+- Auth0 authentication (OAuth2/OpenID Connect)
+- Store pending messages with anonymous session token
+- Link via session token after signup
+- Store in PostgreSQL `users` with Auth0 user ID
+
+---
+
+#### US-018: Login & Password Reset
+**As a** registered user
+**I want to** log in or reset my password
+**So that** I can access my account
+
+**Acceptance Criteria:**
+- **Login:** Auth0 Universal Login (email/password, Google, social)
+- Invalid credentials: Clear error from Auth0
+- Success: Redirects to dashboard or intended page
+- "Remember me" extends session
+- Password reset link available
+- **Password Reset:** Email sent by Auth0, expires in 1 hour, Auth0 password policy
+
+**Technical Requirements:**
+- Auth0 Universal Login integration
+- Auth0 JWT token with claims
+- Redirect to `returnTo` parameter if provided
+- Validate Auth0 JWT on backend
+
+---
+
+#### US-019: Update Profile & Set Location
+**As a** user
+**I want to** update my profile and location
+**So that** I see relevant content and my advocacy is credible
+
+**Acceptance Criteria:**
+- **Profile Fields:** First/Last Name, Address, City, State, ZIP, Birth Year, Gender, Political Affiliation, Education, Profession, Military Service, Constituent Description
+- **Location Detection:**
+  - Anonymous/no profile address: Auto-detect ZIP from IP, prompt to confirm
+  - Logged in WITH address: Extract ZIP from profile automatically
+  - Logged in WITHOUT address: IP detection + manual override
+  - "Change location" link on location-based content pages
+  - US Map shows highlighted state
+- Form validation, success confirmation
+
+**Technical Requirements:**
+- Update `users` table
+- IP Geolocation API (ipapi.co, ipgeolocation.io, MaxMind GeoIP2)
+- Anonymous: Store in localStorage/session cookie
+- Logged-in: Extract from `users.address` or `zip_code`
+- Don't store IP addresses, only detected ZIP
+- Cache geolocation in session
+
+---
+
+### Premium Membership
+**Page:** `/membership/*`
+
+#### US-020: View & Subscribe to Premium Membership
+**As a** user
+**I want to** see membership options and upgrade
 **So that** I can access premium features
 
 **Acceptance Criteria:**
-- User completes profile if not already complete (name, address, demographics)
-- User enters payment information securely via Stripe Elements
-- User sees pricing: $6 per quarter, auto-renewing
-- User must accept terms and conditions
-- Payment processed via Stripe
-- Upon success, user's membership is upgraded immediately
-- User receives confirmation email with receipt
-- First payment charged immediately
-- Recurring payments scheduled quarterly
+- **Membership Page:**
+  - Comparison: Free vs Premium
+  - Premium benefits:
+    - Support the organization
+    - Unlimited message history (free: 30 days only)
+    - Advocacy impact analytics
+    - Customized feed by policy interests
+    - Email digest options (daily, weekly, monthly)
+  - Pricing: $6/quarter ($24/year)
+  - FAQs
+- **Subscription Flow:**
+  - Complete profile if not already done
+  - Enter payment via Stripe Elements
+  - Accept terms and conditions
+  - First payment charged immediately
+  - Recurring quarterly
+  - Confirmation email with receipt
 
 **Technical Requirements:**
 - Stripe integration (Checkout or Elements)
-- Create Stripe Customer for user
-- Create Stripe Subscription with quarterly interval
-- Store subscription ID in `user_subscriptions` table
-- Set `membership_tier` = 'premium' in `users` table
+- Create Stripe Customer and Subscription (quarterly interval)
+- Store subscription ID in `user_subscriptions`
+- Set `membership_tier` = 'premium' in `users`
 - Set `membership_start_date` = NOW()
-- Handle Stripe webhooks for subscription updates
-
-**Stripe Integration:**
-- Create Product in Stripe: "Premium Membership"
-- Create Price: $6 USD, recurring every 3 months
-- Use Stripe Checkout for payment collection
-- Webhook events to handle:
-  - `checkout.session.completed` - activate membership
-  - `invoice.payment_succeeded` - log payment
-  - `invoice.payment_failed` - send reminder, retry
-  - `customer.subscription.deleted` - downgrade to free
+- Stripe webhooks: `checkout.session.completed`, `invoice.payment_succeeded`, `invoice.payment_failed`, `customer.subscription.deleted`
 
 ---
 
-#### US-018: Manage Subscription
+#### US-021: Manage Subscription
 **As a** premium user
 **I want to** manage my subscription
 **So that** I can update payment info or cancel
 
 **Acceptance Criteria:**
-- User can view subscription status (active, past due, canceled)
-- User can see next billing date and amount
-- User can update payment method (credit card)
-- User can view payment history
-- User can cancel subscription (takes effect at end of current billing period)
-- User receives confirmation email for any changes
+- View: Status (active, past due, canceled), next billing date/amount
+- Update payment method (credit card)
+- View payment history
+- Cancel subscription (takes effect at end of billing period)
+- Confirmation emails for changes
 
 **Technical Requirements:**
-- Display Stripe Customer Portal link, OR
-- Build custom UI with Stripe API calls:
-  - GET /subscriptions/:id - view subscription
-  - POST /payment_methods - update card
-  - DELETE /subscriptions/:id - cancel subscription
-- Show `invoices` from Stripe for payment history
-- Handle cancellation via webhook `customer.subscription.deleted`
+- Stripe Customer Portal link, OR custom UI:
+  - GET /subscriptions/:id
+  - POST /payment_methods
+  - DELETE /subscriptions/:id
+- Show Stripe `invoices` for payment history
+- Handle `customer.subscription.deleted` webhook
 
 ---
 
-#### US-019: Cancel Subscription
+#### US-022: Set Political Views by Policy Area (Premium)
 **As a** premium user
-**I want to** cancel my subscription
-**So that** I'm not charged again
+**I want to** set my political perspective per policy area
+**So that** my messages are tailored to my views
 
 **Acceptance Criteria:**
-- User can cancel from subscription settings
-- Confirmation dialog warns that premium features will be lost
-- User selects reason for cancellation (optional survey)
-- Cancellation takes effect at end of current billing period
-- User retains premium access until period ends
-- User receives cancellation confirmation email
-- User can resubscribe at any time
+- Set overall political view: Far Left, Center Left, Center/Moderate, Center Right, Far Right
+- Set view for each of 20 policy areas (same spectrum)
+- Slider interface with 5 positions
+- Can click position labels to jump
+- Premium-only (free users: upgrade prompt)
 
 **Technical Requirements:**
-- Call Stripe API: `DELETE /subscriptions/:id` with `at_period_end: true`
-- Update `user_subscriptions.canceled_at` in database
-- Send cancellation email
-- Cron job to downgrade users when `subscription_end_date` < NOW()
+- Store in `users.overall_view` and `users.policy_interests`
+- Each policy: 0-4 (0=Far Left, 4=Far Right)
+- Default: 2 (Center/Moderate)
 
 ---
 
-### 7. Personalization
-
-#### US-020: Set Policy Interests
-**As a** user
-**I want to** set my policy interest levels
-**So that** my feed prioritizes bills I care about
+#### US-023: Customized Feed & Email Digest (Premium)
+**As a** premium user
+**I want** my feed to match my interests and receive email digests
+**So that** I stay informed on issues I care about
 
 **Acceptance Criteria:**
-- User can rate interest level (Low, Medium, High) for policy areas:
-  - Climate, Energy & Environment
-  - Criminal Justice
-  - Defense & National Security
-  - Discrimination & Prejudice
-  - Economy & Work
-  - Education
-  - Health Policy
-  - Immigration & Migration
-  - International Affairs
-  - National Conditions
-  - Religion & Government
-  - Technology
-- Interests saved to profile
-- Feed algorithm uses interests to prioritize bills
-- Premium users get more accurate personalization
+- **Customized Feed:**
+  - Shows bills from subjects matching user interests (high first)
+  - Includes followed orgs and watched bills
+  - Excludes already acted on bills (unless followed)
+  - Refreshes daily
+  - Can toggle to "All Bills" view
+- **Email Digest:**
+  - Enable/disable digests
+  - Frequency: Daily, Weekly, Monthly
+  - Select topics (based on policy interests)
+  - Content: New bills, watched bill updates, new campaigns
+  - Unsubscribe link in footer
+  - Preview in settings
 
 **Technical Requirements:**
-- Store in `users.policy_interests` JSONB column
-- Use in feed query to weight results
+- Query `bills` by `policy_area` matching interests
+- Join `user_watched_bills`, `user_followed_organizations`
+- Weight by interest level (high=3, medium=2, low=1)
+- Cache personalized feed 1 hour per user
+- Store preferences in `user_email_preferences`
+- Cron jobs for daily/weekly/monthly digests
 
 ---
 
-#### US-021: Customized Bill Feed (Premium)
+#### US-024: View Advocacy Impact Analytics (Premium)
 **As a** premium user
-**I want** my feed to show bills matching my interests
-**So that** I see legislation I care about
-
-**Acceptance Criteria:**
-- Feed shows bills from subjects matching user interests (high first)
-- Includes bills from followed organizations
-- Includes bills user is already watching
-- Excludes bills user has already acted on (unless followed)
-- Refreshes daily with new bills
-- User can toggle back to "All Bills" view
-
-**Technical Requirements:**
-- Query `bills` filtered by `policy_area` matching user interests
-- Join with `user_watched_bills`, `user_followed_organizations`
-- Weight by interest level (high = 3, medium = 2, low = 1)
-- Cache personalized feed for 1 hour per user
-
----
-
-#### US-022: Email Digest Preferences (Premium)
-**As a** premium user
-**I want to** receive email digests of new legislation
-**So that** I stay informed without checking the app daily
-
-**Acceptance Criteria:**
-- User can enable/disable email digests
-- User can select frequency: Daily, Weekly, Monthly
-- User can select topics to include (based on policy interests)
-- Digest includes: New bills, Updates to watched bills, New campaigns
-- User can unsubscribe from any email
-- Preview of digest available in settings
-
-**Technical Requirements:**
-- Store preferences in `user_email_preferences` table
-- Cron jobs for each frequency (daily, weekly, monthly)
-- Generate digest from recent bills matching interests
-- Send via email service provider
-- Include unsubscribe link in footer
-
----
-
-### 8. Analytics (Premium)
-
-#### US-023: View Advocacy Impact
-**As a** premium user
-**I want to** see analytics on my advocacy efforts
+**I want to** see analytics on my advocacy
 **So that** I can measure my impact
 
 **Acceptance Criteria:**
@@ -552,661 +740,365 @@ Regular users are members of the public who use the platform to engage with legi
   - Total messages sent
   - Bills engaged with (supported/opposed)
   - Representatives contacted (unique count)
-  - Response rate from representatives
   - Engagement over time (chart)
-  - Impact score (calculated metric)
-- Can filter analytics by date range
-- Can export data as CSV
+  - Impact score (based on bill outcomes)
+  - Success rate (supported bills that became law)
+  - Effectiveness score (alignment with outcomes)
+- Filter by date range
+- Export as CSV
 
 **Technical Requirements:**
-- Aggregate data from `user_messages` table
-- Calculate response rate from `official_responses` table
-- Generate charts with Recharts library
-- Export functionality via CSV download
-
----
-
-#### US-024: View Official Responses (Premium)
-**As a** premium user
-**I want to** see responses I receive from representatives
-**So that** I know my voice was heard
-
-**Acceptance Criteria:**
-- Responses linked to original messages
-- Shows: Date received, Representative, Response text
-- Can reply to responses
-- Can mark responses as helpful/unhelpful
-- Aggregated response stats visible
-
-**Technical Requirements:**
-- Store responses in `official_responses` table
-- Link via `message_id` foreign key
-- Allow email replies (parse via email service)
-- Track ratings in `response_ratings` table
-
----
+- Aggregate from `user_messages`, `campaign_actions`
+- Calculate success rate from bill status tracking
+- Charts with Recharts library
+- CSV export
 
 ---
 
 ## Organization User Stories
 
-Organization users are staff members of advocacy groups who have access to the `/partners` portal to manage campaigns.
+Organization users are staff members of advocacy groups who access the `/partners` portal to manage campaigns.
 
-### 1. Organization Account Management
+### Partners Dashboard & Account
+**Page:** `/partners/*`
 
-#### ORG-001: Organization User Login
+#### ORG-001: Organization Login & Team Management
 **As an** organization staff member
-**I want to** log in with my credentials
-**So that** I can manage my organization's campaigns
-
-**Acceptance Criteria:**
-- Organization user has `role` = 'organization' in database
-- Login flow same as regular user
-- After login, user redirected to `/partners` dashboard
-- User can only access organizations they're authorized for
-- User can switch between organizations if member of multiple
-
-**Technical Requirements:**
-- Check `user_organizations` table for organization access
-- Store selected organization in session
-- Middleware restricts `/partners` routes to organization users
-
----
-
-#### ORG-002: Invite Team Members
-**As an** organization admin
-**I want to** invite team members to manage the organization
+**I want to** log in and manage team members
 **So that** we can collaborate on campaigns
 
 **Acceptance Criteria:**
-- Organization admin can send email invites
-- Invite includes signup link with organization pre-selected
-- Invited user creates account and is automatically added to organization
-- Can set permission level: Admin or Editor
-- Admin can manage campaigns and settings; Editor can only manage campaigns
-- Invite expires after 7 days
+- **Login:**
+  - User has `role` = 'organization' in database
+  - Same login flow as regular users
+  - Redirects to `/partners` dashboard after login
+  - Can only access authorized organizations
+  - Can switch between orgs if member of multiple
+- **Invite Team Members:**
+  - Org admin can send email invites
+  - Invite includes signup link with org pre-selected
+  - Set permission: Admin or Editor
+  - Admin: Manage campaigns and settings; Editor: Campaigns only
+  - Invite expires after 7 days
+  - Invited user auto-added to org on signup
 
 **Technical Requirements:**
-- Store invites in `organization_invitations` table
+- Check `user_organizations` for org access
+- Store selected org in session
+- Middleware restricts `/partners` to org users
+- Store invites in `organization_invitations`
 - Send invite email with secure token
-- Token links to signup flow with `org_invite_token` parameter
-- After signup, create entry in `user_organizations` with role
+- Create `user_organizations` entry after signup
 
 ---
 
-### 2. Organization Profile
+### Organization Profile
+**Page:** `/partners/settings` or `/partners/profile`
 
-#### ORG-003: View Organization Profile
-**As an** organization user
-**I want to** view my organization's public profile
-**So that** I can see how we appear to users
+#### ORG-002: View & Edit Organization Profile
+**As an** org admin
+**I want to** view and edit our profile
+**So that** we have accurate public information
 
 **Acceptance Criteria:**
-- Shows: Organization name, logo, description, website
-- Shows: Nonprofit status, years active
-- Shows: Active campaigns count, total supporters
-- Shows: Policy focus areas
-- Link to public profile page
+- **View Profile:**
+  - Shows: Name, logo, description, website, nonprofit status, years active
+  - Shows: Active campaigns count, total supporters, policy focus areas
+  - Link to public profile page
+- **Edit Profile:**
+  - Update: Name, logo (upload PNG/JPG max 2MB), description, website
+  - Update: Nonprofit status, focus areas, social media links
+  - SEO: Meta description for org page
+  - Changes reflected immediately on public page
 
 **Technical Requirements:**
 - Query `organizations` table
 - Aggregate `campaigns` for count
-- Aggregate `campaign_actions` for supporter count
-
----
-
-#### ORG-004: Edit Organization Profile
-**As an** organization admin
-**I want to** edit my organization's profile
-**So that** we have accurate public information
-
-**Acceptance Criteria:**
-- Can update: Name, Logo (upload), Description, Website
-- Can update: Nonprofit status, Focus areas
-- Can update: Social media links
-- Can upload logo (PNG, JPG, max 2MB)
-- Changes are saved and reflected immediately on public page
-- SEO: Can set meta description for organization page
-
-**Technical Requirements:**
-- Update `organizations` table
+- Aggregate `campaign_actions` for supporters
 - Upload logo to cloud storage (AWS S3, Cloudinary)
-- Store logo URL in database
-- Invalidate cache for organization page
+- Invalidate cache for org page
 
 ---
 
-### 3. Campaign Management
+### Campaign Management
+**Page:** `/partners/campaigns/*`
 
-#### ORG-005: Create Campaign for Federal Bill
-**As an** organization user
-**I want to** create a campaign for a federal bill
+#### ORG-003: Create Campaign (Bill, Issue, or Candidate)
+**As an** org user
+**I want to** create campaigns for bills, issues, or candidates
 **So that** we can mobilize supporters
 
 **Acceptance Criteria:**
-- User searches for bill by number or keyword
-- User selects bill from search results
-- User sets position: Support or Oppose
-- User writes reasoning for position (markdown supported)
-- User can set custom call-to-action button text
-- User can upload campaign image (optional)
-- User can set campaign status: Draft, Active, Paused, Ended
-- Campaign is created and appears on organization's campaign list
-- If Active, campaign appears on bill detail page for all users
+- **Campaign Dates (Required):**
+  - Start Date: Campaign begins (required)
+  - End Date: Campaign ends (required)
+  - End date must be after start date
+  - Campaign only visible to users between start and end dates
+- **Federal Bill Campaign:**
+  - Search bill by number or keyword
+  - Select bill from results
+  - Set position: Support or Oppose
+  - Write reasoning (markdown supported)
+  - Custom CTA button text
+  - Set start and end dates (required)
+  - Upload campaign image (optional)
+  - Status: Draft, Active, Paused, Ended
+  - If Active: Appears on bill detail page for all users
+- **State Bill Campaign:**
+  - Same as federal but select state first
+  - Uses LegiScan data
+- **Issue Campaign:**
+  - Type: "Issue Campaign"
+  - Set: Issue title, description, policy area
+  - Write advocacy message template
+  - Set start and end dates (required)
+  - Target representatives: All, or filter by state/party/committee
+  - Appears on homepage and org page
+- **Candidate Campaign:**
+  - Type: "Candidate Campaign"
+  - Enter both candidates: Name, Bio/Description
+  - Select which candidate org supports
+  - Set position: Support (endorsed) or Oppose (other candidate)
+  - Write reasoning (markdown)
+  - Set start and end dates (required)
+  - Custom CTA, campaign image, status
+  - Displays with both candidates and org endorsement
+  - If Active: Appears on org campaign list
 
 **Technical Requirements:**
-- Search `bills` table
-- Create entry in `campaigns` table
-  - Fields: organization_id, bill_id, position, reasoning, status, image_url, cta_text
-- Set `created_at` and `updated_at` timestamps
-- Publish to campaign feed if status = 'Active'
+- Search `bills` or `state_bills` table
+- Create in `campaigns` table
+- Federal: `organization_id`, `bill_id`, `position`, `reasoning`, `status`, `image_url`, `cta_text`, `start_date`, `end_date`
+- State: Use `state_bill_id` instead of `bill_id`
+- Issue: `campaign_type` = 'issue', `target_criteria` JSONB, `start_date`, `end_date`
+- Candidate: `campaign_type` = 'candidate', `candidate` JSONB with `candidate1Name`, `candidate1Bio`, `candidate2Name`, `candidate2Bio`, `selectedCandidate`, `start_date`, `end_date`
+- Publish to feed if status = 'Active' AND current date between start_date and end_date
+- Validate: end_date > start_date
 
 ---
 
-#### ORG-006: Create Campaign for State Bill
-**As an** organization user
-**I want to** create a campaign for a state bill
-**So that** we can engage on local issues
+#### ORG-004: Edit & Pause Campaigns
+**As an** org user
+**I want to** edit or pause campaigns
+**So that** we can update messaging or temporarily halt campaigns
 
 **Acceptance Criteria:**
-- Same as ORG-005 but for state bills
-- User selects state first, then searches state bills
-- Uses LegiScan data
-
-**Technical Requirements:**
-- Search `state_bills` table
-- Create entry in `campaigns` with `state_bill_id` instead of `bill_id`
-
----
-
-#### ORG-007: Create Issue-Based Campaign
-**As an** organization user
-**I want to** create a campaign not tied to a specific bill
-**So that** we can advocate on broader issues
-
-**Acceptance Criteria:**
-- User selects "Issue Campaign" type
-- User sets: Issue Title, Issue Description, Policy Area
-- User writes advocacy message template
-- User sets target representatives (can target all, or filter by state, party, committee)
-- Campaign appears on homepage and organization page
-
-**Technical Requirements:**
-- Create in `campaigns` table with `campaign_type` = 'issue'
-- Store target criteria in `target_criteria` JSONB column
-
----
-
-#### ORG-008: Edit Campaign
-**As an** organization user
-**I want to** edit an existing campaign
-**So that** I can update messaging or details
-
-**Acceptance Criteria:**
-- Can edit: Position, Reasoning, CTA text, Image, Status
-- Cannot edit: Bill (must create new campaign)
-- Changes reflected immediately on live campaign page
-- Edit history logged (who, when, what changed)
+- **Edit:**
+  - Can edit: Position, reasoning, CTA text, image, status, start date, end date
+  - Cannot edit: Bill (must create new campaign)
+  - Changes reflected immediately
+  - Edit history logged (who, when, what)
+- **Pause Campaign:**
+  - "Campaign Status" section shows current status (Active or Paused)
+  - "Pause Campaign" button (red/destructive) when active
+  - "Resume Campaign" button (primary) when paused
+  - Confirmation dialog before pausing or resuming
+  - Paused campaigns:
+    - Hidden from public listings and bill detail pages
+    - Cannot receive new actions
+    - Existing actions and data preserved
+    - Organization can still view analytics
+    - Can resume anytime
+  - Status updates immediately via API
+  - Success notification after pause/resume
+- **Delete:**
+  - Confirmation dialog (deletion permanent)
+  - Removed from all public listings
+  - Historical data preserved (messages, actions)
+  - User actions disassociated but not deleted
 
 **Technical Requirements:**
 - Update `campaigns` table
-- Log changes in `campaign_edit_history` table
+- Pause: Set `campaigns.isPaused` = true
+- Resume: Set `campaigns.isPaused` = false
+- Public queries: WHERE `status` = 'active' AND `isPaused` = false AND NOW() BETWEEN `start_date` AND `end_date`
+- API endpoint: PUT `/api/campaigns/:id` with `isPaused` field
+- Log in `campaign_edit_history`
 - Invalidate campaign page cache
+- Soft delete: Set `deleted_at` timestamp
+- Exclude deleted from queries
+- Keep `campaign_actions` for historical reporting
 
 ---
 
-#### ORG-009: Delete Campaign
-**As an** organization admin
-**I want to** delete a campaign
-**So that** outdated campaigns don't confuse supporters
+### Campaign Sharing & Distribution
 
-**Acceptance Criteria:**
-- Confirmation dialog warns that deletion is permanent
-- Campaign removed from all public listings
-- Historical data (messages sent, actions taken) is preserved
-- User actions are not deleted, just disassociated from campaign
-
-**Technical Requirements:**
-- Soft delete: Set `deleted_at` timestamp in `campaigns` table
-- Exclude deleted campaigns from queries
-- Keep `campaign_actions` data for historical reporting
-
----
-
-#### ORG-010: View Campaign Analytics
-**As an** organization user
-**I want to** view detailed analytics for a campaign
-**So that** I can measure effectiveness
-
-**Acceptance Criteria:**
-- Campaign analytics page shows:
-  - Total actions (support + oppose if multi-position campaign)
-  - Messages sent (estimated from actions)
-  - Email delivery rate (actual data from email provider)
-  - Engagement over time (chart)
-  - Geographic breakdown (by state, congressional district)
-  - Demographics breakdown (age, gender, political affiliation) if users shared
-  - Top representatives contacted
-- Can filter by date range
-- Can export data as CSV or PDF
-
-**Technical Requirements:**
-- Query `campaign_actions` table
-- Join with `user_messages` for message data
-- Join with `users` for demographic data (anonymized aggregates only)
-- Generate charts with Recharts
-- PDF export via library like jsPDF or server-side rendering
-
----
-
-#### ORG-011: View Message Sent Count
-**As an** organization user
-**I want to** see how many messages were sent from my campaign
-**So that** I can report impact to stakeholders
-
-**Acceptance Criteria:**
-- Dashboard shows estimated message count per campaign
-- Calculation: (Support count + Oppose count) × 0.75 (assumes 75% completion rate)
-- Shows breakdown: Email vs Postal
-- Shows delivery success rate
-- Shows bounces and failures
-
-**Technical Requirements:**
-- Aggregate `campaign_actions` table
-- Join with `user_messages` for delivery status
-- Apply completion rate multiplier
-
----
-
-#### ORG-012: Copy Campaign Link
-**As an** organization user
+#### ORG-007: Copy Campaign Link
+**As an** org user
 **I want to** copy a shareable campaign link
-**So that** I can promote it on social media and email
+**So that** I can promote on social media and email
 
 **Acceptance Criteria:**
 - Each campaign has unique URL: `/campaigns/{org-slug}/{campaign-slug}`
-- Click "Copy Link" button copies to clipboard
-- Link can be shared directly
+- "Copy Link" button copies to clipboard
 - Landing page shows campaign details and advocacy form
 
 **Technical Requirements:**
 - Generate slug from campaign title
-- Store in `campaigns.slug` column (unique)
+- Store in `campaigns.slug` (unique)
 - Clipboard API or fallback for older browsers
 
 ---
 
-### 4. Email Templates & Communication
+### Campaign Analytics
+**Page:** `/partners/campaigns/{id}/analytics`
 
-#### ORG-013: Draft Message Template
-**As an** organization user
-**I want to** create a message template for my campaign
-**So that** supporters can easily send effective messages
+#### ORG-005: View Campaign Performance Analytics with L2 Voter Demographics
+**As an** org user
+**I want to** view detailed campaign analytics with rich demographic data
+**So that** I can understand who is engaging and tailor future campaigns
 
 **Acceptance Criteria:**
-- Can write message template with placeholders: {firstName}, {lastName}, {address}, etc.
-- Template includes AI-suggested arguments based on bill and position
-- Can set tone: Formal, Personal, Urgent
-- Template is shown to users as suggested message (they can edit)
-- Can save multiple versions and A/B test
+
+**Core Metrics:**
+- **Vote Counts:** Support, oppose, total actions
+- **Voter Verification Rate:** Percentage of participants who are verified registered voters (via L2 Political)
+
+**L2-Enhanced Demographics (from Voter Registration Data):**
+
+*Note: These demographics are sourced from L2 Political's voter database for users who verified their registration (see US-016). All data shown as anonymized aggregates only.*
+
+- **Age & Generation:**
+  - Age groups (18-29, 30-49, 50-64, 65+) with percentages
+  - Generation breakdown (Gen Z, Millennial, Gen X, Boomer, Silent)
+
+- **Political Profile:**
+  - Party registration (Democrat, Republican, Independent, Other) with percentages
+  - Partisan score distribution (L2's Democrat/Republican likelihood scores)
+  - Likely voter score distribution (High, Medium, Low propensity)
+  - Voter history: General election participation rate, primary participation rate
+
+- **Geographic Analysis:**
+  - Top 5 states by participation with bar charts and percentages
+  - Congressional districts represented
+  - Urban/Suburban/Rural breakdown (from census data)
+  - Top counties and cities
+
+- **Education & Income (Modeled by L2):**
+  - Education level (High School, Some College, Bachelor's, Graduate) with percentages
+  - Estimated household income ranges
+
+- **Professional & Employment:**
+  - Top professions with bar charts (Education, Healthcare, Technology, Legal, Nonprofit, etc.)
+  - Employment status distribution
+  - Union membership percentage
+
+- **Identity Demographics:**
+  - Gender (Female, Male, Non-binary, No response) with percentages
+  - Ethnicity/Race breakdown (modeled by L2)
+  - Language preference (English, Spanish, Other)
+
+- **Special Interest Groups:**
+  - Military: Veterans, active military, military families percentages
+  - First generation Americans percentage
+  - Homeowner vs renter percentage
+  - Presence of children in household
+
+- **Engagement History (from L2):**
+  - Political donation history (has donated before)
+  - Issue interest areas (from L2's modeled interests)
+  - Media consumption patterns (if available)
+
+**Engagement Metrics (Platform-specific):**
+- Message completion rate (% who completed advocacy message after voting)
+- Average messages per user
+- Social shares count (mocked for now)
+- Repeat engagement rate (users who came back)
+
+**Data Visualization:**
+- Bar charts for all percentage-based metrics
+- Heat maps for geographic distribution
+- Comparison charts (e.g., your campaign vs platform average)
+- Trend lines for engagement over time
+
+**Export & Reporting:**
+- Export analytics (CSV, Excel, PDF, JSON) - disabled in prototype
+- Custom date range filtering
+- Segment comparison (e.g., Democrats vs Republicans, Age groups)
+- **Privacy:** All exports show aggregates only, never individual user data
+
+**Data Quality Indicators:**
+- Show what % of participants are verified voters (have L2 data)
+- Show what % of participants provided profile information
+- Indicate which demographics are modeled vs verified
 
 **Technical Requirements:**
-- Store in `campaign_message_templates` table
-- Use AI to generate initial draft
-- Support template variables
+- Query `campaign_actions` for vote counts
+- Join `users` table, access `users.l2_voter_data` JSONB field for L2 demographics
+- Extract relevant L2 fields from 698-variable VM2 dataset:
+  - **Identity:** Age, gender, ethnicity (modeled), language preference
+  - **Political:** Party registration, partisan scores, voter history, likely voter scores
+  - **Geographic:** State, county, city, congressional district, census tract
+  - **Demographic:** Education (modeled), income (modeled), occupation, employment status
+  - **Special:** Military status, union membership, homeownership, children present
+  - **Engagement:** Donation history, issue interests, turnout propensity
+- Calculate percentages and aggregates for each category
+- **Privacy enforcement:**
+  - Never expose individual `l2_voter_data` records
+  - Only show aggregates with minimum threshold (e.g., 5+ users per segment)
+  - Anonymize any potentially identifying combinations
+- Display with Recharts card grids and bar charts
+- Mock engagement metrics (replace with actual tracking)
+- Pagination and performance optimization for large datasets
+- Cache analytics results for 10 minutes
+
+**Connection to User Verification (US-016):**
+When users verify their voter registration via L2 Political, the platform stores their complete L2 voter record (698 variables) in `users.l2_voter_data` JSONB field. This enables organizations to see rich demographic insights about their campaign participants while maintaining user privacy through anonymized aggregates.
 
 ---
 
-#### ORG-014: View Email Engagement
-**As an** organization user
-**I want to** see email engagement metrics
-**So that** I know if our messages are being delivered and opened
+### Campaign Emails
+**Page:** `/partners/campaigns/{id}/emails`
+
+#### ORG-006: View Campaign Emails & Message Count
+**As an** org user
+**I want to** view emails sent through my campaign
+**So that** I can monitor advocacy activity
 
 **Acceptance Criteria:**
-- Shows per campaign:
-  - Emails sent
-  - Emails delivered (not bounced)
-  - Delivery rate %
-  - Estimated open rate (if tracking pixels enabled)
-- Shows failures and bounce reasons
-- Shows spam complaints
+- **Overview:**
+  - Total emails sent: (support + oppose counts) × 75% completion rate
+  - Overall delivery rate (mocked at 87%)
+  - Recent messages table: From (sender), To (rep), Date, Position
+- **Filter by Demographics:**
+  - Age group, political affiliation, state, profession
+  - Filter panel shows count of filtered results
+- Export email data (disabled in prototype)
+- View individual message details
 
 **Technical Requirements:**
-- Integrate with email service provider API (SendGrid, Mailgun, etc.)
-- Fetch delivery events via webhook or API polling
-- Store events in `email_delivery_logs` table
-- Aggregate for reporting
-
----
-
-### 5. Network Collaboration
-
-#### ORG-015: View Other Organizations' Campaigns
-**As an** organization user
-**I want to** see campaigns from other organizations on the same bill
-**So that** we can collaborate and amplify impact
-
-**Acceptance Criteria:**
-- When viewing a campaign, see "Other network campaigns" section
-- Shows: Organization name, Position, Support/Oppose counts, Message count
-- Can click to view their campaign page
-- Can send message through their campaign (cross-promotion)
-
-**Technical Requirements:**
-- Query `campaigns` table for same `bill_id`, different `organization_id`
-- Display in campaign detail view
-
----
+- Query `user_messages` filtered by `campaign_id`
+- Join `users` for demographics
+- Email count: (supportCount + opposeCount) × 0.75
+- Mock delivery rate (replace with actual email service data)
+- Pagination for message list
 
 ---
 
 ## Admin User Stories
 
-Admin users have elevated permissions to manage the entire platform, including users, organizations, and system settings.
+Admin users have elevated permissions to manage the platform, including users, organizations, and system settings.
 
-### 1. User Management
+### Admin Dashboard
+**Page:** `/admin/*`
 
-#### ADMIN-001: View All Users
-**As an** admin
-**I want to** view a list of all users
-**So that** I can monitor platform usage
-
-**Acceptance Criteria:**
-- Admin dashboard shows paginated user list
-- Shows: Name, Email, Membership Tier, Registration Date, Last Login
-- Can filter by: Membership tier, Registration date range, Activity status
-- Can sort by: Name, Registration date, Last login
-- Can search by email or name
-- Shows total user count
-
-**Technical Requirements:**
-- Query `users` table with filters
-- Paginate 50 users per page
-- Cache total count for 5 minutes
-
----
-
-#### ADMIN-002: View User Details
-**As an** admin
-**I want to** view detailed information about a user
-**So that** I can troubleshoot issues or verify information
-
-**Acceptance Criteria:**
-- User detail page shows:
-  - Full profile (name, address, demographics)
-  - Account status (active, suspended, deleted)
-  - Membership info (tier, start date, next billing)
-  - Activity summary (messages sent, bills followed, organizations followed)
-  - Recent messages (last 10)
-  - Login history (last 10 logins)
-- Can view full message history
-
-**Technical Requirements:**
-- Query `users` table with related data
-- Join with `user_messages`, `user_watched_bills`, `user_followed_organizations`
-- Join with `user_subscriptions` for membership
-- Join with `login_history` table
-
----
-
-#### ADMIN-003: Suspend User
-**As an** admin
-**I want to** suspend a user account
-**So that** I can prevent abuse or policy violations
-
-**Acceptance Criteria:**
-- Can suspend user with reason (required)
-- Suspended user cannot log in
-- Suspended user sees message: "Account suspended. Contact support."
-- Can set suspension duration (temporary or permanent)
-- Admin can unsuspend at any time
-- Suspension logged with admin user ID and timestamp
-
-**Technical Requirements:**
-- Set `users.status` = 'suspended'
-- Store `suspended_at`, `suspended_by`, `suspension_reason`, `suspension_expires_at`
-- Check status on login and block if suspended
-- Show suspension message on login page
-
----
-
-#### ADMIN-004: Delete User
-**As an** admin
-**I want to** delete a user account
-**So that** I can comply with GDPR/data deletion requests
-
-**Acceptance Criteria:**
-- Confirmation dialog warns that deletion is permanent
-- Option for hard delete (removes all data) or soft delete (anonymizes)
-- Hard delete removes: User profile, messages, activity logs
-- Hard delete preserves: Anonymized analytics (counts, aggregates)
-- Soft delete: Sets email to null, name to "Deleted User", keeps activity data
-- Deletion logged in audit log
-
-**Technical Requirements:**
-- Hard delete: DELETE from `users`, CASCADE to related tables
-- Soft delete: UPDATE `users` SET `email` = NULL, `first_name` = 'Deleted', etc.
-- Log in `admin_audit_log` table
-
----
-
-### 2. Organization Management
-
-#### ADMIN-005: View All Organizations
-**As an** admin
-**I want to** view all organizations
-**So that** I can manage the partner network
-
-**Acceptance Criteria:**
-- Shows: Name, Status (pending, active, suspended), Campaigns count, Members count
-- Can filter by status
-- Can sort by name, campaigns count, date joined
-- Can search by name
-
-**Technical Requirements:**
-- Query `organizations` table
-- Aggregate `campaigns` and `user_organizations` for counts
-
----
-
-#### ADMIN-006: Approve New Organization
-**As an** admin
-**I want to** approve organization applications
-**So that** only legitimate groups access the platform
-
-**Acceptance Criteria:**
-- New organization applications show in "Pending" list
-- Application shows: Name, Description, Website, EIN (tax ID), Contact info
-- Admin can approve or reject with reason
-- Approved organization gets access to `/partners` portal
-- Rejected organization receives email with reason
-- Approval logged in audit log
-
-**Technical Requirements:**
-- Query `organizations WHERE status = 'pending'`
-- Update `organizations.status` to 'active' or 'rejected'
-- Send notification email
-- Log in `admin_audit_log`
-
----
-
-#### ADMIN-007: Suspend Organization
-**As an** admin
-**I want to** suspend an organization
-**So that** I can prevent misuse of the platform
-
-**Acceptance Criteria:**
-- Can suspend with reason
-- Suspended org cannot create/edit campaigns
-- Existing campaigns are hidden from public
-- Org users can still log in but see suspension notice
-- Can unsuspend at any time
-
-**Technical Requirements:**
-- Set `organizations.status` = 'suspended'
-- Exclude suspended orgs' campaigns from public queries
-- Show suspension message in `/partners` portal
-
----
-
-#### ADMIN-008: View Organization Details
-**As an** admin
-**I want to** view detailed org information
-**So that** I can verify legitimacy and monitor activity
-
-**Acceptance Criteria:**
-- Shows: Full profile, Contact info, Tax ID (EIN), Members list
-- Shows: Campaign list (all campaigns), Analytics (total actions, messages)
-- Shows: Audit history (who created campaigns, edits made)
-- Can edit organization details
-
-**Technical Requirements:**
-- Query `organizations` with all related data
-- Join with `campaigns`, `campaign_actions`, `user_organizations`
-
----
-
-### 3. Payment & Subscription Management
-
-#### ADMIN-009: View All Subscriptions
-**As an** admin
-**I want to** view all premium subscriptions
-**So that** I can monitor revenue and subscription health
-
-**Acceptance Criteria:**
-- Shows: User name, Email, Plan (quarterly), Status, Start date, Next billing
-- Shows MRR (Monthly Recurring Revenue) and total subscribers
-- Can filter by status (active, past_due, canceled)
-- Can sort by start date, next billing date
-- Can search by user email
-
-**Technical Requirements:**
-- Query `user_subscriptions` table
-- Join with `users` for display
-- Calculate MRR: (Active subscribers × $6) / 3 months
-
----
-
-#### ADMIN-010: View Subscription Details
-**As an** admin
-**I want to** view detailed subscription information
-**So that** I can troubleshoot billing issues
-
-**Acceptance Criteria:**
-- Shows: User info, Stripe Customer ID, Stripe Subscription ID
-- Shows: Current status, Start date, Renewal date, Cancellation date (if applicable)
-- Shows: Payment history (all invoices)
-- Shows: Failed payments and retry schedule
-- Can view Stripe dashboard link for this subscription
-
-**Technical Requirements:**
-- Query `user_subscriptions` with related data
-- Fetch Stripe Subscription and Invoice data via API
-- Link to Stripe dashboard: `https://dashboard.stripe.com/subscriptions/{id}`
-
----
-
-#### ADMIN-011: Issue Refund
-**As an** admin
-**I want to** issue a refund to a user
-**So that** I can handle customer service requests
-
-**Acceptance Criteria:**
-- Can select specific invoice to refund
-- Can choose partial or full refund
-- Must enter reason for refund
-- Refund processed via Stripe immediately
-- User receives refund confirmation email
-- Refund logged in admin audit log
-
-**Technical Requirements:**
-- Call Stripe API: `POST /refunds` with `charge_id` and `amount`
-- Log in `payment_refunds` table
-- Send email notification
-- Log in `admin_audit_log`
-
----
-
-#### ADMIN-012: Apply Credit to Account
-**As an** admin
-**I want to** apply account credit
-**So that** I can compensate for service issues
-
-**Acceptance Criteria:**
-- Enter credit amount (in dollars)
-- Enter reason for credit
-- Credit applied to Stripe customer account
-- Credit used for next invoice automatically
-- User receives notification of credit
-- Credit logged in audit log
-
-**Technical Requirements:**
-- Call Stripe API: `POST /customers/{id}/balance_transactions` with negative amount
-- Log in `account_credits` table
-- Send email notification
-
----
-
-#### ADMIN-013: Manually Upgrade/Downgrade User
-**As an** admin
-**I want to** manually change a user's membership tier
-**So that** I can handle special cases or support requests
-
-**Acceptance Criteria:**
-- Can upgrade free user to premium (without payment)
-- Can downgrade premium to free
-- Must enter reason
-- Change takes effect immediately
-- User receives notification email
-- Change logged in audit log
-
-**Technical Requirements:**
-- Update `users.membership_tier`
-- If upgrade without Stripe: Set `users.membership_override` = true
-- Send email notification
-- Log in `admin_audit_log`
-
----
-
-#### ADMIN-014: View Payment Failures
-**As an** admin
-**I want to** see all payment failures
-**So that** I can monitor subscription health and reach out to users
-
-**Acceptance Criteria:**
-- Shows list of failed payments
-- Shows: User, Amount, Failure reason, Retry date, Attempt number
-- Can filter by failure reason
-- Can mark as resolved (after manual follow-up)
-- Can send reminder email to user
-
-**Technical Requirements:**
-- Query `payment_failures` table
-- Populated by Stripe webhook `invoice.payment_failed`
-- Include Stripe failure codes and messages
-- Send reminder emails via email service
-
----
-
-### 4. Platform Analytics
-
-#### ADMIN-015: View Platform Overview
+#### ADMIN-001: View Platform Overview
 **As an** admin
 **I want to** see high-level platform metrics
 **So that** I can monitor growth and health
 
 **Acceptance Criteria:**
-- Dashboard shows:
+- **Dashboard Metrics:**
   - Total users (all time), new users (last 30 days)
   - Premium subscribers (count), churn rate
   - Total messages sent (all time), messages (last 30 days)
-  - Total campaigns (active), total organizations (active)
+  - Total campaigns (active), orgs (active)
   - MRR (Monthly Recurring Revenue)
-- Charts show trends over time (last 90 days):
+- **Trends (last 90 days):**
   - New signups per day
   - Messages sent per day
   - Revenue per month
-- Can export all metrics to CSV
+- Export all metrics to CSV
 
 **Technical Requirements:**
 - Aggregate from `users`, `user_subscriptions`, `user_messages`, `campaigns`, `organizations`
@@ -1215,216 +1107,858 @@ Admin users have elevated permissions to manage the entire platform, including u
 
 ---
 
-#### ADMIN-016: View Advocacy Message Analytics
+### User Management
+**Page:** `/admin/users`
+
+#### ADMIN-002: Manage Users
 **As an** admin
-**I want to** see all advocacy messages sent
-**So that** I can monitor platform usage and quality
+**I want to** view, suspend, impersonate, or delete users
+**So that** I can monitor usage, troubleshoot issues, and prevent abuse
 
 **Acceptance Criteria:**
-- Shows paginated list of messages (most recent first)
-- Shows: Date, User, Bill, Recipients, Position, Delivery status
-- Can filter by: Date range, Delivery method, Status, Bill
-- Can search by user email or bill number
-- Can view full message content
-- Can flag inappropriate messages
+- **User List:**
+  - Paginated (50 per page)
+  - Shows: Name, email, membership tier, registration date, last login
+  - Filter: Membership tier, registration date range, activity status
+  - Sort: Name, registration date, last login
+  - Search by email or name
+  - Total user count
+- **User Details:**
+  - Full profile, account status, membership info
+  - Activity summary (messages, bills followed, orgs followed)
+  - Recent messages (last 10), login history (last 10)
+  - Full message history available
+  - **L2 Political Data:** All voter registration data displayed directly on page (not in tabs)
+    - Voter Registration section: Status, party, registration dates
+    - Vote History table: Election participation records
+    - Demographics section: Age, gender, ethnicity, education, income
+    - Household section: Home ownership, household size, children
+    - Consumer & Lifestyle section: Interests, subscriptions, donations
+    - Political Engagement section: Partisan scores, likely voter scores
+    - Propensity Scores section: Turnout propensity, persuasion scores
+    - Contact Preferences section: Phone, email, contact flags
+- **Impersonate User:**
+  - "Impersonate User" button in Admin Actions card
+  - Confirmation dialog with warning:
+    - "You are about to view the platform as {firstName} {lastName}"
+    - "You will be able to see their dashboard, messages, and all account information"
+    - "This action will be logged for security purposes"
+  - After confirmation: Redirected to homepage as that user
+  - Can view user's dashboard, messages, followed organizations, watched bills
+  - Security: All impersonation sessions logged with admin ID, user ID, timestamp
+  - Exit impersonation: Link in header to return to admin view
+- **Suspend User:**
+  - Suspend with reason (required)
+  - Suspended user cannot log in
+  - Message: "Account suspended. Contact support."
+  - Temporary or permanent suspension
+  - Admin can unsuspend anytime
+  - Logged with admin user ID and timestamp
+- **Delete User:**
+  - Confirmation dialog
+  - Hard delete: Removes all data (preserves anonymized analytics)
+  - Soft delete: Anonymizes (email=null, name="Deleted User", keeps activity)
+  - Logged in audit log
 
 **Technical Requirements:**
-- Query `user_messages` table
-- Join with `users`, `bills`, `members` for display
-- Paginate 50 messages per page
-- Flag sets `flagged` = true, `flagged_by`, `flagged_at`
+- Query `users` with filters, paginate 50 per page
+- Join with `user_messages`, `user_watched_bills`, `user_followed_organizations`, `user_subscriptions`, `login_history`
+- L2 data: Display all fields from `users.l2_voter_data` JSONB directly on page (no tabs)
+- Cache total count 5 minutes
+- Impersonate: Create secure session token, store in `impersonation_sessions` (admin_id, user_id, started_at, ended_at)
+- Impersonation mode: Special header/banner indicating admin is viewing as user
+- Log all impersonation actions in `admin_audit_log`
+- Exit impersonation: Clear session token, redirect to admin panel
+- Suspend: Set `users.status` = 'suspended', store `suspended_at`, `suspended_by`, `suspension_reason`, `suspension_expires_at`
+- Hard delete: DELETE from `users`, CASCADE to related tables
+- Soft delete: UPDATE `users` SET `email` = NULL, `first_name` = 'Deleted'
+- Log in `admin_audit_log`
 
 ---
 
-#### ADMIN-017: View Campaign Performance
+### Organization Management
+**Page:** `/admin/organizations`
+
+#### ADMIN-003: Manage Organizations
 **As an** admin
-**I want to** see all campaigns and their metrics
-**So that** I can identify top-performing campaigns
+**I want to** approve, suspend, or view organizations
+**So that** I can manage the partner network
 
 **Acceptance Criteria:**
-- Shows all campaigns with metrics: Actions, Messages sent, Engagement rate
-- Can sort by any metric
-- Can filter by organization, bill, status, date created
-- Can export top campaigns report
+- **Organization List:**
+  - Shows: Name, status (pending, active, suspended), campaigns count, members count
+  - Filter by status
+  - Sort by: Name, campaigns count, date joined
+  - Search by name
+- **Approve New Org:**
+  - Pending list shows: Name, description, website, EIN (tax ID), contact info
+  - Approve or reject with reason
+  - Approved: Access to `/partners` portal
+  - Rejected: Email with reason
+  - Logged in audit log
+- **Suspend Org:**
+  - Suspend with reason
+  - Cannot create/edit campaigns
+  - Existing campaigns hidden from public
+  - Org users see suspension notice
+  - Can unsuspend anytime
+- **Org Details:**
+  - Full profile, contact info, tax ID (EIN), members list
+  - Campaign list (all), analytics (total actions, messages)
+  - Audit history (campaign creation, edits)
+  - Can edit org details
 
 **Technical Requirements:**
-- Query `campaigns` with aggregated `campaign_actions`
-- Calculate engagement rate: (Actions / Views) × 100
+- Query `organizations`, aggregate `campaigns` and `user_organizations` for counts
+- Pending: `WHERE status = 'pending'`
+- Update `organizations.status` to 'active' or 'rejected'
+- Send notification email, log in `admin_audit_log`
+- Suspend: Set `organizations.status` = 'suspended', exclude campaigns from public queries
+- Join with `campaigns`, `campaign_actions`, `user_organizations` for details
+
+---
+
+### Payment & Subscription Management
+**Page:** `/admin/subscriptions`
+
+#### ADMIN-004: Manage Subscriptions & Payments
+**As an** admin
+**I want to** manage subscriptions and handle billing issues
+**So that** I can support users and monitor revenue
+
+**Acceptance Criteria:**
+- **Subscription List:**
+  - Shows: User name, email, plan (quarterly), status, start date, next billing
+  - Shows MRR and total subscribers
+  - Filter by status (active, past_due, canceled)
+  - Sort by start date, next billing date
+  - Search by user email
+- **Subscription Details:**
+  - User info, Stripe Customer ID, Stripe Subscription ID
+  - Current status, start date, renewal date, cancellation date (if applicable)
+  - Payment history (all invoices)
+  - Failed payments and retry schedule
+  - Link to Stripe dashboard
+- **Issue Refund:**
+  - Select specific invoice
+  - Partial or full refund
+  - Enter reason (required)
+  - Processed via Stripe immediately
+  - User receives confirmation email
+  - Logged in admin audit log
+- **Apply Credit:**
+  - Enter credit amount and reason
+  - Applied to Stripe customer account
+  - Used for next invoice automatically
+  - User notified
+  - Logged in audit log
+- **Manually Upgrade/Downgrade:**
+  - Upgrade free to premium (without payment)
+  - Downgrade premium to free
+  - Enter reason (required)
+  - Immediate effect
+  - User notified
+  - Logged in audit log
+- **View Payment Failures:**
+  - List of failed payments
+  - Shows: User, amount, failure reason, retry date, attempt number
+  - Filter by failure reason
+  - Mark as resolved (after follow-up)
+  - Send reminder email to user
+
+**Technical Requirements:**
+- Query `user_subscriptions`, join `users`
+- MRR: (Active subscribers × $6) / 3 months
+- Fetch Stripe Subscription and Invoice data via API
+- Stripe dashboard link: `https://dashboard.stripe.com/subscriptions/{id}`
+- Refund: `POST /refunds` with `charge_id` and `amount`, log in `payment_refunds`, send email, log in `admin_audit_log`
+- Credit: `POST /customers/{id}/balance_transactions` with negative amount, log in `account_credits`, send email
+- Manual upgrade: Update `users.membership_tier`, set `users.membership_override` = true if without Stripe, send email, log in `admin_audit_log`
+- Payment failures: Query `payment_failures` (populated by Stripe webhook `invoice.payment_failed`)
+
+---
+
+### Campaign & Content Moderation
+**Page:** `/admin/campaigns`
+
+#### ADMIN-005: Manage & Suspend Campaigns
+**As an** admin
+**I want to** view, suspend, and moderate campaigns
+**So that** I can monitor platform content and enforce policies
+
+**Acceptance Criteria:**
+- **Campaign Performance Table:**
+  - Paginated list of all campaigns (20 per page)
+  - Shows: Organization, Bill/Title, Position, Type, Created Date, Total Actions, Messages Generated, Support/Oppose counts, Engagement Rate, Status
+  - Sort by: Organization, Date Created, Total Actions, Engagement Rate
+  - Filter by:
+    - Organization (dropdown)
+    - Type: Legislation, Issue, Town Hall, Candidate, Voter Registration, Voter Poll
+    - Status: All, Active, Suspended, Archived
+    - Date range
+  - Search by bill number or title
+- **Suspend Campaign:**
+  - "Suspend" button (red with ban icon) for active campaigns
+  - Confirmation dialog:
+    - "Are you sure you want to suspend '{campaign title}'?"
+    - "This campaign will be hidden from users and no new actions can be taken"
+  - After suspension:
+    - Campaign hidden from all public listings
+    - Status badge shows "Suspended" (red)
+    - Campaign cannot receive new actions
+    - Organization notified via email
+    - Logged in admin audit log
+- **Reactivate Campaign:**
+  - "Reactivate" button (primary with play icon) for suspended campaigns
+  - Confirmation dialog:
+    - "Are you sure you want to reactivate '{campaign title}'?"
+    - "This campaign will be visible to users again and they will be able to take actions"
+  - After reactivation:
+    - Campaign visible in public listings (if within date range and not paused by org)
+    - Status returns to "Active"
+    - Organization notified via email
+    - Logged in admin audit log
+- **View Campaign Details:**
+  - Click "View" (external link icon) to open campaign in new tab
+  - Shows full campaign as users see it
+- **Filter by Status:**
+  - Status dropdown includes: All Statuses, Active, Suspended, Archived
+  - Updates table in real-time
+- **Campaign Count:**
+  - Shows: "{X} campaigns" total and "{Y} matching filters"
+
+**Technical Requirements:**
+- Query `campaigns` with joins to `organizations`, `bills`, aggregated `campaign_actions`
+- Paginate 20 per page
+- Suspend: Set `campaigns.admin_suspended` = true, `admin_suspended_at` = NOW(), `admin_suspended_by` = admin_id
+- Public queries: WHERE `admin_suspended` = false
+- Reactivate: Set `campaigns.admin_suspended` = false, `admin_suspended_at` = NULL
+- Status filter: WHERE `status` = ? OR `admin_suspended` = true (for Suspended filter)
+- Send notification email to organization admins
+- Log all suspension/reactivation in `admin_audit_log`
+- State management: Use React useState to update table dynamically
+
+---
+
+### Platform Analytics & Message Moderation
+**Page:** `/admin/analytics`, `/admin/messages`
+
+#### ADMIN-006: View Analytics & Moderate Messages
+**As an** admin
+**I want to** see advocacy analytics and moderate messages
+**So that** I can monitor usage and maintain quality
+
+**Acceptance Criteria:**
+- **Advocacy Message Analytics:**
+  - Paginated list of messages (most recent first, 50 per page)
+  - Shows: Date, user, bill, recipients, position, delivery status
+  - Filter: Date range, delivery method, status, bill
+  - Search by user email or bill number
+  - View full message content
+  - Flag inappropriate messages
+- **Flag Inappropriate Content:**
+  - Flag messages with reason
+  - Flagged content hidden from public
+  - User notified with reason
+  - Can unflag after review
+  - Flag history logged
+
+**Technical Requirements:**
+- Messages: Query `user_messages`, join `users`, `bills`, `members`, paginate 50 per page
+- Flag: Set `flagged` = true, `flag_reason`, `flagged_by`, `flagged_at`
 - Export to CSV
+- Flag excludes from public: WHERE `flagged` = false
 
 ---
 
-### 5. Content Moderation
+### System Configuration
+**Page:** `/admin/settings`
 
-#### ADMIN-018: Flag Inappropriate Content
+#### ADMIN-007: Manage System Settings
 **As an** admin
-**I want to** flag inappropriate messages or campaigns
-**So that** I can maintain platform quality
+**I want to** configure system settings and integrations
+**So that** the platform runs correctly
 
 **Acceptance Criteria:**
-- Can flag messages or campaigns with reason
-- Flagged content hidden from public view
-- Organization/user notified of flag with reason
-- Can unflag after review
-- Flag history logged
+- **API Integrations:**
+  - View/edit API keys: Congress.gov, LegiScan, Census, FEC, OpenAI, Stripe
+  - Test API connections
+  - View API usage stats and rate limits
+  - Enable/disable specific integrations
+  - Changes logged in audit log
+- **System Logs:**
+  - Recent errors (last 1000)
+  - Shows: Timestamp, error type, message, stack trace, user (if applicable)
+  - Filter by error type, date range
+  - Search by error message
+  - Export logs (paginate 100 per page)
+- **Email Templates:**
+  - View/edit templates: Welcome, password reset, email verification, subscription confirmation, subscription failed payment, message sent confirmation, weekly digest
+  - Preview email before saving
+  - Supports variables: {firstName}, {resetLink}, etc.
+  - Changes take effect immediately
+  - Version control (edit history)
+- **Audit Log:**
+  - All admin actions: User suspensions, org approvals, refunds, etc.
+  - Shows: Admin user, action type, timestamp, details/reason
+  - Filter by admin user, action type, date range
+  - Export audit log
 
 **Technical Requirements:**
-- Set `flagged` = true in `user_messages` or `campaigns`
-- Store `flag_reason`, `flagged_by`, `flagged_at`
-- Send notification email
-- Exclude from public queries WHERE `flagged` = false
+- API keys: Store in `system_settings` (encrypted)
+- Test connection: Sample API call, return success/failure
+- Track in `api_usage_logs`
+- Error logs: Query `error_logs` (populated by app error handlers), paginate 100 per page
+- Email templates: Store in `email_templates`, use template engine (Handlebars, Mustache), version control (edit history)
+- Audit log: All admin actions log to `admin_audit_log` (fields: admin_user_id, action_type, entity_type, entity_id, details JSONB, created_at)
 
 ---
 
-### 6. System Configuration
+## Email Notification User Stories
 
-#### ADMIN-019: Manage API Integrations
-**As an** admin
-**I want to** configure external API settings
-**So that** the platform can sync data correctly
+All user personas receive email notifications for important events and updates. Email notifications are critical for engagement, retention, and platform communication.
+
+### User Email Notifications
+**Service:** Email notification system (SendGrid, AWS SES, or similar)
+
+#### EMAIL-001: Account Creation & Verification
+**As a** new user
+**I want to** receive verification and welcome emails
+**So that** I can confirm my account and learn about the platform
 
 **Acceptance Criteria:**
-- Can view/edit API keys for: Congress.gov, LegiScan, Census, FEC, OpenAI, Stripe
-- Can test API connections
-- Can view API usage stats and rate limits
-- Can enable/disable specific integrations
-- Changes logged in audit log
+- **Email Verification (Auth0):**
+  - Sent immediately after signup
+  - Subject: "Verify your email address - eGp"
+  - Contains: Verification link (expires 24 hours)
+  - After verification: Redirect to onboarding or dashboard
+  - Retry: "Resend verification" option if not received
+- **Welcome Email:**
+  - Sent after email verification
+  - Subject: "Welcome to eGp - Make Your Voice Heard"
+  - Contains:
+    - Personalized greeting with first name
+    - Brief platform overview
+    - Quick start guide (3-4 steps)
+    - Link to profile completion
+    - Link to browse issues and bills
+    - "Get Started" primary CTA
+  - Sent within 5 minutes of verification
 
 **Technical Requirements:**
-- Store API keys in `system_settings` table (encrypted)
-- Test connection: Make sample API call and return success/failure
-- Track API calls in `api_usage_logs` table
+- Email verification: Handled by Auth0
+- Welcome email: Triggered by Auth0 post-registration webhook
+- Queue: Use email queue system (Bull, Agenda) for reliable delivery
+- Template: HTML email with responsive design
+- Personalization: {firstName}, {profileLink}, {dashboardLink}
+- Tracking: Open rate, click-through rate
+- Unsubscribe: Not applicable (transactional email)
 
 ---
 
-#### ADMIN-020: View System Logs
-**As an** admin
-**I want to** view system error logs
-**So that** I can troubleshoot issues
+#### EMAIL-002: Advocacy Message Confirmations
+**As a** user who sent a message
+**I want to** receive confirmation that my message was sent
+**So that** I know my advocacy was successful
 
 **Acceptance Criteria:**
-- Shows recent errors (last 1000)
-- Shows: Timestamp, Error type, Message, Stack trace, User (if applicable)
-- Can filter by error type, date range
-- Can search by error message
-- Can export logs
+- **Immediate Confirmation:**
+  - Sent immediately after message submission
+  - Subject: "Your message to {Representative Name} was sent"
+  - Contains:
+    - Recipient(s): Name, office, district
+    - Bill/issue: Title and number (if applicable)
+    - Your position: Support or Oppose
+    - Message preview (first 200 characters)
+    - Date sent
+    - Tracking ID for reference
+    - Link to view full message in dashboard
+    - "Send Another Message" CTA
+  - Delivery method indicated (email, postal mail, web form)
+- **Account Creation Prompt (for anonymous users):**
+  - If user not logged in: "Create an account to track your messages"
+  - Sign up CTA with session token to link message after signup
 
 **Technical Requirements:**
-- Query `error_logs` table
-- Populated by application error handlers
-- Paginate 100 errors per page
+- Trigger: After successful message delivery via API
+- Queue message send to prevent delays
+- Template variables: {recipientName}, {billTitle}, {position}, {messagePreview}, {trackingId}, {messageLink}
+- Store confirmation email status in `user_messages.confirmation_email_sent`
+- Retry logic for failed sends (max 3 attempts)
+- Unsubscribe: Optional preference in settings (default: enabled)
 
 ---
 
-#### ADMIN-021: Manage Email Templates
-**As an** admin
-**I want to** edit system email templates
-**So that** I can customize user communications
+#### EMAIL-003: Watched Bill Updates
+**As a** user watching bills
+**I want to** receive notifications when bills are updated
+**So that** I can stay informed on legislation I care about
 
 **Acceptance Criteria:**
-- Can view/edit templates for:
-  - Welcome email
-  - Password reset
-  - Email verification
-  - Subscription confirmation
-  - Subscription failed payment
-  - Message sent confirmation
-  - Weekly digest
-- Preview email before saving
-- Supports variables: {firstName}, {resetLink}, etc.
-- Changes take effect immediately
+- **Bill Update Notification:**
+  - Sent when watched bill has new action
+  - Subject: "Update: {Bill Number} - {Latest Action}"
+  - Contains:
+    - Bill title and number
+    - Latest action with date
+    - Status change (if applicable)
+    - Link to full bill details
+    - Summary of change (AI-generated if major action)
+    - Related campaigns (if any)
+    - "View Bill" and "Take Action" CTAs
+  - Delivery timing:
+    - **Immediate mode:** Within 1 hour of action (premium only)
+    - **Daily digest:** Once per day at 9 AM local time (free users)
+    - User can choose frequency in settings
+- **Multiple Bill Updates:**
+  - Grouped into single email if multiple bills updated same day (digest mode)
+  - Shows top 5 most significant updates, link to see all
+- **Unwatch Option:**
+  - Footer includes "Unwatch {Bill Number}" link
+  - One-click unwatch without login
 
 **Technical Requirements:**
-- Store templates in `email_templates` table
-- Use template engine (Handlebars, Mustache) for variables
-- Version control: Keep edit history
+- Cron job: Check `bills` for `last_action_date` changes daily (6 AM UTC)
+- Match against `user_watched_bills`
+- Premium: Send immediately after detecting update
+- Free: Aggregate updates, send digest at user's local 9 AM (timezone from profile)
+- Store last notification date in `user_watched_bills.last_notification_sent`
+- Don't send duplicate notifications
+- Template variables: {billNumber}, {billTitle}, {latestAction}, {actionDate}, {billLink}, {unwatchLink}
+- Respect user preferences: `user_email_preferences.bill_updates_enabled`, `bill_updates_frequency`
 
 ---
 
-#### ADMIN-022: Audit Log
-**As an** admin
-**I want to** view all admin actions
-**So that** I can ensure accountability
+#### EMAIL-004: New Campaigns from Followed Organizations
+**As a** user following organizations
+**I want to** be notified when they launch new campaigns
+**So that** I can take action on causes I support
 
 **Acceptance Criteria:**
-- Shows all admin actions: User suspensions, Org approvals, Refunds, etc.
-- Shows: Admin user, Action type, Timestamp, Details/Reason
-- Can filter by admin user, action type, date range
-- Can export audit log
+- **New Campaign Notification:**
+  - Sent when followed org creates new campaign
+  - Subject: "{Organization Name} launched a new campaign"
+  - Contains:
+    - Organization name and logo
+    - Campaign title
+    - Bill/issue: Title and number
+    - Organization's position (Support/Oppose)
+    - Brief reasoning (first 2-3 sentences)
+    - Campaign start and end dates
+    - "Take Action" primary CTA
+    - "View Campaign Details" link
+    - "Unfollow {Org Name}" link in footer
+  - Delivery timing:
+    - **Immediate mode:** Within 1 hour of campaign launch (premium)
+    - **Weekly digest:** Friday 10 AM local time with all new campaigns (free)
+- **Multiple Campaign Launches:**
+  - Grouped digest for free users (all new campaigns from followed orgs that week)
+  - Individual emails for premium users (one per campaign launch)
 
 **Technical Requirements:**
-- All admin actions log to `admin_audit_log` table
-- Fields: admin_user_id, action_type, entity_type, entity_id, details (JSONB), created_at
+- Trigger: After campaign created with status = 'active'
+- Query `user_followed_organizations` for org followers
+- Check user tier: Premium = immediate, Free = weekly digest
+- Weekly digest cron: Friday 10 AM per user timezone
+- Store in `campaign_notifications` to avoid duplicates
+- Template variables: {orgName}, {orgLogo}, {campaignTitle}, {billTitle}, {position}, {reasoning}, {campaignLink}, {unfollowLink}
+- Respect preferences: `user_email_preferences.org_campaigns_enabled`
 
 ---
 
+#### EMAIL-005: Premium Membership & Payment Emails
+**As a** premium user
+**I want to** receive payment confirmations and renewal notices
+**So that** I can manage my subscription
+
+**Acceptance Criteria:**
+- **Subscription Confirmation:**
+  - Sent after successful first payment
+  - Subject: "Welcome to eGp Premium!"
+  - Contains:
+    - Thank you message
+    - Premium benefits recap
+    - Subscription details: Plan (Quarterly), price ($6), next billing date
+    - Receipt/invoice link (Stripe)
+    - Link to manage subscription
+    - Customer support contact
+- **Payment Success (Renewal):**
+  - Sent after each successful renewal payment
+  - Subject: "eGp Premium subscription renewed"
+  - Contains:
+    - Payment amount and date
+    - Next billing date
+    - Receipt link
+    - Manage subscription link
+- **Payment Failed:**
+  - Sent when payment fails
+  - Subject: "Action required: Payment failed for eGp Premium"
+  - Contains:
+    - Payment failure reason
+    - Retry schedule (Stripe handles 3-4 retries over 2 weeks)
+    - "Update Payment Method" CTA (primary, urgent)
+    - Grace period info (access until retry period ends)
+    - Customer support contact
+  - Follow-up reminders: Day 3, Day 7, Day 14 (final warning)
+- **Subscription Canceled:**
+  - Sent when user cancels or subscription ends
+  - Subject: "Your eGp Premium subscription has ended"
+  - Contains:
+    - Cancellation date
+    - End of billing period (last day of access)
+    - What you'll lose (features downgraded to free)
+    - "Resubscribe" CTA
+    - Feedback survey link (why did you cancel?)
+- **Subscription Expiring Soon:**
+  - Sent 7 days before subscription ends (if canceled but still in paid period)
+  - Subject: "Your eGp Premium membership expires in 7 days"
+  - Contains:
+    - Expiration date
+    - Premium benefits you'll lose
+    - "Renew Subscription" CTA
+    - Reminder: No further charges after expiration
+
+**Technical Requirements:**
+- Stripe webhooks trigger emails:
+  - `checkout.session.completed` → Subscription Confirmation
+  - `invoice.payment_succeeded` → Payment Success
+  - `invoice.payment_failed` → Payment Failed
+  - `customer.subscription.deleted` → Subscription Canceled
+- Expiring soon: Cron job checks subscriptions with `cancel_at_period_end` = true
+- All emails link to Stripe Customer Portal or internal `/membership` page
+- Include Stripe invoice PDF link
+- Store email send status in `subscription_emails`
+- Unsubscribe: Not applicable (transactional, legally required)
+
 ---
 
-## Cross-Cutting Requirements
+#### EMAIL-006: Weekly/Monthly Digest (Premium)
+**As a** premium user
+**I want to** receive periodic digests of activity
+**So that** I stay engaged without constant notifications
 
-### Security
-- All passwords hashed with bcrypt (minimum 10 rounds)
-- JWT tokens expire after 24 hours (refresh tokens 30 days)
-- HTTPS required on all endpoints
-- SQL injection prevention via parameterized queries
-- XSS prevention via input sanitization and CSP headers
-- CSRF protection on state-changing requests
-- Rate limiting on auth endpoints (5 req/15 min)
-- Rate limiting on API endpoints (100 req/min per user)
+**Acceptance Criteria:**
+- **Digest Email:**
+  - Frequency options: Daily (premium only), Weekly (default), Monthly, Never
+  - Subject: "Your eGp weekly digest - {X} new bills & {Y} campaign updates"
+  - Contains:
+    - **New Bills in Your Interests:**
+      - Top 5 most relevant bills based on policy interests
+      - Each shows: Bill number, title, latest action, "View Bill" link
+    - **Watched Bill Updates:**
+      - All updates to watched bills this week
+      - Grouped by bill
+    - **New Campaigns from Followed Orgs:**
+      - All new campaigns launched this week
+      - Shows: Org name, bill/issue, position, "Take Action" CTA
+    - **Your Activity Summary:**
+      - Messages sent this week
+      - Bills you engaged with
+      - "View Dashboard" link
+    - **Trending Bills:**
+      - Top 3 most engaged bills across platform
+    - **Recommended Actions:**
+      - Personalized suggestions based on activity
+  - Delivery time: User's local 9 AM, day depends on frequency setting
+  - Skip sending if no updates (no empty digests)
+- **Customization:**
+  - User can toggle sections on/off
+  - Can change frequency anytime in settings
+  - Can unsubscribe (stops all digest emails)
 
-### Performance
-- Page load time < 2 seconds (90th percentile)
-- API response time < 500ms (median)
-- Database query time < 100ms (median)
-- Support 1000 concurrent users
-- CDN for static assets
-- Redis cache for frequently accessed data
-
-### Accessibility
-- WCAG 2.1 Level AA compliance
-- Keyboard navigation support
-- Screen reader support
-- Color contrast ratios meet standards
-- Form labels and ARIA attributes
-
-### Mobile Responsiveness
-- Responsive design works on screens 320px+
-- Touch targets minimum 44×44px
-- Mobile-first CSS
-- Progressive web app (PWA) support
-
-### Internationalization (Future)
-- Support for English (initial launch)
-- Architecture supports i18n (translations via JSON files)
-- Date/time formatting based on locale
+**Technical Requirements:**
+- Cron jobs: Daily (9 AM UTC + timezone offset), Weekly (Monday 9 AM), Monthly (1st of month 9 AM)
+- Query user's interests from `users.policy_interests`
+- Fetch new bills in those policy areas since last digest
+- Query `user_watched_bills` for updates
+- Query `user_followed_organizations` for new campaigns
+- Aggregate `user_messages` for activity summary
+- Store last digest sent in `user_email_preferences.last_digest_sent_at`
+- Skip if no content AND `user_email_preferences.send_empty_digests` = false
+- Template: Responsive design, supports sections
+- Variables: {billsList}, {watchedUpdates}, {newCampaigns}, {activitySummary}, {trendingBills}
+- Respect: `user_email_preferences.digest_enabled`, `digest_frequency`, `digest_sections`
 
 ---
 
-## Success Metrics
+### Organization Email Notifications
+**Sent to organization admins and team members**
 
-### User Engagement
-- Monthly Active Users (MAU)
-- Messages sent per user per month
-- Average session duration
-- User retention rate (30-day, 90-day)
+#### EMAIL-007: Campaign Performance Summaries
+**As an** organization user
+**I want to** receive campaign performance summaries
+**So that** I can track engagement without logging in daily
 
-### Revenue
-- Premium conversion rate (free → premium)
-- Churn rate (monthly)
-- Monthly Recurring Revenue (MRR)
-- Customer Lifetime Value (CLV)
+**Acceptance Criteria:**
+- **Weekly Campaign Report:**
+  - Sent every Monday at 10 AM to all org admins and editors
+  - Subject: "{Organization Name} - Weekly campaign report"
+  - Contains:
+    - **Overview:**
+      - Total actions this week across all campaigns
+      - Total messages sent
+      - New supporters count
+      - Week-over-week growth percentage
+    - **Top Performing Campaigns:**
+      - Top 3 campaigns by actions this week
+      - Shows: Campaign name, actions, messages, engagement rate
+      - "View Analytics" link for each
+    - **Active Campaigns Summary:**
+      - List of all active campaigns with key metrics
+      - Status indicators (on track, needs attention)
+    - **Recommendations:**
+      - Suggested actions (e.g., "Campaign XYZ engagement dropped 20%")
+      - Best practices tips
+    - "View Full Dashboard" CTA
+  - Only sent if org has at least one active campaign
+- **Campaign Milestone Notifications:**
+  - Sent when campaign reaches milestones:
+    - 100, 500, 1,000, 5,000, 10,000+ actions
+  - Subject: "{Campaign Name} reached {milestone} actions!"
+  - Contains:
+    - Congratulations message
+    - Current metrics snapshot
+    - Top demographics engaged
+    - Social share suggestions
+    - "View Campaign Analytics" CTA
 
-### Advocacy Impact
-- Total messages sent
-- Delivery success rate (>90% target)
-- Response rate from representatives
-- Bills influenced (tracked via external sources)
+**Technical Requirements:**
+- Weekly report cron: Sunday 11 PM UTC, sends Monday morning per org timezone
+- Query `campaign_actions` filtered by org and date range
+- Calculate metrics: Total actions, new actions this week, growth percentage
+- Identify top campaigns by `action_count DESC LIMIT 3`
+- Milestone trigger: After action count crosses threshold, check `campaign_milestones_sent` to avoid duplicates
+- Recipients: Query `user_organizations` WHERE `role` IN ('admin', 'editor')
+- Template variables: {orgName}, {totalActions}, {newActions}, {growthPercent}, {topCampaigns}, {activeCampaigns}
+- Store: `org_email_notifications.last_weekly_report_sent`
 
-### Platform Health
-- Uptime (99.9% target)
-- Error rate (<0.1% of requests)
-- API success rate (>99%)
-- Average load time (<2 seconds)
+---
+
+#### EMAIL-008: Team & Campaign Management Notifications
+**As an** organization user
+**I want to** receive notifications about team and campaign changes
+**So that** I stay informed about important updates
+
+**Acceptance Criteria:**
+- **Team Member Invitation:**
+  - Sent to invitee email
+  - Subject: "You've been invited to join {Organization Name} on eGp"
+  - Contains:
+    - Invitation from {Admin Name}
+    - Organization name and description
+    - Role being offered (Admin or Editor)
+    - "Accept Invitation" CTA (signup/login link with token)
+    - Invitation expires in 7 days
+    - What you'll be able to do (role permissions)
+- **Team Member Joined:**
+  - Sent to all org admins
+  - Subject: "{New Member Name} joined {Organization Name}"
+  - Contains:
+    - New member name and email
+    - Role assigned
+    - Date joined
+    - "View Team" link
+- **Campaign Suspended by Admin:**
+  - Sent to all org admins and the campaign creator
+  - Subject: "Your campaign was suspended: {Campaign Name}"
+  - Contains:
+    - Campaign name and link
+    - Suspension reason (from admin)
+    - Date suspended
+    - What this means (hidden from public, no new actions)
+    - Contact support if you believe this was in error
+    - Support email/link
+- **Campaign Reactivated by Admin:**
+  - Sent to all org admins
+  - Subject: "Your campaign was reactivated: {Campaign Name}"
+  - Contains:
+    - Campaign name and link
+    - Reactivation date
+    - Campaign is now visible again
+    - "View Campaign" CTA
+
+**Technical Requirements:**
+- Team invitation: Triggered when org admin creates invitation
+- Store token in `organization_invitations`, expire after 7 days
+- Team joined: Triggered after user accepts invitation and joins org
+- Campaign suspended/reactivated: Triggered by admin action via webhook
+- Recipients: Query `user_organizations` WHERE `organization_id` = ? AND `role` = 'admin'
+- Template variables: {orgName}, {memberName}, {role}, {campaignName}, {suspensionReason}, {inviteLink}
+
+---
+
+### Admin Email Notifications
+**Sent to platform administrators**
+
+#### EMAIL-009: System Alerts & Moderation Notifications
+**As an** admin
+**I want to** receive critical system alerts
+**So that** I can respond quickly to issues
+
+**Acceptance Criteria:**
+- **New Organization Application:**
+  - Sent when new org applies to join platform
+  - Subject: "New organization application: {Organization Name}"
+  - Contains:
+    - Organization name
+    - Contact info (name, email, phone)
+    - Organization type (501c3, 501c4, etc.)
+    - EIN (Tax ID)
+    - Description and mission
+    - Website and social links
+    - Application date
+    - "Review Application" CTA (link to `/admin/organizations`)
+  - Sent immediately
+  - Recipients: All admins with `review_applications` permission
+- **Payment Failure Alert (High Value):**
+  - Sent when high-value subscriber payment fails (premium annual plan)
+  - Subject: "Premium payment failed: {User Name}"
+  - Contains:
+    - User name and email
+    - Subscription plan and value
+    - Payment failure reason
+    - Number of retry attempts
+    - User's history (subscription length, total paid)
+    - "View User" and "Contact User" CTAs
+  - Sent after 2nd failed retry
+- **Flagged Content Report:**
+  - Sent when message or campaign is flagged
+  - Subject: "Content flagged for review: {Type}"
+  - Contains:
+    - Content type (message or campaign)
+    - Flagged by (user ID or automated system)
+    - Flag reason
+    - Content preview
+    - User/org associated
+    - Timestamp
+    - "Review Content" CTA
+  - Sent immediately
+- **Error Rate Threshold Exceeded:**
+  - Sent when platform error rate spikes
+  - Subject: "URGENT: Error rate threshold exceeded"
+  - Contains:
+    - Error rate (errors per minute)
+    - Most common errors (top 5)
+    - Affected endpoints
+    - Time window
+    - Link to error logs
+    - "View Logs" CTA
+  - Sent immediately, max once per hour
+- **Daily System Summary:**
+  - Sent every day at 8 AM
+  - Subject: "eGp Daily Summary - {Date}"
+  - Contains:
+    - New users (last 24 hours)
+    - New premium subscriptions
+    - Messages sent
+    - Active campaigns
+    - Top issues (if any)
+    - Pending reviews (org applications, flags)
+    - System health indicators
+    - "View Admin Dashboard" CTA
+
+**Technical Requirements:**
+- Org application: Triggered when org submits application
+- Payment failure: Stripe webhook `invoice.payment_failed`, check retry count
+- Flagged content: Triggered when flag is created
+- Error rate: Monitoring system (Sentry, Datadog) webhook
+- Daily summary: Cron job 8 AM UTC
+- Recipients: Query `users` WHERE `role` = 'admin'
+- Critical alerts: Use email service's high-priority delivery
+- Template variables: {orgName}, {userName}, {errorRate}, {flagReason}, {contentPreview}
+
+---
+
+### Email Best Practices & Technical Implementation
+
+#### EMAIL-010: Email Infrastructure & Deliverability
+**Technical requirements for all email notifications**
+
+**Email Service Provider:**
+- Recommended: SendGrid, AWS SES, Mailgun, or Postmark
+- Requirements:
+  - High deliverability rate (>95%)
+  - DKIM, SPF, DMARC configured
+  - Dedicated IP address (for high volume)
+  - Webhook support for bounce/spam reports
+  - Analytics (open rate, click rate, bounces)
+
+**Email Queue System:**
+- Use job queue (Bull, Agenda, BullMQ)
+- Retry logic: 3 attempts with exponential backoff
+- Priority queues:
+  - Critical: Verification, password reset (process immediately)
+  - High: Transactional (message confirmations, payment) - 5 min max delay
+  - Medium: Notifications (watched bills, campaigns) - 1 hour max delay
+  - Low: Digests, reports - can batch
+
+**Email Templates:**
+- Responsive HTML design (mobile-first)
+- Plain text alternative (required for deliverability)
+- Template engine: Handlebars, Mjml, or React Email
+- Consistent branding (logo, colors, fonts)
+- Clear CTAs (buttons, not just links)
+- Unsubscribe link in footer (legally required for marketing emails)
+- Preference center link ("Manage email preferences")
+
+**Personalization & Variables:**
+- Common variables: {firstName}, {lastName}, {email}
+- Context variables: {billTitle}, {campaignName}, {orgName}
+- Links: {dashboardLink}, {billLink}, {campaignLink}, {unsubscribeLink}
+- Dynamic content: Show/hide sections based on user tier or preferences
+
+**User Preferences:**
+- Preference categories stored in `user_email_preferences`:
+  - `email_verified`: boolean (required for all emails)
+  - `marketing_emails`: boolean (promotional content)
+  - `bill_updates_enabled`: boolean, `bill_updates_frequency`: enum (immediate, daily, weekly)
+  - `org_campaigns_enabled`: boolean
+  - `digest_enabled`: boolean, `digest_frequency`: enum (daily, weekly, monthly)
+  - `payment_emails`: boolean (always true, transactional)
+- Preference center page: `/settings/email-preferences`
+- One-click unsubscribe: Links in email footer, JWT token for auth
+
+**Bounce & Spam Handling:**
+- Hard bounces: Mark email invalid, disable all emails to that address
+- Soft bounces: Retry 3 times over 48 hours, then mark as invalid
+- Spam complaints: Immediately unsubscribe and flag account
+- List cleaning: Remove invalid emails monthly
+
+**Compliance:**
+- CAN-SPAM Act: Include physical address, unsubscribe link, honor opt-outs within 10 days
+- GDPR: Include data processing info, right to access/delete
+- CCPA: Include privacy policy link
+- Transactional vs marketing: Clearly distinguish, different unsubscribe rules
+
+**Analytics & Monitoring:**
+- Track per email type:
+  - Send count
+  - Delivery rate
+  - Open rate
+  - Click-through rate
+  - Bounce rate
+  - Spam complaint rate
+  - Unsubscribe rate
+- Alert if metrics fall below thresholds
+- A/B testing for subject lines and content
+- Dashboard in admin panel
+
+**Technical Requirements:**
+- Database tables:
+  - `email_queue`: Queued emails awaiting send
+  - `email_log`: All sent emails with status
+  - `email_bounces`: Hard/soft bounces
+  - `user_email_preferences`: User notification settings
+  - `email_unsubscribes`: Unsubscribe events with reason
+  - `email_templates`: HTML/text templates with versioning
+- APIs:
+  - POST `/api/emails/preferences` - Update user preferences
+  - GET `/api/emails/preferences` - Get user preferences
+  - POST `/api/emails/unsubscribe/:token` - One-click unsubscribe
+  - POST `/api/emails/test` - Send test email (admin only)
+- Webhooks:
+  - Handle bounces, spam complaints, unsubscribes from ESP
+  - Update `user_email_preferences` and `email_bounces`
 
 ---
 

@@ -82,6 +82,10 @@ function CreateCampaignPageContent() {
     const [candidate2Bio, setCandidate2Bio] = useState('');
     const [selectedCandidate, setSelectedCandidate] = useState<1 | 2>(1);
 
+    // Campaign dates
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
     // Debounced search function
     const searchBills = useCallback(
         debounce(async (query: string) => {
@@ -113,6 +117,17 @@ function CreateCampaignPageContent() {
 
     const handleSave = async () => {
         // Validate required fields based on campaign type
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates');
+            return;
+        }
+
+        // Validate end date is after start date
+        if (new Date(endDate) <= new Date(startDate)) {
+            alert('End date must be after start date');
+            return;
+        }
+
         if (campaignType === 'Issue') {
             if (!selectedGroup || !selectedIssue || !issueSpecificTitle || !reasoning) {
                 alert('Please fill in all required fields');
@@ -141,7 +156,9 @@ function CreateCampaignPageContent() {
                 position,
                 reasoning,
                 actionButtonText,
-                campaignType
+                campaignType,
+                startDate,
+                endDate
             };
 
             if (campaignType === 'Candidate Advocacy') {
@@ -502,6 +519,29 @@ function CreateCampaignPageContent() {
                         />
                     </div>
 
+                    {/* Campaign Dates */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="start-date">Start Date *</Label>
+                            <Input
+                                id="start-date"
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="end-date">End Date *</Label>
+                            <Input
+                                id="end-date"
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                min={startDate}
+                            />
+                        </div>
+                    </div>
+
                     {/* Actions */}
                     <div className="flex gap-4 pt-4">
                         <Button
@@ -509,6 +549,8 @@ function CreateCampaignPageContent() {
                             disabled={
                                 !selectedGroup ||
                                 !reasoning ||
+                                !startDate ||
+                                !endDate ||
                                 isSaving ||
                                 (campaignType === 'Issue' ? (!selectedIssue || !issueSpecificTitle) :
                                  campaignType === 'Candidate Advocacy' ? (!candidate1Name || !candidate2Name) :

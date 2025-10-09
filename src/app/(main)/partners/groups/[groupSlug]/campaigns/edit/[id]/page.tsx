@@ -15,7 +15,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Pause, Play } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { campaignsService, type Campaign } from '@/lib/campaigns';
@@ -63,6 +74,7 @@ export default function EditCampaignPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isPaused, setIsPaused] = useState(false);
 
     // Candidate fields
     const [candidate1Name, setCandidate1Name] = useState('');
@@ -103,6 +115,7 @@ export default function EditCampaignPage() {
                 setPosition(foundCampaign.stance === 'support' ? 'Support' : foundCampaign.stance === 'oppose' ? 'Oppose' : foundCampaign.position || 'Support');
                 setReasoning(foundCampaign.reasoning || '');
                 setActionButtonText(foundCampaign.actionButtonText || 'Voice your opinion');
+                setIsPaused(foundCampaign.isPaused || false);
 
                 // Set candidate fields if this is a candidate campaign
                 if ((foundCampaign.campaignType === 'Candidate' || foundCampaign.campaignType === 'Candidate Advocacy') && foundCampaign.candidate) {
@@ -201,6 +214,35 @@ export default function EditCampaignPage() {
             alert(error instanceof Error ? error.message : 'Failed to save campaign');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleTogglePause = async () => {
+        if (!campaign) return;
+
+        try {
+            const newPausedState = !isPaused;
+
+            const response = await fetch(`/api/campaigns/${campaign.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    isPaused: newPausedState
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to update campaign status');
+            }
+
+            setIsPaused(newPausedState);
+            alert(`Campaign ${newPausedState ? 'paused' : 'resumed'} successfully`);
+        } catch (error) {
+            console.error('Error toggling campaign pause:', error);
+            alert(error instanceof Error ? error.message : 'Failed to update campaign status');
         }
     };
 
@@ -468,7 +510,7 @@ export default function EditCampaignPage() {
 
 
                     {/* Actions */}
-                    <div className="flex gap-4 pt-4">
+                    <div className="flex flex-wrap gap-4 pt-4">
                         <Button
                             onClick={handleSave}
                             disabled={!reasoning || isSaving || ((campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') && (!candidate1Name || !candidate2Name))}
@@ -499,6 +541,55 @@ export default function EditCampaignPage() {
                             </Button>
                         )}
                     </div>
+                </CardContent>
+            </Card>
+
+            {/* Campaign Status */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Campaign Status</CardTitle>
+                    <CardDescription>
+                        {isPaused
+                            ? 'This campaign is currently paused and not visible to users.'
+                            : 'This campaign is currently active and visible to users.'}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant={isPaused ? "default" : "destructive"} className="gap-2">
+                                {isPaused ? (
+                                    <>
+                                        <Play className="h-4 w-4" />
+                                        Resume Campaign
+                                    </>
+                                ) : (
+                                    <>
+                                        <Pause className="h-4 w-4" />
+                                        Pause Campaign
+                                    </>
+                                )}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                    {isPaused ? 'Resume Campaign' : 'Pause Campaign'}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    {isPaused
+                                        ? 'Are you sure you want to resume this campaign? It will become visible to users again and they will be able to take actions.'
+                                        : 'Are you sure you want to pause this campaign? It will be hidden from users and no new actions can be taken until you resume it.'}
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleTogglePause}>
+                                    {isPaused ? 'Resume Campaign' : 'Pause Campaign'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </CardContent>
             </Card>
 
