@@ -169,19 +169,18 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
   
   const hasSponsors = bill.sponsors && bill.sponsors.length > 0;
   const isWatched = isWatchedBill(bill.congress!, bill.type!, bill.number!);
-  
+
   const handleWatchClick = () => {
     if (!user) {
       const currentUrl = window.location.pathname;
       router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
       return;
     }
-    
+
     console.log('Watch button clicked');
     toggleWatchBill(bill.congress!, bill.type!, bill.number!, bill.title || bill.shortTitle);
   };
   const hasCosponsors = bill.cosponsors?.items && bill.cosponsors.items.length > 0;
-  const hasCommittees = bill.committees?.items && bill.committees.items.length > 0;
   const hasAllSummaries = bill.allSummaries && Array.isArray(bill.allSummaries) && bill.allSummaries.length > 0;
   const hasTextVersions = bill.textVersions?.items && bill.textVersions.items.length > 0;
   const hasActions = bill.actions?.items && bill.actions.items.length > 0;
@@ -549,53 +548,6 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                           </div>
                       )}
                   </CardContent>
-              </Card>
-            )}
-
-            {hasCommittees && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                      <Library className="text-primary" />
-                      Committees ({bill.committees.count})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Committee</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Activity</TableHead>
-                            </TableRow>
-                        </TableHeader>  
-                        <TableBody>
-                            {bill.committees.items.flatMap((committee, committeeIndex) =>
-                                committee.activities
-                                    .filter(activity => activity.name !== 'Unknown')
-                                    .map((activity, activityIndex) => {
-                                        const committeeLink = `/federal/congress/${bill.congress}/committees/${committee.systemCode.toLowerCase()}`;
-                                        // Transform committee name: "Budget Committee" -> "House Budget"
-                                        const displayName = committee.chamber === 'House' && committee.name.includes('Committee')
-                                            ? `House ${committee.name.replace(' Committee', '')}`
-                                            : committee.name;
-                                        
-                                        return (
-                                            <TableRow key={`${committeeIndex}-${activityIndex}`}>
-                                                <TableCell className="font-medium">
-                                                    <Link href={committeeLink} className="hover:underline flex items-center gap-1">
-                                                        {displayName}
-                                                    </Link>
-                                                </TableCell>
-                                                <TableCell>{formatDate(activity.date || '')}</TableCell>
-                                                <TableCell>{activity.name}</TableCell>
-                                            </TableRow>
-                                        )
-                                    })
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
               </Card>
             )}
 

@@ -19,7 +19,6 @@ import { BillAmendments } from './bill-amendments';
 import { SummaryDisplay } from './bill-summary-display';
 import { SocialMediaLinks } from './social-media-links';
 import { DistrictOffices } from './district-offices';
-import { CommitteeAssignmentsCard } from './committee-assignments-card';
 import { CampaignPromisesCard } from './campaign-promises-card';
 import { LegislativeActivityCard } from './legislative-activity-card';
 import { NewsCard } from './news-card';
@@ -292,7 +291,6 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
           </CardContent>
         </Card>
 
-        <CommitteeAssignmentsCard member={member} congress={congress} />
         <CampaignPromisesCard member={member} congress={congress} />
         {allTerms.length > 0 && (
           <Card>

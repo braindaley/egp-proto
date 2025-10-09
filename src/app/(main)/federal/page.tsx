@@ -15,17 +15,17 @@ export default function FederalPage() {
         </header>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <Link href="/federal/congress" className="block">
+          <Link href="/federal/congress/119/states" className="block">
             <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader>
-                <CardTitle className="text-2xl text-primary">Congress</CardTitle>
+                <CardTitle className="text-2xl text-primary">Congress (119th Session)</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">
-                  Access information about congressional members, committees, and legislative activities from current and past sessions.
+                  View senators and representatives organized by state for the 119th Congress.
                 </p>
                 <div className="text-sm text-primary font-medium">
-                  View Congress →
+                  View Members by State →
                 </div>
               </CardContent>
             </Card>

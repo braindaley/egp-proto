@@ -156,10 +156,10 @@ export default function CampaignPerformancePage({ params }: { params: { id: stri
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        {/* Vote Counts */}
-                        <div className="space-y-2">
-                            <h3 className="text-lg font-semibold">Vote Counts</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                        {/* Vote Counts & Voter Verification */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold">Core Metrics</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border">
                                     <div className="text-2xl font-bold text-green-700 dark:text-green-300">
                                         {(campaign.supportCount || 0).toLocaleString()}
@@ -172,23 +172,41 @@ export default function CampaignPerformancePage({ params }: { params: { id: stri
                                     </div>
                                     <div className="text-sm text-red-600 dark:text-red-400">Oppose</div>
                                 </div>
+                                <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border">
+                                    <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                                        {((campaign.supportCount || 0) + (campaign.opposeCount || 0)).toLocaleString()}
+                                    </div>
+                                    <div className="text-sm text-blue-600 dark:text-blue-400">Total Actions</div>
+                                </div>
+                                <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg border">
+                                    <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+                                        73%
+                                    </div>
+                                    <div className="text-sm text-purple-600 dark:text-purple-400">Verified Voters</div>
+                                </div>
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                                Total votes: {((campaign.supportCount || 0) + (campaign.opposeCount || 0)).toLocaleString()}
+                            <div className="text-xs text-muted-foreground">
+                                Verified Voters: Participants verified through voter registration database
                             </div>
                         </div>
 
                         {/* Demographic Breakdown */}
                         <div className="space-y-6">
-                            <h3 className="text-lg font-semibold">Demographic Breakdown</h3>
-                            
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold">Demographic Breakdown</h3>
+                                <div className="text-xs text-muted-foreground">
+                                    Based on verified voter registration data
+                                </div>
+                            </div>
+
                             {/* Demographics Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                {/* Age Groups Card */}
+                                {/* Age & Generation Card */}
                                 <Card className="p-4">
                                     <div className="space-y-3">
-                                        <h4 className="font-semibold text-base text-blue-700 dark:text-blue-300">Age Groups</h4>
+                                        <h4 className="font-semibold text-base text-blue-700 dark:text-blue-300">Age & Generation</h4>
                                         <div className="space-y-2">
+                                            <div className="text-xs text-muted-foreground mb-2">Age Groups</div>
                                             <div className="flex justify-between text-sm">
                                                 <span>30-49</span><span className="font-medium">34%</span>
                                             </div>
@@ -201,15 +219,26 @@ export default function CampaignPerformancePage({ params }: { params: { id: stri
                                             <div className="flex justify-between text-sm">
                                                 <span>65+</span><span className="font-medium">15%</span>
                                             </div>
+                                            <div className="text-xs text-muted-foreground mt-3 mb-2">Generations</div>
+                                            <div className="flex justify-between text-sm">
+                                                <span>Millennial</span><span className="font-medium">36%</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span>Gen X</span><span className="font-medium">31%</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span>Boomer</span><span className="font-medium">25%</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </Card>
 
-                                {/* Political Affiliation Card */}
+                                {/* Political Profile Card */}
                                 <Card className="p-4">
                                     <div className="space-y-3">
-                                        <h4 className="font-semibold text-base text-purple-700 dark:text-purple-300">Political Affiliation</h4>
+                                        <h4 className="font-semibold text-base text-purple-700 dark:text-purple-300">Political Profile</h4>
                                         <div className="space-y-2">
+                                            <div className="text-xs text-muted-foreground mb-2">Party Registration</div>
                                             <div className="flex justify-between text-sm">
                                                 <span>Democrat</span><span className="font-medium">42%</span>
                                             </div>
@@ -222,15 +251,26 @@ export default function CampaignPerformancePage({ params }: { params: { id: stri
                                             <div className="flex justify-between text-sm">
                                                 <span>Other</span><span className="font-medium">9%</span>
                                             </div>
+                                            <div className="text-xs text-muted-foreground mt-3 mb-2">Likely Voter Score</div>
+                                            <div className="flex justify-between text-sm">
+                                                <span>High (80-100)</span><span className="font-medium">61%</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span>Medium (50-79)</span><span className="font-medium">28%</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span>Low (0-49)</span><span className="font-medium">11%</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </Card>
 
-                                {/* Education Level Card */}
+                                {/* Education & Income Card */}
                                 <Card className="p-4">
                                     <div className="space-y-3">
-                                        <h4 className="font-semibold text-base text-green-700 dark:text-green-300">Education</h4>
+                                        <h4 className="font-semibold text-base text-green-700 dark:text-green-300">Education & Income</h4>
                                         <div className="space-y-2">
+                                            <div className="text-xs text-muted-foreground mb-2">Education (Modeled)</div>
                                             <div className="flex justify-between text-sm">
                                                 <span>Bachelor's</span><span className="font-medium">41%</span>
                                             </div>
@@ -243,15 +283,26 @@ export default function CampaignPerformancePage({ params }: { params: { id: stri
                                             <div className="flex justify-between text-sm">
                                                 <span>High School</span><span className="font-medium">12%</span>
                                             </div>
+                                            <div className="text-xs text-muted-foreground mt-3 mb-2">Household Income</div>
+                                            <div className="flex justify-between text-sm">
+                                                <span>$75K-$149K</span><span className="font-medium">35%</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span>$50K-$74K</span><span className="font-medium">24%</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span>$150K+</span><span className="font-medium">22%</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </Card>
 
-                                {/* Gender Identity Card */}
+                                {/* Gender & Ethnicity Card */}
                                 <Card className="p-4">
                                     <div className="space-y-3">
-                                        <h4 className="font-semibold text-base text-orange-700 dark:text-orange-300">Gender</h4>
+                                        <h4 className="font-semibold text-base text-orange-700 dark:text-orange-300">Gender & Ethnicity</h4>
                                         <div className="space-y-2">
+                                            <div className="text-xs text-muted-foreground mb-2">Gender</div>
                                             <div className="flex justify-between text-sm">
                                                 <span>Female</span><span className="font-medium">58%</span>
                                             </div>
@@ -259,10 +310,20 @@ export default function CampaignPerformancePage({ params }: { params: { id: stri
                                                 <span>Male</span><span className="font-medium">40%</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
-                                                <span>Non-binary</span><span className="font-medium">1.3%</span>
+                                                <span>Other/No response</span><span className="font-medium">2%</span>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground mt-3 mb-2">Ethnicity (Modeled)</div>
+                                            <div className="flex justify-between text-sm">
+                                                <span>White</span><span className="font-medium">52%</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
-                                                <span>No response</span><span className="font-medium">0.7%</span>
+                                                <span>Hispanic/Latino</span><span className="font-medium">18%</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span>Black/African American</span><span className="font-medium">13%</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span>Asian</span><span className="font-medium">11%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -380,31 +441,134 @@ export default function CampaignPerformancePage({ params }: { params: { id: stri
                                 </Card>
                             </div>
 
-                            {/* Special Demographics */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 rounded-lg border">
-                                    <div className="text-2xl font-bold text-green-700 dark:text-green-300">15%</div>
-                                    <div className="text-sm text-green-600 dark:text-green-400">Union Members</div>
+                            {/* Voter History */}
+                            <Card className="p-5">
+                                <div className="space-y-4">
+                                    <h4 className="font-semibold text-base text-indigo-700 dark:text-indigo-300">Voter History</h4>
+                                    <div className="text-xs text-muted-foreground">
+                                        Based on election participation records
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <div className="text-sm font-medium text-muted-foreground">General Elections</div>
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-sm">
+                                                    <span>2020</span>
+                                                    <span className="font-medium">82%</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span>2018</span>
+                                                    <span className="font-medium">68%</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span>2016</span>
+                                                    <span className="font-medium">75%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="text-sm font-medium text-muted-foreground">Primary Participation</div>
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-sm">
+                                                    <span>2020</span>
+                                                    <span className="font-medium">54%</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span>2018</span>
+                                                    <span className="font-medium">41%</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span>2016</span>
+                                                    <span className="font-medium">48%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="pt-3 border-t">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium">Average Turnout</span>
+                                            <span className="text-lg font-bold text-indigo-700 dark:text-indigo-300">75%</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 rounded-lg border">
-                                    <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">11%</div>
-                                    <div className="text-sm text-blue-600 dark:text-blue-400">Military Families</div>
+                            </Card>
+
+                            {/* Household Demographics */}
+                            <Card className="p-5">
+                                <div className="space-y-4">
+                                    <h4 className="font-semibold text-base text-pink-700 dark:text-pink-300">Household Demographics</h4>
+                                    <div className="text-xs text-muted-foreground mb-3">
+                                        Modeled demographic data
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm">Homeowners</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+                                                    <div className="w-4/5 h-2 bg-pink-500 rounded-full"></div>
+                                                </div>
+                                                <span className="text-sm font-semibold w-10 text-right">68%</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm">Households w/ Children</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+                                                    <div className="w-2/5 h-2 bg-pink-500 rounded-full"></div>
+                                                </div>
+                                                <span className="text-sm font-semibold w-10 text-right">38%</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm">Married</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+                                                    <div className="w-3/5 h-2 bg-pink-500 rounded-full"></div>
+                                                </div>
+                                                <span className="text-sm font-semibold w-10 text-right">56%</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm">Single</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+                                                    <div className="w-1/3 h-2 bg-pink-500 rounded-full"></div>
+                                                </div>
+                                                <span className="text-sm font-semibold w-10 text-right">32%</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 rounded-lg border">
-                                    <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">8%</div>
-                                    <div className="text-sm text-purple-600 dark:text-purple-400">Veterans</div>
-                                </div>
-                                <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 rounded-lg border">
-                                    <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">7%</div>
-                                    <div className="text-sm text-orange-600 dark:text-orange-400">First Generation</div>
+                            </Card>
+
+                            {/* Special Interest Groups */}
+                            <div className="col-span-full">
+                                <h4 className="font-semibold text-base mb-4">Special Interest Groups</h4>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 rounded-lg border">
+                                        <div className="text-2xl font-bold text-green-700 dark:text-green-300">15%</div>
+                                        <div className="text-sm text-green-600 dark:text-green-400">Union Members</div>
+                                    </div>
+                                    <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 rounded-lg border">
+                                        <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">11%</div>
+                                        <div className="text-sm text-blue-600 dark:text-blue-400">Military Families</div>
+                                    </div>
+                                    <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 rounded-lg border">
+                                        <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">8%</div>
+                                        <div className="text-sm text-purple-600 dark:text-purple-400">Veterans</div>
+                                    </div>
+                                    <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 rounded-lg border">
+                                        <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">7%</div>
+                                        <div className="text-sm text-orange-600 dark:text-orange-400">First Generation</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Engagement Metrics */}
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Engagement Metrics</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border">
                                     <div className="text-xl font-bold">87%</div>
                                     <div className="text-sm text-muted-foreground">Message completion rate</div>
@@ -414,8 +578,36 @@ export default function CampaignPerformancePage({ params }: { params: { id: stri
                                     <div className="text-sm text-muted-foreground">Avg. messages per user</div>
                                 </div>
                                 <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border">
+                                    <div className="text-xl font-bold">18%</div>
+                                    <div className="text-sm text-muted-foreground">Repeat engagement rate</div>
+                                </div>
+                                <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border">
                                     <div className="text-xl font-bold">156</div>
                                     <div className="text-sm text-muted-foreground">Social shares</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Data Quality Indicator */}
+                        <div className="pt-6 border-t">
+                            <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                                <div className="flex items-start gap-3">
+                                    <div className="text-blue-600 dark:text-blue-400 mt-0.5">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                                            About This Data
+                                        </h4>
+                                        <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                                            <strong>73% of participants</strong> are verified registered voters through our voter registration database.
+                                            Demographics marked as <strong>&quot;Modeled&quot;</strong> are statistically predicted based on voter file data,
+                                            census information, and consumer data. All data shown represents anonymized aggregates only—
+                                            individual user information is never exposed.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

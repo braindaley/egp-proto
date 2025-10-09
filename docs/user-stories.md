@@ -127,7 +127,7 @@ This document outlines the user stories and success criteria for all personas in
 **Acceptance Criteria:**
 - **Bill Information:** Full title, number, congress, sponsors/cosponsors
 - **Status & Actions:** Current status, latest action, policy area, subjects
-- **Committee & Related:** Committee assignments, related bills, amendments
+- **Related:** Related bills, amendments
 - **AI Content:** Plain-language summary, "Support" and "Oppose" arguments
 - **Full Text:** Links to PDF/HTML from Congress.gov
 - **Voting Record:** If bill has been voted on
@@ -399,7 +399,6 @@ This document outlines the user stories and success criteria for all personas in
   - News context (summary) included
   - Topic: Policy category from news story
   - Position: User selects Support or Oppose (if applicable)
-  - Suggested recipients: Bill sponsors/committee members (if story relates to legislation)
   - Default recipients: User's representatives
 - **Special Features:**
   - "Related Bills" shown if news connects to legislation
