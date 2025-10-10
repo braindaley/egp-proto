@@ -61,13 +61,13 @@ async function getCommitteeMembers(committeeId: string, congress: string, chambe
   try {
     const res = await fetch(url);
     if (!res.ok) {
-      console.error(`Failed to fetch committee members: ${res.status}`);
+      // Committee data may not be available for all bills, return empty array silently
       return [];
     }
     const data = await res.json();
     return data.committee?.members || [];
   } catch (error) {
-    console.error("Error in getCommitteeMembers:", error);
+    // Network errors or parsing errors - return empty array silently
     return [];
   }
 }
@@ -205,7 +205,9 @@ const AdvocacyMessageContent: React.FC = () => {
                           (!!policyIssueParam && !billType && !billNumber && !memberBioguideId);
 
   // Check if this is a candidate campaign flow
-  const isCandidateFlow = !!candidate1Name && !!candidate2Name;
+  // Either has both candidate names in URL OR has campaignId (which will fetch candidate data)
+  const isCandidateFlow = (!!candidate1Name && !!candidate2Name) ||
+                          (!!campaignId && !billType && !billNumber && !memberBioguideId);
 
   // Check if this is a campaign context (e.g., from a campaign page)
   const isCampaignContext = !!campaignId;
@@ -214,14 +216,14 @@ const AdvocacyMessageContent: React.FC = () => {
   // TODO: Split into separate components for better maintainability
   // - AdvocacyMessageBill: for legislation (has congress, type, number)
   // - AdvocacyMessageIssue: for issues, member contact, news (has issue or member params)
-  // - AdvocacyMessageCandidate: for candidate campaigns (has candidate1, candidate2)
+  // - AdvocacyMessageCandidate: for candidate campaigns (has candidate1, candidate2 OR campaignId)
 
   if (isCandidateFlow) {
     return (
       <AdvocacyMessageCandidate
-        candidate1Name={candidate1Name!}
+        candidate1Name={candidate1Name || undefined}
         candidate1Bio={candidate1Bio || undefined}
-        candidate2Name={candidate2Name!}
+        candidate2Name={candidate2Name || undefined}
         candidate2Bio={candidate2Bio || undefined}
         campaignId={campaignId || undefined}
       />
@@ -312,112 +314,81 @@ const AdvocacyMessageContent: React.FC = () => {
   // Get the current step number to display
   const getDisplayStep = (): number => {
     if (isMemberContact) {
-      // Members: not logged in flow (1-8) vs logged in flow (1-6)
-      if (!user) {
-        // Not logged in flow: Verification → Policy → Write → Supporting Files → Personal → Review → Success
-        if (step === 1) return 1; // Help us verify that you are a registered voter
-        if (step === 2) return 2; // Choose policy issue
-        if (step === 4) return 3; // Write Your Message
-        if (step === 5) return 4; // Add Supporting Files
-        if (step === 7) return 5; // Personal Information
-        if (step === 8) return 6; // Review Message
-        if (step === 10) return 7; // Success screen (create account or login)
-        return 0;
-      } else {
-        // Logged in flow - skip verification: Policy → Write → Supporting Files → Personal → Review → Success
-        if (step === 2) return 1; // Choose policy issue
-        if (step === 4) return 2; // Write Your Message
-        if (step === 5) return 3; // Add Supporting Files
-        if (step === 7) return 4; // Personal Information
-        if (step === 8) return 5; // Review Message
-        if (step === 10) return 6; // Success screen (view dashboard)
-        return 0;
-      }
+      // All users flow: Verification → Policy → Write → Supporting Files → Personal → Review → Success
+      if (step === 1) return 1; // Help us verify that you are a registered voter
+      if (step === 2) return 2; // Choose policy issue
+      if (step === 4) return 3; // Write Your Message
+      if (step === 5) return 4; // Add Supporting Files
+      if (step === 7) return 5; // Personal Information
+      if (step === 8) return 6; // Review Message
+      if (step === 10) return 7; // Success screen
+      return 0;
     } else {
-      // Bills/campaigns: not logged in flow (1-9) vs logged in flow (1-8)
-      if (!user) {
-        // Not logged in flow
-        if (step === 1) return 1; // Help us verify that you are a registered voter
-        if (step === 2) return 2; // Choose Your Position
-        if (step === 3) return 3; // Writing Your Message - help writing?
-        if (step === 4) return 4; // Write Your Message
-        if (step === 5) return 5; // Add Supporting Files
-        if (step === 6) return 6; // Select representatives to send your message
-        if (step === 7) return 7; // Personal Information
-        if (step === 8) return 8; // Review Message
-        if (step === 10) return 9; // Success screen (create account or login)
-        return 0;
-      } else {
-        // Logged in flow - skip verification
-        if (step === 2) return 1; // Choose Your Position
-        if (step === 3) return 2; // Writing Your Message - help writing?
-        if (step === 4) return 3; // Write Your Message
-        if (step === 5) return 4; // Add Supporting Files
-        if (step === 6) return 5; // Select representatives to send your message
-        if (step === 7) return 6; // Personal Information
-        if (step === 8) return 7; // Review Message
-        if (step === 10) return 8; // Success screen (view dashboard)
-        return 0;
-      }
+      // All users flow: Verification → Position → AI Help → Write → Supporting Files → Select Reps → Personal → Review → Success
+      if (step === 1) return 1; // Help us verify that you are a registered voter
+      if (step === 2) return 2; // Choose Your Position
+      if (step === 3) return 3; // Writing Your Message - help writing?
+      if (step === 4) return 4; // Write Your Message
+      if (step === 5) return 5; // Add Supporting Files
+      if (step === 6) return 6; // Select representatives to send your message
+      if (step === 7) return 7; // Personal Information
+      if (step === 8) return 8; // Review Message
+      if (step === 10) return 9; // Success screen
+      return 0;
     }
   };
 
-  // Back navigation that handles both logged in and not logged in flows
+  // Back navigation - all users go through verification
   const goBack = () => {
     if (isMemberContact) {
-      if (!user) {
-        // Members not logged in flow: Verification → Policy → Write → Supporting Files → Personal → Review → Success
-        if (step === 1) return; // Can't go back from first step (verification)
-        else if (step === 2) setStep(1); // Policy Issues → verification
-        else if (step === 4) setStep(2); // Write Message → Policy Issues (skip AI Help step 3)
-        else if (step === 5) setStep(4); // Supporting Files → Write Message
-        else if (step === 7) setStep(5); // Personal Info → Supporting Files
-        else if (step === 8) setStep(7); // Review → Personal Info
-        else if (step === 10) setStep(8); // Success → Review
-        else if (step === 12) setStep(8); // Sending Error → Review
-      } else {
-        // Members logged in flow: Policy → Write → Supporting Files → Personal → Review → Success
-        if (step === 2) return; // Can't go back from first step (Policy Issues)
-        else if (step === 4) setStep(2); // Write Message → Policy Issues (skip AI Help step 3)
-        else if (step === 5) setStep(4); // Supporting Files → Write Message
-        else if (step === 7) setStep(5); // Personal Info → Supporting Files
-        else if (step === 8) setStep(7); // Review → Personal Info
-        else if (step === 10) setStep(8); // Success → Review
-        else if (step === 12) setStep(8); // Sending Error → Review
-      }
+      // All users flow: Verification → Policy → Write → Supporting Files → Personal → Review → Success
+      if (step === 1) return; // Can't go back from first step (verification)
+      else if (step === 2) setStep(1); // Policy Issues → verification
+      else if (step === 4) setStep(2); // Write Message → Policy Issues (skip AI Help step 3)
+      else if (step === 5) setStep(4); // Supporting Files → Write Message
+      else if (step === 7) setStep(5); // Personal Info → Supporting Files
+      else if (step === 8) setStep(7); // Review → Personal Info
+      else if (step === 10) setStep(8); // Success → Review
+      else if (step === 12) setStep(8); // Sending Error → Review
     } else {
-      if (!user) {
-        // Bills/campaigns not logged in flow
-        if (step === 1) return; // Can't go back from first step (verification)
-        else if (step === 2) setStep(1); // Position → verification
-        else if (step === 3) setStep(2); // AI Help → Position
-        else if (step === 4) setStep(3); // Write Message → AI Help
-        else if (step === 5) setStep(4); // Supporting Files → Write Message
-        else if (step === 6) setStep(5); // Select Representatives → Supporting Files
-        else if (step === 7) setStep(6); // Personal Info → Select Representatives
-        else if (step === 8) setStep(7); // Review → Personal Info
-        else if (step === 10) setStep(8); // Success → Review
-        else if (step === 12) setStep(8); // Sending Error → Review
-      } else {
-        // Bills/campaigns logged in flow
-        if (step === 2) return; // Can't go back from first step (Position)
-        else if (step === 3) setStep(2); // AI Help → Position
-        else if (step === 4) setStep(3); // Write Message → AI Help
-        else if (step === 5) setStep(4); // Supporting Files → Write Message
-        else if (step === 6) setStep(5); // Select Representatives → Supporting Files
-        else if (step === 7) setStep(6); // Personal Info → Select Representatives
-        else if (step === 8) setStep(7); // Review → Personal Info
-        else if (step === 10) setStep(8); // Success → Review
-        else if (step === 12) setStep(8); // Sending Error → Review
-      }
+      // All users flow: Verification → Position → AI Help → Write → Supporting Files → Select Reps → Personal → Review → Success
+      if (step === 1) return; // Can't go back from first step (verification)
+      else if (step === 2) setStep(1); // Position → verification
+      else if (step === 3) setStep(2); // AI Help → Position
+      else if (step === 4) setStep(3); // Write Message → AI Help
+      else if (step === 5) setStep(4); // Supporting Files → Write Message
+      else if (step === 6) setStep(5); // Select Representatives → Supporting Files
+      else if (step === 7) setStep(6); // Personal Info → Select Representatives
+      else if (step === 8) setStep(7); // Review → Personal Info
+      else if (step === 10) setStep(8); // Success → Review
+      else if (step === 12) setStep(8); // Sending Error → Review
     }
   };
 
-  // Skip verification step for logged-in users
+  // Skip verification for logged-in users who have already verified their voter registration
   useEffect(() => {
-    // Only set initial step if user is logged in, not loading, and currently on step 1
+    // Only auto-skip if user is logged in, not currently loading, on step 1, and has verified info
     if (user && !loading && step === 1 && !isVerified) {
-      setStep(2);
+      // Check if user has already been verified (has firstName, lastName, and address)
+      const hasVerifiedInfo = user.firstName && user.lastName && user.address;
+      if (hasVerifiedInfo) {
+        // Populate verifiedUserInfo from user's saved data
+        setVerifiedUserInfo({
+          id: user.uid || 'user',
+          fullName: `${user.firstName} ${user.lastName}`,
+          address: user.address,
+          city: user.city || '',
+          state: user.state || '',
+          zipCode: user.zipCode || '',
+          constituentDescription: user.constituentDescription || null
+        });
+        // Save zipCode for member lookup
+        if (user.zipCode) {
+          saveZipCode(user.zipCode);
+        }
+        // User is already verified, skip to step 2
+        setStep(2);
+      }
     }
   }, [user, loading, step, isVerified]);
 
@@ -634,14 +605,14 @@ const AdvocacyMessageContent: React.FC = () => {
       const addressAvailable = addressParts.length > 0;
       
       return [
-        { key: 'fullName', label: 'Full Name', value: `${currentFirstName} ${currentLastName}`.trim() || 'John Doe', available: true },
-        { key: 'fullAddress', label: 'Full Address', value: addressValue || '123 Main St, Springfield, IL 62701', available: true },
-        { key: 'birthYear', label: 'Birth Year', value: currentBirthYear || '1990', available: true },
-        { key: 'gender', label: 'Gender', value: currentGender || 'Prefer not to say', available: true },
-        { key: 'politicalAffiliation', label: 'Political Affiliation', value: currentPoliticalAffiliation || 'Independent', available: true },
-        { key: 'education', label: 'Education', value: currentEducation || 'Bachelor\'s Degree', available: true },
-        { key: 'profession', label: 'Profession', value: currentProfession || 'Professional', available: true },
-        { key: 'militaryService', label: 'Military Service', value: currentMilitaryService !== undefined ? (currentMilitaryService ? 'Yes' : 'No') : 'No', available: true },
+        { key: 'fullName', label: 'Full Name', value: `${currentFirstName} ${currentLastName}`.trim() || 'John Doe', available: !!(currentFirstName && currentLastName) },
+        { key: 'fullAddress', label: 'Full Address', value: addressValue || '123 Main St, Springfield, IL 62701', available: addressAvailable },
+        { key: 'birthYear', label: 'Birth Year', value: currentBirthYear || '1990', available: !!currentBirthYear },
+        { key: 'gender', label: 'Gender', value: currentGender || 'Prefer not to say', available: !!currentGender },
+        { key: 'politicalAffiliation', label: 'Political Affiliation', value: currentPoliticalAffiliation || 'Independent', available: !!currentPoliticalAffiliation },
+        { key: 'education', label: 'Education', value: currentEducation || 'Bachelor\'s Degree', available: !!currentEducation },
+        { key: 'profession', label: 'Profession', value: currentProfession || 'Professional', available: !!currentProfession },
+        { key: 'militaryService', label: 'Military Service', value: currentMilitaryService !== undefined ? (currentMilitaryService ? 'Yes' : 'No') : 'No', available: currentMilitaryService !== undefined && currentMilitaryService !== null },
       ];
     }
     

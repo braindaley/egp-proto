@@ -44,6 +44,28 @@ let campaigns: Campaign[] = [
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
     isActive: true
+  },
+  // Sample candidate poll campaign
+  {
+    id: 'sample-candidate-poll',
+    groupSlug: 'common-cause',
+    groupName: 'Common Cause',
+    campaignType: 'Candidate',
+    candidate: {
+      candidate1Name: 'Maria Alvarez',
+      candidate1Bio: 'Maria Alvarez is a community organizer who has spent the last 15 years fighting for affordable housing and small business growth in her district.',
+      candidate2Name: 'James Whitman',
+      candidate2Bio: 'James Whitman is a former technology executive and veteran who believes in modernizing government through innovation.',
+      selectedCandidate: 1
+    },
+    position: 'Support',
+    reasoning: 'Help us understand which candidate better represents your values.',
+    actionButtonText: 'Share your opinion',
+    supportCount: 0,
+    opposeCount: 0,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    isActive: true
   }
 ];
 

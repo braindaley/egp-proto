@@ -234,8 +234,9 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
   const thirdStory = newsStories[31];  // Gun Policy story (index 31)
 
   // Get campaigns for the Recent Campaigns list
+  // Only include bill campaigns (not candidate campaigns)
   const allCampaigns = campaignsService.getAllCampaigns()
-    .filter(campaign => campaign.isActive)
+    .filter(campaign => campaign.isActive && campaign.bill)
     .slice(0, 3); // Get first 3 campaigns
 
   // Add candidate campaign as 4th item

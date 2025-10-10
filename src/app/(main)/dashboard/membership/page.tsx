@@ -14,7 +14,17 @@ export const dynamic = 'force-dynamic';
 export default function MembershipPage() {
   const { user, loading } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
   const router = useRouter();
+
+  // Check for testing override from localStorage
+  const [testAsPremium, setTestAsPremium] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setTestAsPremium(localStorage.getItem('testAsPremium') === 'true');
+    }
+  }, []);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -23,6 +33,32 @@ export default function MembershipPage() {
     }
   }, [user, loading, router]);
 
+  // Fetch subscription data for premium users (not test mode)
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      if (!user || user.membershipLevel !== 'premium' || testAsPremium) {
+        setIsLoadingSubscription(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/subscriptions/current');
+        if (response.ok) {
+          const data = await response.json();
+          setSubscriptionData(data.subscription);
+        }
+      } catch (error) {
+        console.error('Failed to fetch subscription:', error);
+      } finally {
+        setIsLoadingSubscription(false);
+      }
+    };
+
+    if (!loading) {
+      fetchSubscription();
+    }
+  }, [user, loading, testAsPremium]);
+
   if (loading) {
     return <p>Loading membership...</p>;
   }
@@ -30,6 +66,8 @@ export default function MembershipPage() {
   if (!user) {
     return null;
   }
+
+  const isPremium = testAsPremium || user.membershipLevel === 'premium';
 
   const dashboardNavItems = [
     { label: 'Dashboard', href: '/dashboard', icon: UserIcon },
@@ -155,7 +193,9 @@ export default function MembershipPage() {
                   Membership
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Upgrade to Premium and unlock exclusive features to enhance your advocacy efforts.
+                  {isPremium
+                    ? 'Manage your premium membership and billing'
+                    : 'Upgrade to Premium and unlock exclusive features to enhance your advocacy efforts.'}
                 </p>
               </header>
 
@@ -167,15 +207,147 @@ export default function MembershipPage() {
                       <div>
                         <CardTitle className="flex items-center gap-2">
                           Current Plan
-                          <Badge variant="outline">Free</Badge>
+                          <Badge variant={isPremium ? "default" : "outline"}>
+                            {isPremium ? 'Premium' : 'Free'}
+                          </Badge>
                         </CardTitle>
                         <CardDescription>
-                          You're currently using the free tier of our advocacy platform.
+                          {isPremium
+                            ? 'You have access to all premium features and benefits.'
+                            : "You're currently using the free tier of our advocacy platform."}
                         </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                 </Card>
+
+                {/* Premium Management Section */}
+                {isPremium && (
+                  <>
+                    {/* Subscription Details */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Subscription Details</CardTitle>
+                        <CardDescription>
+                          Your subscription and billing information
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {isLoadingSubscription ? (
+                          <p className="text-sm text-muted-foreground">Loading subscription details...</p>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center pb-3 border-b">
+                              <div>
+                                <p className="text-sm font-medium">Plan</p>
+                                <p className="text-sm text-muted-foreground">Premium Membership</p>
+                              </div>
+                              <Badge variant="default">Active</Badge>
+                            </div>
+
+                            <div className="flex justify-between items-center pb-3 border-b">
+                              <div>
+                                <p className="text-sm font-medium">Billing Amount</p>
+                                <p className="text-sm text-muted-foreground">$6.00 every 3 months</p>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-between items-center pb-3 border-b">
+                              <div>
+                                <p className="text-sm font-medium">Next Billing Date</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {subscriptionData?.nextBillingDate
+                                    ? new Date(subscriptionData.nextBillingDate).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                      })
+                                    : 'Not available'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="text-sm font-medium">Member Since</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {user.createdAt
+                                    ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                      })
+                                    : 'Not available'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Payment Method */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Payment Method</CardTitle>
+                        <CardDescription>
+                          Manage your billing information
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {subscriptionData?.paymentMethod ? (
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-8 bg-secondary rounded flex items-center justify-center">
+                                  <span className="text-xs font-semibold">
+                                    {subscriptionData.paymentMethod.brand?.toUpperCase() || 'CARD'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    •••• •••• •••• {subscriptionData.paymentMethod.last4 || '****'}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Expires {subscriptionData.paymentMethod.expMonth}/{subscriptionData.paymentMethod.expYear}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button variant="outline" size="sm">Update</Button>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-sm text-muted-foreground mb-3">No payment method on file</p>
+                              <Button variant="outline" size="sm">Add Payment Method</Button>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Cancel Subscription */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Cancel Subscription</CardTitle>
+                        <CardDescription>
+                          You can cancel your subscription at any time
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          If you cancel, you'll continue to have access to premium features until the end of your current billing period.
+                        </p>
+                        <Button variant="destructive" size="sm">
+                          Cancel Membership
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+
+                {/* Free Tier - Upgrade Options */}
+                {!isPremium && (
+                  <>
 
                 {/* Premium Upgrade Card */}
                 <Card>
@@ -264,6 +436,8 @@ export default function MembershipPage() {
                     </div>
                   </CardContent>
                 </Card>
+                  </>
+                )}
               </main>
             </div>
           </div>

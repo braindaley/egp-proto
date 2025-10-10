@@ -41,6 +41,8 @@ export async function GET(
         id: staticCampaign.id,
         groupSlug: staticCampaign.groupSlug,
         bill: staticCampaign.bill,
+        candidate: staticCampaign.candidate,
+        campaignType: staticCampaign.campaignType,
         position: staticCampaign.position,
         reasoning: staticCampaign.reasoning,
         actionButtonText: staticCampaign.actionButtonText,

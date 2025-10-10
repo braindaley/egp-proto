@@ -838,8 +838,9 @@ export default function Home() {
   ];
 
   // Get all real campaigns from the service and transform them for the homepage
+  // Only include bill campaigns (not candidate campaigns) for the homepage feed
   const allCampaigns = campaignsService.getAllCampaigns()
-    .filter(campaign => campaign.isActive)
+    .filter(campaign => campaign.isActive && campaign.bill) // Only include campaigns with bills
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
@@ -850,14 +851,14 @@ export default function Home() {
     groupSlug: campaign.groupSlug,
     position: campaign.position,
     policyIssue: 'National Conditions', // Most voting rights campaigns fall under this category
-    billNumber: `${campaign.bill.type} ${campaign.bill.number}`,
-    billTitle: campaign.bill.title || `${campaign.bill.type} ${campaign.bill.number}`,
+    billNumber: `${campaign.bill!.type} ${campaign.bill!.number}`,
+    billTitle: campaign.bill!.title || `${campaign.bill!.type} ${campaign.bill!.number}`,
     description: campaign.reasoning,
     supportCount: campaign.supportCount,
     opposeCount: campaign.opposeCount,
-    congress: campaign.bill.congress || '119',
-    billType: campaign.bill.type,
-    billNumberOnly: campaign.bill.number
+    congress: campaign.bill!.congress || '119',
+    billType: campaign.bill!.type,
+    billNumberOnly: campaign.bill!.number
   }));
 
 
