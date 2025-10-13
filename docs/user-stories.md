@@ -2,8 +2,8 @@
 
 This document outlines the user stories and success criteria for all personas in the advocacy platform, organized by page template.
 
-**Version:** 2.1
-**Last Updated:** 2025-10-09
+**Version:** 2.2
+**Last Updated:** 2025-10-13
 
 ---
 
@@ -21,6 +21,7 @@ This document outlines the user stories and success criteria for all personas in
    - [Premium Membership](#premium-membership)
 2. [Organization User Stories](#organization-user-stories)
 3. [Admin User Stories](#admin-user-stories)
+4. [Documentation & Support](#documentation--support)
 
 ---
 
@@ -227,7 +228,7 @@ This document outlines the user stories and success criteria for all personas in
 - "Voice Your Opinion" CTA button on news detail page
 - Opens advocacy message composer with:
   - Pre-filled context: News headline and summary
-  - Suggested recipients: Related bill sponsors/committee members (if applicable)
+  - Suggested recipients: Related bill sponsors (if applicable)
   - Default recipients: User's own representatives
   - Topic: Auto-populated from policy category
   - Position options: Support or Oppose (if applicable)
@@ -322,6 +323,9 @@ This document outlines the user stories and success criteria for all personas in
 - Include in feed algorithm
 - Send weekly digest emails (configurable)
 
+**Story Points:** 3  
+**Deferred to:** Post-Launch Sprint (Weeks 23-24)
+
 ---
 
 ### Advocacy & Messaging
@@ -346,6 +350,9 @@ This document outlines the user stories and success criteria for all personas in
 - Daily cron checks for updates
 - Email notifications via email service
 - User configurable preferences
+
+**Story Points:** 5  
+**Deferred to:** Post-Launch Sprint (Weeks 23-24)
 
 ---
 
@@ -385,7 +392,7 @@ This document outlines the user stories and success criteria for all personas in
   - Campaign context and organization's reasoning included
   - Position: Pre-set to organization's position (Support/Oppose)
   - Default recipients: User's representatives
-  - Target recipients: May be filtered by campaign (e.g., committee members)
+  - Target recipients: May be filtered by campaign (e.g., specific representatives)
 - **Special Features:**
   - Organization name and logo shown
   - Organization's reasoning displayed as context
@@ -851,7 +858,7 @@ Organization users are staff members of advocacy groups who access the `/partner
   - Set: Issue title, description, policy area
   - Write advocacy message template
   - Set start and end dates (required)
-  - Target representatives: All, or filter by state/party/committee
+  - Target representatives: All, or filter by state/party
   - Appears on homepage and org page
 - **Candidate Campaign:**
   - Type: "Candidate Campaign"
@@ -1413,6 +1420,59 @@ Admin users have elevated permissions to manage the platform, including users, o
 
 ---
 
+## Documentation & Support
+
+### DOC-001: Design System Documentation Foundations
+**As a** design system owner  
+**I want to** capture component usage, interaction patterns, and accessibility notes  
+**So that** engineers and designers can implement UI consistently during development
+
+**Acceptance Criteria:**
+- Provides source-of-truth documentation for every component used through Sprint 5 (buttons, inputs, navigation, cards, tables, charts)
+- Includes interaction states (default, hover, focus, disabled) and accessibility guidance (ARIA roles, color contrast checks)
+- Links to Figma component library and code counterparts (shadcn/ui, custom components)
+- Publishes contribution guidelines (naming conventions, review checklist, change request process)
+- Versioned in Notion or Confluence with TL sign-off and change log
+
+**Story Points:** 2  
+**Sprint:** 5
+
+---
+
+### DOC-002: Technical Runbooks & Deployment Guides
+**As a** tech lead  
+**I want to** maintain up-to-date runbooks for deployments and infrastructure  
+**So that** the engineering team can operate the platform confidently during launch
+
+**Acceptance Criteria:**
+- Documents staging and production environment topology (services, data stores, monitoring)
+- Provides deployment runbooks covering automated deploys (CI/CD) and manual rollback procedures
+- Lists all environment variables, secrets management steps, and rotation cadence
+- Includes onboarding checklist for new engineers (tooling access, local setup, testing standards)
+- Reviewed by backend engineer; stored with version control (Git or shared drive) and accessible to the whole team
+
+**Story Points:** 3  
+**Sprint:** 6
+
+---
+
+### DOC-003: Support Content & QA Checklists
+**As a** project manager  
+**I want to** publish support documentation and regression test suites  
+**So that** customer support and QA can resolve issues quickly during launch
+
+**Acceptance Criteria:**
+- Creates help center articles for top launch scenarios: account verification, billing issues, campaign setup, messaging troubleshooting
+- Supplies internal admin guides (approving orgs, managing subscriptions, handling payment failures)
+- Builds regression testing checklist covering critical flows (signup, messaging, payments, dashboards, admin actions)
+- Establishes triage playbook for known high-risk areas with escalation paths (Slack channel, owners, SLA)
+- Stores artifacts in shared workspace (Notion, Confluence, or Google Drive) with searchable tagging
+
+**Story Points:** 3  
+**Sprint:** 7
+
+---
+
 ## Email Notification User Stories
 
 All user personas receive email notifications for important events and updates. Email notifications are critical for engagement, retention, and platform communication.
@@ -1488,385 +1548,6 @@ All user personas receive email notifications for important events and updates. 
 
 ---
 
-#### EMAIL-003: Watched Bill Updates
-**As a** user watching bills
-**I want to** receive notifications when bills are updated
-**So that** I can stay informed on legislation I care about
-
-**Acceptance Criteria:**
-- **Bill Update Notification:**
-  - Sent when watched bill has new action
-  - Subject: "Update: {Bill Number} - {Latest Action}"
-  - Contains:
-    - Bill title and number
-    - Latest action with date
-    - Status change (if applicable)
-    - Link to full bill details
-    - Summary of change (AI-generated if major action)
-    - Related campaigns (if any)
-    - "View Bill" and "Take Action" CTAs
-  - Delivery timing:
-    - **Immediate mode:** Within 1 hour of action (premium only)
-    - **Daily digest:** Once per day at 9 AM local time (free users)
-    - User can choose frequency in settings
-- **Multiple Bill Updates:**
-  - Grouped into single email if multiple bills updated same day (digest mode)
-  - Shows top 5 most significant updates, link to see all
-- **Unwatch Option:**
-  - Footer includes "Unwatch {Bill Number}" link
-  - One-click unwatch without login
-
-**Technical Requirements:**
-- Cron job: Check `bills` for `last_action_date` changes daily (6 AM UTC)
-- Match against `user_watched_bills`
-- Premium: Send immediately after detecting update
-- Free: Aggregate updates, send digest at user's local 9 AM (timezone from profile)
-- Store last notification date in `user_watched_bills.last_notification_sent`
-- Don't send duplicate notifications
-- Template variables: {billNumber}, {billTitle}, {latestAction}, {actionDate}, {billLink}, {unwatchLink}
-- Respect user preferences: `user_email_preferences.bill_updates_enabled`, `bill_updates_frequency`
-
----
-
-#### EMAIL-004: New Campaigns from Followed Organizations
-**As a** user following organizations
-**I want to** be notified when they launch new campaigns
-**So that** I can take action on causes I support
-
-**Acceptance Criteria:**
-- **New Campaign Notification:**
-  - Sent when followed org creates new campaign
-  - Subject: "{Organization Name} launched a new campaign"
-  - Contains:
-    - Organization name and logo
-    - Campaign title
-    - Bill/issue: Title and number
-    - Organization's position (Support/Oppose)
-    - Brief reasoning (first 2-3 sentences)
-    - Campaign start and end dates
-    - "Take Action" primary CTA
-    - "View Campaign Details" link
-    - "Unfollow {Org Name}" link in footer
-  - Delivery timing:
-    - **Immediate mode:** Within 1 hour of campaign launch (premium)
-    - **Weekly digest:** Friday 10 AM local time with all new campaigns (free)
-- **Multiple Campaign Launches:**
-  - Grouped digest for free users (all new campaigns from followed orgs that week)
-  - Individual emails for premium users (one per campaign launch)
-
-**Technical Requirements:**
-- Trigger: After campaign created with status = 'active'
-- Query `user_followed_organizations` for org followers
-- Check user tier: Premium = immediate, Free = weekly digest
-- Weekly digest cron: Friday 10 AM per user timezone
-- Store in `campaign_notifications` to avoid duplicates
-- Template variables: {orgName}, {orgLogo}, {campaignTitle}, {billTitle}, {position}, {reasoning}, {campaignLink}, {unfollowLink}
-- Respect preferences: `user_email_preferences.org_campaigns_enabled`
-
----
-
-#### EMAIL-005: Premium Membership & Payment Emails
-**As a** premium user
-**I want to** receive payment confirmations and renewal notices
-**So that** I can manage my subscription
-
-**Acceptance Criteria:**
-- **Subscription Confirmation:**
-  - Sent after successful first payment
-  - Subject: "Welcome to eGp Premium!"
-  - Contains:
-    - Thank you message
-    - Premium benefits recap
-    - Subscription details: Plan (Quarterly), price ($6), next billing date
-    - Receipt/invoice link (Stripe)
-    - Link to manage subscription
-    - Customer support contact
-- **Payment Success (Renewal):**
-  - Sent after each successful renewal payment
-  - Subject: "eGp Premium subscription renewed"
-  - Contains:
-    - Payment amount and date
-    - Next billing date
-    - Receipt link
-    - Manage subscription link
-- **Payment Failed:**
-  - Sent when payment fails
-  - Subject: "Action required: Payment failed for eGp Premium"
-  - Contains:
-    - Payment failure reason
-    - Retry schedule (Stripe handles 3-4 retries over 2 weeks)
-    - "Update Payment Method" CTA (primary, urgent)
-    - Grace period info (access until retry period ends)
-    - Customer support contact
-  - Follow-up reminders: Day 3, Day 7, Day 14 (final warning)
-- **Subscription Canceled:**
-  - Sent when user cancels or subscription ends
-  - Subject: "Your eGp Premium subscription has ended"
-  - Contains:
-    - Cancellation date
-    - End of billing period (last day of access)
-    - What you'll lose (features downgraded to free)
-    - "Resubscribe" CTA
-    - Feedback survey link (why did you cancel?)
-- **Subscription Expiring Soon:**
-  - Sent 7 days before subscription ends (if canceled but still in paid period)
-  - Subject: "Your eGp Premium membership expires in 7 days"
-  - Contains:
-    - Expiration date
-    - Premium benefits you'll lose
-    - "Renew Subscription" CTA
-    - Reminder: No further charges after expiration
-
-**Technical Requirements:**
-- Stripe webhooks trigger emails:
-  - `checkout.session.completed` → Subscription Confirmation
-  - `invoice.payment_succeeded` → Payment Success
-  - `invoice.payment_failed` → Payment Failed
-  - `customer.subscription.deleted` → Subscription Canceled
-- Expiring soon: Cron job checks subscriptions with `cancel_at_period_end` = true
-- All emails link to Stripe Customer Portal or internal `/membership` page
-- Include Stripe invoice PDF link
-- Store email send status in `subscription_emails`
-- Unsubscribe: Not applicable (transactional, legally required)
-
----
-
-#### EMAIL-006: Weekly/Monthly Digest (Premium)
-**As a** premium user
-**I want to** receive periodic digests of activity
-**So that** I stay engaged without constant notifications
-
-**Acceptance Criteria:**
-- **Digest Email:**
-  - Frequency options: Daily (premium only), Weekly (default), Monthly, Never
-  - Subject: "Your eGp weekly digest - {X} new bills & {Y} campaign updates"
-  - Contains:
-    - **New Bills in Your Interests:**
-      - Top 5 most relevant bills based on policy interests
-      - Each shows: Bill number, title, latest action, "View Bill" link
-    - **Watched Bill Updates:**
-      - All updates to watched bills this week
-      - Grouped by bill
-    - **New Campaigns from Followed Orgs:**
-      - All new campaigns launched this week
-      - Shows: Org name, bill/issue, position, "Take Action" CTA
-    - **Your Activity Summary:**
-      - Messages sent this week
-      - Bills you engaged with
-      - "View Dashboard" link
-    - **Trending Bills:**
-      - Top 3 most engaged bills across platform
-    - **Recommended Actions:**
-      - Personalized suggestions based on activity
-  - Delivery time: User's local 9 AM, day depends on frequency setting
-  - Skip sending if no updates (no empty digests)
-- **Customization:**
-  - User can toggle sections on/off
-  - Can change frequency anytime in settings
-  - Can unsubscribe (stops all digest emails)
-
-**Technical Requirements:**
-- Cron jobs: Daily (9 AM UTC + timezone offset), Weekly (Monday 9 AM), Monthly (1st of month 9 AM)
-- Query user's interests from `users.policy_interests`
-- Fetch new bills in those policy areas since last digest
-- Query `user_watched_bills` for updates
-- Query `user_followed_organizations` for new campaigns
-- Aggregate `user_messages` for activity summary
-- Store last digest sent in `user_email_preferences.last_digest_sent_at`
-- Skip if no content AND `user_email_preferences.send_empty_digests` = false
-- Template: Responsive design, supports sections
-- Variables: {billsList}, {watchedUpdates}, {newCampaigns}, {activitySummary}, {trendingBills}
-- Respect: `user_email_preferences.digest_enabled`, `digest_frequency`, `digest_sections`
-
----
-
-### Organization Email Notifications
-**Sent to organization admins and team members**
-
-#### EMAIL-007: Campaign Performance Summaries
-**As an** organization user
-**I want to** receive campaign performance summaries
-**So that** I can track engagement without logging in daily
-
-**Acceptance Criteria:**
-- **Weekly Campaign Report:**
-  - Sent every Monday at 10 AM to all org admins and editors
-  - Subject: "{Organization Name} - Weekly campaign report"
-  - Contains:
-    - **Overview:**
-      - Total actions this week across all campaigns
-      - Total messages sent
-      - New supporters count
-      - Week-over-week growth percentage
-    - **Top Performing Campaigns:**
-      - Top 3 campaigns by actions this week
-      - Shows: Campaign name, actions, messages, engagement rate
-      - "View Analytics" link for each
-    - **Active Campaigns Summary:**
-      - List of all active campaigns with key metrics
-      - Status indicators (on track, needs attention)
-    - **Recommendations:**
-      - Suggested actions (e.g., "Campaign XYZ engagement dropped 20%")
-      - Best practices tips
-    - "View Full Dashboard" CTA
-  - Only sent if org has at least one active campaign
-- **Campaign Milestone Notifications:**
-  - Sent when campaign reaches milestones:
-    - 100, 500, 1,000, 5,000, 10,000+ actions
-  - Subject: "{Campaign Name} reached {milestone} actions!"
-  - Contains:
-    - Congratulations message
-    - Current metrics snapshot
-    - Top demographics engaged
-    - Social share suggestions
-    - "View Campaign Analytics" CTA
-
-**Technical Requirements:**
-- Weekly report cron: Sunday 11 PM UTC, sends Monday morning per org timezone
-- Query `campaign_actions` filtered by org and date range
-- Calculate metrics: Total actions, new actions this week, growth percentage
-- Identify top campaigns by `action_count DESC LIMIT 3`
-- Milestone trigger: After action count crosses threshold, check `campaign_milestones_sent` to avoid duplicates
-- Recipients: Query `user_organizations` WHERE `role` IN ('admin', 'editor')
-- Template variables: {orgName}, {totalActions}, {newActions}, {growthPercent}, {topCampaigns}, {activeCampaigns}
-- Store: `org_email_notifications.last_weekly_report_sent`
-
----
-
-#### EMAIL-008: Team & Campaign Management Notifications
-**As an** organization user
-**I want to** receive notifications about team and campaign changes
-**So that** I stay informed about important updates
-
-**Acceptance Criteria:**
-- **Team Member Invitation:**
-  - Sent to invitee email
-  - Subject: "You've been invited to join {Organization Name} on eGp"
-  - Contains:
-    - Invitation from {Admin Name}
-    - Organization name and description
-    - Role being offered (Admin or Editor)
-    - "Accept Invitation" CTA (signup/login link with token)
-    - Invitation expires in 7 days
-    - What you'll be able to do (role permissions)
-- **Team Member Joined:**
-  - Sent to all org admins
-  - Subject: "{New Member Name} joined {Organization Name}"
-  - Contains:
-    - New member name and email
-    - Role assigned
-    - Date joined
-    - "View Team" link
-- **Campaign Suspended by Admin:**
-  - Sent to all org admins and the campaign creator
-  - Subject: "Your campaign was suspended: {Campaign Name}"
-  - Contains:
-    - Campaign name and link
-    - Suspension reason (from admin)
-    - Date suspended
-    - What this means (hidden from public, no new actions)
-    - Contact support if you believe this was in error
-    - Support email/link
-- **Campaign Reactivated by Admin:**
-  - Sent to all org admins
-  - Subject: "Your campaign was reactivated: {Campaign Name}"
-  - Contains:
-    - Campaign name and link
-    - Reactivation date
-    - Campaign is now visible again
-    - "View Campaign" CTA
-
-**Technical Requirements:**
-- Team invitation: Triggered when org admin creates invitation
-- Store token in `organization_invitations`, expire after 7 days
-- Team joined: Triggered after user accepts invitation and joins org
-- Campaign suspended/reactivated: Triggered by admin action via webhook
-- Recipients: Query `user_organizations` WHERE `organization_id` = ? AND `role` = 'admin'
-- Template variables: {orgName}, {memberName}, {role}, {campaignName}, {suspensionReason}, {inviteLink}
-
----
-
-### Admin Email Notifications
-**Sent to platform administrators**
-
-#### EMAIL-009: System Alerts & Moderation Notifications
-**As an** admin
-**I want to** receive critical system alerts
-**So that** I can respond quickly to issues
-
-**Acceptance Criteria:**
-- **New Organization Application:**
-  - Sent when new org applies to join platform
-  - Subject: "New organization application: {Organization Name}"
-  - Contains:
-    - Organization name
-    - Contact info (name, email, phone)
-    - Organization type (501c3, 501c4, etc.)
-    - EIN (Tax ID)
-    - Description and mission
-    - Website and social links
-    - Application date
-    - "Review Application" CTA (link to `/admin/organizations`)
-  - Sent immediately
-  - Recipients: All admins with `review_applications` permission
-- **Payment Failure Alert (High Value):**
-  - Sent when high-value subscriber payment fails (premium annual plan)
-  - Subject: "Premium payment failed: {User Name}"
-  - Contains:
-    - User name and email
-    - Subscription plan and value
-    - Payment failure reason
-    - Number of retry attempts
-    - User's history (subscription length, total paid)
-    - "View User" and "Contact User" CTAs
-  - Sent after 2nd failed retry
-- **Flagged Content Report:**
-  - Sent when message or campaign is flagged
-  - Subject: "Content flagged for review: {Type}"
-  - Contains:
-    - Content type (message or campaign)
-    - Flagged by (user ID or automated system)
-    - Flag reason
-    - Content preview
-    - User/org associated
-    - Timestamp
-    - "Review Content" CTA
-  - Sent immediately
-- **Error Rate Threshold Exceeded:**
-  - Sent when platform error rate spikes
-  - Subject: "URGENT: Error rate threshold exceeded"
-  - Contains:
-    - Error rate (errors per minute)
-    - Most common errors (top 5)
-    - Affected endpoints
-    - Time window
-    - Link to error logs
-    - "View Logs" CTA
-  - Sent immediately, max once per hour
-- **Daily System Summary:**
-  - Sent every day at 8 AM
-  - Subject: "eGp Daily Summary - {Date}"
-  - Contains:
-    - New users (last 24 hours)
-    - New premium subscriptions
-    - Messages sent
-    - Active campaigns
-    - Top issues (if any)
-    - Pending reviews (org applications, flags)
-    - System health indicators
-    - "View Admin Dashboard" CTA
-
-**Technical Requirements:**
-- Org application: Triggered when org submits application
-- Payment failure: Stripe webhook `invoice.payment_failed`, check retry count
-- Flagged content: Triggered when flag is created
-- Error rate: Monitoring system (Sentry, Datadog) webhook
-- Daily summary: Cron job 8 AM UTC
-- Recipients: Query `users` WHERE `role` = 'admin'
-- Critical alerts: Use email service's high-priority delivery
-- Template variables: {orgName}, {userName}, {errorRate}, {flagReason}, {contentPreview}
-
----
 
 ### Email Best Practices & Technical Implementation
 
@@ -1960,5 +1641,594 @@ All user personas receive email notifications for important events and updates. 
   - Update `user_email_preferences` and `email_bounces`
 
 ---
+
+## Post-Launch Phase
+
+**Deferred Features:** These user stories have been moved to post-launch to enable a more manageable 20-week launch with balanced sprint workloads. They will be implemented after the initial launch.
+
+### User Experience Features (Deferred)
+
+#### US-022: Set Political Views by Policy Area (Premium)
+**Story Points:** 8 pts
+**Originally in:** Sprint 3
+**Reason for Deferral:** Complex personalization feature not critical for initial premium offering
+
+**As a** premium user
+**I want to** set my political perspective per policy area
+**So that** my messages are tailored to my views
+
+**Acceptance Criteria:**
+- Set overall political view: Far Left, Center Left, Center/Moderate, Center Right, Far Right
+- Set view for each of 20 policy areas (same spectrum)
+- Slider interface with 5 positions
+- Can click position labels to jump
+- Premium-only (free users: upgrade prompt)
+
+**Technical Requirements:**
+- Store in `users.overall_view` and `users.policy_interests`
+- Each policy: 0-4 (0=Far Left, 4=Far Right)
+- Default: 2 (Center/Moderate)
+
+---
+
+#### US-023: Customized Feed & Email Digest (Premium)
+**Story Points:** 13 pts
+**Originally in:** Sprint 3
+**Reason for Deferral:** Complex algorithm work; basic feed sufficient for launch
+
+**As a** premium user
+**I want** my feed to match my interests and receive email digests
+**So that** I stay informed on issues I care about
+
+**Acceptance Criteria:**
+- **Customized Feed:**
+  - Shows bills from subjects matching user interests (high first)
+  - Includes followed orgs and watched bills
+  - Excludes already acted on bills (unless followed)
+  - Refreshes daily
+  - Can toggle to "All Bills" view
+- **Email Digest:**
+  - Enable/disable digests
+  - Frequency: Daily, Weekly, Monthly
+  - Select topics (based on policy interests)
+  - Content: New bills, watched bill updates, new campaigns
+  - Unsubscribe link in footer
+  - Preview in settings
+
+**Technical Requirements:**
+- Query `bills` by `policy_area` matching interests
+- Join `user_watched_bills`, `user_followed_organizations`
+- Weight by interest level (high=3, medium=2, low=1)
+- Cache personalized feed 1 hour per user
+- Store preferences in `user_email_preferences`
+- Cron jobs for daily/weekly/monthly digests
+
+---
+
+### Admin Features (Deferred)
+
+#### ADMIN-001: View Platform Overview
+**Story Points:** 8 pts
+**Originally in:** Sprint 6
+**Reason for Deferral:** Can use database queries directly for metrics initially
+
+**As an** admin
+**I want to** see high-level platform metrics
+**So that** I can monitor growth and health
+
+**Acceptance Criteria:**
+- **Dashboard Metrics:**
+  - Total users (all time), new users (last 30 days)
+  - Premium subscribers (count), churn rate
+  - Total messages sent (all time), messages (last 30 days)
+  - Total campaigns (active), orgs (active)
+  - MRR (Monthly Recurring Revenue)
+- **Trends (last 90 days):**
+  - New signups per day
+  - Messages sent per day
+  - Revenue per month
+- Export all metrics to CSV
+
+**Technical Requirements:**
+- Aggregate from `users`, `user_subscriptions`, `user_messages`, `campaigns`, `organizations`
+- Cache dashboard data for 10 minutes
+- Generate charts with Recharts
+
+---
+
+#### ADMIN-006: View Analytics & Moderate Messages
+**Story Points:** 13 pts
+**Originally in:** Sprint 7
+**Reason for Deferral:** Low initial message volume; can moderate manually
+
+**As an** admin
+**I want to** see advocacy analytics and moderate messages
+**So that** I can monitor usage and maintain quality
+
+**Acceptance Criteria:**
+- **Advocacy Message Analytics:**
+  - Paginated list of messages (most recent first, 50 per page)
+  - Shows: Date, user, bill, recipients, position, delivery status
+  - Filter: Date range, delivery method, status, bill
+  - Search by user email or bill number
+  - View full message content
+  - Flag inappropriate messages
+- **Flag Inappropriate Content:**
+  - Flag messages with reason
+  - Flagged content hidden from public
+  - User notified with reason
+  - Can unflag after review
+  - Flag history logged
+
+**Technical Requirements:**
+- Messages: Query `user_messages`, join `users`, `bills`, `members`, paginate 50 per page
+- Flag: Set `flagged` = true, `flag_reason`, `flagged_by`, `flagged_at`
+- Export to CSV
+- Flag excludes from public: WHERE `flagged` = false
+
+---
+
+#### ADMIN-007: Manage System Settings
+**Story Points:** 8 pts
+**Originally in:** Sprint 7
+**Reason for Deferral:** Can configure manually via environment variables
+
+**As an** admin
+**I want to** configure system settings and integrations
+**So that** the platform runs correctly
+
+**Acceptance Criteria:**
+- **API Integrations:**
+  - View/edit API keys: Congress.gov, LegiScan, Census, FEC, OpenAI, Stripe
+  - Test API connections
+  - View API usage stats and rate limits
+  - Enable/disable specific integrations
+  - Changes logged in audit log
+- **System Logs:**
+  - Recent errors (last 1000)
+  - Shows: Timestamp, error type, message, stack trace, user (if applicable)
+  - Filter by error type, date range
+  - Search by error message
+  - Export logs (paginate 100 per page)
+- **Email Templates:**
+  - View/edit templates: Welcome, password reset, email verification, subscription confirmation, subscription failed payment, message sent confirmation, weekly digest
+  - Preview email before saving
+  - Supports variables: {firstName}, {resetLink}, etc.
+  - Changes take effect immediately
+  - Version control (edit history)
+- **Audit Log:**
+  - All admin actions: User suspensions, org approvals, refunds, etc.
+  - Shows: Admin user, action type, timestamp, details/reason
+  - Filter by admin user, action type, date range
+  - Export audit log
+
+**Technical Requirements:**
+- API keys: Store in `system_settings` (encrypted)
+- Test connection: Sample API call, return success/failure
+- Track in `api_usage_logs`
+- Error logs: Query `error_logs` (populated by app error handlers), paginate 100 per page
+- Email templates: Store in `email_templates`, use template engine (Handlebars, Mustache), version control (edit history)
+- Audit log: All admin actions log to `admin_audit_log` (fields: admin_user_id, action_type, entity_type, entity_id, details JSONB, created_at)
+
+---
+
+### Email Notifications (Previously Deferred)
+
+**Note:** The following email notification stories were already in the backlog. They remain deferred to post-launch.
+
+**Reason for Deferral:** To focus on transactional email infrastructure only at launch and defer notification emails. This saves 44 story points (EMAIL-003 through EMAIL-009) and reduces Sprint 8 complexity. Transactional emails (EMAIL-001, EMAIL-002) and infrastructure (EMAIL-010) remain in the launch plan.
+
+**Post-Launch Priority:**
+- **Post-Launch Sprint 1** (Weeks 21-22): Core Admin Features (29 pts) - ADMIN-001, ADMIN-006, ADMIN-007
+- **Post-Launch Sprint 2** (Weeks 23-24): Premium Personalization (21 pts) - US-022, US-023
+- **Post-Launch Sprint 3** (Weeks 25-26): Notification Email System (44 pts) - EMAIL-003 through EMAIL-009
+
+**Total Post-Launch Story Points:** 102 points (58 pts newly deferred + 44 pts previously deferred emails)
+
+---
+
+### Deferred Email Notification User Stories
+
+#### EMAIL-003: Watched Bill Updates
+**As a** user watching bills
+**I want to** receive notifications when bills are updated
+**So that** I can stay informed on legislation I care about
+
+**Acceptance Criteria:**
+- **Bill Update Notification:**
+  - Sent when watched bill has new action
+  - Subject: "Update: {Bill Number} - {Latest Action}"
+  - Contains:
+    - Bill title and number
+    - Latest action with date
+    - Status change (if applicable)
+    - Link to full bill details
+    - Summary of change (AI-generated if major action)
+    - Related campaigns (if any)
+    - "View Bill" and "Take Action" CTAs
+  - Delivery timing:
+    - **Immediate mode:** Within 1 hour of action (premium only)
+    - **Daily digest:** Once per day at 9 AM local time (free users)
+    - User can choose frequency in settings
+- **Multiple Bill Updates:**
+  - Grouped into single email if multiple bills updated same day (digest mode)
+  - Shows top 5 most significant updates, link to see all
+- **Unwatch Option:**
+  - Footer includes "Unwatch {Bill Number}" link
+  - One-click unwatch without login
+
+**Technical Requirements:**
+- Cron job: Check `bills` for `last_action_date` changes daily (6 AM UTC)
+- Match against `user_watched_bills`
+- Premium: Send immediately after detecting update
+- Free: Aggregate updates, send digest at user's local 9 AM (timezone from profile)
+- Store last notification date in `user_watched_bills.last_notification_sent`
+- Don't send duplicate notifications
+- Template variables: {billNumber}, {billTitle}, {latestAction}, {actionDate}, {billLink}, {unwatchLink}
+- Respect user preferences: `user_email_preferences.bill_updates_enabled`, `bill_updates_frequency`
+
+**Story Points:** 8
+**Deferred to:** Post-Launch Sprint (Weeks 21-22)
+
+---
+
+#### EMAIL-004: New Campaigns from Followed Organizations
+**As a** user following organizations
+**I want to** be notified when they launch new campaigns
+**So that** I can take action on causes I support
+
+**Acceptance Criteria:**
+- **New Campaign Notification:**
+  - Sent when followed org creates new campaign
+  - Subject: "{Organization Name} launched a new campaign"
+  - Contains:
+    - Organization name and logo
+    - Campaign title
+    - Bill/issue: Title and number
+    - Organization's position (Support/Oppose)
+    - Brief reasoning (first 2-3 sentences)
+    - Campaign start and end dates
+    - "Take Action" primary CTA
+    - "View Campaign Details" link
+    - "Unfollow {Org Name}" link in footer
+  - Delivery timing:
+    - **Immediate mode:** Within 1 hour of campaign launch (premium)
+    - **Weekly digest:** Friday 10 AM local time with all new campaigns (free)
+- **Multiple Campaign Launches:**
+  - Grouped digest for free users (all new campaigns from followed orgs that week)
+  - Individual emails for premium users (one per campaign launch)
+
+**Technical Requirements:**
+- Trigger: After campaign created with status = 'active'
+- Query `user_followed_organizations` for org followers
+- Check user tier: Premium = immediate, Free = weekly digest
+- Weekly digest cron: Friday 10 AM per user timezone
+- Store in `campaign_notifications` to avoid duplicates
+- Template variables: {orgName}, {orgLogo}, {campaignTitle}, {billTitle}, {position}, {reasoning}, {campaignLink}, {unfollowLink}
+- Respect preferences: `user_email_preferences.org_campaigns_enabled`
+
+**Story Points:** 5
+**Deferred to:** Post-Launch Sprint (Weeks 21-22)
+
+---
+
+#### EMAIL-005: Premium Membership & Payment Emails
+**As a** premium user
+**I want to** receive payment confirmations and renewal notices
+**So that** I can manage my subscription
+
+**Acceptance Criteria:**
+- **Subscription Confirmation:**
+  - Sent after successful first payment
+  - Subject: "Welcome to eGp Premium!"
+  - Contains:
+    - Thank you message
+    - Premium benefits recap
+    - Subscription details: Plan (Quarterly), price ($6), next billing date
+    - Receipt/invoice link (Stripe)
+    - Link to manage subscription
+    - Customer support contact
+- **Payment Success (Renewal):**
+  - Sent after each successful renewal payment
+  - Subject: "eGp Premium subscription renewed"
+  - Contains:
+    - Payment amount and date
+    - Next billing date
+    - Receipt link
+    - Manage subscription link
+- **Payment Failed:**
+  - Sent when payment fails
+  - Subject: "Action required: Payment failed for eGp Premium"
+  - Contains:
+    - Payment failure reason
+    - Retry schedule (Stripe handles 3-4 retries over 2 weeks)
+    - "Update Payment Method" CTA (primary, urgent)
+    - Grace period info (access until retry period ends)
+    - Customer support contact
+  - Follow-up reminders: Day 3, Day 7, Day 14 (final warning)
+- **Subscription Canceled:**
+  - Sent when user cancels or subscription ends
+  - Subject: "Your eGp Premium subscription has ended"
+  - Contains:
+    - Cancellation date
+    - End of billing period (last day of access)
+    - What you'll lose (features downgraded to free)
+    - "Resubscribe" CTA
+    - Feedback survey link (why did you cancel?)
+- **Subscription Expiring Soon:**
+  - Sent 7 days before subscription ends (if canceled but still in paid period)
+  - Subject: "Your eGp Premium membership expires in 7 days"
+  - Contains:
+    - Expiration date
+    - Premium benefits you'll lose
+    - "Renew Subscription" CTA
+    - Reminder: No further charges after expiration
+
+**Technical Requirements:**
+- Stripe webhooks trigger emails:
+  - `checkout.session.completed` → Subscription Confirmation
+  - `invoice.payment_succeeded` → Payment Success
+  - `invoice.payment_failed` → Payment Failed
+  - `customer.subscription.deleted` → Subscription Canceled
+- Expiring soon: Cron job checks subscriptions with `cancel_at_period_end` = true
+- All emails link to Stripe Customer Portal or internal `/membership` page
+- Include Stripe invoice PDF link
+- Store email send status in `subscription_emails`
+- Unsubscribe: Not applicable (transactional, legally required)
+
+**Story Points:** 8
+**Deferred to:** Post-Launch Sprint (Weeks 21-22)
+
+---
+
+#### EMAIL-006: Weekly/Monthly Digest (Premium)
+**As a** premium user
+**I want to** receive periodic digests of activity
+**So that** I stay engaged without constant notifications
+
+**Acceptance Criteria:**
+- **Digest Email:**
+  - Frequency options: Daily (premium only), Weekly (default), Monthly, Never
+  - Subject: "Your eGp weekly digest - {X} new bills & {Y} campaign updates"
+  - Contains:
+    - **New Bills in Your Interests:**
+      - Top 5 most relevant bills based on policy interests
+      - Each shows: Bill number, title, latest action, "View Bill" link
+    - **Watched Bill Updates:**
+      - All updates to watched bills this week
+      - Grouped by bill
+    - **New Campaigns from Followed Orgs:**
+      - All new campaigns launched this week
+      - Shows: Org name, bill/issue, position, "Take Action" CTA
+    - **Your Activity Summary:**
+      - Messages sent this week
+      - Bills you engaged with
+      - "View Dashboard" link
+    - **Trending Bills:**
+      - Top 3 most engaged bills across platform
+    - **Recommended Actions:**
+      - Personalized suggestions based on activity
+  - Delivery time: User's local 9 AM, day depends on frequency setting
+  - Skip sending if no updates (no empty digests)
+- **Customization:**
+  - User can toggle sections on/off
+  - Can change frequency anytime in settings
+  - Can unsubscribe (stops all digest emails)
+
+**Technical Requirements:**
+- Cron jobs: Daily (9 AM UTC + timezone offset), Weekly (Monday 9 AM), Monthly (1st of month 9 AM)
+- Query user's interests from `users.policy_interests`
+- Fetch new bills in those policy areas since last digest
+- Query `user_watched_bills` for updates
+- Query `user_followed_organizations` for new campaigns
+- Aggregate `user_messages` for activity summary
+- Store last digest sent in `user_email_preferences.last_digest_sent_at`
+- Skip if no content AND `user_email_preferences.send_empty_digests` = false
+- Template: Responsive design, supports sections
+- Variables: {billsList}, {watchedUpdates}, {newCampaigns}, {activitySummary}, {trendingBills}
+- Respect: `user_email_preferences.digest_enabled`, `digest_frequency`, `digest_sections`
+
+**Story Points:** 8
+**Deferred to:** Post-Launch Sprint (Weeks 21-22)
+
+---
+
+### Deferred Organization Email Notifications
+
+#### EMAIL-007: Campaign Performance Summaries
+**As an** organization user
+**I want to** receive campaign performance summaries
+**So that** I can track engagement without logging in daily
+
+**Acceptance Criteria:**
+- **Weekly Campaign Report:**
+  - Sent every Monday at 10 AM to all org admins and editors
+  - Subject: "{Organization Name} - Weekly campaign report"
+  - Contains:
+    - **Overview:**
+      - Total actions this week across all campaigns
+      - Total messages sent
+      - New supporters count
+      - Week-over-week growth percentage
+    - **Top Performing Campaigns:**
+      - Top 3 campaigns by actions this week
+      - Shows: Campaign name, actions, messages, engagement rate
+      - "View Analytics" link for each
+    - **Active Campaigns Summary:**
+      - List of all active campaigns with key metrics
+      - Status indicators (on track, needs attention)
+    - **Recommendations:**
+      - Suggested actions (e.g., "Campaign XYZ engagement dropped 20%")
+      - Best practices tips
+    - "View Full Dashboard" CTA
+  - Only sent if org has at least one active campaign
+- **Campaign Milestone Notifications:**
+  - Sent when campaign reaches milestones:
+    - 100, 500, 1,000, 5,000, 10,000+ actions
+  - Subject: "{Campaign Name} reached {milestone} actions!"
+  - Contains:
+    - Congratulations message
+    - Current metrics snapshot
+    - Top demographics engaged
+    - Social share suggestions
+    - "View Campaign Analytics" CTA
+
+**Technical Requirements:**
+- Weekly report cron: Sunday 11 PM UTC, sends Monday morning per org timezone
+- Query `campaign_actions` filtered by org and date range
+- Calculate metrics: Total actions, new actions this week, growth percentage
+- Identify top campaigns by `action_count DESC LIMIT 3`
+- Milestone trigger: After action count crosses threshold, check `campaign_milestones_sent` to avoid duplicates
+- Recipients: Query `user_organizations` WHERE `role` IN ('admin', 'editor')
+- Template variables: {orgName}, {totalActions}, {newActions}, {growthPercent}, {topCampaigns}, {activeCampaigns}
+- Store: `org_email_notifications.last_weekly_report_sent`
+
+**Story Points:** 5
+**Deferred to:** Post-Launch Sprint (Weeks 21-22)
+
+---
+
+#### EMAIL-008: Team & Campaign Management Notifications
+**As an** organization user
+**I want to** receive notifications about team and campaign changes
+**So that** I stay informed about important updates
+
+**Acceptance Criteria:**
+- **Team Member Invitation:**
+  - Sent to invitee email
+  - Subject: "You've been invited to join {Organization Name} on eGp"
+  - Contains:
+    - Invitation from {Admin Name}
+    - Organization name and description
+    - Role being offered (Admin or Editor)
+    - "Accept Invitation" CTA (signup/login link with token)
+    - Invitation expires in 7 days
+    - What you'll be able to do (role permissions)
+- **Team Member Joined:**
+  - Sent to all org admins
+  - Subject: "{New Member Name} joined {Organization Name}"
+  - Contains:
+    - New member name and email
+    - Role assigned
+    - Date joined
+    - "View Team" link
+- **Campaign Suspended by Admin:**
+  - Sent to all org admins and the campaign creator
+  - Subject: "Your campaign was suspended: {Campaign Name}"
+  - Contains:
+    - Campaign name and link
+    - Suspension reason (from admin)
+    - Date suspended
+    - What this means (hidden from public, no new actions)
+    - Contact support if you believe this was in error
+    - Support email/link
+- **Campaign Reactivated by Admin:**
+  - Sent to all org admins
+  - Subject: "Your campaign was reactivated: {Campaign Name}"
+  - Contains:
+    - Campaign name and link
+    - Reactivation date
+    - Campaign is now visible again
+    - "View Campaign" CTA
+
+**Technical Requirements:**
+- Team invitation: Triggered when org admin creates invitation
+- Store token in `organization_invitations`, expire after 7 days
+- Team joined: Triggered after user accepts invitation and joins org
+- Campaign suspended/reactivated: Triggered by admin action via webhook
+- Recipients: Query `user_organizations` WHERE `organization_id` = ? AND `role` = 'admin'
+- Template variables: {orgName}, {memberName}, {role}, {campaignName}, {suspensionReason}, {inviteLink}
+
+**Story Points:** 5
+**Deferred to:** Post-Launch Sprint (Weeks 21-22)
+
+---
+
+### Deferred Admin Email Notifications
+
+#### EMAIL-009: System Alerts & Moderation Notifications
+**As an** admin
+**I want to** receive critical system alerts
+**So that** I can respond quickly to issues
+
+**Acceptance Criteria:**
+- **New Organization Application:**
+  - Sent when new org applies to join platform
+  - Subject: "New organization application: {Organization Name}"
+  - Contains:
+    - Organization name
+    - Contact info (name, email, phone)
+    - Organization type (501c3, 501c4, etc.)
+    - EIN (Tax ID)
+    - Description and mission
+    - Website and social links
+    - Application date
+    - "Review Application" CTA (link to `/admin/organizations`)
+  - Sent immediately
+  - Recipients: All admins with `review_applications` permission
+- **Payment Failure Alert (High Value):**
+  - Sent when high-value subscriber payment fails (premium annual plan)
+  - Subject: "Premium payment failed: {User Name}"
+  - Contains:
+    - User name and email
+    - Subscription plan and value
+    - Payment failure reason
+    - Number of retry attempts
+    - User's history (subscription length, total paid)
+    - "View User" and "Contact User" CTAs
+  - Sent after 2nd failed retry
+- **Flagged Content Report:**
+  - Sent when message or campaign is flagged
+  - Subject: "Content flagged for review: {Type}"
+  - Contains:
+    - Content type (message or campaign)
+    - Flagged by (user ID or automated system)
+    - Flag reason
+    - Content preview
+    - User/org associated
+    - Timestamp
+    - "Review Content" CTA
+  - Sent immediately
+- **Error Rate Threshold Exceeded:**
+  - Sent when platform error rate spikes
+  - Subject: "URGENT: Error rate threshold exceeded"
+  - Contains:
+    - Error rate (errors per minute)
+    - Most common errors (top 5)
+    - Affected endpoints
+    - Time window
+    - Link to error logs
+    - "View Logs" CTA
+  - Sent immediately, max once per hour
+- **Daily System Summary:**
+  - Sent every day at 8 AM
+  - Subject: "eGp Daily Summary - {Date}"
+  - Contains:
+    - New users (last 24 hours)
+    - New premium subscriptions
+    - Messages sent
+    - Active campaigns
+    - Top issues (if any)
+    - Pending reviews (org applications, flags)
+    - System health indicators
+    - "View Admin Dashboard" CTA
+
+**Technical Requirements:**
+- Org application: Triggered when org submits application
+- Payment failure: Stripe webhook `invoice.payment_failed`, check retry count
+- Flagged content: Triggered when flag is created
+- Error rate: Monitoring system (Sentry, Datadog) webhook
+- Daily summary: Cron job 8 AM UTC
+- Recipients: Query `users` WHERE `role` = 'admin'
+- Critical alerts: Use email service's high-priority delivery
+- Template variables: {orgName}, {userName}, {errorRate}, {flagReason}, {contentPreview}
+
+**Story Points:** 5
+**Deferred to:** Post-Launch Sprint (Weeks 21-22)
+
+---
+
+**Total Deferred Story Points:** 44 points (EMAIL-003 through EMAIL-009)
+**Launch Story Points Saved:** Sprint 8 reduced from 65 to 21 points
 
 **End of Document**

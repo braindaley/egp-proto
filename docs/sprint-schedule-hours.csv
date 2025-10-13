@@ -1,0 +1,97 @@
+Sprint,User Story ID,User Story Name,Story Points,UX Hours,FE Hours,BE Hours,PM Hours,TL Hours,Total Hours
+Sprint 0,US-017,Create Account (Post-Message Flow),9,8,12,8,4,4,36
+Sprint 0,US-018,Login & Password Reset,5,4,8,4,4,0,20
+Sprint 0,US-019,Update Profile & Set Location,5,4,8,8,4,0,24
+Sprint 0,US-004,View Federal Bill Details (Basic),8,8,12,12,4,8,44
+Sprint 0,INFRA,Infrastructure Setup,13,8,12,12,8,20,60
+Sprint 0 Total,,,40,32,52,44,24,32,184
+,,,,,,,,,
+Sprint 1,US-001,View Home Feed with Filters (MVP),13,8,20,20,8,8,64
+Sprint 1,US-002,Browse Policy-Specific Content,8,4,12,12,4,4,36
+Sprint 1,US-003,Browse Federal Bills by Category,5,4,8,8,4,0,24
+Sprint 1,US-009,Browse Organizations,3,4,4,4,4,0,16
+Sprint 1,US-010,View Organization Profile,5,4,8,8,4,0,24
+Sprint 1,US-015,View Dashboard Overview,8,8,12,12,4,0,36
+Sprint 1 Total,,,42,32,64,64,28,12,200
+,,,,,,,,,
+Sprint 2,US-013,Send Advocacy Message - Basic Flows,13,12,20,20,8,8,68
+Sprint 2,US-014,AI-Assisted Message Drafting,8,4,8,20,4,8,44
+Sprint 2,US-006,View Grouped News Story,8,8,12,12,4,4,40
+Sprint 2,US-007,View AI News Overview,5,4,8,12,4,0,32
+Sprint 2,US-008,Take Action from News Story,3,4,4,4,4,0,16
+Sprint 2,US-005,View Texas State Bill Details,5,4,4,8,4,4,24
+Sprint 2 Total,,,42,36,56,76,28,24,224
+,,,,,,,,,
+Sprint 3,US-016,Verify Voter Registration (L2 Political),13,8,20,20,8,8,64
+Sprint 3,US-020,View & Subscribe to Premium Membership,13,8,20,20,8,8,64
+Sprint 3,US-021,Manage Subscription,8,4,12,12,4,4,36
+Sprint 3,US-024,View Advocacy Impact Analytics (Premium),5,4,8,8,4,0,24
+Sprint 3 Total,,,39,24,60,60,24,20,188
+,,,,,,,,,
+Sprint 4,ORG-001,Organization Login & Team Management,8,8,12,12,4,4,40
+Sprint 4,ORG-002,View & Edit Organization Profile,5,4,8,8,4,4,28
+Sprint 4,ORG-003,Create Campaign (Bill/Issue/Candidate),21,12,32,32,12,12,100
+Sprint 4,US-013,Send Message - Campaign Flow,5,4,8,8,4,0,24
+Sprint 4,US-013,Send Message - Remaining Flows,5,4,8,4,4,0,20
+Sprint 4 Total,,,44,32,68,64,28,20,212
+,,,,,,,,,
+Sprint 5,ORG-004,Edit & Pause Campaigns,8,4,12,12,4,4,36
+Sprint 5,ORG-007,Copy Campaign Link,2,4,4,4,4,0,16
+Sprint 5,ORG-005,Campaign Performance Analytics with L2,21,12,32,32,12,12,100
+Sprint 5,ORG-006,View Campaign Emails & Message Count,8,4,12,12,4,4,40
+Sprint 5,DOC-001,Design System Documentation Foundations,2,4,0,0,0,4,8
+Sprint 5 Total,,,41,28,60,60,24,24,200
+,,,,,,,,,
+Sprint 6,ADMIN-002,Manage Users,13,8,20,20,8,8,64
+Sprint 6,ADMIN-003,Manage Organizations,8,4,12,12,4,4,36
+Sprint 6,ADMIN-005,Manage & Suspend Campaigns,8,4,12,12,4,4,36
+Sprint 6,EMAIL-010,Email Infrastructure & Deliverability,13,4,8,32,8,20,64
+Sprint 6,DOC-002,Technical Runbooks & Deployment Guides,3,0,0,4,0,8,12
+Sprint 6 Total,,,45,20,52,80,24,44,212
+,,,,,,,,,
+Sprint 7,ADMIN-004,Manage Subscriptions & Payments,13,8,20,20,8,8,64
+Sprint 7,PERF,Performance Optimization,13,8,20,20,8,20,76
+Sprint 7,TEST,Cross-Browser & Mobile Testing,8,8,12,0,20,0,40
+Sprint 7,EMAIL-001,Account Creation & Verification,5,4,4,12,4,0,24
+Sprint 7,EMAIL-002,Advocacy Message Confirmations,3,4,0,8,4,0,16
+Sprint 7,DOC-003,Support Content & QA Checklists,3,0,0,0,12,0,12
+Sprint 7 Total,,,45,32,56,60,56,28,232
+,,,,,,,,,
+Sprint 8,SEC,Security Review & Hardening,8,0,0,12,8,20,40
+Sprint 8,BUGS,Bug Fixes & Polish,13,8,20,20,20,8,76
+Sprint 8,LAUNCH,Launch Preparation,8,0,0,8,12,20,40
+Sprint 8 Total,,,29,8,20,40,40,48,156
+,,,,,,,,,
+PROJECT TOTAL,,,367,244,488,548,276,252,1808
+,,,,,,,,,
+AVERAGES,,,,,,,,,
+Average per Sprint,,,40.8,27.1,54.2,60.9,30.7,28.0,200.9
+Average per Week,,,20.4,13.6,27.1,30.4,15.3,14.0,100.4
+,,,,,,,,,
+PEAK ANALYSIS,,,,,,,,,
+Peak Sprint,,,Sprint 6-7 (45 pts),Sprint 2 (36),Sprint 4 (68),Sprint 6 (80),Sprint 7 (56),Sprint 8 (48),
+Peak Hours in Sprint,,,,36,68,80,56,48,
+Peak Hours per Week,,,,18,34,40,28,24,
+,,,,,,,,,
+DISTRIBUTION,,,,,,,,,
+Percentage of Total,,,,13.50%,27.00%,30.30%,15.30%,13.90%,100%
+FTE Equivalent (40hr/wk),,,,0.34,0.68,0.76,0.38,0.35,2.51
+,,,,,,,,,
+POST-LAUNCH FEATURES,,,,,,,,,
+Post-Launch,US-022,Set Political Views (Premium),8,8,12,8,4,4,36
+Post-Launch,US-023,Customized Feed & Digest (Premium),13,8,20,20,8,8,64
+Post-Launch,US-012,Watch Bills,5,4,8,8,4,0,24
+Post-Launch,ADMIN-001,View Platform Overview,8,8,12,12,4,0,36
+Post-Launch,ADMIN-006,View Analytics & Moderate Messages,13,8,20,20,8,8,64
+Post-Launch,ADMIN-007,Manage System Settings,8,4,12,12,4,4,40
+Post-Launch,US-011,Follow Organizations,3,4,4,4,4,0,16
+Post-Launch Total,,,58,44,88,84,36,24,280
+,,,,,,,,,
+NOTES,,,,,,,,,
+"1. Conversion rate: 1 story point = 4-6 hours depending on complexity",,,,,,,,,
+"2. UX hours include design, prototyping, and design reviews",,,,,,,,,
+"3. FE hours include component development, styling, and integration",,,,,,,,,
+"4. BE hours include API development, database work, and integrations",,,,,,,,,
+"5. PM hours include testing, documentation, and stakeholder communication",,,,,,,,,
+"6. TL hours include architecture, code reviews, and infrastructure setup",,,,,,,,,
+"7. Some overlap exists between roles (pair programming, reviews, etc.)",,,,,,,,,

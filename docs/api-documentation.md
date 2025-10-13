@@ -2,15 +2,15 @@
 
 This document provides comprehensive API specifications for the backend team to implement the advocacy platform with PostgreSQL database.
 
-**Version:** 1.0
-**Last Updated:** 2025-10-08
+**Version:** 1.1
+**Last Updated:** 2025-10-13
 
 ---
 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Authentication & Authorization](#authentication--authorization)
+2. [Authentication &amp; Authorization](#authentication--authorization)
 3. [External API Integrations](#external-api-integrations)
 4. [Backend API Endpoints](#backend-api-endpoints)
 5. [Stripe Integration](#stripe-integration)
@@ -24,6 +24,7 @@ This document provides comprehensive API specifications for the backend team to 
 ## Overview
 
 ### Architecture
+
 - **Frontend:** Next.js 15 (React, TypeScript, Tailwind CSS)
 - **Backend:** RESTful API (Node.js/Express recommended, or your choice)
 - **Database:** PostgreSQL 14+ (AWS RDS)
@@ -35,11 +36,19 @@ This document provides comprehensive API specifications for the backend team to 
 - **Hosting:** AWS (EC2, ECS, or Lambda)
 - **CDN:** AWS CloudFront
 
+### Launch Scope Notes
+
+- Transactional emails only at launch (account verification, message confirmations); notification digests and marketing flows defer to post-launch.
+- AI-assisted drafting and summaries ship in Sprint 2; until then, endpoints should return `501` to indicate not yet available.
+- All external data sources route through backend services—no direct frontend calls.
+
 ### Base URL
+
 - Development: `http://localhost:3000/api`
 - Production: `https://api.yourdomain.com`
 
 ### Response Format
+
 All API responses follow this structure:
 
 ```json
@@ -57,6 +66,7 @@ All API responses follow this structure:
 ```
 
 Error responses:
+
 ```json
 {
   "success": false,
@@ -76,6 +86,7 @@ Error responses:
 ### Auth0 Integration
 
 **Authentication Flow:**
+
 1. Frontend redirects to Auth0 Universal Login
 2. User authenticates (email/password, Google, social)
 3. Auth0 redirects back with authorization code
@@ -84,6 +95,7 @@ Error responses:
 6. Backend issues session or passes Auth0 token to frontend
 
 **Auth0 Configuration:**
+
 - **Domain:** `your-tenant.auth0.com`
 - **Client ID:** From Auth0 Application
 - **Client Secret:** From Auth0 Application
@@ -110,6 +122,7 @@ Error responses:
 ```
 
 **Custom Claims (added via Auth0 Rules/Actions):**
+
 ```json
 {
   "https://yourapp.com/role": "user|organization|admin",
@@ -121,9 +134,11 @@ Error responses:
 ### Authentication Endpoints
 
 #### GET /auth/callback
+
 Auth0 callback endpoint (handled by Auth0 SDK).
 
 **Query Parameters:**
+
 - `code`: Authorization code from Auth0
 - `state`: CSRF protection state
 
@@ -131,6 +146,7 @@ Auth0 callback endpoint (handled by Auth0 SDK).
 Redirect to frontend with session cookie or token.
 
 **Business Logic:**
+
 - Exchange authorization code for tokens via Auth0
 - Validate Auth0 JWT token
 - Look up user by Auth0 `sub` in database
@@ -142,9 +158,11 @@ Redirect to frontend with session cookie or token.
 ---
 
 #### POST /auth/link-anonymous-session
+
 Link anonymous message to newly created account.
 
 **Request:**
+
 ```json
 {
   "sessionToken": "anonymous-session-uuid"
@@ -152,6 +170,7 @@ Link anonymous message to newly created account.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -163,6 +182,7 @@ Link anonymous message to newly created account.
 ```
 
 **Business Logic:**
+
 - Verify user is authenticated (Auth0 token)
 - Look up messages with `session_token` = sessionToken
 - Update `user_messages.user_id` = current user ID
@@ -173,11 +193,13 @@ Link anonymous message to newly created account.
 ### Authorization Middleware
 
 All protected endpoints require:
+
 ```
 Authorization: Bearer {auth0_jwt_token}
 ```
 
 **Backend Validation:**
+
 1. Validate JWT signature using Auth0 public key (JWKS)
 2. Verify `iss` (issuer) matches Auth0 domain
 3. Verify `aud` (audience) matches API identifier
@@ -186,14 +208,17 @@ Authorization: Bearer {auth0_jwt_token}
 6. Check user role from custom claims or database
 
 **Role-Based Access:**
+
 - `user` role: Access to regular user endpoints
 - `organization` role: Access to `/partners/*` endpoints
 - `admin` role: Access to `/admin/*` endpoints
 
 **Auth0 SDK Libraries:**
+
 - Node.js: `express-oauth2-jwt-bearer`
 - Python: `python-jose`, `authlib`
 - Example middleware:
+
 ```javascript
 const { auth } = require('express-oauth2-jwt-bearer');
 
@@ -209,11 +234,25 @@ app.use('/api', checkJwt);
 
 ## External API Integrations
 
+### Integration Roadmap (Launch Plan)
+
+The sprint schedule (see `docs/sprint-schedule-detailed.md`) defines when each external service comes online. Backend work should follow this order so frontend features unblock on schedule.
+
+| Sprint   | Services                                                    | Purpose                                                         |
+| -------- | ----------------------------------------------------------- | --------------------------------------------------------------- |
+| Sprint 0 | Auth0, PostgreSQL (AWS RDS), Congress.gov API, Geocodio API | Core auth, persistence, and federal data ingestion              |
+| Sprint 1 | FEC API                                                     | Campaign finance data for member and bill views                 |
+| Sprint 2 | LegiScan API, AWS Bedrock Agent                             | Texas state legislation feed and AI-assisted drafting/summaries |
+| Sprint 3 | Stripe API                                                  | Premium membership purchase and management                      |
+| Sprint 4 | L2 Political API, AWS S3                                    | Voter verification flows and asset uploads for org campaigns    |
+| Sprint 6 | AWS SES                                                     | Production-ready transactional email delivery                   |
+
 ### Policy Area Mapping System
 
 The platform uses a mapping system to translate external API policy classifications into our standardized 20 policy categories. This ensures consistent categorization across Congress.gov, LegiScan, and user preferences.
 
 **Site Policy Categories (20 total):**
+
 1. Abortion
 2. Climate, Energy & Environment
 3. Criminal Justice
@@ -242,6 +281,7 @@ The platform uses a mapping system to translate external API policy classificati
 Congress.gov uses ~50 broad policy areas. We map these to our 20 categories.
 
 **Complete Mapping Table:**
+
 ```javascript
 {
   // Climate, Energy & Environment
@@ -307,6 +347,7 @@ Congress.gov uses ~50 broad policy areas. We map these to our 20 categories.
 **Note:** Some policy areas not listed above (like ~20 more Congress.gov categories) may default to 'National Conditions' or require manual categorization.
 
 **Usage:**
+
 ```javascript
 import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 
@@ -317,6 +358,7 @@ const category = mapPolicyAreaToSiteCategory('Environmental Protection');
 
 **Special Cases:**
 Some categories require content analysis as they're subsets of broader Congress.gov categories:
+
 - Abortion (subset of Health)
 - Death Penalty (subset of Crime and Law Enforcement)
 - Drug Policy (subset of Health and Crime)
@@ -331,6 +373,7 @@ For these, use bill title/summary analysis or legislative subject tags.
 LegiScan uses state-specific subject tags that vary by state. Below is the complete mapping for Texas subjects as an example. Other states use similar subjects but with different agency names.
 
 **Texas (TX) Subject Mapping:**
+
 ```javascript
 {
   // Climate, Energy & Environment
@@ -537,11 +580,13 @@ LegiScan uses state-specific subject tags that vary by state. Below is the compl
 ```
 
 **Notes for Other States:**
+
 - Replace Texas-specific agency names (e.g., "TEXAS DEPARTMENT OF") with your state's equivalents
 - Generic subjects (e.g., "Education", "Health", "Crime") map the same across all states
 - Some states may have unique subjects not listed here - map them to the closest category
 
 **Usage:**
+
 ```javascript
 import { mapLegiscanSubjectToSiteCategory } from '@/lib/policy-area-mapping';
 
@@ -555,6 +600,7 @@ const category = mapLegiscanSubjectToSiteCategory('ENERGY/CONSERVATION');
 User policy interests use camelCase keys that map to display categories.
 
 **Complete Mapping Table:**
+
 ```javascript
 {
   abortion: 'Abortion',
@@ -581,6 +627,7 @@ User policy interests use camelCase keys that map to display categories.
 ```
 
 Each user interest stores a value 0-4:
+
 - 0 = Far Left
 - 1 = Center Left
 - 2 = Center/Moderate (default)
@@ -588,6 +635,7 @@ Each user interest stores a value 0-4:
 - 4 = Far Right
 
 **Usage:**
+
 ```javascript
 import { getUserInterestForCategory } from '@/lib/policy-area-mapping';
 
@@ -602,6 +650,7 @@ const interest = getUserInterestForCategory(
 #### Helper Functions
 
 **Get all policy areas for a category:**
+
 ```javascript
 import { getPolicyAreasForSiteCategory } from '@/lib/policy-area-mapping';
 
@@ -610,6 +659,7 @@ const congressAreas = getPolicyAreasForSiteCategory('Climate, Energy & Environme
 ```
 
 **Get all LegiScan subjects for a category:**
+
 ```javascript
 import { getLegiscanSubjectsForSiteCategory } from '@/lib/policy-area-mapping';
 
@@ -628,6 +678,7 @@ const subjects = getLegiscanSubjectsForSiteCategory('Criminal Justice');
 #### Endpoints to Integrate:
 
 **Get Bills**
+
 ```
 GET /bill/{congress}
 Parameters:
@@ -638,36 +689,42 @@ Parameters:
 ```
 
 **Get Bill Detail**
+
 ```
 GET /bill/{congress}/{billType}/{billNumber}
 Returns: Full bill data including sponsors, cosponsors, committees, actions, etc.
 ```
 
 **Get Member Details**
+
 ```
 GET /member/{bioguideId}
 Returns: Member profile, terms, contact info
 ```
 
 **Get Member Votes**
+
 ```
 GET /member/{bioguideId}/votes
 Returns: Voting record
 ```
 
 **Get Committee Details**
+
 ```
 GET /committee/{chamber}/{systemCode}
 Returns: Committee members, subcommittees, jurisdiction
 ```
 
 **Caching Strategy:**
+
 - Bills: Cache for 1 hour
 - Bill details: Cache for 6 hours
 - Members: Cache for 24 hours
 - Votes: Cache for 12 hours
 
 **Sync Schedule:**
+
 - Sync new bills: Every 6 hours
 - Update bill statuses: Every 12 hours
 - Full member sync: Weekly (Sunday 2 AM)
@@ -683,57 +740,151 @@ Returns: Committee members, subcommittees, jurisdiction
 #### Endpoints to Integrate:
 
 **Get State Bill List**
+
 ```
 GET /?key={key}&op=getDatasetList&state={state}
 Returns: List of recent bills for a state
 ```
 
 **Get Bill Details**
+
 ```
 GET /?key={key}&op=getBill&id={billId}
 Returns: Full state bill details
 ```
 
 **Get State Legislators**
+
 ```
 GET /?key={key}&op=getDataset&id={datasetId}&type=person
 Returns: State legislators
 ```
 
 **Caching Strategy:**
+
 - State bills: Cache for 6 hours
 - State bill details: Cache for 24 hours
 - State legislators: Cache for 7 days
 
 **Sync Schedule:**
+
 - Sync state bills: Daily at 3 AM
 - Update bill statuses: Daily at 9 AM
 
 ---
 
-### 3. Census Bureau API (DataUSA)
+### 3. Geocodio API (District Mapping)
 
-**Base URL:** `https://datausa.io/api`
-**No authentication required**
+**Base URL:** `https://api.geocod.io/v1.7`
+**Authentication:** API key via query parameter `api_key={key}`
 
 #### Endpoints to Integrate:
 
-**Get Congressional District Demographics**
+**ZIP or Address → Congressional & State Districts**
+
 ```
-GET /data?drilldowns=Congressional District&measures=Population
+GET /v1.7/geocode?q={encodedAddressOrZip}&fields=cd,stateleg&api_key={key}
 ```
 
-**Get State Demographics**
-```
-GET /data?drilldowns=State&measures=Population,Median Age,Median Household Income
+**Sample Response (ZIP only):**
+
+```json
+{
+  "results": [
+    {
+      "query": "62701",
+      "address_components": {
+        "zip": "62701",
+        "city": "Springfield",
+        "state": "IL"
+      },
+      "fields": {
+        "congressional_districts": [
+          {
+            "name": "IL-13",
+            "district_number": 13,
+            "ocd_id": "ocd-division/country:us/state:il/cd:13",
+            "current_legislators": [
+              { "type": "representative", "name": "Nikki Budzinski", "bioguide_id": "B001315" }
+            ]
+          }
+        ],
+        "state_legislative_districts": {
+          "house": { "name": "District 95", "district_number": 95 },
+          "senate": { "name": "District 48", "district_number": 48 }
+        }
+      }
+    }
+  ]
+}
 ```
 
 **Caching Strategy:**
-- Cache for 30 days (demographics change slowly)
+
+- Cache results for 7 days; zip-to-district mappings rarely change.
+- Persist the most recent lookup in `geo_district_cache` with `zip`, `lat`, `lng`, `cd`, `state_house`, `state_senate`.
+
+**Usage Notes:**
+
+- Sprint 0 requirement for US-019 (profile setup).
+- Fallback: if Geocodio returns multiple results, pick highest confidence or prompt user to refine address.
+- Respect Geocodio's rate limits (default 1,000 requests/day); batch common ZIP lookups via nightly job if needed.
 
 ---
 
-### 4. FEC API (Campaign Finance)
+### 4. AWS Bedrock Agent (AI Messaging & Summaries)
+
+**Service:** AWS Bedrock Converse/Agents
+**Region:** `us-east-1` (set via `AWS_BEDROCK_REGION`)
+
+Used for Sprint 2 (US-014) message drafting and AI summaries on bill/news detail pages.
+
+#### Invocation Pattern
+
+```
+POST https://bedrock-runtime.{region}.amazonaws.com/agents/{agentId}/invocations
+Headers:
+  Authorization: AWS SigV4
+  Content-Type: application/json
+
+{
+  "sessionId": "{uuid}",
+  "inputText": "Summarize HR1 for a general audience..."
+}
+```
+
+**Sample Response:**
+
+```json
+{
+  "completion": {
+    "content": [
+      { "text": "Headline: Election Reform and Campaign Finance Bill" },
+      { "text": "Explainer: ..." }
+    ]
+  },
+  "sessionId": "bedrock-session-123",
+  "stopReason": "end_turn"
+}
+```
+
+#### Usage Guidelines
+
+- Configure an agent prompt with allowed tools (bill context, news context).
+- For message drafting, include user stance, recipient metadata, and bill summary in the prompt.
+- Enforce token/word caps (<= 1500 characters output) before returning to client.
+- Log prompts/responses for moderation and future tuning (store in `ai_drafts`).
+
+#### Caching & Cost Controls
+
+- Cache bill/news summaries for 24 hours in Redis (`ai:summary:{entityId}`).
+- Cache AI-generated talking points for campaigns for 6 hours.
+- Limit each user to 5 AI drafts per hour (tie into rate limiting section).
+- Fall back to last cached draft if Bedrock is unavailable.
+
+---
+
+### 5. FEC API (Campaign Finance)
 
 **Base URL:** `https://api.open.fec.gov/v1`
 **Authentication:** API Key in query parameter `api_key={key}`
@@ -742,20 +893,22 @@ GET /data?drilldowns=State&measures=Population,Median Age,Median Household Incom
 #### Endpoints to Integrate:
 
 **Get Candidate Financials**
+
 ```
 GET /candidate/{candidateId}/totals/
 Returns: Total receipts, disbursements, cash on hand
 ```
 
 **Caching Strategy:**
-- Cache for 7 days
-- Update during election cycles
 
-**Note:** FEC integration is optional for MVP. Can add post-launch.
+- Cache for 7 days
+- Increase sync cadence (daily) during active election cycles
+
+**Sprint Alignment:** Implement in Sprint 1 to unblock campaign finance views on member detail pages and advocacy talking points.
 
 ---
 
-### 5. L2 Political API (Voter Verification)
+### 6. L2 Political API (Voter Verification)
 
 **Base URL:** `https://api.l2political.com`
 **Authentication:** API Key in header `X-API-Key: {key}`
@@ -766,6 +919,7 @@ Returns: Total receipts, disbursements, cash on hand
 #### Endpoints to Integrate:
 
 **Voter Lookup**
+
 ```
 POST /api/v2/voter/lookup
 Headers:
@@ -811,6 +965,7 @@ Response:
 ```
 
 **Bulk Voter Lookup** (for batch processing):
+
 ```
 POST /api/v2/voter/bulk-lookup
 ```
@@ -818,18 +973,21 @@ POST /api/v2/voter/bulk-lookup
 #### Data Fields Available from L2:
 
 **Identity Fields:**
+
 - LALVOTERID (unique voter ID)
 - FirstName, MiddleName, LastName, Suffix
 - Age, DOB (full date of birth - handle with privacy)
 - Gender
 
 **Address Fields:**
+
 - Residence Address, City, State, Zip
 - Mailing Address (if different)
 - County, Congressional District
 - State House District, State Senate District
 
 **Registration Fields:**
+
 - Parties_Description (current party)
 - Voters_Active (Y/N)
 - VoterStatus (Active, Inactive, etc.)
@@ -837,46 +995,51 @@ POST /api/v2/voter/bulk-lookup
 - PartyHistory (changes over time)
 
 **Voting History:**
+
 - ElectionDates (dates of elections voted in)
 - ElectionTypes (Primary, General, etc.)
 - VotingMethod (In-Person, Absentee, Early)
 
 **Contact Fields:**
+
 - Phone (if available)
 - Email (if available)
 
 #### Integration Workflow:
 
 1. **User Initiates Verification:**
+
    - User provides: Name, Address, City, State, ZIP, Birth Year
    - Frontend sends to backend endpoint
-
 2. **Backend Queries L2:**
+
    - Call L2 VoterMapping API with user data
    - L2 returns matching voter records (fuzzy matching)
    - Match score indicates confidence (0-100)
-
 3. **Present Matches to User:**
+
    - Show top matches (95+ score)
    - User confirms correct record
-
 4. **Store Verification:**
+
    - Store LALVOTERID in database
    - Set `voter_registration_verified` = true
    - Store congressional/state districts for representative lookup
-
 5. **Use Verified Data:**
+
    - Populate congressional districts for representative lookup
    - Display "Verified Voter" badge on messages
    - Pre-fill voter data in advocacy messages
 
 #### Caching Strategy:
+
 - Cache L2 lookups for 30 days per user
 - Cache key: `l2:voter:{firstName}:{lastName}:{zip}`
 - Invalidate on user address change
 - Re-verify every 6 months (voter data can change)
 
 #### Privacy & Compliance:
+
 - **Do NOT store** full voter records from L2
 - **Only store:** LALVOTERID, verification status, districts
 - Comply with L2's Terms of Service
@@ -884,12 +1047,14 @@ POST /api/v2/voter/bulk-lookup
 - Allow users to opt-out of verification (manual entry fallback)
 
 #### Error Handling:
+
 - No match found: Offer manual entry option
 - Multiple matches: Show all, let user select
 - L2 API down: Graceful degradation to manual entry
 - Invalid API key: Alert admin, use cached data
 
 #### Cost Considerations:
+
 - L2 typically charges per lookup or monthly subscription
 - Implement caching to reduce API calls
 - Consider batch lookups for efficiency
@@ -902,14 +1067,17 @@ POST /api/v2/voter/bulk-lookup
 ### Users
 
 #### POST /api/users/verify-voter
+
 Verify voter registration using L2 Political.
 
 **Headers:**
+
 ```
 Authorization: Bearer {auth0_token}
 ```
 
 **Request:**
+
 ```json
 {
   "firstName": "John",
@@ -923,6 +1091,7 @@ Authorization: Bearer {auth0_token}
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -949,6 +1118,7 @@ Authorization: Bearer {auth0_token}
 ```
 
 **Business Logic:**
+
 - Call L2 Political VoterMapping API with user data
 - Return top matches (score > 90)
 - Cache results for 30 days
@@ -957,9 +1127,11 @@ Authorization: Bearer {auth0_token}
 ---
 
 #### POST /api/users/confirm-voter
+
 Confirm voter match and update user profile.
 
 **Request:**
+
 ```json
 {
   "l2VoterId": "IL123456789",
@@ -970,6 +1142,7 @@ Confirm voter match and update user profile.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -981,6 +1154,7 @@ Confirm voter match and update user profile.
 ```
 
 **Business Logic:**
+
 - Update `users.voter_registration_verified` = true
 - Update `users.voter_registration_verified_at` = NOW()
 - Update `users.l2_voter_id` = l2VoterId
@@ -990,14 +1164,17 @@ Confirm voter match and update user profile.
 ---
 
 #### GET /api/users/me
+
 Get current user profile.
 
 **Headers:**
+
 ```
 Authorization: Bearer {token}
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1039,9 +1216,11 @@ Authorization: Bearer {token}
 ---
 
 #### PATCH /api/users/me
+
 Update current user profile.
 
 **Request:**
+
 ```json
 {
   "firstName": "John",
@@ -1065,6 +1244,7 @@ Update current user profile.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1075,16 +1255,19 @@ Update current user profile.
 ```
 
 **Business Logic:**
+
 - Validate ZIP code (5 digits)
-- Lookup congressional district from ZIP using Census API or local database
-- Update `updated_at` timestamp
+- Request district data from Geocodio (cache-first); fallback to stored mapping if API unavailable
+- Update `users` record and `updated_at` timestamp
 
 ---
 
 #### GET /api/users/me/messages
+
 Get user's message history.
 
 **Query Parameters:**
+
 - `page` (default 1)
 - `pageSize` (default 20, max 100)
 - `startDate` (ISO 8601)
@@ -1093,6 +1276,7 @@ Get user's message history.
 - `status` (sent, delivered, failed)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1128,6 +1312,7 @@ Get user's message history.
 ```
 
 **Business Logic:**
+
 - If user is free tier: Filter `sent_at > NOW() - 30 days`
 - If premium: Return all messages
 - Join with `bills` and `members` tables
@@ -1135,9 +1320,11 @@ Get user's message history.
 ---
 
 #### GET /api/users/me/activity
+
 Get user activity summary for dashboard.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1157,6 +1344,7 @@ Get user activity summary for dashboard.
 ```
 
 **Business Logic:**
+
 - Aggregate from `user_messages` table
 - Calculate response rate: (responses / messages sent) × 100
 
@@ -1165,9 +1353,11 @@ Get user activity summary for dashboard.
 ### Bills
 
 #### GET /api/bills
+
 Get list of bills with filters.
 
 **Query Parameters:**
+
 - `page` (default 1)
 - `pageSize` (default 20, max 100)
 - `congress` (e.g., 119)
@@ -1179,6 +1369,7 @@ Get list of bills with filters.
 - `search` (keyword search)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1223,6 +1414,7 @@ Get list of bills with filters.
 ```
 
 **Business Logic:**
+
 - Query `bills` table
 - Join with `sponsors`, `campaigns` for aggregates
 - Apply filters and sorting
@@ -1232,9 +1424,11 @@ Get list of bills with filters.
 ---
 
 #### GET /api/bills/:billId
+
 Get detailed bill information.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1297,16 +1491,19 @@ Get detailed bill information.
 ```
 
 **Business Logic:**
+
 - Fetch from `bills` table with all related data
-- Generate AI summary if not cached (call OpenAI API)
+- Persist AI summary via AWS Bedrock Agent if not cached
 - Cache for 1 hour
 
 ---
 
 #### POST /api/bills/:billId/watch
+
 Add bill to user's watch list.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1317,15 +1514,18 @@ Add bill to user's watch list.
 ```
 
 **Business Logic:**
+
 - Create entry in `user_watched_bills` table
 - Return 200 if already watching (idempotent)
 
 ---
 
 #### DELETE /api/bills/:billId/watch
+
 Remove bill from watch list.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1340,9 +1540,11 @@ Remove bill from watch list.
 ### State Bills
 
 #### GET /api/state-bills
+
 Get state bills.
 
 **Query Parameters:**
+
 - `state` (required, e.g., "CA")
 - `page`, `pageSize`, `status`, etc.
 
@@ -1350,6 +1552,7 @@ Get state bills.
 Similar to `/api/bills` but for state legislation.
 
 **Business Logic:**
+
 - Query `state_bills` table
 - Data synced from LegiScan daily
 
@@ -1358,15 +1561,18 @@ Similar to `/api/bills` but for state legislation.
 ### Members (Representatives & Senators)
 
 #### GET /api/members
+
 Get list of congress members.
 
 **Query Parameters:**
+
 - `state` (e.g., "CA")
 - `chamber` (house, senate)
 - `party` (D, R, I)
 - `zipCode` (returns members for this ZIP's district)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1396,15 +1602,18 @@ Get list of congress members.
 ```
 
 **Business Logic:**
-- If `zipCode` provided: Lookup congressional district, return House member + 2 Senators
+
+- If `zipCode` provided: Resolve district via Geocodio cache (fallback to stored mapping), then return House member + 2 Senators
 - Query `members` table with filters
 
 ---
 
 #### GET /api/members/:bioguideId
+
 Get detailed member information.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1458,6 +1667,7 @@ Get detailed member information.
 ```
 
 **Business Logic:**
+
 - Fetch from `members` table
 - Include related data from `committee_memberships`, `campaign_finance`
 - Cache for 24 hours
@@ -1467,14 +1677,17 @@ Get detailed member information.
 ### Advocacy Messages
 
 #### POST /api/messages
+
 Send advocacy message to representatives (ANONYMOUS or AUTHENTICATED).
 
 **Headers (Optional):**
+
 ```
 Authorization: Bearer {auth0_token}
 ```
 
 **Request:**
+
 ```json
 {
   "billId": "uuid",
@@ -1504,6 +1717,7 @@ Authorization: Bearer {auth0_token}
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1524,6 +1738,7 @@ Authorization: Bearer {auth0_token}
 ```
 
 **Business Logic:**
+
 - **AUTHENTICATION OPTIONAL:** Allow anonymous sending
 - If authenticated: Get user ID from Auth0 token
 - If anonymous: Generate or use provided `sessionToken` (UUID)
@@ -1540,6 +1755,7 @@ Authorization: Bearer {auth0_token}
 - Set `promptSignup: true` to signal frontend to show signup prompt
 
 **Email Template:**
+
 ```
 To: senator.email@senate.gov
 From: noreply@yourplatform.com
@@ -1561,10 +1777,70 @@ Confirmation: MSG-2025-0120-1234
 
 ---
 
+#### POST /api/messages/ai-draft
+
+Generate an AI-assisted draft for a bill or campaign message.
+
+**Headers:**
+
+```
+Authorization: Bearer {auth0_token} // optional; improves personalization
+```
+
+**Request:**
+
+```json
+{
+  "billId": "uuid",
+  "position": "support",
+  "recipientIds": ["D000622"],
+  "tone": "respectful",
+  "additionalContext": "I am a public school teacher in Springfield, IL",
+  "previousDraftId": "uuid"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "draftId": "uuid",
+    "messageContent": "Senator Duckworth,\n\nAs a teacher in Springfield...",
+    "keyPoints": [
+      "Highlights local impact on Illinois educators",
+      "References Section 3 of the bill"
+    ],
+    "sources": [
+      {
+        "type": "bill",
+        "title": "For the People Act of 2025",
+        "url": "https://congress.gov/bill/119th-congress/house-bill/1"
+      }
+    ],
+    "ttlSeconds": 86400
+  }
+}
+```
+
+**Business Logic:**
+
+- Require at least one of `billId` or `campaignId` (400 otherwise).
+- Gather context (bill summary, representative stances, user profile/location) before calling AWS Bedrock Agent.
+- Enforce rate limit: 5 drafts/hour per user or anonymous session (tie into Redis limiter).
+- Store outputs in `ai_message_drafts` with `draft_id`, `user_id` (nullable), `session_token`, `context_hash`, `expires_at`.
+- Return cached draft when the same context hash is requested within 6 hours; refresh Bedrock call otherwise.
+- Feature flag: before Sprint 2 enablement, return `501 NOT_IMPLEMENTED`.
+
+---
+
 #### GET /api/messages/:messageId
+
 Get message details.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1604,14 +1880,17 @@ Get message details.
 ### Organizations
 
 #### GET /api/organizations
+
 Get list of advocacy organizations.
 
 **Query Parameters:**
+
 - `page`, `pageSize`
 - `focusArea` (voting_rights, environment, etc.)
 - `sort` (name, active_campaigns, total_actions)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1638,9 +1917,11 @@ Get list of advocacy organizations.
 ---
 
 #### GET /api/organizations/:slug
+
 Get organization details.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1676,9 +1957,11 @@ Get organization details.
 ---
 
 #### POST /api/organizations/:slug/follow
+
 Follow an organization.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1689,6 +1972,7 @@ Follow an organization.
 ```
 
 **Business Logic:**
+
 - Create entry in `user_followed_organizations` table
 
 ---
@@ -1696,14 +1980,17 @@ Follow an organization.
 ### Campaigns (Public)
 
 #### GET /api/campaigns
+
 Get list of active campaigns.
 
 **Query Parameters:**
+
 - `organizationId` (filter by organization)
 - `billId` (filter by bill)
 - `position` (support, oppose)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1733,9 +2020,11 @@ Get list of active campaigns.
 ---
 
 #### POST /api/campaigns/:campaignId/actions
+
 Record user action on campaign (support/oppose).
 
 **Request:**
+
 ```json
 {
   "position": "support"
@@ -1743,6 +2032,7 @@ Record user action on campaign (support/oppose).
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1755,6 +2045,7 @@ Record user action on campaign (support/oppose).
 ```
 
 **Business Logic:**
+
 - Create entry in `campaign_actions` table
 - Increment `support_count` or `oppose_count` in `campaigns` table
 - Return updated counts
@@ -1766,9 +2057,11 @@ Record user action on campaign (support/oppose).
 All `/api/partners/*` endpoints require organization role.
 
 #### GET /api/partners/organizations/me
+
 Get organizations current user belongs to.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1789,9 +2082,11 @@ Get organizations current user belongs to.
 ---
 
 #### PATCH /api/partners/organizations/:id
+
 Update organization profile.
 
 **Request:**
+
 ```json
 {
   "name": "Common Cause",
@@ -1806,6 +2101,7 @@ Update organization profile.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1818,9 +2114,11 @@ Update organization profile.
 ---
 
 #### POST /api/partners/campaigns
+
 Create new campaign (supports legislation, issue, and candidate campaigns).
 
 **Request (Legislation Campaign):**
+
 ```json
 {
   "organizationId": "uuid",
@@ -1835,6 +2133,7 @@ Create new campaign (supports legislation, issue, and candidate campaigns).
 ```
 
 **Request (Candidate Campaign):**
+
 ```json
 {
   "organizationId": "uuid",
@@ -1855,6 +2154,7 @@ Create new campaign (supports legislation, issue, and candidate campaigns).
 ```
 
 **Request (Issue Campaign):**
+
 ```json
 {
   "organizationId": "uuid",
@@ -1871,6 +2171,7 @@ Create new campaign (supports legislation, issue, and candidate campaigns).
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1886,6 +2187,7 @@ Create new campaign (supports legislation, issue, and candidate campaigns).
 ```
 
 **Business Logic:**
+
 - Validate campaign type and required fields based on type
 - Generate slug from bill number/title (legislation) or issue title (issue) or candidate names (candidate)
 - Create entry in `campaigns` table with appropriate fields populated
@@ -1895,9 +2197,11 @@ Create new campaign (supports legislation, issue, and candidate campaigns).
 ---
 
 #### PATCH /api/partners/campaigns/:id
+
 Update campaign.
 
 **Request:**
+
 ```json
 {
   "reasoning": "Updated reasoning...",
@@ -1906,6 +2210,7 @@ Update campaign.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1916,15 +2221,18 @@ Update campaign.
 ```
 
 **Business Logic:**
+
 - Update `campaigns` table
 - Log change in `campaign_edit_history` table
 
 ---
 
 #### DELETE /api/partners/campaigns/:id
+
 Delete campaign (soft delete).
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1935,15 +2243,18 @@ Delete campaign (soft delete).
 ```
 
 **Business Logic:**
+
 - Set `deleted_at` timestamp
 - Exclude from public queries
 
 ---
 
 #### GET /api/partners/campaigns/:id/analytics
+
 Get campaign analytics.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1985,6 +2296,7 @@ Get campaign analytics.
 ```
 
 **Business Logic:**
+
 - Query `campaign_actions` and `user_messages` tables
 - Join with `users` for demographics (anonymized aggregates)
 - Calculate estimated messages: (actions × 0.75)
@@ -1996,9 +2308,11 @@ Get campaign analytics.
 All `/api/admin/*` endpoints require admin role.
 
 #### GET /api/admin/users
+
 Get all users with filters.
 
 **Query Parameters:**
+
 - `page`, `pageSize`
 - `membershipTier` (free, premium)
 - `status` (active, suspended, deleted)
@@ -2006,6 +2320,7 @@ Get all users with filters.
 - `search` (email or name)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -2030,9 +2345,11 @@ Get all users with filters.
 ---
 
 #### PATCH /api/admin/users/:id/suspend
+
 Suspend a user.
 
 **Request:**
+
 ```json
 {
   "reason": "Policy violation",
@@ -2041,6 +2358,7 @@ Suspend a user.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -2051,6 +2369,7 @@ Suspend a user.
 ```
 
 **Business Logic:**
+
 - Set `users.status` = 'suspended'
 - Store `suspended_at`, `suspended_by` (admin ID), `suspension_reason`, `suspension_expires_at`
 - Log in `admin_audit_log`
@@ -2058,13 +2377,16 @@ Suspend a user.
 ---
 
 #### GET /api/admin/subscriptions
+
 Get all subscriptions.
 
 **Query Parameters:**
+
 - `status` (active, past_due, canceled)
 - `page`, `pageSize`
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -2089,9 +2411,11 @@ Get all subscriptions.
 ---
 
 #### POST /api/admin/subscriptions/:id/refund
+
 Issue refund.
 
 **Request:**
+
 ```json
 {
   "invoiceId": "in_...",
@@ -2101,6 +2425,7 @@ Issue refund.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -2113,6 +2438,7 @@ Issue refund.
 ```
 
 **Business Logic:**
+
 - Call Stripe API: `POST /v1/refunds`
 - Log in `payment_refunds` table
 - Log in `admin_audit_log`
@@ -2121,9 +2447,11 @@ Issue refund.
 ---
 
 #### GET /api/admin/analytics/overview
+
 Get platform-wide analytics.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -2158,9 +2486,11 @@ Get platform-wide analytics.
 ### Endpoints to Implement
 
 #### POST /api/stripe/create-checkout-session
+
 Create Stripe Checkout session for membership signup.
 
 **Request:**
+
 ```json
 {
   "userId": "uuid",
@@ -2170,6 +2500,7 @@ Create Stripe Checkout session for membership signup.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -2181,6 +2512,7 @@ Create Stripe Checkout session for membership signup.
 ```
 
 **Business Logic:**
+
 - Create Stripe Customer if doesn't exist
 - Create Checkout Session with:
   - `mode: 'subscription'`
@@ -2191,9 +2523,11 @@ Create Stripe Checkout session for membership signup.
 ---
 
 #### POST /api/stripe/create-customer-portal-session
+
 Create Stripe Customer Portal session for managing subscription.
 
 **Request:**
+
 ```json
 {
   "returnUrl": "https://app.com/dashboard/membership"
@@ -2201,6 +2535,7 @@ Create Stripe Customer Portal session for managing subscription.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -2211,6 +2546,7 @@ Create Stripe Customer Portal session for managing subscription.
 ```
 
 **Business Logic:**
+
 - Get user's Stripe Customer ID
 - Create Customer Portal Session
 - Return portal URL for redirect
@@ -2220,11 +2556,13 @@ Create Stripe Customer Portal session for managing subscription.
 ### Webhooks
 
 #### POST /webhooks/stripe
+
 Handle Stripe webhook events.
 
 **Events to Handle:**
 
 **`checkout.session.completed`**
+
 - Extract `userId` from metadata
 - Get Stripe Customer ID and Subscription ID
 - Update `users.membership_tier` = 'premium'
@@ -2233,23 +2571,28 @@ Handle Stripe webhook events.
 - Send welcome email
 
 **`invoice.payment_succeeded`**
+
 - Log in `payment_history` table
 - Send receipt email
 
 **`invoice.payment_failed`**
+
 - Log in `payment_failures` table
 - Send reminder email to user
 - Stripe will retry automatically
 
 **`customer.subscription.updated`**
+
 - Update `user_subscriptions` table with new data
 
 **`customer.subscription.deleted`**
+
 - Set `user_subscriptions.canceled_at` = NOW()
 - Set `user_subscriptions.ends_at` = period_end
 - Downgrade user to free tier after period ends (via cron job)
 
 **Webhook Security:**
+
 - Verify webhook signature using Stripe secret
 - Return 200 OK immediately to acknowledge receipt
 - Process event asynchronously
@@ -2261,30 +2604,37 @@ Handle Stripe webhook events.
 ### Redis Cache Keys
 
 **Bills:**
+
 - Key: `bills:list:{congress}:{filters_hash}`
 - TTL: 5 minutes
 
 **Bill Detail:**
+
 - Key: `bills:detail:{billId}`
 - TTL: 1 hour
 
 **Members:**
+
 - Key: `members:list:{filters_hash}`
 - TTL: 24 hours
 
 **Member Detail:**
+
 - Key: `members:detail:{bioguideId}`
 - TTL: 24 hours
 
 **Organizations:**
+
 - Key: `orgs:list`
 - TTL: 10 minutes
 
 **Campaign Analytics:**
+
 - Key: `campaigns:analytics:{campaignId}`
 - TTL: 5 minutes
 
 **User Profile:**
+
 - Key: `users:profile:{userId}`
 - TTL: 30 minutes
 - Invalidate on update
@@ -2302,21 +2652,26 @@ Handle Stripe webhook events.
 ### Endpoints
 
 **Auth Endpoints:**
+
 - `/auth/login`: 5 requests per 15 minutes per IP
 - `/auth/signup`: 3 requests per hour per IP
 - `/auth/forgot-password`: 3 requests per hour per IP
 
 **API Endpoints (Authenticated):**
+
 - Global: 100 requests per minute per user
 - `/api/messages`: 10 requests per hour per user (prevent spam)
+- `/api/messages/ai-draft`: 5 requests per hour per user/session (controls Bedrock usage)
 - `/api/bills`: 60 requests per minute per user
 
 **Admin Endpoints:**
+
 - Global: 200 requests per minute per admin
 
 ### Implementation
 
 Use middleware with Redis to track request counts:
+
 ```
 Key: rate_limit:{endpoint}:{userId|IP}
 Value: request_count
@@ -2324,6 +2679,7 @@ TTL: window_duration
 ```
 
 Return HTTP 429 when limit exceeded:
+
 ```json
 {
   "success": false,
@@ -2340,16 +2696,16 @@ Return HTTP 429 when limit exceeded:
 
 ### Error Codes
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `VALIDATION_ERROR` | 400 | Invalid input data |
-| `UNAUTHORIZED` | 401 | Not authenticated |
-| `FORBIDDEN` | 403 | Insufficient permissions |
-| `NOT_FOUND` | 404 | Resource not found |
-| `CONFLICT` | 409 | Resource already exists |
-| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
-| `INTERNAL_ERROR` | 500 | Server error |
-| `SERVICE_UNAVAILABLE` | 503 | External service down |
+| Code                    | HTTP Status | Description              |
+| ----------------------- | ----------- | ------------------------ |
+| `VALIDATION_ERROR`    | 400         | Invalid input data       |
+| `UNAUTHORIZED`        | 401         | Not authenticated        |
+| `FORBIDDEN`           | 403         | Insufficient permissions |
+| `NOT_FOUND`           | 404         | Resource not found       |
+| `CONFLICT`            | 409         | Resource already exists  |
+| `RATE_LIMIT_EXCEEDED` | 429         | Too many requests        |
+| `INTERNAL_ERROR`      | 500         | Server error             |
+| `SERVICE_UNAVAILABLE` | 503         | External service down    |
 
 ### Error Response Format
 
@@ -2370,6 +2726,7 @@ Return HTTP 429 when limit exceeded:
 ### Logging
 
 Log all errors to database and monitoring service:
+
 ```
 Table: error_logs
 Columns: id, timestamp, error_code, message, stack_trace, user_id, request_url, request_method, request_body, response_status
@@ -2383,15 +2740,35 @@ Use service like Sentry for real-time error monitoring.
 
 ### Email Service Webhooks
 
-Handle delivery events from SendGrid/Mailgun:
+AWS SES publishes delivery/bounce/complaint events through SNS. Subscribe an HTTPS endpoint:
 
-**POST /webhooks/email**
+**POST /webhooks/ses**
 
-Events:
-- `delivered`: Update `user_messages.delivery_status` = 'delivered'
-- `bounce`: Update status = 'bounced', log reason
-- `dropped`: Update status = 'failed'
-- `spam_report`: Update status = 'spam_reported'
+Expected payload (SNS notification wrapper):
+
+```json
+{
+  "Type": "Notification",
+  "MessageId": "uuid",
+  "Timestamp": "2025-02-01T12:34:56.000Z",
+  "TopicArn": "arn:aws:sns:us-east-1:123456789012:ses-events",
+  "Message": "{\"eventType\":\"Delivery\",\"mail\":{...},\"delivery\":{...}}"
+}
+```
+
+Steps:
+
+1. Validate SNS signature and confirm subscription.
+2. Parse `Message` JSON and handle SES `eventType`.
+
+Supported `eventType` values:
+
+- `Delivery`: set `user_messages.delivery_status = 'delivered'`, store `delivered_at`.
+- `Bounce`: set status `bounced`, log `bounceType`/`bounceSubType`.
+- `Complaint`: set status `complaint`, trigger manual review.
+- `Reject`: set status `failed`.
+
+Store webhook audits in `email_events` with raw payload for troubleshooting.
 
 ---
 
@@ -2402,6 +2779,7 @@ Events:
 Use Postman collections or automated tests (Jest, Mocha):
 
 **Example Test Cases:**
+
 1. Signup with valid email → Success
 2. Signup with existing email → Error 409
 3. Login with wrong password → Error 401
@@ -2414,6 +2792,7 @@ Use Postman collections or automated tests (Jest, Mocha):
 ### Load Testing
 
 Use tools like Apache JMeter or k6:
+
 - Target: 1000 concurrent users
 - Acceptable: 500ms median response time
 - Error rate: < 0.1%
@@ -2442,9 +2821,10 @@ AUTH0_LOGOUT_URL=https://yourdomain.com
 # External APIs
 CONGRESS_API_KEY=your-key
 LEGISCAN_API_KEY=your-key
-CENSUS_API_KEY=your-key
+GEOCODIO_API_KEY=your-key
 FEC_API_KEY=your-key
-OPENAI_API_KEY=your-key
+AWS_BEDROCK_REGION=us-east-1
+AWS_BEDROCK_AGENT_ID=agt-xxxxxxxxxxxxxxxx
 L2_POLITICAL_API_KEY=your-key
 L2_POLITICAL_BASE_URL=https://api.l2political.com
 
@@ -2471,6 +2851,7 @@ API_BASE_URL=https://api.yourdomain.com
 ### Production Checklist
 
 **AWS Infrastructure:**
+
 - [ ] Set up AWS RDS PostgreSQL with automated backups
 - [ ] Set up AWS ElastiCache Redis
 - [ ] Create S3 bucket for file uploads (versioning enabled)
@@ -2481,6 +2862,7 @@ API_BASE_URL=https://api.yourdomain.com
 - [ ] Configure auto-scaling groups for EC2/ECS
 
 **Auth0 Setup:**
+
 - [ ] Create Auth0 tenant (production)
 - [ ] Configure Auth0 Application
 - [ ] Set up Auth0 API with identifier
@@ -2491,6 +2873,7 @@ API_BASE_URL=https://api.yourdomain.com
 - [ ] Test social login connections (Google, etc.)
 
 **Security:**
+
 - [ ] Configure HTTPS/SSL (AWS Certificate Manager)
 - [ ] Set up WAF rules (AWS WAF)
 - [ ] Configure CORS for frontend domain
@@ -2500,6 +2883,7 @@ API_BASE_URL=https://api.yourdomain.com
 - [ ] Enable database encryption at rest
 
 **Monitoring & Logging:**
+
 - [ ] Set up AWS CloudWatch dashboards
 - [ ] Configure CloudWatch Alarms
 - [ ] Set up AWS CloudWatch Logs
@@ -2509,12 +2893,14 @@ API_BASE_URL=https://api.yourdomain.com
 - [ ] Set up performance monitoring (New Relic, Datadog)
 
 **Stripe:**
+
 - [ ] Configure Stripe webhooks
 - [ ] Test subscription flow end-to-end
 - [ ] Set up Stripe webhook signature verification
 - [ ] Configure Stripe Customer Portal
 
 **Deployment:**
+
 - [ ] Set up CI/CD pipeline (GitHub Actions, AWS CodePipeline)
 - [ ] Configure staging environment
 - [ ] Set up database migration process
