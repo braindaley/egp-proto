@@ -387,6 +387,8 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
               <li><strong>Role:</strong> {profile.role || 'N/A'}</li>
               <li><strong>Full Name:</strong> {profile.firstName} {profile.lastName}</li>
               <li><strong>Address:</strong> {profile.address}, {profile.city}, {profile.state} {profile.zipCode}</li>
+              {profile.county && <li><strong>County:</strong> {profile.county}</li>}
+              {profile.precinct && <li><strong>Precinct:</strong> {profile.precinct}</li>}
               <li><strong>Congressional District:</strong> {profile.congressionalDistrict || 'N/A'}</li>
               <li><strong>Age:</strong> {profile.birthYear ? new Date().getFullYear() - profile.birthYear : 'N/A'}</li>
               <li><strong>Gender:</strong> {profile.gender || 'N/A'}</li>
@@ -395,14 +397,14 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
               <li><strong>Profession:</strong> {profile.profession || 'N/A'}</li>
               <li><strong>Military Service:</strong> {profile.militaryService ? 'Yes' : 'No'}</li>
             </ul>
-            
+
             {profile.constituentDescription && (
               <div className="mt-6 pt-4 border-t">
                 <h4 className="font-semibold mb-2">About Me as a Constituent</h4>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{profile.constituentDescription}</p>
               </div>
             )}
-            
+
             <div className="mt-6 pt-4 border-t">
               <h4 className="font-semibold mb-3">Policy Issue Interest</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
@@ -416,8 +418,8 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ showEditForm = false, o
                 ))}
               </div>
             </div>
-            
-             <p className="text-sm text-muted-foreground mt-4">Voting precinct is inferred from your zip code.</p>
+
+             <p className="text-sm text-muted-foreground mt-4">County and precinct information from L2 voter registration data.</p>
             <div className="flex justify-end mt-4">
               <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
             </div>

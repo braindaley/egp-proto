@@ -258,16 +258,16 @@ const AdvocacyMessageContent: React.FC = () => {
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!user) return;
-      
+
       try {
         const { getFirestore, doc, getDoc } = await import('firebase/firestore');
         const { app } = await import('@/lib/firebase');
         const db = getFirestore(app);
-        
+
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          
+
           // Populate form fields with existing user data
           if (userData.firstName) setProfileFirstName(userData.firstName);
           if (userData.lastName) setProfileLastName(userData.lastName);
@@ -313,27 +313,32 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Get the current step number to display
   const getDisplayStep = (): number => {
+    // Check if user is logged in with address (skipped verification)
+    const skippedVerification = !!(user && (user.address || (user.city && user.state && user.zipCode)));
+
     if (isMemberContact) {
-      // All users flow: Verification → Policy → Write → Supporting Files → Personal → Review → Success
-      if (step === 1) return 1; // Help us verify that you are a registered voter
-      if (step === 2) return 2; // Choose policy issue
-      if (step === 4) return 3; // Write Your Message
-      if (step === 5) return 4; // Add Supporting Files
-      if (step === 7) return 5; // Personal Information
-      if (step === 8) return 6; // Review Message
-      if (step === 10) return 7; // Success screen
+      // Member contact flow: Verification → Policy → Write → Supporting Files → Personal → Review → Success
+      // For logged-in users: Policy → Write → Supporting Files → Personal → Review → Success
+      if (step === 1) return skippedVerification ? 0 : 1; // Verification (hidden for logged-in users)
+      if (step === 2) return skippedVerification ? 1 : 2; // Choose policy issue
+      if (step === 4) return skippedVerification ? 2 : 3; // Write Your Message
+      if (step === 5) return skippedVerification ? 3 : 4; // Add Supporting Files
+      if (step === 7) return skippedVerification ? 4 : 5; // Personal Information
+      if (step === 8) return skippedVerification ? 5 : 6; // Review Message
+      if (step === 10) return skippedVerification ? 6 : 7; // Success screen
       return 0;
     } else {
-      // All users flow: Verification → Position → AI Help → Write → Supporting Files → Select Reps → Personal → Review → Success
-      if (step === 1) return 1; // Help us verify that you are a registered voter
-      if (step === 2) return 2; // Choose Your Position
-      if (step === 3) return 3; // Writing Your Message - help writing?
-      if (step === 4) return 4; // Write Your Message
-      if (step === 5) return 5; // Add Supporting Files
-      if (step === 6) return 6; // Select representatives to send your message
-      if (step === 7) return 7; // Personal Information
-      if (step === 8) return 8; // Review Message
-      if (step === 10) return 9; // Success screen
+      // Bill flow: Verification → Position → AI Help → Write → Supporting Files → Select Reps → Personal → Review → Success
+      // For logged-in users: Position → AI Help → Write → Supporting Files → Select Reps → Personal → Review → Success
+      if (step === 1) return skippedVerification ? 0 : 1; // Verification (hidden for logged-in users)
+      if (step === 2) return skippedVerification ? 1 : 2; // Choose Your Position
+      if (step === 3) return skippedVerification ? 2 : 3; // Writing Your Message - help writing?
+      if (step === 4) return skippedVerification ? 3 : 4; // Write Your Message
+      if (step === 5) return skippedVerification ? 4 : 5; // Add Supporting Files
+      if (step === 6) return skippedVerification ? 5 : 6; // Select representatives to send your message
+      if (step === 7) return skippedVerification ? 6 : 7; // Personal Information
+      if (step === 8) return skippedVerification ? 7 : 8; // Review Message
+      if (step === 10) return skippedVerification ? 8 : 9; // Success screen
       return 0;
     }
   };
@@ -367,22 +372,14 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Skip verification for logged-in users who have already verified their voter registration
   useEffect(() => {
-    // Only auto-skip if user is logged in, not currently loading, on step 1, and has verified info
-    if (user && !loading && step === 1 && !isVerified) {
-      // Check if user has already been verified (has firstName, lastName, and address)
-      const hasVerifiedInfo = user.firstName && user.lastName && user.address;
-      if (hasVerifiedInfo) {
-        // Populate verifiedUserInfo from user's saved data
-        setVerifiedUserInfo({
-          id: user.uid || 'user',
-          fullName: `${user.firstName} ${user.lastName}`,
-          address: user.address,
-          city: user.city || '',
-          state: user.state || '',
-          zipCode: user.zipCode || '',
-          constituentDescription: user.constituentDescription || null
-        });
-        // Save zipCode for member lookup
+    // Only auto-skip if user is logged in, not currently loading, on step 1
+    if (user && !loading && step === 1) {
+      // Check if user has address (the key verification requirement)
+      // Name is helpful but not strictly required for verification
+      const hasAddress = !!(user.address || (user.city && user.state && user.zipCode));
+      if (hasAddress) {
+        // DON'T set verifiedUserInfo for logged-in users - that's only for guest users
+        // Just save zipCode for member lookup
         if (user.zipCode) {
           saveZipCode(user.zipCode);
         }
@@ -390,7 +387,7 @@ const AdvocacyMessageContent: React.FC = () => {
         setStep(2);
       }
     }
-  }, [user, loading, step, isVerified]);
+  }, [user, loading, step]);
 
   // Fetch bill details
   useEffect(() => {
@@ -574,16 +571,6 @@ const AdvocacyMessageContent: React.FC = () => {
 
   // Get personal data fields from user profile or verified info
   const getPersonalDataFields = (): PersonalDataField[] => {
-    // Use verified user info if available
-    if (verifiedUserInfo) {
-      const addressValue = `${verifiedUserInfo.address}, ${verifiedUserInfo.city}, ${verifiedUserInfo.state} ${verifiedUserInfo.zipCode}`;
-      // For verified guest users, only return the fields they actually provided (name and address)
-      return [
-        { key: 'fullName', label: 'Full Name', value: verifiedUserInfo.fullName, available: true },
-        { key: 'fullAddress', label: 'Full Address', value: addressValue, available: true },
-      ];
-    }
-    
     // Use logged in user profile if available, combining saved data with current form state
     if (user) {
       // Combine profile form state with any existing user data
@@ -593,20 +580,25 @@ const AdvocacyMessageContent: React.FC = () => {
       const currentCity = profileCity || user?.city || '';
       const currentState = profileState || user?.state || '';
       const currentZipCode = profileZipCode || user?.zipCode || '';
+      const currentCounty = user?.county || '';
+      const currentPrecinct = user?.precinct || '';
       const currentBirthYear = profileBirthYear || user?.birthYear?.toString() || '';
       const currentGender = profileGender || user?.gender || '';
       const currentPoliticalAffiliation = profilePoliticalAffiliation || user?.politicalAffiliation || '';
       const currentEducation = profileEducation || user?.education || '';
       const currentProfession = profileProfession || user?.profession || '';
       const currentMilitaryService = profileMilitaryService !== null ? profileMilitaryService : user?.militaryService;
-      
+
       const addressParts = [currentAddress, currentCity, currentState, currentZipCode].filter(Boolean);
       const addressValue = addressParts.join(', ');
       const addressAvailable = addressParts.length > 0;
-      
+
       return [
         { key: 'fullName', label: 'Full Name', value: `${currentFirstName} ${currentLastName}`.trim() || 'John Doe', available: !!(currentFirstName && currentLastName) },
         { key: 'fullAddress', label: 'Full Address', value: addressValue || '123 Main St, Springfield, IL 62701', available: addressAvailable },
+        { key: 'state', label: 'State', value: currentState || '', available: !!currentState },
+        { key: 'county', label: 'County', value: currentCounty || '', available: !!currentCounty },
+        { key: 'precinct', label: 'Precinct', value: currentPrecinct || '', available: !!currentPrecinct },
         { key: 'birthYear', label: 'Birth Year', value: currentBirthYear || '1990', available: !!currentBirthYear },
         { key: 'gender', label: 'Gender', value: currentGender || 'Prefer not to say', available: !!currentGender },
         { key: 'politicalAffiliation', label: 'Political Affiliation', value: currentPoliticalAffiliation || 'Independent', available: !!currentPoliticalAffiliation },
@@ -615,17 +607,34 @@ const AdvocacyMessageContent: React.FC = () => {
         { key: 'militaryService', label: 'Military Service', value: currentMilitaryService !== undefined ? (currentMilitaryService ? 'Yes' : 'No') : 'No', available: currentMilitaryService !== undefined && currentMilitaryService !== null },
       ];
     }
-    
-    // For anonymous users, return available fields with default values
+
+    // For verified guest users (not logged in), only return name and address
+    if (verifiedUserInfo) {
+      const addressValue = `${verifiedUserInfo.address}, ${verifiedUserInfo.city}, ${verifiedUserInfo.state} ${verifiedUserInfo.zipCode}`;
+      const county = (verifiedUserInfo as any).county || '';
+      const precinct = (verifiedUserInfo as any).precinct || '';
+      return [
+        { key: 'fullName', label: 'Full Name', value: verifiedUserInfo.fullName, available: true },
+        { key: 'fullAddress', label: 'Full Address', value: addressValue, available: true },
+        { key: 'state', label: 'State', value: verifiedUserInfo.state || '', available: !!verifiedUserInfo.state },
+        { key: 'county', label: 'County', value: county, available: !!county },
+        { key: 'precinct', label: 'Precinct', value: precinct, available: !!precinct },
+      ];
+    }
+
+    // For completely anonymous users, return empty fields
     return [
-      { key: 'fullName', label: 'Full Name', value: 'John Doe', available: true },
-      { key: 'fullAddress', label: 'Full Address', value: '123 Main St, Springfield, IL 62701', available: true },
-      { key: 'birthYear', label: 'Birth Year', value: '1990', available: true },
-      { key: 'gender', label: 'Gender', value: 'Prefer not to say', available: true },
-      { key: 'politicalAffiliation', label: 'Political Affiliation', value: 'Independent', available: true },
-      { key: 'education', label: 'Education', value: 'Bachelor\'s Degree', available: true },
-      { key: 'profession', label: 'Profession', value: 'Professional', available: true },
-      { key: 'militaryService', label: 'Military Service', value: 'No', available: true },
+      { key: 'fullName', label: 'Full Name', value: '', available: false },
+      { key: 'fullAddress', label: 'Full Address', value: '', available: false },
+      { key: 'state', label: 'State', value: '', available: false },
+      { key: 'county', label: 'County', value: '', available: false },
+      { key: 'precinct', label: 'Precinct', value: '', available: false },
+      { key: 'birthYear', label: 'Birth Year', value: '', available: false },
+      { key: 'gender', label: 'Gender', value: '', available: false },
+      { key: 'politicalAffiliation', label: 'Political Affiliation', value: '', available: false },
+      { key: 'education', label: 'Education', value: '', available: false },
+      { key: 'profession', label: 'Profession', value: '', available: false },
+      { key: 'militaryService', label: 'Military Service', value: '', available: false },
     ];
   };
 
@@ -1725,11 +1734,30 @@ const AdvocacyMessageContent: React.FC = () => {
           <CardTitle>Help us verify that you are a registered voter</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 flex-1 flex flex-col">
+          {/* Debug panel - uncomment if needed for testing
+          {user && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 text-xs">
+              <div className="font-bold mb-2">🔍 Debug Info (logged in user)</div>
+              <div>Email: {user.email}</div>
+              <div>First Name: {user.firstName || '(not set)'}</div>
+              <div>Last Name: {user.lastName || '(not set)'}</div>
+              <div>Address: {user.address || '(not set)'}</div>
+              <div>City: {user.city || '(not set)'}</div>
+              <div>State: {user.state || '(not set)'}</div>
+              <div>ZIP: {user.zipCode || '(not set)'}</div>
+              <div>Loading: {loading ? 'true' : 'false'}</div>
+              <div className="mt-2 font-semibold">
+                Should auto-skip: {!!(user.address || (user.city && user.state && user.zipCode)) ? '✅ YES (has address)' : '❌ NO (missing address)'}
+              </div>
+            </div>
+          )}
+          */}
+
           <p className="text-sm text-muted-foreground">
             <strong>Verification = Impact</strong><br/><br/>
 We verify your voter registration to ensure your messages are taken seriously by policymakers. Verified info also allows us to autofill your profile and personalize your letters with relevant demographic insights, giving your voice more weight.
           </p>
-          
+
           {verificationStep === 'initial' && (
             <>
               <div className="space-y-4">
@@ -2199,8 +2227,17 @@ We verify your voter registration to ensure your messages are taken seriously by
           )}
           <CardTitle>Personal Information</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            Select information you'd like to include about yourself
+            {availableFields.length > 0 ? (
+              <>Select information you'd like to include about yourself</>
+            ) : (
+              <>Add personal information to include in your message</>
+            )}
           </p>
+          {availableFields.length > 0 && (
+            <div className="mt-3 text-xs text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2">
+              ✓ {availableFields.length} field{availableFields.length !== 1 ? 's' : ''} loaded from your profile
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-6 flex-1 flex flex-col">
           {/* Unified Personal Information Section */}
@@ -2327,6 +2364,31 @@ We verify your voter registration to ensure your messages are taken seriously by
                 {/* Only show additional fields for logged-in users */}
                 {user && (
                   <>
+                    {/* Info message if some fields need to be filled */}
+                    {unavailableFields.length > 0 && unavailableFields.some(f => ['birthYear', 'gender', 'politicalAffiliation', 'education', 'profession'].includes(f.key)) && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                        <div className="flex items-start gap-3">
+                          <div className="text-blue-600 mt-0.5">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-blue-800 font-medium mb-1">
+                              Add more personal details (optional)
+                            </p>
+                            <p className="text-sm text-blue-700">
+                              Fill out the fields below to include additional information in your message, or save them to your{' '}
+                              <a href="/dashboard/profile" target="_blank" className="underline font-semibold hover:text-blue-900">
+                                profile
+                              </a>{' '}
+                              for quicker access next time.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Birth Year */}
                     <div>
                       {personalDataFields.find(f => f.key === 'birthYear')?.available ? (
@@ -3283,7 +3345,7 @@ We verify your voter registration to ensure your messages are taken seriously by
                   <Crown className="h-5 w-5 text-primary" />
                   Become a Member
                 </h3>
-                <p className="text-sm text-muted-foreground mb-2">$6/quarter ($24/year)</p>
+                <p className="text-sm text-muted-foreground mb-2">$6/quarter ($24/year) <span className="text-primary font-semibold">• Use code SAVE for 50% off</span></p>
               </div>
 
               <div className="space-y-2 py-2">
@@ -3441,6 +3503,7 @@ We verify your voter registration to ensure your messages are taken seriously by
                 </div>
                 <div className="mt-3 pt-3 border-t border-primary/20">
                   <p className="font-semibold text-center">$6/quarter ($24/year)</p>
+                  <p className="text-xs text-primary font-semibold text-center mt-1">Use code SAVE for 50% off!</p>
                 </div>
               </div>
             )}

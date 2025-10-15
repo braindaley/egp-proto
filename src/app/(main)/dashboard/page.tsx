@@ -33,6 +33,13 @@ export default function DashboardPage() {
         return true;
     });
 
+    // For testing: Add mock L2 data if testAsRegistered is true and user doesn't have county/precinct
+    const displayUser = testAsRegistered && user ? {
+        ...user,
+        county: user.county || 'Los Angeles County',
+        precinct: user.precinct || 'PCT-4521'
+    } : user;
+
     // Save to localStorage when toggles change
     const handlePremiumToggle = (checked: boolean) => {
         setTestAsPremium(checked);
@@ -281,11 +288,30 @@ export default function DashboardPage() {
                                             <div className="flex items-start gap-3">
                                                 <div className="flex-1">
                                                     <p className="text-sm font-medium text-foreground">
-                                                        {user.firstName} {user.lastName}
+                                                        {displayUser?.firstName} {displayUser?.lastName}
                                                     </p>
                                                     <p className="text-sm text-muted-foreground">
-                                                        {user.address}, {user.city}, {user.state} {user.zipCode}
+                                                        {displayUser?.address}, {displayUser?.city}, {displayUser?.state} {displayUser?.zipCode}
                                                     </p>
+                                                    {(displayUser?.state || displayUser?.county || displayUser?.precinct) && (
+                                                        <div className="mt-2 space-y-1">
+                                                            {displayUser.state && (
+                                                                <p className="text-xs text-green-700">
+                                                                    <span className="font-medium">State:</span> {displayUser.state}
+                                                                </p>
+                                                            )}
+                                                            {displayUser.county && (
+                                                                <p className="text-xs text-green-700">
+                                                                    <span className="font-medium">County:</span> {displayUser.county}
+                                                                </p>
+                                                            )}
+                                                            {displayUser.precinct && (
+                                                                <p className="text-xs text-green-700">
+                                                                    <span className="font-medium">Precinct:</span> {displayUser.precinct}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                     <p className="text-xs text-green-700 mt-2 flex items-center gap-1">
                                                         <Check className="h-3 w-3" />
                                                         Active Registration Status

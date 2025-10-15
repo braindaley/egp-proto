@@ -31,6 +31,8 @@ export interface User extends FirebaseUser {
   city?: string;
   state?: string;
   zipCode?: string;
+  county?: string;
+  precinct?: string;
   congressionalDistrict?: string;
   stateSenatedistrict?: string;
   stateHouseDistrict?: string;

@@ -192,9 +192,10 @@ export const campaignsService = {
 
   // Get campaign by group and bill
   getCampaignByGroupAndBill: (groupSlug: string, billType: string, billNumber: string): Campaign | undefined => {
-    return campaigns.find(c => 
-      c.groupSlug === groupSlug && 
-      c.bill.type.toLowerCase() === billType.toLowerCase() && 
+    return campaigns.find(c =>
+      c.groupSlug === groupSlug &&
+      c.bill &&
+      c.bill.type.toLowerCase() === billType.toLowerCase() &&
       c.bill.number === billNumber &&
       c.isActive
     );
@@ -202,9 +203,10 @@ export const campaignsService = {
 
   // Get campaigns by bill
   getCampaignsByBill: (congress: number, billType: string, billNumber: string): Campaign[] => {
-    return campaigns.filter(c => 
+    return campaigns.filter(c =>
+      c.bill &&
       c.bill.congress === congress &&
-      c.bill.type.toLowerCase() === billType.toLowerCase() && 
+      c.bill.type.toLowerCase() === billType.toLowerCase() &&
       c.bill.number === billNumber &&
       c.isActive
     );
