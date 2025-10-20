@@ -881,18 +881,22 @@ Hours: FE 20 | BE 20 | TL 8 | PM 8
   - Validation:
     - Execute checklist on desktop/mobile
 
-## US-014: AI-Assisted Message Drafting
+## US-014: AI-Assisted Message Drafting (Template-First Approach - Efficiency Optimized)
 Hours: FE 8 | BE 20 | TL 8 | PM 4
 
 - FE — Draft assistant interface
-  - Goal: Allow users to request an AI draft with tone and context options.
+  - Goal: Allow users to request an AI-enhanced draft with regeneration options.
   - Scope:
-    - Draft request UI (tone, context prompts)
-    - Display suggested draft with edit capability
+    - Draft request UI ("AI Help" button)
+    - Display suggested draft (template or AI-enhanced) with edit capability
+    - Regenerate button to cycle through templates or request new AI enhancement
   - Acceptance criteria:
-    - Users can generate, review, and edit a suggested draft
+    - Users can generate, regenerate, review, and edit suggested drafts
+    - Templates work instantly; AI enhancement adds personalization
   - Validation:
-    - Demo: request draft; refine; accept into message compose
+    - Demo: request draft; regenerate multiple times; accept into message compose
+
+  **Efficiency Win:** Build template system first (10-15 templates per position), then add AI enhancement layer. Templates always work (no API failures), AI adds personalization when available. More reliable, saves ~10 hours implementation time.
 
 - TL — Safety and cost controls for AI usage
   - Goal: Bound AI usage within safe, predictable limits.
@@ -904,15 +908,19 @@ Hours: FE 8 | BE 20 | TL 8 | PM 4
   - Validation:
     - Attempt over-cap requests; verify blocked with helpful messaging
 
-- BE — Draft generation service
-  - Goal: Provide a service that returns suggested drafts based on bill/campaign context and user inputs.
+- BE — Template + AI draft service
+  - Goal: Provide a hybrid service that serves templates and optionally enhances with AI.
   - Scope:
-    - Draft endpoint with basic caching and parameter validation
-    - Store draft metadata for audit and rate limiting
+    - Template system with 10-15 message templates per bill position (Support/Oppose)
+    - Variable substitution ({billNumber}, {billTitle}, {userName}, {representativeName})
+    - AWS Bedrock layer to enhance templates with bill-specific content (fallback to plain template)
+    - Caching for AI enhancements (24 hours in Redis)
+    - Rate limiting (templates don't count against limit)
   - Acceptance criteria:
-    - Returns drafts within latency budget; respects user caps
+    - Templates return instantly; AI enhancement adds value but failures fall back gracefully
+    - Returns drafts within latency budget; respects user caps for AI only
   - Validation:
-    - Unit: parameter and output validation; Integration: draft request-flow
+    - Unit: template rendering and AI enhancement; Integration: full flow with fallback testing
 
 - PM — Feature walkthrough and copy review
   - Goal: Ensure users understand the value and limitations.
@@ -1157,44 +1165,42 @@ Hours: FE 20 | BE 20 | TL 8 | PM 8
   - Validation:
     - Demo & sign-off
 
-## US-021: Manage Subscription
-Hours: FE 12 | BE 12 | TL 4 | PM 4
+## US-021: Manage Subscription (Stripe Customer Portal - Efficiency Optimized)
+Hours: FE 2 | BE 2 | TL 0 | PM 1 (reduced from 32 hours via Stripe's hosted portal)
 
 - FE — Manage subscription entry points
-  - Goal: Provide easy access to billing portal or in-app manage page.
+  - Goal: Provide easy access to Stripe's hosted billing portal.
   - Scope:
-    - Manage button in dashboard/profile; status display
+    - Single "Manage Subscription" button in dashboard/profile that redirects to Stripe portal
+    - Status display showing current plan
   - Acceptance criteria:
-    - Users can change/cancel plans and return to app
+    - Users can access portal and return to app after changes
   - Validation:
-    - Demo: portal session; confirm status updates
+    - Demo: portal session; confirm redirect and return flow
 
-- TL — Lifecycle rules
-  - Goal: Define downgrade/cancel timing and grace periods.
-  - Scope:
-    - Clarify end-of-period access and downgrade handling
-  - Acceptance criteria:
-    - Documented rules; UI reflects them
-  - Validation:
-    - Review against app behavior
+  **Efficiency Win:** Use Stripe's hosted Customer Portal instead of custom UI. Stripe handles all subscription management (cancel, update payment, view invoices, download receipts). Zero maintenance, professional UI, saves 31 hours.
 
-- BE — Customer portal session and state sync
-  - Goal: Create/manage sessions and keep subscription state current.
+- TL — (No planned hours - efficiency optimization)
+  - Goal: Stripe handles all subscription management; no custom lifecycle rules needed
+
+- BE — Customer portal session creation
+  - Goal: Create Stripe portal sessions and keep subscription state current via webhooks.
   - Scope:
-    - Endpoint for portal sessions; webhook processing for changes
+    - Simple endpoint to create portal session using stripe.billingPortal.sessions.create()
+    - Webhook processing for subscription changes (already handled in US-020)
   - Acceptance criteria:
-    - State stays in sync after changes
+    - Portal session opens correctly and returns user to app
   - Validation:
-    - Integration: portal actions reflected in user state
+    - Integration: portal session creation and webhook updates
 
 - PM — QA scenarios
-  - Goal: Validate change/cancel flows and post-state.
+  - Goal: Validate Stripe portal functionality.
   - Scope:
-    - Create matrix of plan changes and expected states
+    - Test cancel, update payment, view history in Stripe portal
   - Acceptance criteria:
-    - All scenarios pass; issues logged
+    - All portal functions work; webhooks update app state
   - Validation:
-    - Execute matrix
+    - Quick checklist (Stripe handles UX, we only test integration)
 
 ## US-024: View Advocacy Impact Analytics (Premium)
 Hours: FE 8 | BE 8 | TL 0 | PM 4
@@ -1423,21 +1429,24 @@ Hours: FE 8 | BE 4 | TL 0 | PM 4
 
 ---
 
-## Sprint 5 Task Breakdown (Organization Campaigns – Phase 2)
+## Sprint 4 Task Breakdown (Organization Campaigns – Phase 1) - Continued
 
-Two-week sprint expanding campaign management and analytics; includes a documentation foundation. Hours per role align with the sprint schedule.
+**Note:** ORG-004 (Edit & Pause Campaigns) has been moved from Sprint 5 to Sprint 4 for efficiency. Building Create + Edit + Pause together saves ~12 hours via code reuse (shared forms, validation, API patterns).
 
-## ORG-004: Edit & Pause Campaigns
+## ORG-004: Edit & Pause Campaigns (Batched with Create - Efficiency Optimized)
 Hours: FE 12 | BE 12 | TL 4 | PM 4
 
-- FE — Campaign edit/pause
+- FE — Campaign edit/pause (batched with ORG-003)
   - Goal: Allow org admins to edit campaign details and pause/resume visibility.
   - Scope:
-    - Edit forms; pause/resume toggle; status indicator
+    - Edit forms (reuse ORG-003 Create Campaign forms)
+    - Pause/resume toggle; status indicator
   - Acceptance criteria:
     - Changes persist; paused campaigns are hidden from public
   - Validation:
     - Demo: edit, pause, resume flows
+
+  **Efficiency Win:** Built immediately after ORG-003 in Sprint 4. Reuses 80% of Create Campaign code (forms, validation, API patterns). Complete campaign management in one sprint.
 
 - TL — Publishing/state rules
   - Goal: Define which fields are editable post-publish and effects of pause.

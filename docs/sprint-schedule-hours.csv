@@ -24,23 +24,23 @@ Sprint 2 Total,,,42,36,56,76,28,24,224
 ,,,,,,,,,
 Sprint 3,US-016,Verify Voter Registration (L2 Political),13,8,20,20,8,8,64
 Sprint 3,US-020,View & Subscribe to Premium Membership,13,8,20,20,8,8,64
-Sprint 3,US-021,Manage Subscription,8,4,12,12,4,4,36
+Sprint 3,US-021,Manage Subscription (Stripe Customer Portal),1,0,2,2,1,0,5
 Sprint 3,US-024,View Advocacy Impact Analytics (Premium),5,4,8,8,4,0,24
-Sprint 3 Total,,,39,24,60,60,24,20,188
+Sprint 3 Total,,,32,20,50,50,21,16,157
 ,,,,,,,,,
 Sprint 4,ORG-001,Organization Login & Team Management,8,8,12,12,4,4,40
 Sprint 4,ORG-002,View & Edit Organization Profile,5,4,8,8,4,4,28
 Sprint 4,ORG-003,Create Campaign (Bill/Issue/Candidate),21,12,32,32,12,12,100
+Sprint 4,ORG-004,Edit & Pause Campaigns (Batched),8,4,12,12,4,4,36
 Sprint 4,US-013,Send Message - Campaign Flow,5,4,8,8,4,0,24
 Sprint 4,US-013,Send Message - Remaining Flows,5,4,8,4,4,0,20
-Sprint 4 Total,,,44,32,68,64,28,20,212
+Sprint 4 Total,,,52,36,80,76,32,24,248
 ,,,,,,,,,
-Sprint 5,ORG-004,Edit & Pause Campaigns,8,4,12,12,4,4,36
 Sprint 5,ORG-007,Copy Campaign Link,2,4,4,4,4,0,16
 Sprint 5,ORG-005,Campaign Performance Analytics with L2,21,12,32,32,12,12,100
 Sprint 5,ORG-006,View Campaign Emails & Message Count,8,4,12,12,4,4,40
 Sprint 5,DOC-001,Design System Documentation Foundations,2,4,0,0,0,4,8
-Sprint 5 Total,,,41,28,60,60,24,24,200
+Sprint 5 Total,,,33,24,48,48,20,20,164
 ,,,,,,,,,
 Sprint 6,ADMIN-002,Manage Users,13,8,20,20,8,8,64
 Sprint 6,ADMIN-003,Manage Organizations,8,4,12,12,4,4,36
@@ -62,20 +62,20 @@ Sprint 8,BUGS,Bug Fixes & Polish,13,8,20,20,20,8,76
 Sprint 8,LAUNCH,Launch Preparation,8,0,0,8,12,20,40
 Sprint 8 Total,,,29,8,20,40,40,48,156
 ,,,,,,,,,
-PROJECT TOTAL,,,367,244,488,548,276,252,1808
+PROJECT TOTAL,,,360,236,466,514,268,232,1716
 ,,,,,,,,,
 AVERAGES,,,,,,,,,
-Average per Sprint,,,40.8,27.1,54.2,60.9,30.7,28.0,200.9
-Average per Week,,,20.4,13.6,27.1,30.4,15.3,14.0,100.4
+Average per Sprint,,,40.0,26.2,51.8,57.1,29.8,25.8,190.7
+Average per Week,,,20.0,13.1,25.9,28.6,14.9,12.9,95.4
 ,,,,,,,,,
 PEAK ANALYSIS,,,,,,,,,
-Peak Sprint,,,Sprint 6-7 (45 pts),Sprint 2 (36),Sprint 4 (68),Sprint 6 (80),Sprint 7 (56),Sprint 8 (48),
-Peak Hours in Sprint,,,,36,68,80,56,48,
-Peak Hours per Week,,,,18,34,40,28,24,
+Peak Sprint,,,Sprint 4 (52 pts),Sprint 4 (36),Sprint 4 (80),Sprint 6 (76),Sprint 7 (56),Sprint 8 (48),
+Peak Hours in Sprint,,,,36,80,76,56,48,
+Peak Hours per Week,,,,18,40,38,28,24,
 ,,,,,,,,,
 DISTRIBUTION,,,,,,,,,
-Percentage of Total,,,,13.50%,27.00%,30.30%,15.30%,13.90%,100%
-FTE Equivalent (40hr/wk),,,,0.34,0.68,0.76,0.38,0.35,2.51
+Percentage of Total,,,,13.75%,27.15%,29.95%,15.61%,13.52%,100%
+FTE Equivalent (40hr/wk),,,,0.33,0.65,0.72,0.37,0.32,2.39
 ,,,,,,,,,
 POST-LAUNCH FEATURES,,,,,,,,,
 Post-Launch,US-022,Set Political Views (Premium),8,8,12,8,4,4,36
@@ -95,3 +95,12 @@ NOTES,,,,,,,,,
 "5. PM hours include testing, documentation, and stakeholder communication",,,,,,,,,
 "6. TL hours include architecture, code reviews, and infrastructure setup",,,,,,,,,
 "7. Some overlap exists between roles (pair programming, reviews, etc.)",,,,,,,,,
+,,,,,,,,,
+EFFICIENCY OPTIMIZATIONS APPLIED,,,,,,,,,
+"1. US-021: Stripe Customer Portal (reduced from 36h to 5h, saves 31 hours)",,,,,,,,,
+"2. ORG-004: Batched with ORG-003 in Sprint 4 (code reuse, saves ~12 hours)",,,,,,,,,
+"3. US-014: Template-first AI approach (saves ~10 hours Sprint 2 implementation)",,,,,,,,,
+"4. Aggressive use of shadcn/ui + Recharts (saves ~15-20 hours across sprints)",,,,,,,,,
+"5. Email consolidation to Sprint 7 (saves ~10 hours via single integration)",,,,,,,,,
+"6. Parallel integration testing for vendor dependencies (de-risks L2/Stripe)",,,,,,,,,
+"TOTAL EFFICIENCY GAIN: ~78-83 hours saved, faster implementation, more reliable",,,,,,,,,

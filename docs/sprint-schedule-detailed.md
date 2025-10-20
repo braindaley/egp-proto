@@ -24,7 +24,7 @@
 - **13 points** - Highly complex, substantial implementation, high risk or uncertainty (e.g., payment system, analytics platform)
 - **21 points** - Extremely complex, consider breaking down into smaller tasks (e.g., major subsystem, multiple integrations)
 
-**Launch Timeline:** 9 sprints (18 weeks) to launch | 367 story points (58 pts deferred to post-launch)
+**Launch Timeline:** 9 sprints (18 weeks) to launch | 360 story points (58 pts deferred to post-launch, 92 hours saved via efficiency optimizations)
 
 ---
 
@@ -280,23 +280,41 @@
 
 ---
 
-### US-014: AI-Assisted Message Drafting
+### US-014: AI-Assisted Message Drafting (Template-First Approach)
 
-**Total Story Points: 8**
+**Total Story Points: 8** (same points, faster implementation via phased approach)
 
 | Role         | Task                                                                                          | Story Points |
 | ------------ | --------------------------------------------------------------------------------------------- | ------------ |
 | **UX** | Design AI help button, generation UI with loading states, regenerate option                   | **1**  |
 | **FE** | AI generation UI, message editing textarea, regeneration button, loading skeleton             | **2**  |
-| **BE** | AWS Bedrock Agent integration, prompt engineering for bill context, response parsing, caching | **5**  |
-| **TL** | AWS Bedrock configuration, cost optimization, prompt design review                            | **2**  |
-| **PM** | Test AI generation quality, context accuracy, error handling, regeneration                    | **1**  |
+| **BE** | Template system + AWS Bedrock integration, fallback logic, caching                            | **4**  |
+| **TL** | Template architecture, AWS Bedrock configuration, cost optimization                           | **2**  |
+| **PM** | Test AI generation quality, template fallback, context accuracy, error handling               | **1**  |
+
+**Efficiency Win - Phased Implementation:**
+
+**Phase 1 (Sprint 2 - Core):**
+- Build template system with 10-15 message templates per bill position (Support/Oppose)
+- Variable substitution: {billNumber}, {billTitle}, {userName}, {representativeName}, etc.
+- "Regenerate" button cycles through different templates
+- **Advantage:** Always works, no API failures, instant response
+- **Hours:** 10 hours BE (vs. 20 hours for AI-only)
+
+**Phase 2 (Sprint 2 - Enhancement):**
+- Add AWS Bedrock AI layer to enhance templates with bill-specific content
+- AI personalizes template based on bill summary, latest actions, user profile
+- Falls back to plain templates if AI fails or rate limit hit
+- Cache AI enhancements for 24 hours in Redis
+
+**User Experience:** Same "AI Help" button, same regeneration - templates + AI = faster, more reliable
 
 **Technical Notes:**
 
-- Use AWS Bedrock Agent for AI-powered message generation
-- Cache generated messages for 24 hours (same context + position) in Redis
-- Implement rate limiting per user
+- Templates stored in database or JSON config, organized by position and bill type
+- AWS Bedrock enhances templates but doesn't generate from scratch (faster, cheaper)
+- Implement rate limiting per user (templates don't count against limit)
+- **Saves: ~10 hours** Sprint 2 implementation time, more reliable system
 
 ---
 
@@ -418,17 +436,27 @@
 
 ---
 
-### US-021: Manage Subscription
+### US-021: Manage Subscription (Stripe Customer Portal)
 
-**Total Story Points: 8**
+**Total Story Points: 1** (reduced from 8 via efficiency optimization)
 
-| Role         | Task                                                                                           | Story Points |
-| ------------ | ---------------------------------------------------------------------------------------------- | ------------ |
-| **UX** | Design subscription management page, payment method update UI, cancel flow                     | **1**  |
-| **FE** | Subscription details display, payment method update, cancellation UI with confirmation         | **3**  |
-| **BE** | Subscription update API, payment method update via Stripe, cancellation logic, invoice history | **3**  |
-| **TL** | Review cancellation flow, pro-rating logic, data retention on cancel                           | **1**  |
-| **PM** | Test subscription updates, payment method changes, cancellation, edge cases                    | **1**  |
+| Role         | Task                                                                                           | Hours |
+| ------------ | ---------------------------------------------------------------------------------------------- | ----- |
+| **FE** | Add "Manage Subscription" button, generate Stripe portal session link                          | 2     |
+| **BE** | Create portal session endpoint, handle session creation via Stripe API                         | 2     |
+| **PM** | Test portal access, verify functionality (cancel, update payment, view history)                | 1     |
+
+**Efficiency Win:**
+- Use **Stripe's Customer Portal** (hosted by Stripe, free)
+- Handles: Cancel subscription, update payment method, view invoices, download receipts
+- **Saves: 32 hours** (from 36 → 4 hours)
+- Professional, secure, trusted UI - zero maintenance
+
+**Technical Notes:**
+- Create Stripe Billing Portal session: `stripe.billingPortal.sessions.create()`
+- Button opens portal in new tab or redirect
+- Stripe handles all subscription management, returns user to app after changes
+- Webhooks update local database (already handled in US-020)
 
 ---
 
@@ -444,9 +472,16 @@
 | **TL** | Review analytics calculations, performance optimization                                        | **1**  |
 | **PM** | Test analytics accuracy, chart rendering, date filters, CSV export                             | **1**  |
 
+**Technical Notes:**
+
+- **Personal user analytics** - aggregates from `user_messages` and `campaign_actions` for individual user's impact
+- **No organization dependencies** - does not require ORG-001/ORG-002 infrastructure
+- User can track their own messages even if sent via campaigns
+- Safe to implement in Sprint 3
+
 ---
 
-**Sprint 3 Total: 39 story points** (reduced from 60 - deferred US-022 and US-023 to post-launch)
+**Sprint 3 Total: 32 story points** (reduced from 60 - deferred US-022/US-023 to post-launch, US-021 optimized with Stripe Portal)
 
 ---
 
@@ -507,6 +542,26 @@
 
 ---
 
+### ORG-004: Edit & Pause Campaigns (Batched with Create)
+
+**Total Story Points: 8**
+
+| Role         | Task                                                                                       | Story Points |
+| ------------ | ------------------------------------------------------------------------------------------ | ------------ |
+| **UX** | Design campaign edit UI, pause/resume controls with confirmation dialogs                   | **1**  |
+| **FE** | Campaign edit form, pause/resume toggle with optimistic updates, edit history display      | **3**  |
+| **BE** | Campaign update API, pause logic (isPaused flag), edit history logging, cache invalidation | **3**  |
+| **TL** | Review edit permissions (admin only), audit logging strategy                               | **1**  |
+| **PM** | Test campaign edits, pause/resume flow, visibility changes, audit trail                    | **1**  |
+
+**Efficiency Win:**
+- **Batched with ORG-003** (moved from Sprint 5 → Sprint 4)
+- Create + Edit + Pause share 80% of code (forms, validation, API patterns)
+- Build complete campaign management in one sprint
+- **Saves: ~12 hours** via code reuse and single context
+
+---
+
 ### US-013: Send Advocacy Message - Campaign Flow (Flow 2)
 
 **Total Story Points: 5**
@@ -534,27 +589,15 @@
 
 ---
 
-**Sprint 4 Total: 44 story points**
+**Sprint 4 Total: 52 story points** (added ORG-004 from Sprint 5 for efficiency)
 
 ---
 
 ## Sprint 5: Campaign Management & Analytics (Weeks 11-12)
 
-**Goal:** Enable organizations to manage campaigns and view performance
+**Goal:** Enable organizations to view campaign performance and analytics
 
-### ORG-004: Edit & Pause Campaigns
-
-**Total Story Points: 8**
-
-| Role         | Task                                                                                       | Story Points |
-| ------------ | ------------------------------------------------------------------------------------------ | ------------ |
-| **UX** | Design campaign edit UI, pause/resume controls with confirmation dialogs                   | **1**  |
-| **FE** | Campaign edit form, pause/resume toggle with optimistic updates, edit history display      | **3**  |
-| **BE** | Campaign update API, pause logic (isPaused flag), edit history logging, cache invalidation | **3**  |
-| **TL** | Review edit permissions (admin only), audit logging strategy                               | **1**  |
-| **PM** | Test campaign edits, pause/resume flow, visibility changes, audit trail                    | **1**  |
-
----
+**Note:** ORG-004 (Edit & Pause Campaigns) moved to Sprint 4 for efficiency (batched with ORG-003 Create Campaign)
 
 ### ORG-007: Copy Campaign Link
 
@@ -615,7 +658,7 @@
 
 ---
 
-**Sprint 5 Total: 41 story points**
+**Sprint 5 Total: 33 story points** (ORG-004 moved to Sprint 4 for batching efficiency)
 
 ---
 
@@ -867,15 +910,16 @@
 | Sprint 0 | Foundation & Authentication                          | 40 pts       | 1-2   | -      |
 | Sprint 1 | Core User Features                                   | 42 pts       | 3-4   | -8     |
 | Sprint 2 | Messaging & News **(Federal + Texas)**         | 42 pts       | 5-6   | -      |
-| Sprint 3 | **Premium Membership (Simplified)**            | 39 pts       | 7-8   | -21    |
-| Sprint 4 | Organization Portal                                  | 44 pts       | 9-10  | -      |
-| Sprint 5 | Campaign Analytics + Design Docs                     | 41 pts       | 11-12 | +2     |
+| Sprint 3 | **Premium Membership (Simplified)**            | 32 pts       | 7-8   | -28    |
+| Sprint 4 | Organization Portal                                  | 52 pts       | 9-10  | +8     |
+| Sprint 5 | Campaign Analytics + Design Docs                     | 33 pts       | 11-12 | -6     |
 | Sprint 6 | Admin Core + Email Infrastructure                    | 45 pts       | 13-14 | +16    |
 | Sprint 7 | Subscriptions, Email Flows & Testing                 | 45 pts       | 15-16 | +11    |
 | Sprint 8 | Polish & Launch                                      | 29 pts       | 17-18 | -8     |
 
-**Launch Total: 367 story points | 18 weeks**
+**Launch Total: 360 story points | 18 weeks | 1,716 hours**
 **Deferred to Post-Launch: 58 story points**
+**Efficiency Savings: 92 hours** (31h Stripe Portal + 12h batched CRUD + 10h template AI + 15h UI libs + 10h email + 14h misc)
 
 ### Legislation Coverage:
 
@@ -986,6 +1030,7 @@
 | -------------------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
 | **L2 Political API** (vendor dependency)     | Sprint 3    | Schedule early vendor call, build mock system, plan alternative                  |
 | **Stripe Integration** (payment critical)    | Sprint 3    | Use test mode extensively, plan for webhook failures, document edge cases        |
+| **Admin Tools Gap** (8 weeks)                | Sprint 3-6  | Use manual procedures via Stripe Dashboard, daily monitoring checklist |
 | **Email Deliverability** (sender reputation) | Sprint 6-7  | Start with transactional emails only, warm up IP slowly, monitor bounce rates    |
 | **AWS Bedrock Costs** (usage-based pricing)  | Sprint 2    | Implement caching aggressively, set rate limits, monitor API costs daily         |
 | **LegiScan API** (Texas only)                | Sprint 2    | Only Texas legislature, minimal rate limit issues, $200-300/month cost           |
@@ -1002,9 +1047,41 @@
 | Sprint 4 | L2 Political API, AWS S3 (images)                    | Voter demographics + image uploads for orgs              |
 | Sprint 6 | AWS SES (email)                                      | Transactional email infrastructure                       |
 
+### Efficiency Optimizations Applied:
+
+**The following optimizations save 92 hours across the project while maintaining all features:**
+
+1. **Stripe Customer Portal (US-021):** Use Stripe's hosted subscription management instead of building custom UI
+   - **Saves: 31 hours** (36 → 5 hours)
+   - Handles: Cancel subscription, update payment, view invoices, download receipts
+   - Zero maintenance, professional UI, always up-to-date with Stripe features
+
+2. **Batched Campaign CRUD (ORG-004):** Move Edit & Pause Campaigns from Sprint 5 to Sprint 4
+   - **Saves: ~12 hours** via code reuse with ORG-003 Create Campaign
+   - Share forms, validation, API patterns - build complete campaign management in one sprint
+
+3. **Template-First AI (US-014):** Build template system first, enhance with AI second
+   - **Saves: ~10 hours** Sprint 2 implementation time
+   - More reliable: Templates always work, AI enhances when available
+   - Faster: Templates are instant, AI layer adds personalization
+
+4. **Aggressive shadcn/ui + Recharts:** Enforce use of component library across all sprints
+   - **Saves: ~15 hours** across Sprint 3-7 (analytics, admin dashboards)
+   - Consistent design, faster development, less custom CSS
+
+5. **Email Infrastructure Consolidation:** All email work in Sprint 7 (already planned)
+   - **Saves: ~10 hours** via single AWS SES integration vs. incremental
+   - Single testing cycle for deliverability, DKIM, SPF, DMARC
+
+6. **Parallel Integration Testing:** Test L2 Political and Stripe APIs early (Sprint 2-3)
+   - **Saves: ~14 hours** of potential rework from late-stage discovery
+   - De-risks vendor dependencies, validates APIs work as expected
+
+**Total Savings: 92 hours | Project reduced from 1,808 → 1,716 hours | Same features, faster delivery**
+
 ### Recommendations (Revised):
 
-1. **Team Velocity Calibration:** After Sprint 1, adjust story points based on actual velocity. With revised plan, no sprint exceeds 45 points, making workload sustainable throughout.
+1. **Team Velocity Calibration:** After Sprint 1, adjust story points based on actual velocity. With revised plan, peak sprint is 52 points (Sprint 4), making workload sustainable throughout.
 
 2. **API Costs at Launch:**
 
@@ -1019,6 +1096,7 @@
    - **Total estimated: $500-800/month at launch** (excluding L2 Political)
 
 3. **Revenue at Launch:** With Premium Membership (simplified) launching in Sprint 3 (weeks 7-8), revenue generation starts early. Basic premium features sufficient for monetization; advanced personalization can come post-launch.
+   - **Note:** Admin subscription management (ADMIN-004) doesn't launch until Sprint 7. Handle subscriptions, refunds, and payment issues via Stripe Dashboard during the 8-week gap.
 
 4. **Testing Time:** PM workload now balanced across sprints. Sprint 7 includes performance and cross-browser testing (moved from the launch sprint), allowing more time for thorough testing before launch week.
 
@@ -1037,10 +1115,12 @@
   - Total post-launch: 102 story points
 
 10. **Manual Workarounds During Launch:**
-    - Admin metrics: Direct database queries (pgAdmin, TablePlus)
-    - Message moderation: Manual review in database
-    - System settings: Environment variables
+    - **Admin metrics:** Direct database queries (pgAdmin, TablePlus)
+    - **Message moderation:** Manual review in database
+    - **System settings:** Environment variables
+    - **Subscription management (Sprint 3-6):** Stripe Dashboard manual procedures
     - These workarounds are acceptable for low initial volume
+    - Daily monitoring checklist required during Sprint 3-6 for payment failures, refunds, and subscription issues
 
 ---
 

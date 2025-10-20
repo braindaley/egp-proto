@@ -665,25 +665,37 @@ Reference: https://www.l2-data.com/datamapping/voter-data-dictionary/
 
 ---
 
-#### US-021: Manage Subscription
+#### US-021: Manage Subscription (Stripe Customer Portal)
 **As a** premium user
 **I want to** manage my subscription
 **So that** I can update payment info or cancel
 
+**Story Points:** 1 (reduced from 8 via efficiency optimization)
+
 **Acceptance Criteria:**
-- View: Status (active, past due, canceled), next billing date/amount
-- Update payment method (credit card)
-- View payment history
-- Cancel subscription (takes effect at end of billing period)
-- Confirmation emails for changes
+- Single "Manage Subscription" button in settings/dashboard
+- Opens Stripe's hosted Customer Portal (hosted by Stripe, zero maintenance)
+- Portal allows users to:
+  - View subscription status (active, past due, canceled)
+  - View next billing date and amount
+  - Update payment method (credit card)
+  - View payment history and download invoices
+  - Cancel subscription (takes effect at end of billing period)
+- User redirected back to platform after portal session
+- Stripe handles all UI, validation, security, and confirmations
 
 **Technical Requirements:**
-- Stripe Customer Portal link, OR custom UI:
-  - GET /subscriptions/:id
-  - POST /payment_methods
-  - DELETE /subscriptions/:id
-- Show Stripe `invoices` for payment history
-- Handle `customer.subscription.deleted` webhook
+- **Stripe Customer Portal** (hosted solution):
+  - Backend creates portal session: `stripe.billingPortal.sessions.create()`
+  - Pass `customer_id` and `return_url` to Stripe API
+  - Frontend redirects user to `session.url`
+  - Stripe handles all subscription management UI
+  - Zero custom UI needed
+- Webhook processing: `customer.subscription.deleted`, `customer.subscription.updated` (already handled in US-020)
+- No additional API endpoints needed beyond session creation
+
+**Efficiency Win:**
+Use Stripe's Customer Portal instead of building custom subscription management UI. Saves 31 hours (from 36 hours to 5 hours) while providing professional, secure, maintained subscription management with zero ongoing maintenance.
 
 ---
 
