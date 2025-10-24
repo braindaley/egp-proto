@@ -368,11 +368,8 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                                   <h4 className={`font-semibold text-base leading-tight ${
                                     isHighRanking ? 'text-amber-900' : 'text-foreground'
                                   }`}>
-                                    {leadership.title || leadership.type}
+                                    {leadership.type}
                                   </h4>
-                                  {leadership.title && leadership.type && leadership.title !== leadership.type && (
-                                    <p className="text-sm text-muted-foreground mt-1">{leadership.type}</p>
-                                  )}
                                 </div>
                                 <div className="flex items-center gap-2 ml-4">
                                   {isHighRanking && (

@@ -163,8 +163,10 @@ const existingCampaigns: Campaign[] = [
 
 // Add migrated campaigns to the main campaigns array, avoiding duplicates
 existingCampaigns.forEach(existingCampaign => {
-  const exists = campaigns.some(campaign => 
+  const exists = campaigns.some(campaign =>
     campaign.groupSlug === existingCampaign.groupSlug &&
+    campaign.bill &&
+    existingCampaign.bill &&
     campaign.bill.type === existingCampaign.bill.type &&
     campaign.bill.number === existingCampaign.bill.number
   );
@@ -214,9 +216,12 @@ export const campaignsService = {
 
   // Create new campaign
   createCampaign: (campaignData: Omit<Campaign, 'id' | 'createdAt' | 'updatedAt'>): Campaign => {
+    const billIdentifier = campaignData.bill
+      ? `${campaignData.bill.type.toLowerCase()}-${campaignData.bill.number}`
+      : campaignData.campaignType?.toLowerCase() || 'campaign';
     const newCampaign: Campaign = {
       ...campaignData,
-      id: `${campaignData.groupSlug}-${campaignData.bill.type.toLowerCase()}-${campaignData.bill.number}-${Date.now()}`,
+      id: `${campaignData.groupSlug}-${billIdentifier}-${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

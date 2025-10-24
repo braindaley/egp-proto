@@ -18,7 +18,9 @@ export default function CampaignsPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { isWatchedBill, toggleWatchBill } = useWatchedBills();
-  const [campaigns, setCampaigns] = useState<Campaign[]>(campaignsService.getAllCampaigns().filter(c => c.isActive));
+  const [campaigns, setCampaigns] = useState<Campaign[]>(
+    campaignsService.getAllCampaigns().filter(c => c.isActive && c.bill)
+  );
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userActions, setUserActions] = useState<Record<string, 'support' | 'oppose' | null>>({});
 
@@ -62,7 +64,7 @@ export default function CampaignsPage() {
       } catch (error) {
         console.error('Error fetching Firebase campaigns:', error);
         // Fallback to static campaigns if Firebase fails
-        setCampaigns(campaignsService.getAllCampaigns().filter(c => c.isActive));
+        setCampaigns(campaignsService.getAllCampaigns().filter(c => c.isActive && c.bill));
       }
     };
 

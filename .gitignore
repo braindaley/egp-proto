@@ -40,3 +40,4 @@ _doc
 .netlify
 netlify-env.json
 env-vars.json
+.idea
