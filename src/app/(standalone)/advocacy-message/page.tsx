@@ -123,12 +123,8 @@ const AdvocacyMessageContent: React.FC = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [verificationZipCode, setVerificationZipCode] = useState('');
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
-  const [verificationFailed, setVerificationFailed] = useState(false);
   const [matches, setMatches] = useState<VerificationMatch[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<string>('');
   const [manualFirstName, setManualFirstName] = useState('');
@@ -709,39 +705,22 @@ const AdvocacyMessageContent: React.FC = () => {
       return;
     }
 
-    // Determine location based on verification zip code or user's saved zip code
-    const currentZip = verificationZipCode || state || zipCode;
-    let city = 'Middletown';
-    let stateName = 'DE';
-    let suggestedZips = ['19709', '19702', '19711', '19713', '19801'];
-    let streets = ['Emerson Rd', 'Main St', 'Pleasant Valley Rd', 'Limestone Rd', 'Kirkwood Hwy'];
+    // Determine location based on user's zip code for more realistic suggestions
+    let city = 'Springfield';
+    let state = 'IL';
+    let suggestedZips = ['62701', '62702', '62703', '62704', '62705'];
 
-    // Delaware zip codes (19xxx)
-    if (currentZip?.startsWith('19')) {
-      city = 'Middletown';
-      stateName = 'DE';
-      suggestedZips = ['19709', '19702', '19711', '19713', '19801'];
-      streets = ['Emerson Rd', 'Main St', 'Pleasant Valley Rd', 'Limestone Rd', 'Kirkwood Hwy'];
-    }
-    // California zip codes (927xx)
-    else if (currentZip?.startsWith('927')) {
+    if (zipCode && zipCode.startsWith('927')) {
+      // California - Orange County area
       city = 'Fountain Valley';
-      stateName = 'CA';
+      state = 'CA';
       suggestedZips = ['92708', '92706', '92707', '92704', '92705'];
-      streets = ['Irvine Ave', 'Brookhurst St', 'Harbor Blvd', 'Warner Ave', 'Euclid St'];
-    }
-    // Illinois zip codes (627xx)
-    else if (currentZip?.startsWith('627')) {
-      city = 'Springfield';
-      stateName = 'IL';
-      suggestedZips = ['62701', '62702', '62703', '62704', '62705'];
-      streets = ['Main St', 'Oak Ave', 'Elm St', 'Pine St', 'Maple Dr'];
     }
 
     // Mock address suggestions - in real implementation, this would call Google Places API
     const mockSuggestions = suggestedZips.map((zip, index) => {
-      const houseNumber = Math.floor(Math.random() * 9000) + 1000;
-      return `${houseNumber} ${streets[index]}, ${city}, ${stateName} ${zip}`;
+      const streets = ['Main St', 'Oak Ave', 'Elm St', 'Pine St', 'Maple Dr'];
+      return `${query} ${streets[index]}, ${city}, ${state} ${zip}`;
     });
 
     setAddressSuggestions(mockSuggestions);
@@ -753,30 +732,17 @@ const AdvocacyMessageContent: React.FC = () => {
     searchAddresses(value);
   };
 
-    const selectAddressSuggestion = (suggestion: string) => {
-        setAddress(suggestion);
-
-        const parts = suggestion.split(',').map(s => s.trim());
-        if (parts.length >= 3) {
-            setCity(parts[1]);
-            const stateZipParts = parts[2].split(' ').filter(s => s.length > 0);
-            if (stateZipParts.length >= 2) {
-                setState(stateZipParts[0]);
-                setVerificationZipCode(stateZipParts[1]);
-            }
-        }
-
-        setAddressSuggestions([]);
-        setShowAddressSuggestions(false);
-    };
-
+  const selectAddressSuggestion = (suggestion: string) => {
+    setAddress(suggestion);
+    setAddressSuggestions([]);
+    setShowAddressSuggestions(false);
+  };
 
   // Verification functions
   const handleVerificationSubmit = async () => {
     setVerificationError('');
-    setVerificationFailed(false);
 
-    if (!firstName || !lastName || !address || !city || !state || !verificationZipCode) {
+    if (!firstName || !lastName || !address) {
       setVerificationError('Please fill in all fields');
       return;
     }
@@ -796,64 +762,41 @@ const AdvocacyMessageContent: React.FC = () => {
       return;
     }
 
-    if (state.length !== 2) {
-      setVerificationError('Please enter a valid 2-letter state code');
-      return;
-    }
-
-    if (verificationZipCode.length !== 5) {
-      setVerificationError('Please enter a valid 5-digit ZIP code');
-      return;
-    }
-
     setIsVerifying(true);
 
     try {
-      // Call L2 API to verify voter
-      const response = await fetch('/api/l2/verify-voter', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          address,
-          city,
-          state,
-          zipCode: verificationZipCode,
-        }),
-      });
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const data = await response.json();
+      // Extract zip code from address for mock data
+      const zipMatch = address.match(/\d{5}(?:-\d{4})?/);
+      const extractedZip = zipMatch ? zipMatch[0] : '12345';
 
-      if (!data.success) {
-        setVerificationError(data.error || 'Unable to verify identity. Please try again.');
-        return;
+      // Determine city/state based on zip code
+      let mockCity = 'Springfield';
+      let mockState = 'IL';
+      if (extractedZip && extractedZip.startsWith('927')) {
+        mockCity = 'Fountain Valley';
+        mockState = 'CA';
       }
 
-      // If we found matches, show selection screen
-      if (data.matches && data.matches.length > 0) {
-        // Transform L2 voter records to VerificationMatch format
-        const transformedMatches: VerificationMatch[] = data.matches.map((match: any) => ({
-          id: match.voterId || match.id || `voter-${Math.random().toString(36).substring(7)}`,
-          fullName: match.fullName,
-          address: match.address,
-          city: match.city,
-          state: match.state,
-          zipCode: match.zipCode,
-          constituentDescription: match.constituentDescription || null,
-        }));
+      // Skip the selection step and directly verify by name and address
+      const verifiedInfo = {
+        id: '1',
+        fullName: `${firstName} ${lastName}`,
+        address: address,
+        city: mockCity,
+        state: mockState,
+        zipCode: extractedZip,
+        constituentDescription: constituentDescription || null
+      };
 
-        setMatches(transformedMatches);
-        setVerificationStep('selection');
-      } else {
-        // No matches found - show vote.org registration CTA
-        setVerificationError('');
-        setVerificationFailed(true);
-      }
+      setVerifiedUserInfo(verifiedInfo);
+      // Save the zip code to the useZipCode hook for member lookup
+      saveZipCode(extractedZip);
+
+      // Go directly to step 2 (choose position)
+      setStep(2);
     } catch (err) {
-      console.error('Verification error:', err);
       setVerificationError('Unable to verify identity. Please try again.');
     } finally {
       setIsVerifying(false);
@@ -1818,35 +1761,33 @@ We verify your voter registration to ensure your messages are taken seriously by
           {verificationStep === 'initial' && (
             <>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input
-                      id="firstName"
-                      placeholder="John"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    placeholder="John"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
 
-                  <div>
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      placeholder="Smith"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    placeholder="Smith"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="mt-1"
+                  />
                 </div>
 
                 <div className="relative">
-                  <Label htmlFor="address">Full Address</Label>
+                  <Label htmlFor="address">Address</Label>
                   <Input
                     id="address"
-                    placeholder="123 Main St, Springfield, IL 12345"
+                    placeholder="Start typing your address..."
                     value={address}
                     onChange={(e) => handleAddressChange(e.target.value)}
                     onFocus={() => address.length >= 3 && setShowAddressSuggestions(true)}
@@ -1867,41 +1808,11 @@ We verify your voter registration to ensure your messages are taken seriously by
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground mt-1">
-                    Start typing to see address suggestions, then select one to auto-fill
+                    Start typing your address to see suggestions
                   </p>
                 </div>
               </div>
-
-                {verificationFailed && (
-                    <Alert className="bg-blue-50 border-blue-200">
-                        <UserPlus className="h-4 w-4 text-blue-600" />
-                        <AlertDescription>
-                            <p className="font-medium mb-2 text-blue-900">We couldn’t find you in the database</p>
-                            <p className="text-sm text-blue-800 mb-3">
-                                To continue, please register at{' '}
-                                <a
-                                    href="https://www.vote.org/register-to-vote/"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-semibold underline hover:text-blue-900"
-                                >
-                                    vote.org
-                                </a>
-                                . It only takes a few minutes.
-                            </p>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => window.open('https://www.vote.org/register-to-vote/', '_blank')}
-                                className="text-blue-700 border-blue-300 hover:bg-blue-100"
-                            >
-                                Register to Vote
-                            </Button>
-                        </AlertDescription>
-                    </Alert>
-                )}
-
-
+              
               <div className="flex-1"></div>
               <div className="flex justify-between items-center mt-auto pt-6">
                 <Button variant="ghost" onClick={() => router.push('/login')}>
@@ -1965,9 +1876,9 @@ We verify your voter registration to ensure your messages are taken seriously by
                 </Button>
                 
                 <div className="space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleVerificationReset}
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setVerificationStep('manual')}
                   >
                     Not Me
                   </Button>
@@ -2074,41 +1985,14 @@ We verify your voter registration to ensure your messages are taken seriously by
                   If our records don't show every variation of your name and address, you can still confirm your information manually to ensure your message is delivered.
                 </AlertDescription>
               </Alert>
-
-              <Alert className="bg-blue-50 border-blue-200">
-                <UserPlus className="h-4 w-4 text-blue-600" />
-                  <AlertDescription>
-                      <p className="font-medium mb-2 text-blue-900">We couldn’t find you in the database</p>
-                      <p className="text-sm text-blue-800 mb-3">
-                          To continue, please register at{' '}
-                          <a
-                              href="https://www.vote.org/register-to-vote/"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-semibold underline hover:text-blue-900"
-                          >
-                              vote.org
-                          </a>
-                          . It only takes a few minutes.
-                      </p>
-                      <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open('https://www.vote.org/register-to-vote/', '_blank')}
-                          className="text-blue-700 border-blue-300 hover:bg-blue-100"
-                      >
-                          Register to Vote
-                      </Button>
-                  </AlertDescription>
-              </Alert>
-
+              
               <div className="flex-1"></div>
               <div className="flex justify-between mt-auto pt-6">
                 <Button variant="ghost" onClick={() => setVerificationStep('selection')}>
                   <ChevronLeft className="mr-2 h-4 w-4" />
                   Back to Matches
                 </Button>
-
+                
                 <Button onClick={() => {
                   handleManualSubmit();
                   setStep(2); // Go to choose position after verification
@@ -3252,13 +3136,13 @@ We verify your voter registration to ensure your messages are taken seriously by
                       </Button>
                       
                       <div className="space-x-2">
-                        <Button
-                          variant="outline"
-                          onClick={handleVerificationReset}
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setVerificationStep('manual')}
                         >
                           Not Me
                         </Button>
-                        <Button
+                        <Button 
                           onClick={handleMatchSelection}
                           disabled={!selectedMatch}
                         >
@@ -4004,7 +3888,7 @@ We verify your voter registration to ensure your messages are taken seriously by
   // We'll handle login/signup after message composition
 
   return (
-    <div className="h-screen bg-secondary/30 flex flex-col">
+    <div className="h-screen bg-secondary/30 flex flex-col overflow-hidden">
       {/* Close button row */}
       <div className="flex justify-end p-4 md:px-8 md:pt-8">
         <button
@@ -4028,7 +3912,7 @@ We verify your voter registration to ensure your messages are taken seriously by
       </div>
 
       {/* Main content */}
-      <div className="flex-1 container mx-auto px-8 max-w-2xl pb-8 flex flex-col pt-4">
+      <div className="flex-1 container mx-auto px-8 max-w-2xl pb-8 overflow-y-auto flex flex-col pt-4">
         {step === 1 && renderRoutingStep()} {/* Verification */}
         {step === 2 && (isMemberContact ? renderStep2_PolicyIssues() : renderStep1_Position())} {/* Policy/Position */}
         {step === 3 && renderStep2_AIHelp()} {/* Writing Help */}
