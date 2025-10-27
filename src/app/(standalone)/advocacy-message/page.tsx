@@ -28,12 +28,12 @@ async function getBillDetails(congress: string, billType: string, billNumber: st
   try {
     const res = await fetch(url);
     if (!res.ok) {
-      console.error(`Failed to fetch bill details: ${res.status}`);
+      console.log(`Bill details not available (${res.status}) - using cached data or continuing without bill details`);
       return null;
     }
     return await res.json();
   } catch (error) {
-    console.error("Error in getBillDetails:", error);
+    console.log("Bill details unavailable:", error);
     return null;
   }
 }
@@ -505,46 +505,49 @@ const AdvocacyMessageContent: React.FC = () => {
   // Prepare available members
   useEffect(() => {
     const fetchMembers = async () => {
-      if (!bill || isMemberContact) return;
-
-      // Add dummy emails to congressional reps
+      // Always populate congressional representatives
       const repsWithEmails = congressionalReps.map(rep => ({
         ...rep,
         email: generateMemberEmail(rep)
       }));
 
-      // Get committee leadership
+      // Only fetch bill-related members if we have a bill and not in member contact mode
       let leadership: any[] = [];
-      const committee = bill?.committees?.items?.[0];
-      const committeeId = committee?.systemCode;
-      const chamber = bill?.type?.toLowerCase().startsWith('hr') ? 'house' : 'senate';
+      let sponsorsWithEmails: any[] = [];
 
-      if (committeeId && congress) {
-        const members = await getCommitteeMembers(committeeId, congress, chamber);
-        const chair = members.find(m => m.title === 'Chair' || m.title === 'Chairman');
-        const rankingMember = members.find(m => m.title === 'Ranking Member');
-        
-        if (chair) {
-          leadership.push({
-            ...chair,
-            email: generateMemberEmail(chair),
-            role: 'Committee Chair'
-          });
+      if (bill && !isMemberContact) {
+        // Get committee leadership
+        const committee = bill?.committees?.items?.[0];
+        const committeeId = committee?.systemCode;
+        const chamber = bill?.type?.toLowerCase().startsWith('hr') ? 'house' : 'senate';
+
+        if (committeeId && congress) {
+          const members = await getCommitteeMembers(committeeId, congress, chamber);
+          const chair = members.find(m => m.title === 'Chair' || m.title === 'Chairman');
+          const rankingMember = members.find(m => m.title === 'Ranking Member');
+
+          if (chair) {
+            leadership.push({
+              ...chair,
+              email: generateMemberEmail(chair),
+              role: 'Committee Chair'
+            });
+          }
+          if (rankingMember) {
+            leadership.push({
+              ...rankingMember,
+              email: generateMemberEmail(rankingMember),
+              role: 'Ranking Member'
+            });
+          }
         }
-        if (rankingMember) {
-          leadership.push({
-            ...rankingMember,
-            email: generateMemberEmail(rankingMember),
-            role: 'Ranking Member'
-          });
-        }
+
+        // Add dummy emails to bill sponsors
+        sponsorsWithEmails = (bill?.sponsors || []).map(sponsor => ({
+          ...sponsor,
+          email: generateMemberEmail(sponsor)
+        }));
       }
-
-      // Add dummy emails to bill sponsors
-      const sponsorsWithEmails = (bill?.sponsors || []).map(sponsor => ({
-        ...sponsor,
-        email: generateMemberEmail(sponsor)
-      }));
 
       setAvailableMembers({
         representatives: repsWithEmails,
@@ -565,7 +568,7 @@ const AdvocacyMessageContent: React.FC = () => {
     };
 
     fetchMembers();
-  }, [bill, congressionalReps, congress]);
+  }, [bill, congressionalReps, congress, isMemberContact]);
 
   // Get personal data fields from user profile or verified info
   const getPersonalDataFields = (): PersonalDataField[] => {
@@ -1134,119 +1137,6 @@ const AdvocacyMessageContent: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Committee Leadership */}
-        {availableMembers.committeeLeadership.length > 0 && (
-          <div>
-            <h3 className="font-semibold mb-3">Committee Leadership</h3>
-            <div className="space-y-2">
-              {availableMembers.committeeLeadership.map(member => (
-                <div key={member.bioguideId} className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={selectedMembers.some(m => m.bioguideId === member.bioguideId)}
-                    onCheckedChange={() => toggleMember(member)}
-                  />
-                  <Label className="flex items-center space-x-2 cursor-pointer">
-                    <span>{member.name}</span>
-                    <span className="text-sm text-muted-foreground">({member.role})</span>
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Bill Sponsors */}
-        {availableMembers.billSponsors.length > 0 && (
-          <div>
-            <h3 className="font-semibold mb-3">Bill Sponsors</h3>
-            <div className="space-y-2">
-              {availableMembers.billSponsors.map(sponsor => (
-                <div key={sponsor.bioguideId} className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={selectedMembers.some(m => m.bioguideId === sponsor.bioguideId)}
-                    onCheckedChange={() => toggleMember(sponsor)}
-                  />
-                  <Label className="flex items-center space-x-2 cursor-pointer">
-                    <span>{sponsor.fullName}</span>
-                    <span className="text-sm text-muted-foreground">({sponsor.party})</span>
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Search for additional members */}
-        <div>
-          <h3 className="font-semibold mb-3">Add Additional Members</h3>
-          <div className="flex gap-2 mb-3">
-            <div className="relative flex-1">
-              <Input
-                placeholder="Search by name (e.g., 'John Smith' or 'Smith')"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleMemberSearch()}
-                className="pr-10"
-              />
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            </div>
-            <Button 
-              onClick={handleMemberSearch}
-              disabled={isSearching || !searchTerm.trim()}
-              variant="outline"
-            >
-              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
-            </Button>
-          </div>
-
-          {/* Search Results */}
-          {searchResults.length > 0 && (
-            <div className="bg-muted rounded-lg p-3 mb-3 max-h-48 overflow-y-auto">
-              <p className="text-sm text-muted-foreground mb-2">Search Results:</p>
-              {searchResults.map(member => (
-                <div key={member.bioguideId} className="flex items-center justify-between py-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm">{member.name}</span>
-                    <span className="text-xs text-muted-foreground">({member.partyName}, {member.state})</span>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => addAdditionalMember(member)}
-                    disabled={additionalMembers.some(m => m.bioguideId === member.bioguideId)}
-                  >
-                    {additionalMembers.some(m => m.bioguideId === member.bioguideId) ? 'Added' : 'Add'}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Added Members */}
-          {additionalMembers.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Added Members:</p>
-              {additionalMembers.map(member => (
-                <div key={member.bioguideId} className="flex items-center justify-between bg-secondary rounded-lg px-3 py-2">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{member.name}</span>
-                    <span className="text-xs text-muted-foreground">({member.partyName})</span>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => removeAdditionalMember(member.bioguideId)}
-                    className="h-6 w-6 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
         <div className="flex-1"></div>
         <div className="flex justify-between mt-auto pt-6">
