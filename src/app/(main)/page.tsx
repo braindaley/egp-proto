@@ -13,7 +13,7 @@ import {
 import { X, ChevronDown, Eye, ThumbsUp, ThumbsDown, ArrowRight } from 'lucide-react';
 import { BillProgress } from '@/components/BillProgress';
 import Link from 'next/link';
-import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
+import { SITE_ISSUE_CATEGORIES, mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 import { campaignsService } from '@/lib/campaigns';
 import { PopularBills } from '@/components/popular-bills';
 import { HomepageNewsSection } from '@/components/homepage-news-section';
@@ -257,92 +257,92 @@ export default function Home() {
   // State-specific news articles for each policy category
   const stateSpecificNewsByState: Record<string, Record<string, any>> = {
     'California': {
-      'Abortion': { id: 1001, headline: "California Strengthens Reproductive Rights Protections", category: "Abortion", state: "California" },
-      'Climate, Energy & Environment': { id: 1002, headline: "California Passes Landmark Climate Legislation", category: "Climate, Energy & Environment", state: "California" },
-      'Criminal Justice': { id: 1003, headline: "California Advances Prison Reform Initiative", category: "Criminal Justice", state: "California" },
-      'Death Penalty': { id: 1004, headline: "California Reviews Death Penalty Moratorium", category: "Death Penalty", state: "California" },
-      'Defense & National Security': { id: 1005, headline: "California Military Bases Receive Infrastructure Funding", category: "Defense & National Security", state: "California" },
-      'Discrimination & Prejudice': { id: 1006, headline: "California Expands Anti-Discrimination Protections", category: "Discrimination & Prejudice", state: "California" },
-      'Drug Policy': { id: 1007, headline: "California Launches Substance Abuse Treatment Program", category: "Drug Policy", state: "California" },
-      'Economy & Work': { id: 1008, headline: "California Raises Minimum Wage Standards", category: "Economy & Work", state: "California" },
+      'Abortion': { id: 1001, headline: "California Strengthens Reproductive Rights Protections", category: "Health", state: "California" },
+      'Climate, Energy & Environment': { id: 1002, headline: "California Passes Landmark Climate Legislation", category: "Energy", state: "California" },
+      'Criminal Justice': { id: 1003, headline: "California Advances Prison Reform Initiative", category: "Crime and Law Enforcement", state: "California" },
+      'Death Penalty': { id: 1004, headline: "California Reviews Death Penalty Moratorium", category: "Crime and Law Enforcement", state: "California" },
+      'Defense & National Security': { id: 1005, headline: "California Military Bases Receive Infrastructure Funding", category: "Armed Forces and National Security", state: "California" },
+      'Discrimination & Prejudice': { id: 1006, headline: "California Expands Anti-Discrimination Protections", category: "Civil Rights and Liberties, Minority Issues", state: "California" },
+      'Drug Policy': { id: 1007, headline: "California Launches Substance Abuse Treatment Program", category: "Health", state: "California" },
+      'Economy & Work': { id: 1008, headline: "California Raises Minimum Wage Standards", category: "Labor and Employment", state: "California" },
       'Education': { id: 1009, headline: "California Increases School Funding Allocation", category: "Education", state: "California" },
-      'Free Speech & Press': { id: 1010, headline: "California Protects Journalist Shield Laws", category: "Free Speech & Press", state: "California" },
-      'Gun Policy': { id: 1011, headline: "California Implements Enhanced Gun Safety Measures", category: "Gun Policy", state: "California" },
-      'Health Policy': { id: 1012, headline: "California Expands Universal Healthcare Access", category: "Health Policy", state: "California" },
-      'Immigration & Migration': { id: 1013, headline: "California Sanctuary State Policies Upheld", category: "Immigration & Migration", state: "California" },
+      'Free Speech & Press': { id: 1010, headline: "California Protects Journalist Shield Laws", category: "Civil Rights and Liberties, Minority Issues", state: "California" },
+      'Gun Policy': { id: 1011, headline: "California Implements Enhanced Gun Safety Measures", category: "Crime and Law Enforcement", state: "California" },
+      'Health Policy': { id: 1012, headline: "California Expands Universal Healthcare Access", category: "Health", state: "California" },
+      'Immigration & Migration': { id: 1013, headline: "California Sanctuary State Policies Upheld", category: "Immigration", state: "California" },
       'International Affairs': { id: 1014, headline: "California Trade Partnerships with Pacific Nations", category: "International Affairs", state: "California" },
-      'LGBT Acceptance': { id: 1015, headline: "California Advances LGBTQ+ Rights Legislation", category: "LGBT Acceptance", state: "California" },
-      'National Conditions': { id: 1016, headline: "California Voting Rights Expansion Bill Passes", category: "National Conditions", state: "California" },
-      'Privacy Rights': { id: 1017, headline: "California Consumer Privacy Act Strengthened", category: "Privacy Rights", state: "California" },
-      'Religion & Government': { id: 1018, headline: "California Religious Freedom Protections Reviewed", category: "Religion & Government", state: "California" },
-      'Social Security & Medicare': { id: 1019, headline: "California Senior Benefits Program Expanded", category: "Social Security & Medicare", state: "California" },
-      'Technology Policy Issues': { id: 1020, headline: "California Tech Regulation Bill Advances", category: "Technology Policy Issues", state: "California" }
+      'LGBT Acceptance': { id: 1015, headline: "California Advances LGBTQ+ Rights Legislation", category: "Civil Rights and Liberties, Minority Issues", state: "California" },
+      'National Conditions': { id: 1016, headline: "California Voting Rights Expansion Bill Passes", category: "Government Operations and Politics", state: "California" },
+      'Privacy Rights': { id: 1017, headline: "California Consumer Privacy Act Strengthened", category: "Civil Rights and Liberties, Minority Issues", state: "California" },
+      'Religion & Government': { id: 1018, headline: "California Religious Freedom Protections Reviewed", category: "Arts, Culture, Religion", state: "California" },
+      'Social Security & Medicare': { id: 1019, headline: "California Senior Benefits Program Expanded", category: "Social Welfare", state: "California" },
+      'Technology Policy Issues': { id: 1020, headline: "California Tech Regulation Bill Advances", category: "Science, Technology, Communications", state: "California" }
     },
     'New York': {
-      'Abortion': { id: 1101, headline: "New York Codifies Reproductive Rights in State Law", category: "Abortion", state: "New York" },
-      'Climate, Energy & Environment': { id: 1102, headline: "New York Green Energy Initiative Launched", category: "Climate, Energy & Environment", state: "New York" },
-      'Criminal Justice': { id: 1103, headline: "New York Advances Criminal Justice Reform Initiative", category: "Criminal Justice", state: "New York" },
-      'Death Penalty': { id: 1104, headline: "New York Death Penalty Abolition Reaffirmed", category: "Death Penalty", state: "New York" },
-      'Defense & National Security': { id: 1105, headline: "New York National Guard Modernization Plan", category: "Defense & National Security", state: "New York" },
-      'Discrimination & Prejudice': { id: 1106, headline: "New York Hate Crime Prevention Act Signed", category: "Discrimination & Prejudice", state: "New York" },
-      'Drug Policy': { id: 1107, headline: "New York Cannabis Legalization Implementation", category: "Drug Policy", state: "New York" },
-      'Economy & Work': { id: 1108, headline: "New York Worker Protection Laws Strengthened", category: "Economy & Work", state: "New York" },
+      'Abortion': { id: 1101, headline: "New York Codifies Reproductive Rights in State Law", category: "Health", state: "New York" },
+      'Climate, Energy & Environment': { id: 1102, headline: "New York Green Energy Initiative Launched", category: "Energy", state: "New York" },
+      'Criminal Justice': { id: 1103, headline: "New York Advances Criminal Justice Reform Initiative", category: "Crime and Law Enforcement", state: "New York" },
+      'Death Penalty': { id: 1104, headline: "New York Death Penalty Abolition Reaffirmed", category: "Crime and Law Enforcement", state: "New York" },
+      'Defense & National Security': { id: 1105, headline: "New York National Guard Modernization Plan", category: "Armed Forces and National Security", state: "New York" },
+      'Discrimination & Prejudice': { id: 1106, headline: "New York Hate Crime Prevention Act Signed", category: "Civil Rights and Liberties, Minority Issues", state: "New York" },
+      'Drug Policy': { id: 1107, headline: "New York Cannabis Legalization Implementation", category: "Health", state: "New York" },
+      'Economy & Work': { id: 1108, headline: "New York Worker Protection Laws Strengthened", category: "Labor and Employment", state: "New York" },
       'Education': { id: 1109, headline: "New York Education Funding Formula Reformed", category: "Education", state: "New York" },
-      'Free Speech & Press': { id: 1110, headline: "New York Press Freedom Shield Law Enhanced", category: "Free Speech & Press", state: "New York" },
-      'Gun Policy': { id: 1111, headline: "New York SAFE Act Provisions Expanded", category: "Gun Policy", state: "New York" },
-      'Health Policy': { id: 1112, headline: "New York Health Exchange Program Improved", category: "Health Policy", state: "New York" },
-      'Immigration & Migration': { id: 1113, headline: "New York Green Light Law Implementation", category: "Immigration & Migration", state: "New York" },
+      'Free Speech & Press': { id: 1110, headline: "New York Press Freedom Shield Law Enhanced", category: "Civil Rights and Liberties, Minority Issues", state: "New York" },
+      'Gun Policy': { id: 1111, headline: "New York SAFE Act Provisions Expanded", category: "Crime and Law Enforcement", state: "New York" },
+      'Health Policy': { id: 1112, headline: "New York Health Exchange Program Improved", category: "Health", state: "New York" },
+      'Immigration & Migration': { id: 1113, headline: "New York Green Light Law Implementation", category: "Immigration", state: "New York" },
       'International Affairs': { id: 1114, headline: "New York International Trade Office Expanded", category: "International Affairs", state: "New York" },
-      'LGBT Acceptance': { id: 1115, headline: "New York LGBTQ+ Youth Protection Act Passed", category: "LGBT Acceptance", state: "New York" },
-      'National Conditions': { id: 1116, headline: "New York Voting Rights Restoration Bill Signed", category: "National Conditions", state: "New York" },
-      'Privacy Rights': { id: 1117, headline: "New York Digital Privacy Act Introduced", category: "Privacy Rights", state: "New York" },
-      'Religion & Government': { id: 1118, headline: "New York Religious Accommodation Laws Updated", category: "Religion & Government", state: "New York" },
-      'Social Security & Medicare': { id: 1119, headline: "New York Senior Care Enhancement Program", category: "Social Security & Medicare", state: "New York" },
-      'Technology Policy Issues': { id: 1120, headline: "New York Tech Worker Rights Bill Proposed", category: "Technology Policy Issues", state: "New York" }
+      'LGBT Acceptance': { id: 1115, headline: "New York LGBTQ+ Youth Protection Act Passed", category: "Civil Rights and Liberties, Minority Issues", state: "New York" },
+      'National Conditions': { id: 1116, headline: "New York Voting Rights Restoration Bill Signed", category: "Government Operations and Politics", state: "New York" },
+      'Privacy Rights': { id: 1117, headline: "New York Digital Privacy Act Introduced", category: "Civil Rights and Liberties, Minority Issues", state: "New York" },
+      'Religion & Government': { id: 1118, headline: "New York Religious Accommodation Laws Updated", category: "Arts, Culture, Religion", state: "New York" },
+      'Social Security & Medicare': { id: 1119, headline: "New York Senior Care Enhancement Program", category: "Social Welfare", state: "New York" },
+      'Technology Policy Issues': { id: 1120, headline: "New York Tech Worker Rights Bill Proposed", category: "Science, Technology, Communications", state: "New York" }
     },
     'Texas': {
-      'Abortion': { id: 1201, headline: "Texas Abortion Law Enforcement Updates", category: "Abortion", state: "Texas" },
-      'Climate, Energy & Environment': { id: 1202, headline: "Texas Renewable Energy Grid Expansion", category: "Climate, Energy & Environment", state: "Texas" },
-      'Criminal Justice': { id: 1203, headline: "Texas Police Reform Measures Debated", category: "Criminal Justice", state: "Texas" },
-      'Death Penalty': { id: 1204, headline: "Texas Death Penalty Procedures Reviewed", category: "Death Penalty", state: "Texas" },
-      'Defense & National Security': { id: 1205, headline: "Texas Military Installation Funding Secured", category: "Defense & National Security", state: "Texas" },
-      'Discrimination & Prejudice': { id: 1206, headline: "Texas Civil Rights Enforcement Enhanced", category: "Discrimination & Prejudice", state: "Texas" },
-      'Drug Policy': { id: 1207, headline: "Texas Drug Court Program Expansion", category: "Drug Policy", state: "Texas" },
-      'Economy & Work': { id: 1208, headline: "Texas Job Creation Incentive Program Launched", category: "Economy & Work", state: "Texas" },
+      'Abortion': { id: 1201, headline: "Texas Abortion Law Enforcement Updates", category: "Health", state: "Texas" },
+      'Climate, Energy & Environment': { id: 1202, headline: "Texas Renewable Energy Grid Expansion", category: "Energy", state: "Texas" },
+      'Criminal Justice': { id: 1203, headline: "Texas Police Reform Measures Debated", category: "Crime and Law Enforcement", state: "Texas" },
+      'Death Penalty': { id: 1204, headline: "Texas Death Penalty Procedures Reviewed", category: "Crime and Law Enforcement", state: "Texas" },
+      'Defense & National Security': { id: 1205, headline: "Texas Military Installation Funding Secured", category: "Armed Forces and National Security", state: "Texas" },
+      'Discrimination & Prejudice': { id: 1206, headline: "Texas Civil Rights Enforcement Enhanced", category: "Civil Rights and Liberties, Minority Issues", state: "Texas" },
+      'Drug Policy': { id: 1207, headline: "Texas Drug Court Program Expansion", category: "Health", state: "Texas" },
+      'Economy & Work': { id: 1208, headline: "Texas Job Creation Incentive Program Launched", category: "Labor and Employment", state: "Texas" },
       'Education': { id: 1209, headline: "Texas Legislature Debates Education Funding Reform", category: "Education", state: "Texas" },
-      'Free Speech & Press': { id: 1210, headline: "Texas Campus Free Speech Bill Considered", category: "Free Speech & Press", state: "Texas" },
-      'Gun Policy': { id: 1211, headline: "Texas Constitutional Carry Law Implementation", category: "Gun Policy", state: "Texas" },
-      'Health Policy': { id: 1212, headline: "Texas Medicaid Expansion Debate Continues", category: "Health Policy", state: "Texas" },
-      'Immigration & Migration': { id: 1213, headline: "Texas Border Security Funding Approved", category: "Immigration & Migration", state: "Texas" },
+      'Free Speech & Press': { id: 1210, headline: "Texas Campus Free Speech Bill Considered", category: "Civil Rights and Liberties, Minority Issues", state: "Texas" },
+      'Gun Policy': { id: 1211, headline: "Texas Constitutional Carry Law Implementation", category: "Crime and Law Enforcement", state: "Texas" },
+      'Health Policy': { id: 1212, headline: "Texas Medicaid Expansion Debate Continues", category: "Health", state: "Texas" },
+      'Immigration & Migration': { id: 1213, headline: "Texas Border Security Funding Approved", category: "Immigration", state: "Texas" },
       'International Affairs': { id: 1214, headline: "Texas Mexico Trade Relations Strengthened", category: "International Affairs", state: "Texas" },
-      'LGBT Acceptance': { id: 1215, headline: "Texas LGBTQ+ Rights Legislation Debated", category: "LGBT Acceptance", state: "Texas" },
-      'National Conditions': { id: 1216, headline: "Texas Voter ID Law Modifications Proposed", category: "National Conditions", state: "Texas" },
-      'Privacy Rights': { id: 1217, headline: "Texas Data Protection Bill Introduced", category: "Privacy Rights", state: "Texas" },
-      'Religion & Government': { id: 1218, headline: "Texas Religious Liberty Act Provisions", category: "Religion & Government", state: "Texas" },
-      'Social Security & Medicare': { id: 1219, headline: "Texas Senior Services Program Enhanced", category: "Social Security & Medicare", state: "Texas" },
-      'Technology Policy Issues': { id: 1220, headline: "Texas Tech Industry Regulation Reviewed", category: "Technology Policy Issues", state: "Texas" }
+      'LGBT Acceptance': { id: 1215, headline: "Texas LGBTQ+ Rights Legislation Debated", category: "Civil Rights and Liberties, Minority Issues", state: "Texas" },
+      'National Conditions': { id: 1216, headline: "Texas Voter ID Law Modifications Proposed", category: "Government Operations and Politics", state: "Texas" },
+      'Privacy Rights': { id: 1217, headline: "Texas Data Protection Bill Introduced", category: "Civil Rights and Liberties, Minority Issues", state: "Texas" },
+      'Religion & Government': { id: 1218, headline: "Texas Religious Liberty Act Provisions", category: "Arts, Culture, Religion", state: "Texas" },
+      'Social Security & Medicare': { id: 1219, headline: "Texas Senior Services Program Enhanced", category: "Social Welfare", state: "Texas" },
+      'Technology Policy Issues': { id: 1220, headline: "Texas Tech Industry Regulation Reviewed", category: "Science, Technology, Communications", state: "Texas" }
     },
     'Florida': {
-      'Abortion': { id: 1301, headline: "Florida Abortion Restriction Laws Updated", category: "Abortion", state: "Florida" },
-      'Climate, Energy & Environment': { id: 1302, headline: "Florida Climate Resilience Infrastructure Plan", category: "Climate, Energy & Environment", state: "Florida" },
-      'Criminal Justice': { id: 1303, headline: "Florida Prison System Reform Initiative", category: "Criminal Justice", state: "Florida" },
-      'Death Penalty': { id: 1304, headline: "Florida Death Penalty Appeal Process Reformed", category: "Death Penalty", state: "Florida" },
-      'Defense & National Security': { id: 1305, headline: "Florida Military Base Modernization Project", category: "Defense & National Security", state: "Florida" },
-      'Discrimination & Prejudice': { id: 1306, headline: "Florida Anti-Bias Training Program Implemented", category: "Discrimination & Prejudice", state: "Florida" },
-      'Drug Policy': { id: 1307, headline: "Florida Opioid Crisis Response Enhanced", category: "Drug Policy", state: "Florida" },
-      'Economy & Work': { id: 1308, headline: "Florida Economic Development Zones Expanded", category: "Economy & Work", state: "Florida" },
+      'Abortion': { id: 1301, headline: "Florida Abortion Restriction Laws Updated", category: "Health", state: "Florida" },
+      'Climate, Energy & Environment': { id: 1302, headline: "Florida Climate Resilience Infrastructure Plan", category: "Energy", state: "Florida" },
+      'Criminal Justice': { id: 1303, headline: "Florida Prison System Reform Initiative", category: "Crime and Law Enforcement", state: "Florida" },
+      'Death Penalty': { id: 1304, headline: "Florida Death Penalty Appeal Process Reformed", category: "Crime and Law Enforcement", state: "Florida" },
+      'Defense & National Security': { id: 1305, headline: "Florida Military Base Modernization Project", category: "Armed Forces and National Security", state: "Florida" },
+      'Discrimination & Prejudice': { id: 1306, headline: "Florida Anti-Bias Training Program Implemented", category: "Civil Rights and Liberties, Minority Issues", state: "Florida" },
+      'Drug Policy': { id: 1307, headline: "Florida Opioid Crisis Response Enhanced", category: "Health", state: "Florida" },
+      'Economy & Work': { id: 1308, headline: "Florida Economic Development Zones Expanded", category: "Labor and Employment", state: "Florida" },
       'Education': { id: 1309, headline: "Florida School Choice Program Modified", category: "Education", state: "Florida" },
-      'Free Speech & Press': { id: 1310, headline: "Florida Public Records Access Laws Reviewed", category: "Free Speech & Press", state: "Florida" },
-      'Gun Policy': { id: 1311, headline: "Florida Gun Safety Training Requirements", category: "Gun Policy", state: "Florida" },
-      'Health Policy': { id: 1312, headline: "Florida Addresses Healthcare Access in Rural Communities", category: "Health Policy", state: "Florida" },
-      'Immigration & Migration': { id: 1313, headline: "Florida Immigration Enforcement Policies", category: "Immigration & Migration", state: "Florida" },
+      'Free Speech & Press': { id: 1310, headline: "Florida Public Records Access Laws Reviewed", category: "Civil Rights and Liberties, Minority Issues", state: "Florida" },
+      'Gun Policy': { id: 1311, headline: "Florida Gun Safety Training Requirements", category: "Crime and Law Enforcement", state: "Florida" },
+      'Health Policy': { id: 1312, headline: "Florida Addresses Healthcare Access in Rural Communities", category: "Health", state: "Florida" },
+      'Immigration & Migration': { id: 1313, headline: "Florida Immigration Enforcement Policies", category: "Immigration", state: "Florida" },
       'International Affairs': { id: 1314, headline: "Florida Latin America Trade Partnership", category: "International Affairs", state: "Florida" },
-      'LGBT Acceptance': { id: 1315, headline: "Florida LGBTQ+ Policy Legislation Reviewed", category: "LGBT Acceptance", state: "Florida" },
-      'National Conditions': { id: 1316, headline: "Florida Election Security Measures Enhanced", category: "National Conditions", state: "Florida" },
-      'Privacy Rights': { id: 1317, headline: "Florida Student Data Privacy Act Proposed", category: "Privacy Rights", state: "Florida" },
-      'Religion & Government': { id: 1318, headline: "Florida Religious Expression Protection Bill", category: "Religion & Government", state: "Florida" },
-      'Social Security & Medicare': { id: 1319, headline: "Florida Medicare Advantage Program Expansion", category: "Social Security & Medicare", state: "Florida" },
-      'Technology Policy Issues': { id: 1320, headline: "Florida Digital Infrastructure Investment", category: "Technology Policy Issues", state: "Florida" }
+      'LGBT Acceptance': { id: 1315, headline: "Florida LGBTQ+ Policy Legislation Reviewed", category: "Civil Rights and Liberties, Minority Issues", state: "Florida" },
+      'National Conditions': { id: 1316, headline: "Florida Election Security Measures Enhanced", category: "Government Operations and Politics", state: "Florida" },
+      'Privacy Rights': { id: 1317, headline: "Florida Student Data Privacy Act Proposed", category: "Civil Rights and Liberties, Minority Issues", state: "Florida" },
+      'Religion & Government': { id: 1318, headline: "Florida Religious Expression Protection Bill", category: "Arts, Culture, Religion", state: "Florida" },
+      'Social Security & Medicare': { id: 1319, headline: "Florida Medicare Advantage Program Expansion", category: "Social Welfare", state: "Florida" },
+      'Technology Policy Issues': { id: 1320, headline: "Florida Digital Infrastructure Investment", category: "Science, Technology, Communications", state: "Florida" }
     }
   };
 
@@ -374,121 +374,121 @@ export default function Home() {
 
   const stateSpecificArticles = getStateSpecificArticles(selectedFilter);
 
-  // Mock news stories data - 3 stories for each issue category
+  // Mock news stories data - stories for Congressional policy categories
   const newsStories = [
-    // Abortion
+    // Health
     {
       id: 1,
       headline: "Reproductive Rights Act Faces Congressional Review",
       description: "The landmark legislation aims to codify abortion access protections at the federal level. Women's rights organizations are mobilizing support as the bill moves through committee.",
       image: "/api/placeholder/400/400",
-      category: "Abortion"
+      category: "Health"
     },
     {
       id: 2,
-      headline: "State Ballot Initiatives on Reproductive Freedom Gain Momentum",
-      description: "Multiple states are considering constitutional amendments to protect reproductive rights. Advocacy groups report unprecedented volunteer engagement in petition drives.",
-      image: "/api/placeholder/400/400",
-      category: "Abortion"
-    },
-    {
-      id: 3,
       headline: "Healthcare Access Bill Expands Coverage for Reproductive Services",
       description: "New federal legislation would ensure insurance coverage for comprehensive reproductive healthcare. Women's health advocates see this as critical for healthcare equity.",
       image: "/api/placeholder/400/400",
-      category: "Abortion"
+      category: "Health"
+    },
+    {
+      id: 3,
+      headline: "Mental Health Services Expansion Act Passes Committee",
+      description: "Bipartisan coalition works to advance critical legislation addressing national priorities. Key stakeholders engage in strategic advocacy efforts as bill moves through legislative process.",
+      image: "/api/placeholder/400/400",
+      category: "Health"
     },
 
-    // Climate, Energy & Environment
+    // Energy
     {
       id: 4,
-      headline: "Climate Action Bill HR-3838 Gains Bipartisan Support",
-      description: "The landmark climate legislation promises to reduce carbon emissions by 50% over the next decade while creating millions of green jobs. Environmental advocates are calling it historic.",
-      image: "/api/placeholder/400/400",
-      category: "Climate, Energy & Environment"
-    },
-    {
-      id: 5,
       headline: "Clean Energy Investment Act Targets Renewable Infrastructure",
       description: "The comprehensive bill would allocate $500 billion toward solar, wind, and battery storage projects. Environmental groups are pushing for swift passage before recess.",
       image: "/api/placeholder/400/400",
-      category: "Climate, Energy & Environment"
+      category: "Energy"
+    },
+    {
+      id: 5,
+      headline: "Energy Independence Act Advances in Senate",
+      description: "Congressional leaders advance comprehensive legislative package addressing key policy priorities. Advocacy organizations mobilize grassroots support for upcoming committee hearings and floor votes.",
+      image: "/api/placeholder/400/400",
+      category: "Energy"
     },
     {
       id: 6,
-      headline: "Environmental Justice Bill Addresses Pollution in Communities",
-      description: "New legislation would require environmental impact assessments in disadvantaged areas and provide cleanup funding. Community advocates highlight decades of environmental racism.",
+      headline: "Renewable Energy Tax Credits Extended",
+      description: "New legislation extends tax incentives for solar and wind energy development. Industry leaders welcome the certainty for long-term planning and investment.",
       image: "/api/placeholder/400/400",
-      category: "Climate, Energy & Environment"
+      category: "Energy"
     },
 
-    // Criminal Justice
+    // Environment
     {
       id: 7,
-      headline: "Criminal Justice Reform Focuses on Sentencing Disparities",
-      description: "The FIRST STEP Act expansion would address racial disparities in sentencing and increase rehabilitation programs. Criminal justice reform advocates are pushing for broader support.",
+      headline: "Climate Action Bill HR-3838 Gains Bipartisan Support",
+      description: "The landmark climate legislation promises to reduce carbon emissions by 50% over the next decade while creating millions of green jobs. Environmental advocates are calling it historic.",
       image: "/api/placeholder/400/400",
-      category: "Criminal Justice"
+      category: "Environmental Protection"
     },
     {
       id: 8,
-      headline: "Police Reform Bill Mandates National Standards",
-      description: "The comprehensive legislation would establish federal oversight of police departments and require de-escalation training. Civil rights groups call it a crucial step toward accountability.",
+      headline: "Environmental Justice Bill Addresses Pollution in Communities",
+      description: "New legislation would require environmental impact assessments in disadvantaged areas and provide cleanup funding. Community advocates highlight decades of environmental racism.",
       image: "/api/placeholder/400/400",
-      category: "Criminal Justice"
+      category: "Environmental Protection"
     },
     {
       id: 9,
-      headline: "Prison Reform Act Expands Rehabilitation Programs",
-      description: "New bill would increase funding for education and job training in federal prisons. Former inmates and advocacy groups highlight the importance of reentry support.",
+      headline: "Clean Air Standards Updated",
+      description: "EPA proposes stricter regulations on industrial emissions. Environmental groups praise the move while industry advocates call for implementation flexibility.",
       image: "/api/placeholder/400/400",
-      category: "Criminal Justice"
+      category: "Environmental Protection"
     },
 
-    // Death Penalty
+    // Crime & Law
     {
       id: 10,
-      headline: "Federal Death Penalty Abolition Act Introduced",
-      description: "The bill would end federal capital punishment and commute existing death sentences to life imprisonment. Death penalty abolition groups are mobilizing grassroots support.",
+      headline: "Criminal Justice Reform Focuses on Sentencing Disparities",
+      description: "The FIRST STEP Act expansion would address racial disparities in sentencing and increase rehabilitation programs. Criminal justice reform advocates are pushing for broader support.",
       image: "/api/placeholder/400/400",
-      category: "Death Penalty"
+      category: "Crime and Law Enforcement"
     },
     {
       id: 11,
-      headline: "State Moratoriums on Executions Gain Legislative Support",
-      description: "Multiple states are considering bills to pause executions pending comprehensive reviews. Criminal justice reform advocates cite concerns about wrongful convictions.",
+      headline: "Police Reform Bill Mandates National Standards",
+      description: "The comprehensive legislation would establish federal oversight of police departments and require de-escalation training. Civil rights groups call it a crucial step toward accountability.",
       image: "/api/placeholder/400/400",
-      category: "Death Penalty"
+      category: "Crime and Law Enforcement"
     },
     {
       id: 12,
-      headline: "Innocence Protection Act Expands DNA Testing Access",
-      description: "The legislation would provide funding for post-conviction DNA testing and exoneration compensation. Innocence advocates highlight the need for systemic reform.",
+      headline: "Prison Reform Act Expands Rehabilitation Programs",
+      description: "New bill would increase funding for education and job training in federal prisons. Former inmates and advocacy groups highlight the importance of reentry support.",
       image: "/api/placeholder/400/400",
-      category: "Death Penalty"
+      category: "Crime and Law Enforcement"
     },
 
-    // Defense & National Security
+    // Defense & Security
     {
       id: 13,
       headline: "Defense Authorization Act Includes Cybersecurity Funding",
       description: "The annual defense bill allocates $15 billion for cybersecurity infrastructure and personnel. National security experts emphasize the growing threat landscape.",
       image: "/api/placeholder/400/400",
-      category: "Defense & National Security"
+      category: "Armed Forces and National Security"
     },
     {
       id: 14,
       headline: "Veterans Healthcare Expansion Bill Advances",
       description: "New legislation would expand mental health services and modernize VA facilities nationwide. Veterans' organizations are advocating for swift passage.",
       image: "/api/placeholder/400/400",
-      category: "Defense & National Security"
+      category: "Armed Forces and National Security"
     },
     {
       id: 15,
       headline: "Military Family Support Act Addresses Housing Crisis",
       description: "The bill would increase housing allowances and improve on-base accommodation quality. Military families and advocacy groups highlight the urgent need for reform.",
       image: "/api/placeholder/400/400",
-      category: "Defense & National Security"
+      category: "Armed Forces and National Security"
     },
 
     // Discrimination & Prejudice
@@ -497,21 +497,21 @@ export default function Home() {
       headline: "Equality Act Faces Senate Vote on Civil Rights Protections",
       description: "The comprehensive civil rights bill would extend federal protections to include sexual orientation and gender identity. LGBTQ+ advocacy groups are mobilizing unprecedented support.",
       image: "/api/placeholder/400/400",
-      category: "Discrimination & Prejudice"
+      category: "Civil Rights and Liberties, Minority Issues"
     },
     {
       id: 17,
       headline: "Anti-Hate Crime Legislation Strengthens Federal Response",
       description: "New bill would enhance hate crime reporting and provide additional resources for investigation. Civil rights organizations emphasize the rising threat of extremism.",
       image: "/api/placeholder/400/400",
-      category: "Discrimination & Prejudice"
+      category: "Civil Rights and Liberties, Minority Issues"
     },
     {
       id: 18,
       headline: "Workplace Discrimination Protection Act Expands Coverage",
       description: "The legislation would strengthen employment protections and increase penalties for discrimination. Workers' rights advocates call it essential for workplace equity.",
       image: "/api/placeholder/400/400",
-      category: "Discrimination & Prejudice"
+      category: "Civil Rights and Liberties, Minority Issues"
     },
 
     // Drug Policy
@@ -520,21 +520,21 @@ export default function Home() {
       headline: "Drug Decriminalization Bill Emphasizes Treatment Over Incarceration",
       description: "The comprehensive reform would redirect drug offense penalties toward treatment programs. Criminal justice and public health advocates unite behind harm reduction approach.",
       image: "/api/placeholder/400/400",
-      category: "Drug Policy"
+      category: "Health"
     },
     {
       id: 20,
       headline: "Prescription Drug Pricing Reform Targets Big Pharma",
       description: "New legislation would allow Medicare to negotiate drug prices and cap insulin costs. Patient advocacy groups highlight the life-or-death nature of affordable medication.",
       image: "/api/placeholder/400/400",
-      category: "Drug Policy"
+      category: "Health"
     },
     {
       id: 21,
       headline: "Opioid Crisis Response Act Expands Treatment Access",
       description: "The bill would increase funding for addiction treatment and recovery programs nationwide. Public health advocates emphasize the ongoing epidemic's devastating impact.",
       image: "/api/placeholder/400/400",
-      category: "Drug Policy"
+      category: "Health"
     },
 
     // Economy & Work
@@ -543,21 +543,21 @@ export default function Home() {
       headline: "Minimum Wage Increase Bill Targets $15 Federal Standard",
       description: "The Raise the Wage Act would gradually increase the federal minimum wage over five years. Labor unions and worker advocacy groups are pushing for swift passage.",
       image: "/api/placeholder/400/400",
-      category: "Economy & Work"
+      category: "Labor and Employment"
     },
     {
       id: 23,
       headline: "Worker Rights Protection Act Strengthens Union Organizing",
       description: "New legislation would protect workers' rights to organize and collectively bargain. Labor organizations highlight the importance of economic democracy.",
       image: "/api/placeholder/400/400",
-      category: "Economy & Work"
+      category: "Labor and Employment"
     },
     {
       id: 24,
       headline: "Small Business Support Bill Provides COVID Recovery Aid",
       description: "The comprehensive package would offer grants and low-interest loans to struggling small businesses. Business advocacy groups emphasize the need for continued support.",
       image: "/api/placeholder/400/400",
-      category: "Economy & Work"
+      category: "Labor and Employment"
     },
 
     // Education
@@ -589,21 +589,21 @@ export default function Home() {
       headline: "Press Freedom Protection Act Shields Journalists from Surveillance",
       description: "The bill would strengthen protections for journalists and whistleblowers against government surveillance. Press freedom advocates highlight threats to democratic accountability.",
       image: "/api/placeholder/400/400",
-      category: "Free Speech & Press"
+      category: "Civil Rights and Liberties, Minority Issues"
     },
     {
       id: 29,
       headline: "Social Media Regulation Bill Addresses Content Moderation",
       description: "New legislation would establish guidelines for platform content policies while protecting free speech. Digital rights groups emphasize the balance between safety and expression.",
       image: "/api/placeholder/400/400",
-      category: "Free Speech & Press"
+      category: "Civil Rights and Liberties, Minority Issues"
     },
     {
       id: 30,
       headline: "Campus Free Speech Act Protects Academic Expression",
       description: "The bill would require universities to maintain viewpoint neutrality and protect controversial speech. Academic freedom advocates call it essential for intellectual discourse.",
       image: "/api/placeholder/400/400",
-      category: "Free Speech & Press"
+      category: "Civil Rights and Liberties, Minority Issues"
     },
 
     // Gun Policy
@@ -612,21 +612,21 @@ export default function Home() {
       headline: "Gun Safety Legislation Includes Universal Background Checks",
       description: "The Bipartisan Safer Communities Act expands background check requirements and increases funding for mental health programs. Gun violence prevention advocates see this as crucial progress.",
       image: "/api/placeholder/400/400",
-      category: "Gun Policy"
+      category: "Crime and Law Enforcement"
     },
     {
       id: 32,
       headline: "Assault Weapons Ban Reintroduced with Bipartisan Support",
       description: "The legislation would prohibit the sale of high-capacity magazines and military-style weapons. Gun safety organizations are mobilizing survivors and families.",
       image: "/api/placeholder/400/400",
-      category: "Gun Policy"
+      category: "Crime and Law Enforcement"
     },
     {
       id: 33,
       headline: "Red Flag Law Enhancement Act Provides Federal Framework",
       description: "The bill would support state extreme risk protection order programs with federal funding. Gun violence prevention groups highlight the life-saving potential.",
       image: "/api/placeholder/400/400",
-      category: "Gun Policy"
+      category: "Crime and Law Enforcement"
     },
 
     // Health Policy
@@ -635,21 +635,21 @@ export default function Home() {
       headline: "Medicare for All Bill Proposes Universal Healthcare",
       description: "The comprehensive legislation would establish a single-payer healthcare system covering all Americans. Healthcare advocacy groups are organizing nationwide support.",
       image: "/api/placeholder/400/400",
-      category: "Health Policy"
+      category: "Health"
     },
     {
       id: 35,
       headline: "Mental Health Parity Act Strengthens Insurance Coverage",
       description: "New legislation would enforce equal coverage for mental health and substance abuse treatment. Mental health advocates emphasize the persistent treatment gap.",
       image: "/api/placeholder/400/400",
-      category: "Health Policy"
+      category: "Health"
     },
     {
       id: 36,
       headline: "Public Health Infrastructure Bill Addresses Pandemic Preparedness",
       description: "The bill would modernize public health systems and expand the healthcare workforce. Public health experts highlight lessons learned from COVID-19.",
       image: "/api/placeholder/400/400",
-      category: "Health Policy"
+      category: "Health"
     },
 
     // Immigration & Migration
@@ -658,21 +658,21 @@ export default function Home() {
       headline: "Immigration Reform Bill Offers Path to Citizenship for Dreamers",
       description: "The comprehensive immigration bill would provide a pathway to citizenship for undocumented immigrants brought to the US as children. Immigration rights groups are organizing nationwide.",
       image: "/api/placeholder/400/400",
-      category: "Immigration & Migration"
+      category: "Immigration"
     },
     {
       id: 38,
       headline: "Border Security and Immigration Reform Act Seeks Bipartisan Solution",
       description: "The legislation combines border security measures with comprehensive immigration reform. Immigrant advocacy groups emphasize the need for humane policies.",
       image: "/api/placeholder/400/400",
-      category: "Immigration & Migration"
+      category: "Immigration"
     },
     {
       id: 39,
       headline: "Refugee Protection Act Expands Asylum Access",
       description: "New bill would increase refugee admissions and streamline the asylum process. Human rights organizations highlight the global displacement crisis.",
       image: "/api/placeholder/400/400",
-      category: "Immigration & Migration"
+      category: "Immigration"
     },
 
     // International Affairs
@@ -704,21 +704,21 @@ export default function Home() {
       headline: "Respect for Marriage Act Protects Same-Sex Marriage Rights",
       description: "The federal legislation would ensure recognition of same-sex marriages across all states. LGBTQ+ advocacy organizations are mobilizing support amid legal challenges.",
       image: "/api/placeholder/400/400",
-      category: "LGBT Acceptance"
+      category: "Civil Rights and Liberties, Minority Issues"
     },
     {
       id: 44,
       headline: "Transgender Rights Protection Bill Advances in Congress",
       description: "New legislation would prohibit discrimination against transgender individuals in healthcare, education, and employment. LGBTQ+ advocates emphasize the urgent need for federal protections.",
       image: "/api/placeholder/400/400",
-      category: "LGBT Acceptance"
+      category: "Civil Rights and Liberties, Minority Issues"
     },
     {
       id: 45,
       headline: "LGBTQ+ Youth Mental Health Act Addresses Crisis",
       description: "The bill would fund specialized mental health services and anti-bullying programs for LGBTQ+ youth. Advocacy groups highlight alarming suicide rates and discrimination.",
       image: "/api/placeholder/400/400",
-      category: "LGBT Acceptance"
+      category: "Civil Rights and Liberties, Minority Issues"
     },
 
     // National Conditions
@@ -727,21 +727,21 @@ export default function Home() {
       headline: "Voting Rights Act HR-14 Faces Critical Senate Vote",
       description: "The For the People Act aims to expand voter access, end gerrymandering, and reduce money's influence in politics. Civil rights organizations are mobilizing unprecedented support.",
       image: "/api/placeholder/400/400",
-      category: "National Conditions"
+      category: "Government Operations and Politics"
     },
     {
       id: 47,
       headline: "Government Ethics Reform Bill Strengthens Oversight",
       description: "New legislation would expand financial disclosure requirements and strengthen ethics enforcement. Government accountability groups emphasize the need for transparency.",
       image: "/api/placeholder/400/400",
-      category: "National Conditions"
+      category: "Government Operations and Politics"
     },
     {
       id: 48,
       headline: "Infrastructure Investment Act Addresses National Needs",
       description: "The comprehensive package would modernize roads, bridges, broadband, and water systems nationwide. Infrastructure advocates highlight decades of underinvestment.",
       image: "/api/placeholder/400/400",
-      category: "National Conditions"
+      category: "Government Operations and Politics"
     },
 
     // Privacy Rights
@@ -750,21 +750,21 @@ export default function Home() {
       headline: "Digital Privacy Protection Act Regulates Data Collection",
       description: "The comprehensive bill would establish federal data privacy standards and user consent requirements. Privacy advocates call it essential protection in the digital age.",
       image: "/api/placeholder/400/400",
-      category: "Privacy Rights"
+      category: "Civil Rights and Liberties, Minority Issues"
     },
     {
       id: 50,
       headline: "Surveillance Reform Bill Limits Government Data Collection",
       description: "New legislation would require warrants for digital surveillance and strengthen oversight. Civil liberties groups emphasize constitutional protections.",
       image: "/api/placeholder/400/400",
-      category: "Privacy Rights"
+      category: "Civil Rights and Liberties, Minority Issues"
     },
     {
       id: 51,
       headline: "Children's Online Privacy Act Protects Youth Data",
       description: "The bill would prohibit targeted advertising to minors and strengthen parental consent requirements. Child advocacy groups highlight online exploitation risks.",
       image: "/api/placeholder/400/400",
-      category: "Privacy Rights"
+      category: "Civil Rights and Liberties, Minority Issues"
     },
 
     // Religion & Government
@@ -773,21 +773,21 @@ export default function Home() {
       headline: "Religious Freedom Restoration Act Faces Constitutional Review",
       description: "The legislation would strengthen religious liberty protections while balancing civil rights concerns. Faith-based organizations and civil rights groups engage in dialogue.",
       image: "/api/placeholder/400/400",
-      category: "Religion & Government"
+      category: "Arts, Culture, Religion"
     },
     {
       id: 53,
       headline: "Faith-Based Initiative Reform Bill Addresses Funding Equity",
       description: "New legislation would ensure equal access to federal funding while maintaining separation principles. Religious liberty advocates emphasize constitutional balance.",
       image: "/api/placeholder/400/400",
-      category: "Religion & Government"
+      category: "Arts, Culture, Religion"
     },
     {
       id: 54,
       headline: "Chaplaincy Services Expansion Act Supports Military Families",
       description: "The bill would expand chaplain services across military installations and VA facilities. Military family advocates highlight the importance of spiritual support.",
       image: "/api/placeholder/400/400",
-      category: "Religion & Government"
+      category: "Arts, Culture, Religion"
     },
 
     // Social Security & Medicare
@@ -796,21 +796,21 @@ export default function Home() {
       headline: "Social Security 2100 Act Expands Benefits and Solvency",
       description: "The comprehensive reform would increase benefits and extend the program's financial stability. Senior advocacy groups are mobilizing retirees and near-retirees.",
       image: "/api/placeholder/400/400",
-      category: "Social Security & Medicare"
+      category: "Social Welfare"
     },
     {
       id: 56,
       headline: "Medicare Prescription Drug Negotiation Bill Targets Costs",
       description: "New legislation would allow Medicare to negotiate prescription drug prices directly with manufacturers. Senior advocates highlight the burden of medication costs.",
       image: "/api/placeholder/400/400",
-      category: "Social Security & Medicare"
+      category: "Social Welfare"
     },
     {
       id: 57,
       headline: "Medicare Expansion Act Lowers Eligibility Age",
       description: "The bill would gradually lower Medicare eligibility from 65 to 60, covering millions more Americans. Healthcare advocates emphasize the coverage gap problem.",
       image: "/api/placeholder/400/400",
-      category: "Social Security & Medicare"
+      category: "Social Welfare"
     },
 
     // Technology Policy Issues
@@ -819,21 +819,21 @@ export default function Home() {
       headline: "Artificial Intelligence Regulation Act Establishes Safety Standards",
       description: "The comprehensive bill would create federal oversight for AI development and deployment. Technology policy experts emphasize the need for proactive governance.",
       image: "/api/placeholder/400/400",
-      category: "Technology Policy Issues"
+      category: "Science, Technology, Communications"
     },
     {
       id: 59,
       headline: "Broadband Equity Act Expands Rural Internet Access",
       description: "New legislation would invest $65 billion in high-speed internet infrastructure for underserved communities. Digital equity advocates highlight the persistent digital divide.",
       image: "/api/placeholder/400/400",
-      category: "Technology Policy Issues"
+      category: "Science, Technology, Communications"
     },
     {
       id: 60,
       headline: "Platform Accountability Act Regulates Social Media Companies",
       description: "The bill would establish transparency requirements and algorithmic auditing for major platforms. Digital rights groups emphasize the need for democratic oversight.",
       image: "/api/placeholder/400/400",
-      category: "Technology Policy Issues"
+      category: "Science, Technology, Communications"
     }
   ];
 
@@ -1302,7 +1302,9 @@ export default function Home() {
                     <div className="relative w-full aspect-square bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
                       <div className="text-muted-foreground/50 text-sm">News Image</div>
                       <div className="absolute bottom-4 left-4">
-                        <Badge variant="secondary" className="text-xs px-2 py-1">{item.category}</Badge>
+                        <Link href={`/issues/${convertCategoryToSlug(mapPolicyAreaToSiteCategory(item.category) || item.category)}`}>
+                          <Badge variant="secondary" className="text-xs px-2 py-1 cursor-pointer hover:bg-secondary/80">{mapPolicyAreaToSiteCategory(item.category) || item.category}</Badge>
+                        </Link>
                       </div>
                     </div>
                     <CardContent className="p-6">
@@ -1348,7 +1350,9 @@ export default function Home() {
                     <div className="relative w-64 h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
                       <div className="text-muted-foreground/50 text-sm">News Image</div>
                       <div className="absolute bottom-4 left-4">
-                        <Badge variant="secondary" className="text-xs px-2 py-1">{item.category}</Badge>
+                        <Link href={`/issues/${convertCategoryToSlug(mapPolicyAreaToSiteCategory(item.category) || item.category)}`}>
+                          <Badge variant="secondary" className="text-xs px-2 py-1 cursor-pointer hover:bg-secondary/80">{mapPolicyAreaToSiteCategory(item.category) || item.category}</Badge>
+                        </Link>
                       </div>
                     </div>
                     <CardContent className="flex-1 p-6">

@@ -952,14 +952,33 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
     return text.substring(0, maxLength) + '...';
   };
 
-  // Fetch latest bills (mock data for now)
+  // Fetch latest bills that have passed the House for this policy category
   useEffect(() => {
-    // Simulate API call
-    const selectedCategory = issueCategories.find(cat => cat.id === selectedFilter);
-    const categoryLabel = selectedCategory?.label || 'Climate, Energy & Environment';
-    const bills = mockFederalBillsByCategory[categoryLabel] || mockFederalBillsByCategory['Climate, Energy & Environment'];
-    setLatestBills(bills);
-  }, [selectedFilter, issueCategories]);
+    const fetchHousePassedBills = async () => {
+      const selectedCategory = issueCategories.find(cat => cat.id === selectedFilter);
+      const categoryLabel = selectedCategory?.label || policyCategory;
+
+      try {
+        const response = await fetch(`/api/bills/house-passed?category=${encodeURIComponent(categoryLabel)}&limit=4`);
+        const data = await response.json();
+
+        if (data.bills && data.bills.length > 0) {
+          setLatestBills(data.bills);
+        } else {
+          // Fallback to mock data if no bills found
+          const mockBills = mockFederalBillsByCategory[categoryLabel] || mockFederalBillsByCategory['Climate, Energy & Environment'];
+          setLatestBills(mockBills || []);
+        }
+      } catch (error) {
+        console.error('Error fetching House-passed bills:', error);
+        // Fallback to mock data on error
+        const mockBills = mockFederalBillsByCategory[categoryLabel] || mockFederalBillsByCategory['Climate, Energy & Environment'];
+        setLatestBills(mockBills || []);
+      }
+    };
+
+    fetchHousePassedBills();
+  }, [selectedFilter, issueCategories, policyCategory]);
 
   // Set state bills based on user's zip code and current policy category
   useEffect(() => {
@@ -1278,7 +1297,7 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
                         <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center gap-4">
                           <p className="text-sm font-semibold text-primary flex-1">{item.nextPhase}</p>
                           <Button size="lg" className="text-base flex-shrink-0" asChild>
-                            <Link href="/advocacy-message">
+                            <Link href={`/advocacy-message?category=${encodeURIComponent(policyCategory)}`}>
                               Voice your opinion
                               <ArrowRight className="ml-2 h-4 w-4" />
                             </Link>
@@ -1308,7 +1327,7 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
                         <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-center gap-3">
                           <p className="text-xs font-semibold text-primary flex-1">{item.nextPhase}</p>
                           <Button size="sm" className="text-xs flex-shrink-0" asChild>
-                            <Link href="/advocacy-message">
+                            <Link href={`/advocacy-message?category=${encodeURIComponent(policyCategory)}`}>
                               Voice your opinion
                               <ArrowRight className="ml-1 h-3 w-3" />
                             </Link>

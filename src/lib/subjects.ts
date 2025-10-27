@@ -1,139 +1,194 @@
 // List of allowed issue categories
 export const ALLOWED_SUBJECTS = [
-  'Climate, Energy & Environment',
-  'Criminal Justice',
-  'Defense & National Security',
-  'Discrimination & Prejudice',
-  'Economy & Work',
+  'Agriculture & Food',
+  'Animals',
+  'Defense & Security',
+  'Arts & Culture',
+  'Civil Rights',
+  'Commerce',
+  'Congress',
+  'Crime & Law',
+  'Economy & Finance',
   'Education',
-  'Health Policy',
-  'Immigration & Migration',
-  'International Affairs',
-  'National Conditions',
-  'Religion & Government',
-  'Technology'
+  'Emergency Mgmt',
+  'Energy',
+  'Environment',
+  'Families',
+  'Banking & Finance',
+  'Trade',
+  'Government',
+  'Health',
+  'Housing',
+  'Immigration',
+  'Foreign Affairs',
+  'Labor',
+  'Law',
+  'Native Issues',
+  'Public Lands',
+  'Science & Tech',
+  'Social Welfare',
+  'Sports & Recreation',
+  'Taxes',
+  'Transportation',
+  'Water Resources'
 ] as const;
 
 // Mapping table from Congress.gov API subjects to our issue categories
 const API_SUBJECT_MAPPINGS: Record<string, string> = {
-  // Climate, Energy & Environment
-  'Animals': 'Climate, Energy & Environment',
-  'Energy': 'Climate, Energy & Environment',
-  'Environmental Protection': 'Climate, Energy & Environment',
-  'Environment': 'Climate, Energy & Environment',
-  'Climate change': 'Climate, Energy & Environment',
-  'Public Lands and Natural Resources': 'Climate, Energy & Environment',
-  'Natural resources': 'Climate, Energy & Environment',
-  'Public lands': 'Climate, Energy & Environment',
-  'Water Resources Development': 'Climate, Energy & Environment',
-  'Water policy': 'Climate, Energy & Environment',
-  'Water management': 'Climate, Energy & Environment',
-  'Advanced technology and technological innovations': 'Climate, Energy & Environment',
-  'Computers and information technology': 'Climate, Energy & Environment',
-  
-  // Criminal Justice
-  'Crime and Law Enforcement': 'Criminal Justice',
-  'Criminal justice': 'Criminal Justice',
-  'Law enforcement': 'Criminal Justice',
-  'Law': 'Criminal Justice',
-  'Legal system': 'Criminal Justice',
-  'Judiciary': 'Criminal Justice',
-  
-  // Defense & National Security
-  'Armed Forces and National Security': 'Defense & National Security',
-  'Armed Forces': 'Defense & National Security',
-  'Defense and security': 'Defense & National Security',
-  
-  // Discrimination & Prejudice
-  'Civil Rights and Liberties, Minority Issues': 'Discrimination & Prejudice',
-  'Civil rights': 'Discrimination & Prejudice',
-  'Minority rights': 'Discrimination & Prejudice',
-  'Native Americans': 'Discrimination & Prejudice',
-  'Indian affairs': 'Discrimination & Prejudice',
-  'Tribal affairs': 'Discrimination & Prejudice',
-  
-  // Economy & Work
-  'Agriculture and Food': 'Economy & Work',
-  'Agriculture and nutrition': 'Economy & Work',
-  'Food assistance and relief': 'Economy & Work',
-  'Commerce': 'Economy & Work',
-  'Business and industry': 'Economy & Work',
-  'Trade and commerce': 'Economy & Work',
-  'Economics and Public Finance': 'Economy & Work',
-  'Economic policy': 'Economy & Work',
-  'Public finance': 'Economy & Work',
-  'Families': 'Economy & Work',
-  'Family policy': 'Economy & Work',
-  'Finance and Financial Sector': 'Economy & Work',
-  'Banking and finance': 'Economy & Work',
-  'Financial services': 'Economy & Work',
-  'Housing and Community Development': 'Economy & Work',
-  'Housing policy': 'Economy & Work',
-  'Community development': 'Economy & Work',
-  'Labor and Employment': 'Economy & Work',
-  'Employment': 'Economy & Work',
-  'Workers rights': 'Economy & Work',
-  'Social Welfare': 'Economy & Work',
-  'Social services': 'Economy & Work',
-  'Welfare': 'Economy & Work',
-  'Taxation': 'Economy & Work',
-  'Tax policy': 'Economy & Work',
-  'Revenue': 'Economy & Work',
-  'Transportation and Public Works': 'Economy & Work',
-  'Transportation': 'Economy & Work',
-  'Infrastructure': 'Economy & Work',
-  
+  // Agriculture & Food
+  'Agriculture and Food': 'Agriculture & Food',
+  'Agriculture and nutrition': 'Agriculture & Food',
+  'Food assistance and relief': 'Agriculture & Food',
+
+  // Animals
+  'Animals': 'Animals',
+
+  // Defense & Security
+  'Armed Forces and National Security': 'Defense & Security',
+  'Armed Forces': 'Defense & Security',
+  'Defense and security': 'Defense & Security',
+
+  // Arts & Culture
+  'Arts, Culture, Religion': 'Arts & Culture',
+  'Religion': 'Arts & Culture',
+  'Religious liberty': 'Arts & Culture',
+  'Religious freedom': 'Arts & Culture',
+  'Faith-based': 'Arts & Culture',
+  'Church': 'Arts & Culture',
+  'Religious institutions': 'Arts & Culture',
+
+  // Civil Rights
+  'Civil Rights and Liberties, Minority Issues': 'Civil Rights',
+  'Civil rights': 'Civil Rights',
+  'Minority rights': 'Civil Rights',
+
+  // Commerce
+  'Commerce': 'Commerce',
+  'Business and industry': 'Commerce',
+  'Trade and commerce': 'Commerce',
+
+  // Congress
+  'Congress': 'Congress',
+
+  // Crime & Law
+  'Crime and Law Enforcement': 'Crime & Law',
+  'Criminal justice': 'Crime & Law',
+  'Law enforcement': 'Crime & Law',
+
+  // Economy & Finance
+  'Economics and Public Finance': 'Economy & Finance',
+  'Economic policy': 'Economy & Finance',
+  'Public finance': 'Economy & Finance',
+
   // Education
   'Education': 'Education',
   'Education policy': 'Education',
   'Schools': 'Education',
   'Higher education': 'Education',
-  
-  // Health Policy
-  'Health': 'Health Policy',
-  'Health policy': 'Health Policy',
-  'Healthcare': 'Health Policy',
-  'Public health': 'Health Policy',
-  
-  
-  // Immigration & Migration
-  'Immigration': 'Immigration & Migration',
-  'Immigration policy': 'Immigration & Migration',
-  
-  // International Affairs
-  'Foreign Trade and International Finance': 'International Affairs',
-  'International trade': 'International Affairs',
-  'International Affairs': 'International Affairs',
-  'Foreign affairs': 'International Affairs',
-  'International relations': 'International Affairs',
-  
-  // National Conditions
-  'Congress': 'National Conditions',
-  'Emergency Management': 'National Conditions',
-  'Emergency preparedness': 'National Conditions',
-  'Disaster relief': 'National Conditions',
-  'Government Operations and Politics': 'National Conditions',
-  'Government administration': 'National Conditions',
-  'Public administration': 'National Conditions',
-  'Sports and Recreation': 'National Conditions',
-  'Sports': 'National Conditions',
-  'Recreation': 'National Conditions',
-  
-  // Religion & Government
-  'Arts, Culture, Religion': 'Religion & Government',
-  'Religion': 'Religion & Government',
-  'Religious liberty': 'Religion & Government',
-  'Religious freedom': 'Religion & Government',
-  'Faith-based': 'Religion & Government',
-  'Church': 'Religion & Government',
-  'Religious institutions': 'Religion & Government',
-  
-  // Technology
-  'Science, Technology, Communications': 'Technology',
-  'Technology': 'Technology',
-  'Telecommunications': 'Technology',
-  'Research and development': 'Technology'
-  
+
+  // Emergency Mgmt
+  'Emergency Management': 'Emergency Mgmt',
+  'Emergency preparedness': 'Emergency Mgmt',
+  'Disaster relief': 'Emergency Mgmt',
+
+  // Energy
+  'Energy': 'Energy',
+  'Climate change': 'Energy',
+
+  // Environment
+  'Environmental Protection': 'Environment',
+  'Environment': 'Environment',
+
+  // Families
+  'Families': 'Families',
+  'Family policy': 'Families',
+
+  // Banking & Finance
+  'Finance and Financial Sector': 'Banking & Finance',
+  'Banking and finance': 'Banking & Finance',
+  'Financial services': 'Banking & Finance',
+
+  // Trade
+  'Foreign Trade and International Finance': 'Trade',
+  'International trade': 'Trade',
+
+  // Government
+  'Government Operations and Politics': 'Government',
+  'Government administration': 'Government',
+  'Public administration': 'Government',
+
+  // Health
+  'Health': 'Health',
+  'Health policy': 'Health',
+  'Healthcare': 'Health',
+  'Public health': 'Health',
+
+  // Housing
+  'Housing and Community Development': 'Housing',
+  'Housing policy': 'Housing',
+  'Community development': 'Housing',
+
+  // Immigration
+  'Immigration': 'Immigration',
+  'Immigration policy': 'Immigration',
+
+  // Foreign Affairs
+  'International Affairs': 'Foreign Affairs',
+  'Foreign affairs': 'Foreign Affairs',
+  'International relations': 'Foreign Affairs',
+
+  // Labor
+  'Labor and Employment': 'Labor',
+  'Employment': 'Labor',
+  'Workers rights': 'Labor',
+
+  // Law
+  'Law': 'Law',
+  'Legal system': 'Law',
+  'Judiciary': 'Law',
+
+  // Native Issues
+  'Native Americans': 'Native Issues',
+  'Indian affairs': 'Native Issues',
+  'Tribal affairs': 'Native Issues',
+
+  // Public Lands
+  'Public Lands and Natural Resources': 'Public Lands',
+  'Natural resources': 'Public Lands',
+  'Public lands': 'Public Lands',
+
+  // Science & Tech
+  'Science, Technology, Communications': 'Science & Tech',
+  'Technology': 'Science & Tech',
+  'Telecommunications': 'Science & Tech',
+  'Research and development': 'Science & Tech',
+  'Advanced technology and technological innovations': 'Science & Tech',
+  'Computers and information technology': 'Science & Tech',
+
+  // Social Welfare
+  'Social Welfare': 'Social Welfare',
+  'Social services': 'Social Welfare',
+  'Welfare': 'Social Welfare',
+
+  // Sports & Recreation
+  'Sports and Recreation': 'Sports & Recreation',
+  'Sports': 'Sports & Recreation',
+  'Recreation': 'Sports & Recreation',
+
+  // Taxes
+  'Taxation': 'Taxes',
+  'Tax policy': 'Taxes',
+  'Revenue': 'Taxes',
+
+  // Transportation
+  'Transportation and Public Works': 'Transportation',
+  'Transportation': 'Transportation',
+  'Infrastructure': 'Transportation',
+
+  // Water Resources
+  'Water Resources Development': 'Water Resources',
+  'Water policy': 'Water Resources',
+  'Water management': 'Water Resources'
 };
 
 // API subject structure interfaces
@@ -227,42 +282,56 @@ export function findMatchingAllowedSubject(subjectName: string): string | null {
   
   // Keyword-based matching for common terms
   const keywordMappings: Record<string, string> = {
-    'health': 'Age & Generations', // Health could relate to aging
-    'education': 'Age & Generations', // Education spans generations
-    'jobs': 'Economy & Work',
-    'unemployment': 'Economy & Work',
-    'trade': 'Economy & Work',
-    'finance': 'Economy & Work',
-    'economy': 'Economy & Work',
-    'marriage': 'Family & Relationships',
-    'children': 'Family & Relationships',
-    'family': 'Family & Relationships',
-    'housing': 'Family & Relationships',
-    'immigration': 'Immigration & Migration',
-    'foreign': 'International Affairs',
-    'international': 'International Affairs',
-    'military': 'Politics & Policy',
-    'defense': 'Politics & Policy',
-    'security': 'Politics & Policy',
-    'government': 'Politics & Policy',
-    'policy': 'Politics & Policy',
-    'law': 'Politics & Policy',
-    'rights': 'Politics & Policy',
-    'native': 'Race & Ethnicity',
-    'tribal': 'Race & Ethnicity',
-    'ethnic': 'Race & Ethnicity',
-    'religion': 'Religion',
-    'faith': 'Religion',
-    'church': 'Religion',
-    'antisemitism': 'Religion',
-    'religious': 'Religion',
-    'chaplain': 'Religion',
-    'science': 'Science',
-    'research': 'Science',
-    'technology': 'Science',
-    'environment': 'Science',
-    'energy': 'Science',
-    'climate': 'Science'
+    'health': 'Health',
+    'education': 'Education',
+    'jobs': 'Labor',
+    'unemployment': 'Labor',
+    'trade': 'Trade',
+    'finance': 'Banking & Finance',
+    'economy': 'Economy & Finance',
+    'marriage': 'Families',
+    'children': 'Families',
+    'family': 'Families',
+    'housing': 'Housing',
+    'immigration': 'Immigration',
+    'foreign': 'Foreign Affairs',
+    'international': 'Foreign Affairs',
+    'military': 'Defense & Security',
+    'defense': 'Defense & Security',
+    'security': 'Defense & Security',
+    'government': 'Government',
+    'policy': 'Government',
+    'law': 'Law',
+    'rights': 'Civil Rights',
+    'native': 'Native Issues',
+    'tribal': 'Native Issues',
+    'ethnic': 'Civil Rights',
+    'religion': 'Arts & Culture',
+    'faith': 'Arts & Culture',
+    'church': 'Arts & Culture',
+    'antisemitism': 'Arts & Culture',
+    'religious': 'Arts & Culture',
+    'chaplain': 'Arts & Culture',
+    'science': 'Science & Tech',
+    'research': 'Science & Tech',
+    'technology': 'Science & Tech',
+    'environment': 'Environment',
+    'energy': 'Energy',
+    'climate': 'Environment',
+    'agriculture': 'Agriculture & Food',
+    'food': 'Agriculture & Food',
+    'animals': 'Animals',
+    'commerce': 'Commerce',
+    'congress': 'Congress',
+    'crime': 'Crime & Law',
+    'emergency': 'Emergency Mgmt',
+    'labor': 'Labor',
+    'lands': 'Public Lands',
+    'social': 'Social Welfare',
+    'sports': 'Sports & Recreation',
+    'taxes': 'Taxes',
+    'transportation': 'Transportation',
+    'water': 'Water Resources'
   };
   
   for (const [keyword, category] of Object.entries(keywordMappings)) {

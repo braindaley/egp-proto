@@ -190,7 +190,7 @@ const AdvocacyMessageContent: React.FC = () => {
   const billNumber = searchParams.get('number');
   const memberBioguideId = searchParams.get('member');
   const isVerified = searchParams.get('verified') === 'true';
-  const policyIssueParam = searchParams.get('issue');
+  const policyIssueParam = searchParams.get('issue') || searchParams.get('category');
   const candidate1Name = searchParams.get('candidate1');
   const candidate2Name = searchParams.get('candidate2');
   const candidate1Bio = searchParams.get('candidate1Bio');
@@ -317,28 +317,26 @@ const AdvocacyMessageContent: React.FC = () => {
     const skippedVerification = !!(user && (user.address || (user.city && user.state && user.zipCode)));
 
     if (isMemberContact) {
-      // Member contact flow: Verification → Policy → Write → Supporting Files → Personal → Review → Success
-      // For logged-in users: Policy → Write → Supporting Files → Personal → Review → Success
+      // Member contact flow: Verification → Policy → Write → Personal → Review → Delivery → Success
+      // For logged-in users: Policy → Write → Personal → Review → Delivery → Success
       if (step === 1) return skippedVerification ? 0 : 1; // Verification (hidden for logged-in users)
       if (step === 2) return skippedVerification ? 1 : 2; // Choose policy issue
       if (step === 4) return skippedVerification ? 2 : 3; // Write Your Message
-      if (step === 5) return skippedVerification ? 3 : 4; // Add Supporting Files
-      if (step === 7) return skippedVerification ? 4 : 5; // Personal Information
-      if (step === 8) return skippedVerification ? 5 : 6; // Review Message
+      if (step === 7) return skippedVerification ? 3 : 4; // Personal Information
+      if (step === 8) return skippedVerification ? 4 : 5; // Review Message
       if (step === 10) return skippedVerification ? 6 : 7; // Success screen
       return 0;
     } else {
-      // Bill flow: Verification → Position → AI Help → Write → Supporting Files → Select Reps → Personal → Review → Success
-      // For logged-in users: Position → AI Help → Write → Supporting Files → Select Reps → Personal → Review → Success
+      // Bill flow: Verification → Position → AI Help → Write → Select Reps → Personal → Review → Delivery → Success
+      // For logged-in users: Position → AI Help → Write → Select Reps → Personal → Review → Delivery → Success
       if (step === 1) return skippedVerification ? 0 : 1; // Verification (hidden for logged-in users)
       if (step === 2) return skippedVerification ? 1 : 2; // Choose Your Position
       if (step === 3) return skippedVerification ? 2 : 3; // Writing Your Message - help writing?
       if (step === 4) return skippedVerification ? 3 : 4; // Write Your Message
-      if (step === 5) return skippedVerification ? 4 : 5; // Add Supporting Files
-      if (step === 6) return skippedVerification ? 5 : 6; // Select representatives to send your message
-      if (step === 7) return skippedVerification ? 6 : 7; // Personal Information
-      if (step === 8) return skippedVerification ? 7 : 8; // Review Message
-      if (step === 10) return skippedVerification ? 8 : 9; // Success screen
+      if (step === 6) return skippedVerification ? 4 : 5; // Select representatives to send your message
+      if (step === 7) return skippedVerification ? 5 : 6; // Personal Information
+      if (step === 8) return skippedVerification ? 6 : 7; // Review Message
+      if (step === 10) return skippedVerification ? 7 : 8; // Success screen
       return 0;
     }
   };
@@ -346,25 +344,25 @@ const AdvocacyMessageContent: React.FC = () => {
   // Back navigation - all users go through verification
   const goBack = () => {
     if (isMemberContact) {
-      // All users flow: Verification → Policy → Write → Supporting Files → Personal → Review → Success
+      // Member contact flow: Verification → Policy → Write → Personal → Review → Delivery → Success
       if (step === 1) return; // Can't go back from first step (verification)
       else if (step === 2) setStep(1); // Policy Issues → verification
       else if (step === 4) setStep(2); // Write Message → Policy Issues (skip AI Help step 3)
-      else if (step === 5) setStep(4); // Supporting Files → Write Message
-      else if (step === 7) setStep(5); // Personal Info → Supporting Files
+      else if (step === 7) setStep(4); // Personal Info → Write Message
       else if (step === 8) setStep(7); // Review → Personal Info
+      else if (step === 9) setStep(8); // Delivery → Review
       else if (step === 10) setStep(8); // Success → Review
       else if (step === 12) setStep(8); // Sending Error → Review
     } else {
-      // All users flow: Verification → Position → AI Help → Write → Supporting Files → Select Reps → Personal → Review → Success
+      // Bill flow: Verification → Position → AI Help → Write → Select Reps → Personal → Review → Delivery → Success
       if (step === 1) return; // Can't go back from first step (verification)
       else if (step === 2) setStep(1); // Position → verification
       else if (step === 3) setStep(2); // AI Help → Position
       else if (step === 4) setStep(3); // Write Message → AI Help
-      else if (step === 5) setStep(4); // Supporting Files → Write Message
-      else if (step === 6) setStep(5); // Select Representatives → Supporting Files
+      else if (step === 6) setStep(4); // Select Representatives → Write Message
       else if (step === 7) setStep(6); // Personal Info → Select Representatives
       else if (step === 8) setStep(7); // Review → Personal Info
+      else if (step === 9) setStep(8); // Delivery → Review
       else if (step === 10) setStep(8); // Success → Review
       else if (step === 12) setStep(8); // Sending Error → Review
     }
@@ -1406,26 +1404,37 @@ const AdvocacyMessageContent: React.FC = () => {
   // Step 2: Policy Issues (for member contact flow)
   const renderStep2_PolicyIssues = () => {
     const policyIssues = [
-      'Abortion',
-      'Climate, Energy & Environment',
-      'Criminal Justice',
-      'Death Penalty',
-      'Defense & National Security',
-      'Discrimination & Prejudice',
-      'Drug Policy',
-      'Economy & Work',
+      'Agriculture & Food',
+      'Animals',
+      'Arts & Culture',
+      'Banking & Finance',
+      'Civil Rights',
+      'Commerce',
+      'Congress',
+      'Crime & Law',
+      'Defense & Security',
+      'Economy & Finance',
       'Education',
-      'Free Speech & Press',
-      'Gun Policy',
-      'Health Policy',
-      'Immigration & Migration',
-      'International Affairs',
-      'LGBT Acceptance',
-      'National Conditions',
-      'Privacy Rights',
-      'Religion & Government',
-      'Social Security & Medicare',
-      'Technology Policy Issues'
+      'Emergency Mgmt',
+      'Energy',
+      'Environment',
+      'Families',
+      'Foreign Affairs',
+      'Government',
+      'Health',
+      'Housing',
+      'Immigration',
+      'Labor',
+      'Law',
+      'Native Issues',
+      'Public Lands',
+      'Science & Tech',
+      'Social Welfare',
+      'Sports & Recreation',
+      'Taxes',
+      'Trade',
+      'Transportation',
+      'Water Resources'
     ];
 
     return (
@@ -1434,32 +1443,27 @@ const AdvocacyMessageContent: React.FC = () => {
           {getDisplayStep() > 0 && (
           <div className="text-sm font-medium text-muted-foreground mb-2">Step {getDisplayStep()}</div>
         )}
-          <CardTitle>Choose Policy Issues</CardTitle>
+          <CardTitle>Choose Policy Issue</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            Select the policy areas you'd like to discuss with {targetMember?.directOrderName || 'this member'}.
+            Select the policy area you'd like to discuss with {targetMember?.directOrderName || 'this member'}.
           </p>
         </CardHeader>
         <CardContent className="space-y-6 flex-1 flex flex-col bg-background">
           <div>
-            <h3 className="font-semibold mb-4 text-lg">What issues would you like to address?</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {policyIssues.map((issue) => (
-                <div key={issue} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={issue}
-                    checked={selectedPolicyIssues.includes(issue)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedPolicyIssues([...selectedPolicyIssues, issue]);
-                      } else {
-                        setSelectedPolicyIssues(selectedPolicyIssues.filter(i => i !== issue));
-                      }
-                    }}
-                  />
-                  <Label htmlFor={issue} className="text-sm">{issue}</Label>
-                </div>
-              ))}
-            </div>
+            <h3 className="font-semibold mb-4 text-lg">What issue would you like to address?</h3>
+            <RadioGroup
+              value={selectedPolicyIssues[0] || ''}
+              onValueChange={(value) => setSelectedPolicyIssues([value])}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {policyIssues.map((issue) => (
+                  <div key={issue} className="flex items-center space-x-2">
+                    <RadioGroupItem value={issue} id={issue} />
+                    <Label htmlFor={issue} className="text-sm cursor-pointer">{issue}</Label>
+                  </div>
+                ))}
+              </div>
+            </RadioGroup>
           </div>
           <div className="mt-auto pt-4">
             <Button
@@ -1602,9 +1606,9 @@ const AdvocacyMessageContent: React.FC = () => {
           <Button
             onClick={() => {
               if (isMemberContact) {
-                setStep(5); // Go to supporting files for member contact
+                setStep(7); // Go to personal info for member contact (skip upload)
               } else {
-                setStep(5); // Go to upload media for regular flow
+                setStep(6); // Go to select representatives for bill flow (skip upload)
               }
             }}
             disabled={!message}
@@ -3628,9 +3632,9 @@ We verify your voter registration to ensure your messages are taken seriously by
             
             {/* Back Button */}
             <div className="flex justify-center">
-              <Button 
-                variant="outline" 
-                onClick={() => setStep(5)}
+              <Button
+                variant="outline"
+                onClick={goBack}
               >
                 Back
               </Button>
@@ -3917,7 +3921,6 @@ We verify your voter registration to ensure your messages are taken seriously by
         {step === 2 && (isMemberContact ? renderStep2_PolicyIssues() : renderStep1_Position())} {/* Policy/Position */}
         {step === 3 && renderStep2_AIHelp()} {/* Writing Help */}
         {step === 4 && renderStep3_WriteMessage()} {/* Write Message */}
-        {step === 5 && renderStep4_UploadMedia()} {/* Add Supporting Files (Optional) */}
         {step === 6 && !isMemberContact && renderStep1()} {/* Select Outreach - Bills only */}
         {step === 7 && renderPersonalInfoStep()} {/* Personal Information */}
         {step === 8 && renderStep3()} {/* Review Message */}
