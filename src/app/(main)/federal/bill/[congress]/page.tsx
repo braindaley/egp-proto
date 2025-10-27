@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,19 +61,13 @@ function BillRow({ bill }: BillRowProps) {
 }
 
 export default function BillsOverviewPage({ params }: { params: Promise<{ congress: string }> }) {
-  const [congress, setCongress] = useState<string>('');
+  // Unwrap the Promise using React's use() hook
+  const { congress } = use(params);
+
   const [billsByIssue, setBillsByIssue] = useState<Map<string, Bill[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set());
-  
-  useEffect(() => {
-    async function getParams() {
-      const resolvedParams = await params;
-      setCongress(resolvedParams.congress);
-    }
-    getParams();
-  }, [params]);
-  
+
   useEffect(() => {
     if (!congress) return;
     
