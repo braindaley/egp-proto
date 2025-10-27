@@ -31,18 +31,37 @@ export default function InterestsPage() {
 
   const [overallView, setOverallView] = useState(2);
   const [policyInterests, setPolicyInterests] = useState({
-    climateEnergyEnvironment: 2,
-    criminalJustice: 2,
-    defenseNationalSecurity: 2,
-    discriminationPrejudice: 2,
-    economyWork: 2,
+    agricultureFood: 2,
+    animals: 2,
+    defenseSecurity: 2,
+    artsCulture: 2,
+    civilRights: 2,
+    commerce: 2,
+    congress: 2,
+    crimeLaw: 2,
+    economyFinance: 2,
     education: 2,
-    healthPolicy: 2,
-    immigrationMigration: 2,
-    internationalAffairs: 2,
-    nationalConditions: 2,
-    religionGovernment: 2,
-    technology: 2,
+    emergencyMgmt: 2,
+    energy: 2,
+    environment: 2,
+    families: 2,
+    bankingFinance: 2,
+    trade: 2,
+    government: 2,
+    health: 2,
+    housing: 2,
+    immigration: 2,
+    foreignAffairs: 2,
+    labor: 2,
+    law: 2,
+    nativeIssues: 2,
+    publicLands: 2,
+    scienceTech: 2,
+    socialWelfare: 2,
+    sportsRecreation: 2,
+    taxes: 2,
+    transportation: 2,
+    waterResources: 2,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -53,18 +72,37 @@ export default function InterestsPage() {
     if (user) {
       setOverallView(user.overallView ?? 2);
       setPolicyInterests({
-        climateEnergyEnvironment: user.policyInterests?.climateEnergyEnvironment ?? 2,
-        criminalJustice: user.policyInterests?.criminalJustice ?? 2,
-        defenseNationalSecurity: user.policyInterests?.defenseNationalSecurity ?? 2,
-        discriminationPrejudice: user.policyInterests?.discriminationPrejudice ?? 2,
-        economyWork: user.policyInterests?.economyWork ?? 2,
+        agricultureFood: user.policyInterests?.agricultureFood ?? 2,
+        animals: user.policyInterests?.animals ?? 2,
+        defenseSecurity: user.policyInterests?.defenseSecurity ?? 2,
+        artsCulture: user.policyInterests?.artsCulture ?? 2,
+        civilRights: user.policyInterests?.civilRights ?? 2,
+        commerce: user.policyInterests?.commerce ?? 2,
+        congress: user.policyInterests?.congress ?? 2,
+        crimeLaw: user.policyInterests?.crimeLaw ?? 2,
+        economyFinance: user.policyInterests?.economyFinance ?? 2,
         education: user.policyInterests?.education ?? 2,
-        healthPolicy: user.policyInterests?.healthPolicy ?? 2,
-        immigrationMigration: user.policyInterests?.immigrationMigration ?? 2,
-        internationalAffairs: user.policyInterests?.internationalAffairs ?? 2,
-        nationalConditions: user.policyInterests?.nationalConditions ?? 2,
-        religionGovernment: user.policyInterests?.religionGovernment ?? 2,
-        technology: user.policyInterests?.technology ?? 2,
+        emergencyMgmt: user.policyInterests?.emergencyMgmt ?? 2,
+        energy: user.policyInterests?.energy ?? 2,
+        environment: user.policyInterests?.environment ?? 2,
+        families: user.policyInterests?.families ?? 2,
+        bankingFinance: user.policyInterests?.bankingFinance ?? 2,
+        trade: user.policyInterests?.trade ?? 2,
+        government: user.policyInterests?.government ?? 2,
+        health: user.policyInterests?.health ?? 2,
+        housing: user.policyInterests?.housing ?? 2,
+        immigration: user.policyInterests?.immigration ?? 2,
+        foreignAffairs: user.policyInterests?.foreignAffairs ?? 2,
+        labor: user.policyInterests?.labor ?? 2,
+        law: user.policyInterests?.law ?? 2,
+        nativeIssues: user.policyInterests?.nativeIssues ?? 2,
+        publicLands: user.policyInterests?.publicLands ?? 2,
+        scienceTech: user.policyInterests?.scienceTech ?? 2,
+        socialWelfare: user.policyInterests?.socialWelfare ?? 2,
+        sportsRecreation: user.policyInterests?.sportsRecreation ?? 2,
+        taxes: user.policyInterests?.taxes ?? 2,
+        transportation: user.policyInterests?.transportation ?? 2,
+        waterResources: user.policyInterests?.waterResources ?? 2,
       });
     }
   }, [user]);
@@ -130,27 +168,46 @@ export default function InterestsPage() {
   }
 
   const policyIssues = [
-    { key: 'climateEnergyEnvironment', label: 'Climate, Energy & Environment' },
-    { key: 'criminalJustice', label: 'Criminal Justice' },
-    { key: 'defenseNationalSecurity', label: 'Defense & National Security' },
-    { key: 'discriminationPrejudice', label: 'Discrimination & Prejudice' },
-    { key: 'economyWork', label: 'Economy & Work' },
+    { key: 'agricultureFood', label: 'Agriculture & Food' },
+    { key: 'animals', label: 'Animals' },
+    { key: 'defenseSecurity', label: 'Defense & Security' },
+    { key: 'artsCulture', label: 'Arts & Culture' },
+    { key: 'civilRights', label: 'Civil Rights' },
+    { key: 'commerce', label: 'Commerce' },
+    { key: 'congress', label: 'Congress' },
+    { key: 'crimeLaw', label: 'Crime & Law' },
+    { key: 'economyFinance', label: 'Economy & Finance' },
     { key: 'education', label: 'Education' },
-    { key: 'healthPolicy', label: 'Health Policy' },
-    { key: 'immigrationMigration', label: 'Immigration & Migration' },
-    { key: 'internationalAffairs', label: 'International Affairs' },
-    { key: 'nationalConditions', label: 'National Conditions' },
-    { key: 'religionGovernment', label: 'Religion & Government' },
-    { key: 'technology', label: 'Technology' },
+    { key: 'emergencyMgmt', label: 'Emergency Mgmt' },
+    { key: 'energy', label: 'Energy' },
+    { key: 'environment', label: 'Environment' },
+    { key: 'families', label: 'Families' },
+    { key: 'bankingFinance', label: 'Banking & Finance' },
+    { key: 'trade', label: 'Trade' },
+    { key: 'government', label: 'Government' },
+    { key: 'health', label: 'Health' },
+    { key: 'housing', label: 'Housing' },
+    { key: 'immigration', label: 'Immigration' },
+    { key: 'foreignAffairs', label: 'Foreign Affairs' },
+    { key: 'labor', label: 'Labor' },
+    { key: 'law', label: 'Law' },
+    { key: 'nativeIssues', label: 'Native Issues' },
+    { key: 'publicLands', label: 'Public Lands' },
+    { key: 'scienceTech', label: 'Science & Tech' },
+    { key: 'socialWelfare', label: 'Social Welfare' },
+    { key: 'sportsRecreation', label: 'Sports & Recreation' },
+    { key: 'taxes', label: 'Taxes' },
+    { key: 'transportation', label: 'Transportation' },
+    { key: 'waterResources', label: 'Water Resources' },
   ];
 
-  const viewLabels = ['Far Left', 'Center Left', 'Center / Moderate', 'Center Right', 'Far Right'];
+  const viewLabels = ['No Interest', 'Low', 'Neutral', 'Moderate', 'High Interest'];
   const viewExplanations = [
-    'Strongly progressive or liberal views',
-    'Leans liberal but moderate',
-    'Balanced or neutral stance',
-    'Leans conservative but moderate',
-    'Strongly conservative views'
+    'Not interested in this topic',
+    'Slightly interested in this topic',
+    'Neutral interest level',
+    'Moderately interested in this topic',
+    'Highly interested in this topic'
   ];
 
   const dashboardNavItems = [
@@ -319,10 +376,10 @@ export default function InterestsPage() {
             <div className="w-full lg:max-w-[672px] lg:flex-1">
               <header className="mb-8">
                 <h1 className="text-3xl font-bold font-headline">
-                  Political Views
+                  Policy Interests
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Set your political perspective overall and for different policy areas to help tailor your advocacy messages.
+                  Set your interest level overall and for different policy areas to help personalize your experience.
                 </p>
               </header>
 
@@ -331,15 +388,15 @@ export default function InterestsPage() {
                   <>
                     <Card>
                       <CardHeader>
-                        <CardTitle>Overall Political View</CardTitle>
+                        <CardTitle>Overall Interest Level</CardTitle>
                         <CardDescription>
-                          Select your general political perspective across all issues.
+                          Select your general interest level across all policy topics.
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <PolicySlider
                           id="overallView"
-                          label="Overall View"
+                          label="Overall Interest"
                           value={overallView}
                           onValueChange={setOverallView}
                           showExplanation={true}
@@ -349,9 +406,9 @@ export default function InterestsPage() {
 
                     <Card>
                       <CardHeader>
-                        <CardTitle>Policy-Specific Views</CardTitle>
+                        <CardTitle>Policy-Specific Interests</CardTitle>
                         <CardDescription>
-                          Adjust your political perspective for each policy area using the sliders below.
+                          Adjust your interest level for each policy area using the sliders below.
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
