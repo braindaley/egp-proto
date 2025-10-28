@@ -21,6 +21,7 @@ import { SummaryDisplay } from '@/components/bill-summary-display';
 import Link from 'next/link';
 import type { Member, Bill, Sponsor } from '@/types';
 import { AdvocacyMessageCandidate } from '@/components/AdvocacyMessageCandidate';
+import type { L2VoterRecord } from '@/lib/l2-api';
 
 // Helper function to fetch bill details
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
@@ -130,6 +131,7 @@ const AdvocacyMessageContent: React.FC = () => {
     const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
     const [verificationFailed, setVerificationFailed] = useState(false);
     const [matches, setMatches] = useState<VerificationMatch[]>([]);
+    const [rawL2Records, setRawL2Records] = useState<L2VoterRecord[]>([]);
     const [selectedMatch, setSelectedMatch] = useState<string>('');
     const [manualFirstName, setManualFirstName] = useState('');
     const [manualLastName, setManualLastName] = useState('');
@@ -183,7 +185,7 @@ const AdvocacyMessageContent: React.FC = () => {
         billSponsors: [],
     });
 
-    const { user, loading } = useAuth();
+    const { user, loading, refreshUserData } = useAuth();
     const { zipCode, saveZipCode } = useZipCode();
     const { representatives: congressionalReps } = useMembersByZip(zipCode);
     const router = useRouter();
@@ -613,17 +615,24 @@ const AdvocacyMessageContent: React.FC = () => {
             ];
         }
 
-        // For verified guest users (not logged in), only return name and address
+        // For verified guest users (not logged in), return name, address, and L2 fields if available
         if (verifiedUserInfo) {
             const addressValue = `${verifiedUserInfo.address}, ${verifiedUserInfo.city}, ${verifiedUserInfo.state} ${verifiedUserInfo.zipCode}`;
             const county = (verifiedUserInfo as any).county || '';
             const precinct = (verifiedUserInfo as any).precinct || '';
+            const birthYear = (verifiedUserInfo as any).birthYear;
+            const gender = (verifiedUserInfo as any).gender;
+            const politicalAffiliation = (verifiedUserInfo as any).politicalAffiliation;
+
             return [
                 { key: 'fullName', label: 'Full Name', value: verifiedUserInfo.fullName, available: true },
                 { key: 'fullAddress', label: 'Full Address', value: addressValue, available: true },
                 { key: 'state', label: 'State', value: verifiedUserInfo.state || '', available: !!verifiedUserInfo.state },
                 { key: 'county', label: 'County', value: county, available: !!county },
                 { key: 'precinct', label: 'Precinct', value: precinct, available: !!precinct },
+                { key: 'birthYear', label: 'Birth Year', value: birthYear?.toString() || '', available: !!birthYear },
+                { key: 'gender', label: 'Gender', value: gender || '', available: !!gender },
+                { key: 'politicalAffiliation', label: 'Political Affiliation', value: politicalAffiliation || '', available: !!politicalAffiliation },
             ];
         }
 
@@ -695,7 +704,6 @@ const AdvocacyMessageContent: React.FC = () => {
             if (Object.keys(updates).length > 0) {
                 updates.updatedAt = new Date().toISOString();
                 await updateDoc(doc(db, 'users', user.uid), updates);
-                console.log('Profile data saved successfully');
             }
         } catch (error) {
             console.error('Error saving profile data:', error);
@@ -862,6 +870,9 @@ const AdvocacyMessageContent: React.FC = () => {
 
             // If we found matches, show selection screen
             if (data.matches && data.matches.length > 0) {
+                // Store raw L2 voter records for later use
+                setRawL2Records(data.matches);
+
                 // Transform L2 voter records to VerificationMatch format
                 const transformedMatches: VerificationMatch[] = data.matches.map((match: any) => ({
                     id: match.voterId || match.id || `voter-${Math.random().toString(36).substring(7)}`,
@@ -888,17 +899,124 @@ const AdvocacyMessageContent: React.FC = () => {
         }
     };
 
-    const handleMatchSelection = () => {
+    const handleMatchSelection = async () => {
         const selected = matches.find(m => m.id === selectedMatch);
         if (selected) {
-            // Add constituent description to verified user info if provided
-            const verifiedInfo = {
-                ...selected,
-                constituentDescription: constituentDescription || null
+            // Find the corresponding raw L2 record for additional data
+            const rawRecord = rawL2Records.find(r => r.voterId === selected.id);
+
+            // Helper to map gender from API format to profile format
+            const mapGender = (gender?: string): string | undefined => {
+                if (!gender) return undefined;
+                const g = gender.toUpperCase();
+                if (g === 'M') return 'Male';
+                if (g === 'F') return 'Female';
+                return gender; // Return as-is if not M or F
             };
-            setVerifiedUserInfo(verifiedInfo);
+
+            // Helper to convert 2-digit birth year to 4-digit
+            const convertBirthYear = (year?: string): number | undefined => {
+                if (!year) return undefined;
+                const yearNum = parseInt(year);
+                if (isNaN(yearNum)) return undefined;
+
+                // If it's already 4 digits, return it
+                if (yearNum >= 1900) return yearNum;
+
+                // If it's 2 digits, convert to 4 digits
+                // Assume years 00-24 are 2000s, 25-99 are 1900s
+                if (yearNum <= 24) return 2000 + yearNum;
+                if (yearNum <= 99) return 1900 + yearNum;
+
+                return undefined;
+            };
+
+            // Process the additional fields from L2 record
+            const birthYear = rawRecord ? convertBirthYear(rawRecord.birthYear) : undefined;
+            const gender = rawRecord ? mapGender(rawRecord.gender) : undefined;
+            const politicalAffiliation = rawRecord?.politicalAffiliation;
+
+            // Only set verifiedUserInfo for guest users (not logged in)
+            // For logged-in users, we save directly to Firebase and update profile state
+            if (!user) {
+                // Add constituent description and additional L2 fields to verified user info
+                const verifiedInfo = {
+                    ...selected,
+                    constituentDescription: constituentDescription || null,
+                    birthYear: birthYear,
+                    gender: gender,
+                    politicalAffiliation: politicalAffiliation,
+                };
+                setVerifiedUserInfo(verifiedInfo);
+            }
+
             // Save the zip code to the useZipCode hook for member lookup
             saveZipCode(selected.zipCode);
+
+            // If user is logged in, save voter data to their Firebase profile
+            if (user && rawRecord) {
+                try {
+                    const { getFirestore, doc, setDoc } = await import('firebase/firestore');
+                    const { app } = await import('@/lib/firebase');
+                    const db = getFirestore(app);
+
+                    // Prepare updates object
+                    const updates: any = {
+                        updatedAt: new Date().toISOString(),
+                    };
+
+                    // Only update fields that have values
+                    if (rawRecord.firstName) updates.firstName = rawRecord.firstName;
+                    if (rawRecord.lastName) updates.lastName = rawRecord.lastName;
+                    if (rawRecord.address) updates.address = rawRecord.address;
+                    if (rawRecord.city) updates.city = rawRecord.city;
+                    if (rawRecord.state) updates.state = rawRecord.state;
+                    if (rawRecord.zipCode) updates.zipCode = rawRecord.zipCode;
+
+                    // Handle birthYear conversion
+                    if (birthYear) updates.birthYear = birthYear;
+
+                    // Handle gender mapping
+                    if (gender) updates.gender = gender;
+
+                    // Handle political affiliation
+                    if (politicalAffiliation) {
+                        updates.politicalAffiliation = politicalAffiliation;
+                    }
+
+                    // Save to Firebase using setDoc with merge to create document if it doesn't exist
+                    await setDoc(doc(db, 'users', user.uid), updates, { merge: true });
+
+                    // Verify the save by reading back from Firebase
+                    const { getDoc } = await import('firebase/firestore');
+                    const savedDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (savedDoc.exists()) {
+                        const savedData = savedDoc.data();
+
+                        // Update profile state from the saved Firebase data to ensure consistency
+                        if (savedData.firstName) setProfileFirstName(savedData.firstName);
+                        if (savedData.lastName) setProfileLastName(savedData.lastName);
+                        if (savedData.address) setProfileAddress(savedData.address);
+                        if (savedData.city) setProfileCity(savedData.city);
+                        if (savedData.state) setProfileState(savedData.state);
+                        if (savedData.zipCode) setProfileZipCode(savedData.zipCode);
+                        if (savedData.birthYear) setProfileBirthYear(savedData.birthYear.toString());
+                        if (savedData.gender) setProfileGender(savedData.gender);
+                        if (savedData.politicalAffiliation) setProfilePoliticalAffiliation(savedData.politicalAffiliation);
+
+                        // Refresh user data from Firebase to update the user object globally
+                        if (refreshUserData) {
+                            await refreshUserData();
+                        }
+                    } else {
+                        console.error('Document does not exist after save!');
+                    }
+                } catch (error) {
+                    console.error('Error saving voter data to profile:', error);
+                    // Don't block the flow if save fails
+                }
+            }
+
             // Reset verification form
             setVerificationStep('initial');
             setFirstName('');
@@ -1893,8 +2011,8 @@ const AdvocacyMessageContent: React.FC = () => {
                                         Not Me
                                     </Button>
                                     <Button
-                                        onClick={() => {
-                                            handleMatchSelection();
+                                        onClick={async () => {
+                                            await handleMatchSelection();
                                             setStep(2); // Go to choose position after verification
                                         }}
                                         disabled={!selectedMatch}
