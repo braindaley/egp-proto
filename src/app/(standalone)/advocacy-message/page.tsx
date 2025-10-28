@@ -702,7 +702,7 @@ const AdvocacyMessageContent: React.FC = () => {
     }
   };
 
-  // Address autocomplete functionality
+  // Address autocomplete functionality - Delaware only for voter verification
   const searchAddresses = (query: string) => {
     if (!query || query.length < 3) {
       setAddressSuggestions([]);
@@ -710,39 +710,24 @@ const AdvocacyMessageContent: React.FC = () => {
       return;
     }
 
-    // Determine location based on verification zip code or user's saved zip code
-    const currentZip = verificationZipCode || state || zipCode;
-    let city = 'Middletown';
-    let stateName = 'DE';
-    let suggestedZips = ['19709', '19702', '19711', '19713', '19801'];
-    let streets = ['Emerson Rd', 'Main St', 'Pleasant Valley Rd', 'Limestone Rd', 'Kirkwood Hwy'];
-
-    // Delaware zip codes (19xxx)
-    if (currentZip?.startsWith('19')) {
-      city = 'Middletown';
-      stateName = 'DE';
-      suggestedZips = ['19709', '19702', '19711', '19713', '19801'];
-      streets = ['Emerson Rd', 'Main St', 'Pleasant Valley Rd', 'Limestone Rd', 'Kirkwood Hwy'];
-    }
-    // California zip codes (927xx)
-    else if (currentZip?.startsWith('927')) {
-      city = 'Fountain Valley';
-      stateName = 'CA';
-      suggestedZips = ['92708', '92706', '92707', '92704', '92705'];
-      streets = ['Irvine Ave', 'Brookhurst St', 'Harbor Blvd', 'Warner Ave', 'Euclid St'];
-    }
-    // Illinois zip codes (627xx)
-    else if (currentZip?.startsWith('627')) {
-      city = 'Springfield';
-      stateName = 'IL';
-      suggestedZips = ['62701', '62702', '62703', '62704', '62705'];
-      streets = ['Main St', 'Oak Ave', 'Elm St', 'Pine St', 'Maple Dr'];
-    }
+    // Only provide Delaware addresses (voter verification is Delaware-only)
+    const delawareAddresses = [
+      { street: 'Emerson Rd', city: 'Middletown', zip: '19709' },
+      { street: 'Main St', city: 'Newark', zip: '19702' },
+      { street: 'Pleasant Valley Rd', city: 'Newark', zip: '19711' },
+      { street: 'Limestone Rd', city: 'Wilmington', zip: '19808' },
+      { street: 'Kirkwood Hwy', city: 'Wilmington', zip: '19808' },
+      { street: 'Market St', city: 'Wilmington', zip: '19801' },
+      { street: 'Delaware Ave', city: 'Wilmington', zip: '19806' },
+      { street: 'Concord Pike', city: 'Wilmington', zip: '19803' },
+      { street: 'Lancaster Pike', city: 'Hockessin', zip: '19707' },
+      { street: 'Brandywine Blvd', city: 'Wilmington', zip: '19809' },
+    ];
 
     // Mock address suggestions - in real implementation, this would call Google Places API
-    const mockSuggestions = suggestedZips.map((zip, index) => {
-      const houseNumber = Math.floor(Math.random() * 9000) + 1000;
-      return `${houseNumber} ${streets[index]}, ${city}, ${stateName} ${zip}`;
+    const mockSuggestions = delawareAddresses.map(({ street, city, zip }) => {
+      const houseNumber = Math.floor(Math.random() * 900) + 100;
+      return `${houseNumber} ${street}, ${city}, DE ${zip}`;
     });
 
     setAddressSuggestions(mockSuggestions);
@@ -752,6 +737,43 @@ const AdvocacyMessageContent: React.FC = () => {
   const handleAddressChange = (value: string) => {
     setAddress(value);
     searchAddresses(value);
+
+    // Try to auto-parse city, state, and zip from the address if user types manually
+    // Expected formats:
+    // - "123 Street Name, City, ST 12345"
+    // - "123 Street Name, City ST 12345"
+    const parts = value.split(',').map(s => s.trim());
+
+    if (parts.length >= 2) {
+      const secondPart = parts[1];
+
+      // Try to extract state and zip from the second part
+      const stateZipMatch = secondPart.match(/\b([A-Z]{2})\s+(\d{5})\b/);
+
+      if (stateZipMatch) {
+        // Format: "City ST 12345" - extract city by removing state and zip
+        const cityOnly = secondPart.substring(0, stateZipMatch.index).trim();
+        if (cityOnly) {
+          setCity(cityOnly);
+        }
+        setState(stateZipMatch[1]);
+        setVerificationZipCode(stateZipMatch[2]);
+      } else {
+        // No state/zip found in second part, so it's just the city
+        setCity(secondPart);
+
+        // Check third part for state/zip
+        if (parts[2]) {
+          const stateZipMatch2 = parts[2].match(/\b([A-Z]{2})\s*(\d{5})?\b/);
+          if (stateZipMatch2) {
+            setState(stateZipMatch2[1]);
+            if (stateZipMatch2[2]) {
+              setVerificationZipCode(stateZipMatch2[2]);
+            }
+          }
+        }
+      }
+    }
   };
 
     const selectAddressSuggestion = (suggestion: string) => {
@@ -799,6 +821,11 @@ const AdvocacyMessageContent: React.FC = () => {
 
     if (state.length !== 2) {
       setVerificationError('Please enter a valid 2-letter state code');
+      return;
+    }
+
+    if (state.toUpperCase() !== 'DE') {
+      setVerificationError('Voter verification is currently only available for Delaware residents');
       return;
     }
 
@@ -1737,10 +1764,10 @@ We verify your voter registration to ensure your messages are taken seriously by
                 </div>
 
                 <div className="relative">
-                  <Label htmlFor="address">Full Address</Label>
+                  <Label htmlFor="address">Full Address (Delaware only)</Label>
                   <Input
                     id="address"
-                    placeholder="123 Main St, Springfield, IL 12345"
+                    placeholder="448 Emerson Rd, Middletown, DE 19709"
                     value={address}
                     onChange={(e) => handleAddressChange(e.target.value)}
                     onFocus={() => address.length >= 3 && setShowAddressSuggestions(true)}
