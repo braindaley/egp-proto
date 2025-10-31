@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import AdvocacyBillCard from '@/components/advocacy-bill-card';
 import CandidateCampaignCard from '@/components/candidate-campaign-card';
+import { PollCampaignCard } from '@/components/poll-campaign-card';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { campaignsService } from '@/lib/campaigns';
 import { getAdvocacyGroupData } from '@/lib/advocacy-groups';
@@ -244,6 +245,15 @@ export default function CampaignDetailPage({
                                 opposeCount={campaign.opposeCount}
                                 groupSlug={groupName}
                                 groupName={groupData.name}
+                            />
+                        ) : (campaign.campaignType === 'Voter Poll' || campaign.campaignType === 'Poll' || campaign.bill?.type === 'POLL') && campaign.poll ? (
+                            <PollCampaignCard
+                                groupName={groupData.name}
+                                groupSlug={groupName}
+                                poll={campaign.poll}
+                                responseCount={campaign.responseCount || 0}
+                                results={campaign.results || {}}
+                                pollId={campaign.id}
                             />
                         ) : (
                             <AdvocacyBillCard

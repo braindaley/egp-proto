@@ -4,7 +4,7 @@ export interface Campaign {
   id: string;
   groupSlug: string;
   groupName: string;
-  campaignType?: 'Legislation' | 'Issue' | 'Candidate';
+  campaignType?: 'Legislation' | 'Issue' | 'Candidate' | 'Poll' | 'Voter Poll';
   bill?: {
     congress: number;
     type: string;
@@ -18,11 +18,23 @@ export interface Campaign {
     candidate2Bio?: string;
     selectedCandidate: 1 | 2;
   };
+  poll?: {
+    title: string;
+    question: string;
+    answerType: 'multiple-choice-single' | 'multiple-choice-multiple' | 'open-text';
+    choices?: string[];
+    description?: string;
+    imageUrl?: string;
+  };
   position: 'Support' | 'Oppose' | string;
   reasoning: string;
   actionButtonText: string;
   supportCount: number;
   opposeCount: number;
+  responseCount?: number;
+  results?: {
+    [choice: string]: number;
+  };
   createdAt: string;
   updatedAt: string;
   isActive: boolean;

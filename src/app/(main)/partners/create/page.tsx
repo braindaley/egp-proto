@@ -16,7 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, X, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { campaignsService } from '@/lib/campaigns';
 import type { Bill } from '@/types';
@@ -62,7 +62,7 @@ function CreateCampaignPageContent() {
     const { user, loading: authLoading } = useAuth();
     
     const [selectedGroup, setSelectedGroup] = useState<string>(searchParams.get('group') || '');
-    const [campaignType, setCampaignType] = useState<'Legislation' | 'Issue' | 'Town Hall Calling' | 'Candidate Advocacy' | 'Voter Registration' | 'Voter Poll'>('Legislation');
+    const [campaignType, setCampaignType] = useState<'Legislation' | 'Issue' | 'Candidate Advocacy' | 'Voter Poll'>('Legislation');
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Bill[]>([]);
     const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
@@ -85,6 +85,15 @@ function CreateCampaignPageContent() {
     // Campaign dates
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+
+    // Voter poll fields
+    const [pollTitle, setPollTitle] = useState('');
+    const [pollQuestion, setPollQuestion] = useState('');
+    const [answerType, setAnswerType] = useState<'multiple-choice-single' | 'multiple-choice-multiple' | 'open-text'>('multiple-choice-single');
+    const [pollDescription, setPollDescription] = useState('');
+    const [pollImageFile, setPollImageFile] = useState<File | null>(null);
+    const [pollImagePreview, setPollImagePreview] = useState<string>('');
+    const [pollChoices, setPollChoices] = useState<string[]>(['', '']);
 
     // Debounced search function
     const searchBills = useCallback(
@@ -138,6 +147,19 @@ function CreateCampaignPageContent() {
                 alert('Please fill in all required fields (both candidate names and reasoning)');
                 return;
             }
+        } else if (campaignType === 'Voter Poll') {
+            if (!selectedGroup || !pollTitle || !pollQuestion) {
+                alert('Please fill in all required fields (poll title and question)');
+                return;
+            }
+            // Validate choices for multiple choice types
+            if (answerType !== 'open-text') {
+                const filledChoices = pollChoices.filter(c => c.trim() !== '');
+                if (filledChoices.length < 2) {
+                    alert('Please provide at least 2 answer choices for multiple choice questions');
+                    return;
+                }
+            }
         } else {
             if (!selectedGroup || !selectedBill || !reasoning) {
                 alert('Please fill in all required fields');
@@ -189,6 +211,25 @@ function CreateCampaignPageContent() {
                     billTitle: issueSpecificTitle,
                     billType: 'ISSUE',
                     billNumber: issueTitle?.replace(/[^a-z0-9-]/g, '').toLowerCase() || 'issue',
+                    congress: '119' // Default congress for categorization
+                };
+            } else if (campaignType === 'Voter Poll') {
+                // For Voter Poll campaigns
+                const filledChoices = pollChoices.filter(c => c.trim() !== '');
+                requestBody = {
+                    ...requestBody,
+                    poll: {
+                        title: pollTitle,
+                        question: pollQuestion,
+                        answerType,
+                        description: pollDescription,
+                        imageUrl: pollImagePreview,
+                        choices: answerType !== 'open-text' ? filledChoices : []
+                    },
+                    // Use poll data for display
+                    billTitle: pollTitle,
+                    billType: 'POLL',
+                    billNumber: pollTitle.replace(/[^a-z0-9-]/g, '').toLowerCase() || 'poll',
                     congress: '119' // Default congress for categorization
                 };
             } else {
@@ -283,16 +324,14 @@ function CreateCampaignPageContent() {
                     {/* Campaign Type */}
                     <div className="space-y-2">
                         <Label htmlFor="campaign-type">Campaign Type</Label>
-                        <Select value={campaignType} onValueChange={(value) => setCampaignType(value as 'Legislation' | 'Issue' | 'Town Hall Calling' | 'Candidate Advocacy' | 'Voter Registration' | 'Voter Poll')}>
+                        <Select value={campaignType} onValueChange={(value) => setCampaignType(value as 'Legislation' | 'Issue' | 'Candidate Advocacy' | 'Voter Poll')}>
                             <SelectTrigger id="campaign-type">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Legislation">Legislation</SelectItem>
                                 <SelectItem value="Issue">Issue</SelectItem>
-                                <SelectItem value="Town Hall Calling">Town Hall Calling</SelectItem>
                                 <SelectItem value="Candidate Advocacy">Candidate Advocacy</SelectItem>
-                                <SelectItem value="Voter Registration">Voter Registration</SelectItem>
                                 <SelectItem value="Voter Poll">Voter Poll</SelectItem>
                             </SelectContent>
                         </Select>
@@ -390,6 +429,120 @@ function CreateCampaignPageContent() {
                                 </Select>
                             </div>
                         </div>
+                    ) : campaignType === 'Voter Poll' ? (
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="poll-title">Poll Title *</Label>
+                                <Input
+                                    id="poll-title"
+                                    placeholder="e.g., Community Priorities Survey"
+                                    value={pollTitle}
+                                    onChange={(e) => setPollTitle(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="poll-question">Poll Question *</Label>
+                                <Input
+                                    id="poll-question"
+                                    placeholder="e.g., What issue should our organization prioritize?"
+                                    value={pollQuestion}
+                                    onChange={(e) => setPollQuestion(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="answer-type">Answer Type *</Label>
+                                <Select value={answerType} onValueChange={(value) => setAnswerType(value as 'multiple-choice-single' | 'multiple-choice-multiple' | 'open-text')}>
+                                    <SelectTrigger id="answer-type">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="multiple-choice-single">Multiple Choice - Single Select</SelectItem>
+                                        <SelectItem value="multiple-choice-multiple">Multiple Choice - Multiple Select</SelectItem>
+                                        <SelectItem value="open-text">Open Text</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Answer Choices - only show for multiple choice types */}
+                            {(answerType === 'multiple-choice-single' || answerType === 'multiple-choice-multiple') && (
+                                <div className="space-y-2">
+                                    <Label>Answer Choices *</Label>
+                                    <div className="space-y-2">
+                                        {pollChoices.map((choice, index) => (
+                                            <div key={index} className="flex gap-2">
+                                                <Input
+                                                    placeholder={`Choice ${index + 1}`}
+                                                    value={choice}
+                                                    onChange={(e) => {
+                                                        const newChoices = [...pollChoices];
+                                                        newChoices[index] = e.target.value;
+                                                        setPollChoices(newChoices);
+                                                    }}
+                                                />
+                                                {pollChoices.length > 2 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => {
+                                                            const newChoices = pollChoices.filter((_, i) => i !== index);
+                                                            setPollChoices(newChoices);
+                                                        }}
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setPollChoices([...pollChoices, ''])}
+                                            className="w-full"
+                                        >
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Add Choice
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <Label htmlFor="poll-description">Description (Optional)</Label>
+                                <Textarea
+                                    id="poll-description"
+                                    placeholder="Provide context or instructions for the poll..."
+                                    value={pollDescription}
+                                    onChange={(e) => setPollDescription(e.target.value)}
+                                    rows={4}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="poll-image">Image Upload (Optional)</Label>
+                                <Input
+                                    id="poll-image"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            setPollImageFile(file);
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setPollImagePreview(reader.result as string);
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                />
+                                {pollImagePreview && (
+                                    <div className="mt-2">
+                                        <img src={pollImagePreview} alt="Poll preview" className="max-w-xs rounded-lg border" />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     ) : (
                         <div className="space-y-2">
                             <Label htmlFor="bill-search">Select Bill *</Label>
@@ -456,8 +609,8 @@ function CreateCampaignPageContent() {
                         </div>
                     )}
 
-                    {/* Position */}
-                    {campaignType !== 'Candidate Advocacy' && (
+                    {/* Position - Hide for Candidate Advocacy and Voter Poll */}
+                    {campaignType !== 'Candidate Advocacy' && campaignType !== 'Voter Poll' && (
                         <div className="space-y-2">
                             <Label htmlFor="position">
                                 {campaignType === 'Issue'
@@ -486,38 +639,42 @@ function CreateCampaignPageContent() {
                         </div>
                     )}
 
-                    {/* Reasoning */}
-                    <div className="space-y-2">
-                        <Label htmlFor="reasoning">Reasoning *</Label>
-                        <Textarea
-                            id="reasoning"
-                            placeholder={
-                                campaignType === 'Issue'
-                                    ? "Explain why your organization supports or opposes this issue. You can use Markdown formatting."
-                                    : campaignType === 'Candidate Advocacy'
-                                    ? `Explain why your organization supports ${selectedCandidate === 1 ? (candidate1Name || 'Candidate 1') : (candidate2Name || 'Candidate 2')}. You can use Markdown formatting.`
-                                    : "Explain why your organization supports or opposes this bill. You can use Markdown formatting."
-                            }
-                            value={reasoning}
-                            onChange={(e) => setReasoning(e.target.value)}
-                            rows={8}
-                            className="font-mono text-sm"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            Supports Markdown formatting. Use ### for headings, ** for bold, * for bullet points.
-                        </p>
-                    </div>
+                    {/* Reasoning - Hide for Voter Poll */}
+                    {campaignType !== 'Voter Poll' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="reasoning">Reasoning *</Label>
+                            <Textarea
+                                id="reasoning"
+                                placeholder={
+                                    campaignType === 'Issue'
+                                        ? "Explain why your organization supports or opposes this issue. You can use Markdown formatting."
+                                        : campaignType === 'Candidate Advocacy'
+                                        ? `Explain why your organization supports ${selectedCandidate === 1 ? (candidate1Name || 'Candidate 1') : (candidate2Name || 'Candidate 2')}. You can use Markdown formatting.`
+                                        : "Explain why your organization supports or opposes this bill. You can use Markdown formatting."
+                                }
+                                value={reasoning}
+                                onChange={(e) => setReasoning(e.target.value)}
+                                rows={8}
+                                className="font-mono text-sm"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Supports Markdown formatting. Use ### for headings, ** for bold, * for bullet points.
+                            </p>
+                        </div>
+                    )}
 
-                    {/* Action Button Text */}
-                    <div className="space-y-2">
-                        <Label htmlFor="action-text">Action Button Text</Label>
-                        <Input
-                            id="action-text"
-                            placeholder="Text for the action button"
-                            value={actionButtonText}
-                            onChange={(e) => setActionButtonText(e.target.value)}
-                        />
-                    </div>
+                    {/* Action Button Text - Hide for Voter Poll */}
+                    {campaignType !== 'Voter Poll' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="action-text">Action Button Text</Label>
+                            <Input
+                                id="action-text"
+                                placeholder="Text for the action button"
+                                value={actionButtonText}
+                                onChange={(e) => setActionButtonText(e.target.value)}
+                            />
+                        </div>
+                    )}
 
                     {/* Campaign Dates */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -548,13 +705,13 @@ function CreateCampaignPageContent() {
                             onClick={handleSave}
                             disabled={
                                 !selectedGroup ||
-                                !reasoning ||
                                 !startDate ||
                                 !endDate ||
                                 isSaving ||
-                                (campaignType === 'Issue' ? (!selectedIssue || !issueSpecificTitle) :
-                                 campaignType === 'Candidate Advocacy' ? (!candidate1Name || !candidate2Name) :
-                                 !selectedBill)
+                                (campaignType === 'Voter Poll' ? (!pollTitle || !pollQuestion) :
+                                 campaignType === 'Issue' ? (!selectedIssue || !issueSpecificTitle || !reasoning) :
+                                 campaignType === 'Candidate Advocacy' ? (!candidate1Name || !candidate2Name || !reasoning) :
+                                 (!selectedBill || !reasoning))
                             }
                         >
                             {isSaving ? (

@@ -18,6 +18,7 @@ import { campaignsService } from '@/lib/campaigns';
 import { PopularBills } from '@/components/popular-bills';
 import { HomepageNewsSection } from '@/components/homepage-news-section';
 import { CandidateCampaignFeedCard } from '@/components/candidate-campaign-feed-card';
+import { PollCampaignFeedCard } from '@/components/poll-campaign-feed-card';
 import { useZipCode } from '@/hooks/use-zip-code';
 
 export default function Home() {
@@ -1289,6 +1290,22 @@ export default function Home() {
                   groupSlug={item.groupSlug}
                   groupName={item.organization}
                   policyIssue={item.policyIssue}
+                />
+              </div>
+            );
+          } else if (item.type === 'pollCampaign') {
+            // Poll Campaign Card
+            return (
+              <div key={item.id} className="md:mb-8 md:px-4 snap-start md:snap-none md:h-auto md:min-h-0 flex items-start pt-4 md:items-center md:pt-0 md:block">
+                <PollCampaignFeedCard
+                  groupName={item.organization}
+                  groupSlug={item.groupSlug}
+                  pollTitle={item.pollTitle}
+                  pollQuestion={item.pollQuestion}
+                  description={item.description}
+                  responseCount={item.responseCount || 0}
+                  pollId={item.pollId}
+                  campaignUrl={`/campaigns/${item.groupSlug}/${item.pollId}`}
                 />
               </div>
             );

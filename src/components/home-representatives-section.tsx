@@ -568,46 +568,39 @@ export function HomeRepresentativesSection() {
           </div>
         </div>
 
-        {/* Local Representatives - City Council & School Board */}
+        {/* State Representatives */}
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-semibold">My Local Representatives</h2>
+            <h2 className="text-xl font-semibold">My State Representatives</h2>
           </div>
-          <div className="space-y-6">
-            {/* City Council */}
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">Santa Ana City Council</h3>
-              <div className="overflow-x-auto pb-4">
-                <div className="flex gap-4">
-                  {mockCityCouncil.map((member, index) => (
-                    <RepresentativeCard
-                      key={`city-${index}`}
-                      rep={member}
-                      type="local"
-                      isFederal={false}
-                    />
-                  ))}
-                </div>
-              </div>
+          <div className="overflow-x-auto pb-4">
+            <div className="flex gap-4">
+              {stateReps.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No state representatives found for your area</p>
+              ) : (
+                stateReps.map((member, index) => (
+                  <RepresentativeCard
+                    key={`state-${index}`}
+                    rep={member}
+                    type="state"
+                    isFederal={false}
+                  />
+                ))
+              )}
             </div>
+          </div>
+        </div>
 
-            {/* School Board */}
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">SAUSD School Board</h3>
-              <div className="overflow-x-auto pb-4">
-                <div className="flex gap-4">
-                  {mockSchoolBoard.map((member, index) => (
-                    <RepresentativeCard
-                      key={`school-${index}`}
-                      rep={member}
-                      type="local"
-                      isFederal={false}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
+        {/* Local Elected Officials */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-xl font-semibold">My Local Elected Officials</h2>
           </div>
+          <Button asChild variant="default">
+            <Link href="/elected-officials">
+              View Local Elected Officials
+            </Link>
+          </Button>
         </div>
       </div>
     </div>

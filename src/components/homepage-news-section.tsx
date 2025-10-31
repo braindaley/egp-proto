@@ -813,12 +813,6 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <h3 className="text-base font-semibold">My Federal Representatives</h3>
-                <Link
-                  href={`/federal/congress/119/states/${userState?.code.toLowerCase()}`}
-                  className="text-primary hover:underline"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Link>
               </div>
               <div className="overflow-x-auto pb-3">
                 <div className="flex gap-3">
@@ -842,15 +836,14 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
               </div>
             </div>
 
-            {/* Local Representatives - State, City, and School Board */}
+            {/* State Representatives */}
             {zipCode && userState && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-base font-semibold">My Local Representatives</h3>
+                  <h3 className="text-base font-semibold">My State Representatives</h3>
                 </div>
                 <div className="overflow-x-auto pb-3">
                   <div className="flex gap-3">
-                    {/* State Representatives */}
                     {sortedStateReps.map((member, index) => (
                       <RepresentativeCard
                         key={`state-${index}`}
@@ -859,30 +852,19 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
                         isFederal={false}
                       />
                     ))}
-
-                    {/* City Council */}
-                    {mockCityCouncil.map((member, index) => (
-                      <RepresentativeCard
-                        key={`city-${index}`}
-                        rep={member}
-                        type="local"
-                        isFederal={false}
-                      />
-                    ))}
-
-                    {/* School Board */}
-                    {mockSchoolBoard.map((member, index) => (
-                      <RepresentativeCard
-                        key={`school-${index}`}
-                        rep={member}
-                        type="local"
-                        isFederal={false}
-                      />
-                    ))}
                   </div>
                 </div>
               </div>
             )}
+
+            {/* View All Elected Officials */}
+            <div>
+              <Button asChild variant="default" size="sm">
+                <Link href="/elected-officials">
+                  View all elected officials
+                </Link>
+              </Button>
+            </div>
           </div>
 
           {/* Column 3: Recent Campaigns and Latest Bills - 3 columns */}
