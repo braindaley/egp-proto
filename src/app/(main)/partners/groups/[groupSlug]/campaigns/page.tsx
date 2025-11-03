@@ -550,6 +550,14 @@ export default function GroupCampaignsPage() {
                                                                     <>
                                                                         {campaign.issueTitle} - {campaign.issueSpecificTitle || campaign.bill.title}
                                                                     </>
+                                                                ) : campaign.bill.type === 'POLL' ? (
+                                                                    <>
+                                                                        Poll - {campaign.bill.title || 'Untitled Poll'}
+                                                                    </>
+                                                                ) : campaign.bill.type === 'CANDIDATE' || campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy' ? (
+                                                                    <>
+                                                                        Candidate - {campaign.bill.title || 'Candidate Campaign'}
+                                                                    </>
                                                                 ) : (
                                                                     <>
                                                                         {campaign.bill.type} {campaign.bill.number}

@@ -45,6 +45,7 @@ interface AppRepresentative {
   name: string;
   party: string;
   officeTitle: string;
+  type?: 'representative' | 'senator';
   districtNumber?: number;
   phones?: string[];
   urls?: string[];
@@ -85,6 +86,7 @@ function transformGeocodIoResponse(data: GeocodIoResponse): AppRepresentative[] 
           name: fullName,
           party: legislator.bio.party,
           officeTitle: officeTitle,
+          type: legislator.type,
           districtNumber: legislator.type === 'representative' ? district.district_number : undefined,
           phones: legislator.contact.phone ? [legislator.contact.phone] : [],
           urls: legislator.contact.url ? [legislator.contact.url] : [],

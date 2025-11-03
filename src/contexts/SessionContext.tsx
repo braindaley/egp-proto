@@ -37,19 +37,28 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   // Load sessions from multiple priority states on initial load
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+
     async function fetchInitialSessions() {
       setIsLoading(true);
-      
+
       // Priority states to load sessions from
       const priorityStates = ['CA', 'NY', 'TX', 'FL', 'IL'];
       let allSessions: LegiscanSession[] = [];
       let selectedSession: LegiscanSession | null = null;
-      
+
       try {
         // Load sessions from priority states
         for (const stateCode of priorityStates) {
           try {
             const response = await fetch(`/api/legiscan?action=sessions&state=${stateCode}`);
+
+            if (!response.ok) {
+              console.error(`Failed to fetch sessions for ${stateCode}: ${response.status}`);
+              continue;
+            }
+
             const data = await response.json();
             
             if (data.status === 'success' && data.data?.sessions) {
@@ -94,28 +103,38 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   // Fetch sessions when user manually changes state
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+
     async function fetchStateSpecificSessions() {
       if (!currentState) return;
-      
+
       // Don't refetch if we already have sessions for this state
       const hasStateSession = sessions.some(session => session.state_abbr === currentState);
       if (hasStateSession) return;
-      
+
       setIsLoading(true);
       try {
         const response = await fetch(`/api/legiscan?action=sessions&state=${currentState}`);
+
+        if (!response.ok) {
+          console.error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
+          setIsLoading(false);
+          return;
+        }
+
         const data = await response.json();
-        
+
         if (data.status === 'success' && data.data?.sessions) {
           const newSessions = data.data.sessions.map((session: LegiscanSession) => ({
             ...session,
             state_abbr: currentState
           }));
-          
+
           // Add new sessions and sort by year
           const updatedSessions = [...sessions, ...newSessions].sort((a, b) => b.year_start - a.year_start);
           setSessions(updatedSessions);
-          
+
           // Auto-select the most recent session from the new state if no session selected
           if (!currentSession && newSessions.length > 0) {
             setCurrentSession(newSessions[0]);
@@ -123,6 +142,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Error fetching sessions:', error);
+        // Silently fail - the app can continue without session data
       } finally {
         setIsLoading(false);
       }

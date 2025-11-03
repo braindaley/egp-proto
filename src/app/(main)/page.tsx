@@ -841,26 +841,45 @@ export default function Home() {
   // Get all real campaigns from the service and transform them for the homepage
   // Only include bill campaigns (not candidate campaigns) for the homepage feed
   const allCampaigns = campaignsService.getAllCampaigns()
-    .filter(campaign => campaign.isActive && campaign.bill) // Only include campaigns with bills
+    .filter(campaign => campaign.isActive && (campaign.bill || campaign.poll)) // Include campaigns with bills or polls
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
-  const campaignStories = allCampaigns.map(campaign => ({
-    id: campaign.id,
-    type: 'campaign',
-    organization: campaign.groupName,
-    groupSlug: campaign.groupSlug,
-    position: campaign.position,
-    policyIssue: 'National Conditions', // Most voting rights campaigns fall under this category
-    billNumber: `${campaign.bill!.type} ${campaign.bill!.number}`,
-    billTitle: campaign.bill!.title || `${campaign.bill!.type} ${campaign.bill!.number}`,
-    description: campaign.reasoning,
-    supportCount: campaign.supportCount,
-    opposeCount: campaign.opposeCount,
-    congress: campaign.bill!.congress || '119',
-    billType: campaign.bill!.type,
-    billNumberOnly: campaign.bill!.number
-  }));
+  const campaignStories = allCampaigns.map(campaign => {
+    // Poll campaign
+    if (campaign.poll || campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll') {
+      return {
+        id: campaign.id,
+        type: 'pollCampaign',
+        organization: campaign.groupName,
+        groupSlug: campaign.groupSlug,
+        pollTitle: campaign.poll?.title || '',
+        pollQuestion: campaign.poll?.question || '',
+        description: campaign.poll?.description || '',
+        responseCount: campaign.responseCount || 0,
+        pollId: campaign.id,
+        choices: campaign.poll?.choices || []
+      };
+    }
+
+    // Regular campaign
+    return {
+      id: campaign.id,
+      type: 'campaign',
+      organization: campaign.groupName,
+      groupSlug: campaign.groupSlug,
+      position: campaign.position,
+      policyIssue: 'National Conditions',
+      billNumber: `${campaign.bill!.type} ${campaign.bill!.number}`,
+      billTitle: campaign.bill!.title || `${campaign.bill!.type} ${campaign.bill!.number}`,
+      description: campaign.reasoning,
+      supportCount: campaign.supportCount,
+      opposeCount: campaign.opposeCount,
+      congress: campaign.bill!.congress || '119',
+      billType: campaign.bill!.type,
+      billNumberOnly: campaign.bill!.number
+    };
+  });
 
 
   // Fisher-Yates shuffle algorithm with deterministic seed for SSR
@@ -957,31 +976,40 @@ export default function Home() {
     if (selectedFilter === 'all') {
       const shuffled = shuffleArray(combinedContent);
 
+      // Find and move poll campaign to position 0
+      const pollCampaignIndex = shuffled.findIndex(item =>
+        item.type === 'pollCampaign' &&
+        item.pollId === 'poll-testtitle'
+      );
+
+      if (pollCampaignIndex !== -1) {
+        const [pollCard] = shuffled.splice(pollCampaignIndex, 1);
+        shuffled.unshift(pollCard); // Add to the very beginning
+      }
+
       const blackVotersHR1Index = shuffled.findIndex(item =>
         item.type === 'campaign' &&
         item.organization === 'Black Voters Matter' &&
         item.billNumber === 'HR 1'
       );
 
-      if (blackVotersHR1Index !== -1 && blackVotersHR1Index !== 1) {
+      if (blackVotersHR1Index !== -1 && blackVotersHR1Index !== 2) {
         const [blackVotersCard] = shuffled.splice(blackVotersHR1Index, 1);
-        shuffled.splice(1, 0, blackVotersCard);
+        shuffled.splice(2, 0, blackVotersCard);
       }
 
       if (includeBillCTAs) {
         const climateBillCTA = billCTAByCategory['Climate, Energy & Environment'];
-        if (climateBillCTA && shuffled.length >= 2) {
-          shuffled.splice(2, 0, climateBillCTA);
+        if (climateBillCTA && shuffled.length >= 3) {
+          shuffled.splice(3, 0, climateBillCTA);
         }
       }
 
-      if (shuffled.length >= 3) {
-        shuffled.splice(3, 0, educationIssueCampaign);
-      }
+      // Insert candidate at position 5
+      shuffled.splice(5, 0, candidateCampaign);
 
-      if (shuffled.length >= 4) {
-        shuffled.splice(4, 0, candidateCampaign);
-      }
+      // Insert education at position 6 (after candidate)
+      shuffled.splice(6, 0, educationIssueCampaign);
 
       return shuffled;
     }
@@ -1306,6 +1334,7 @@ export default function Home() {
                   responseCount={item.responseCount || 0}
                   pollId={item.pollId}
                   campaignUrl={`/campaigns/${item.groupSlug}/${item.pollId}`}
+                  choices={item.choices}
                 />
               </div>
             );

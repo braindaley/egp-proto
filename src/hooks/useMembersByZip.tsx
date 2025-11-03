@@ -22,7 +22,7 @@ interface CachedData {
   timestamp: number;
 }
 
-const CACHE_KEY = 'members_by_zip_cache';
+const CACHE_KEY = 'members_by_zip_cache_v2'; // v2: Added type field for senator/representative
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
 
 export const useMembersByZip = (zipCodeProp?: string | null) => {

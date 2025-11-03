@@ -30,7 +30,8 @@ export async function POST(request: Request) {
       campaignType,
       issueTitle,
       issueSpecificTitle,
-      candidate
+      candidate,
+      poll
     } = body;
 
     // Get userId if not provided
@@ -49,14 +50,17 @@ export async function POST(request: Request) {
       groupSlug: groupSlug || '',
       groupName: groupName || '',
       campaignType: campaignType || 'Legislation',
-      name: name || `${bill?.title || billTitle || issueTitle || candidate?.candidate1Name || 'Campaign'}`,
+      name: name || `${bill?.title || billTitle || issueTitle || candidate?.candidate1Name || poll?.title || 'Campaign'}`,
       billNumber: billNumber || bill?.number,
       billType: billType || bill?.type,
       congress: congress || bill?.congress || '119',
-      billTitle: billTitle || bill?.title || issueSpecificTitle || issueTitle || '',
+      billTitle: billTitle || bill?.title || issueSpecificTitle || issueTitle || poll?.title || '',
       issueTitle: issueTitle || null,
       issueSpecificTitle: issueSpecificTitle || null,
       candidate: candidate || null,
+      poll: poll || null,
+      responseCount: poll ? 0 : undefined,
+      results: poll ? {} : undefined,
       stance: stance || position?.toLowerCase() || 'support',
       position: position || (stance === 'support' ? 'Support' : 'Oppose'),
       reasoning: reasoning || '',
@@ -83,6 +87,13 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
+    } else if (campaignData.campaignType === 'Voter Poll' || campaignData.campaignType === 'Poll') {
+      if (!campaignData.poll || !campaignData.poll.title || !campaignData.poll.question) {
+        return NextResponse.json(
+          { error: 'Missing required poll information (title and question required)' },
+          { status: 400 }
+        );
+      }
     } else {
       if (!campaignData.billNumber || !campaignData.billType) {
         return NextResponse.json(
@@ -92,8 +103,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // Check if campaign already exists for this GROUP and bill/issue/candidate
-    // (allowing different groups to campaign for the same bill/issue/candidate)
+    // Check if campaign already exists for this GROUP and bill/issue/candidate/poll
+    // (allowing different groups to campaign for the same bill/issue/candidate/poll)
     if (campaignData.groupSlug) {
       let query = adminDb
         .collection('campaigns')
@@ -109,6 +120,10 @@ export async function POST(request: Request) {
           .where('campaignType', '==', 'Candidate')
           .where('candidate.candidate1Name', '==', campaignData.candidate.candidate1Name)
           .where('candidate.candidate2Name', '==', campaignData.candidate.candidate2Name);
+      } else if (campaignData.campaignType === 'Voter Poll' || campaignData.campaignType === 'Poll') {
+        query = query
+          .where('billType', '==', 'POLL')
+          .where('poll.title', '==', campaignData.poll.title);
       } else {
         query = query
           .where('billType', '==', campaignData.billType)
@@ -119,7 +134,8 @@ export async function POST(request: Request) {
 
       if (!existingSnapshot.empty) {
         const itemType = campaignData.campaignType === 'Issue' ? 'issue' :
-                        campaignData.campaignType === 'Candidate' ? 'candidate race' : 'bill';
+                        campaignData.campaignType === 'Candidate' ? 'candidate race' :
+                        campaignData.campaignType === 'Voter Poll' || campaignData.campaignType === 'Poll' ? 'poll' : 'bill';
         return NextResponse.json(
           { error: `This organization already has a campaign for this ${itemType}` },
           { status: 409 }

@@ -15,7 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Loader2, ArrowLeft, Pause, Play } from 'lucide-react';
+import { Loader2, ArrowLeft, Pause, Play, Plus, X } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -83,6 +83,14 @@ export default function EditCampaignPage() {
     const [candidate2Bio, setCandidate2Bio] = useState('');
     const [selectedCandidate, setSelectedCandidate] = useState<1 | 2>(1);
 
+    // Poll fields
+    const [pollTitle, setPollTitle] = useState('');
+    const [pollQuestion, setPollQuestion] = useState('');
+    const [answerType, setAnswerType] = useState<'multiple-choice-single' | 'multiple-choice-multiple' | 'open-text'>('multiple-choice-single');
+    const [pollDescription, setPollDescription] = useState('');
+    const [pollImagePreview, setPollImagePreview] = useState('');
+    const [pollChoices, setPollChoices] = useState<string[]>(['', '']);
+
     const groupSlug = params?.groupSlug as string;
     const campaignId = params?.id as string;
     const groupInfo = advocacyGroups.find(g => g.slug === groupSlug);
@@ -125,6 +133,16 @@ export default function EditCampaignPage() {
                     setCandidate2Bio(foundCampaign.candidate.candidate2Bio || '');
                     setSelectedCandidate(foundCampaign.candidate.selectedCandidate || 1);
                 }
+
+                // Set poll fields if this is a poll campaign
+                if ((foundCampaign.campaignType === 'Poll' || foundCampaign.campaignType === 'Voter Poll' || foundCampaign.bill?.type === 'POLL') && foundCampaign.poll) {
+                    setPollTitle(foundCampaign.poll.title || '');
+                    setPollQuestion(foundCampaign.poll.question || '');
+                    setAnswerType(foundCampaign.poll.answerType || 'multiple-choice-single');
+                    setPollDescription(foundCampaign.poll.description || '');
+                    setPollImagePreview(foundCampaign.poll.imageUrl || '');
+                    setPollChoices(foundCampaign.poll.choices || ['', '']);
+                }
             } catch (err) {
                 setError('Failed to load campaign');
                 console.error('Error loading campaign:', err);
@@ -137,15 +155,25 @@ export default function EditCampaignPage() {
     }, [campaignId, user, groupSlug]);
 
     const handleSave = async () => {
-        if (!campaign || !reasoning) {
-            alert('Please fill in all required fields');
+        if (!campaign) {
+            alert('Campaign data not loaded');
             return;
         }
 
-        // Validate candidate campaigns
-        if (campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') {
-            if (!candidate1Name || !candidate2Name) {
-                alert('Please enter both candidate names');
+        // Validate based on campaign type
+        if (campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll' || campaign.bill?.type === 'POLL') {
+            if (!pollTitle || !pollQuestion) {
+                alert('Please fill in poll title and question');
+                return;
+            }
+        } else if (campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') {
+            if (!candidate1Name || !candidate2Name || !reasoning) {
+                alert('Please enter both candidate names and reasoning');
+                return;
+            }
+        } else {
+            if (!reasoning) {
+                alert('Please fill in all required fields');
                 return;
             }
         }
@@ -196,6 +224,16 @@ export default function EditCampaignPage() {
                                 candidate2Name,
                                 candidate2Bio,
                                 selectedCandidate
+                            }
+                        }),
+                        ...((campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll' || campaign.bill?.type === 'POLL') && {
+                            poll: {
+                                title: pollTitle,
+                                question: pollQuestion,
+                                answerType,
+                                description: pollDescription,
+                                imageUrl: pollImagePreview,
+                                choices: answerType !== 'open-text' ? pollChoices.filter(c => c.trim() !== '') : []
                             }
                         })
                     })
@@ -428,6 +466,95 @@ export default function EditCampaignPage() {
                                 </Select>
                             </div>
                         </>
+                    ) : (campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll' || campaign.bill?.type === 'POLL') ? (
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="poll-title">Poll Title *</Label>
+                                <Input
+                                    id="poll-title"
+                                    placeholder="e.g., Community Priorities Survey"
+                                    value={pollTitle}
+                                    onChange={(e) => setPollTitle(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="poll-question">Poll Question *</Label>
+                                <Input
+                                    id="poll-question"
+                                    placeholder="e.g., What issue should our organization prioritize?"
+                                    value={pollQuestion}
+                                    onChange={(e) => setPollQuestion(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="answer-type">Answer Type *</Label>
+                                <Select value={answerType} onValueChange={(value) => setAnswerType(value as 'multiple-choice-single' | 'multiple-choice-multiple' | 'open-text')}>
+                                    <SelectTrigger id="answer-type">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="multiple-choice-single">Multiple Choice - Single Select</SelectItem>
+                                        <SelectItem value="multiple-choice-multiple">Multiple Choice - Multiple Select</SelectItem>
+                                        <SelectItem value="open-text">Open Text</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Answer Choices - only show for multiple choice types */}
+                            {(answerType === 'multiple-choice-single' || answerType === 'multiple-choice-multiple') && (
+                                <div className="space-y-2">
+                                    <Label>Answer Choices *</Label>
+                                    <div className="space-y-2">
+                                        {pollChoices.map((choice, index) => (
+                                            <div key={index} className="flex gap-2">
+                                                <Input
+                                                    placeholder={`Choice ${index + 1}`}
+                                                    value={choice}
+                                                    onChange={(e) => {
+                                                        const newChoices = [...pollChoices];
+                                                        newChoices[index] = e.target.value;
+                                                        setPollChoices(newChoices);
+                                                    }}
+                                                />
+                                                {pollChoices.length > 2 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => {
+                                                            setPollChoices(pollChoices.filter((_, i) => i !== index));
+                                                        }}
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => setPollChoices([...pollChoices, ''])}
+                                        >
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Add Choice
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <Label htmlFor="poll-description">Description (Optional)</Label>
+                                <Textarea
+                                    id="poll-description"
+                                    placeholder="Provide context or instructions for the poll..."
+                                    value={pollDescription}
+                                    onChange={(e) => setPollDescription(e.target.value)}
+                                    rows={4}
+                                />
+                            </div>
+                        </>
                     ) : (
                         <div className="space-y-2">
                             <Label>Bill</Label>
@@ -448,7 +575,7 @@ export default function EditCampaignPage() {
                     )}
 
                     {/* Editable fields */}
-                    {campaign.campaignType !== 'Candidate' && campaign.campaignType !== 'Candidate Advocacy' && (
+                    {campaign.campaignType !== 'Candidate' && campaign.campaignType !== 'Candidate Advocacy' && campaign.campaignType !== 'Poll' && campaign.campaignType !== 'Voter Poll' && campaign.bill?.type !== 'POLL' && (
                         <div className="space-y-2">
                             <Label htmlFor="position">
                                 {campaign.campaignType === 'Issue'
@@ -477,8 +604,9 @@ export default function EditCampaignPage() {
                         </div>
                     )}
 
-                    <div className="space-y-2">
-                        <Label htmlFor="reasoning">Reasoning *</Label>
+                    {campaign.campaignType !== 'Poll' && campaign.campaignType !== 'Voter Poll' && campaign.bill?.type !== 'POLL' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="reasoning">Reasoning *</Label>
                         <Textarea
                             id="reasoning"
                             placeholder={
@@ -496,24 +624,32 @@ export default function EditCampaignPage() {
                         <p className="text-xs text-muted-foreground">
                             Supports Markdown formatting. Use ### for headings, ** for bold, * for bullet points.
                         </p>
-                    </div>
+                        </div>
+                    )}
 
-                    <div className="space-y-2">
-                        <Label htmlFor="action-text">Action Button Text</Label>
-                        <Input
-                            id="action-text"
-                            placeholder="Text for the action button"
-                            value={actionButtonText}
-                            onChange={(e) => setActionButtonText(e.target.value)}
-                        />
-                    </div>
+                    {campaign.campaignType !== 'Poll' && campaign.campaignType !== 'Voter Poll' && campaign.bill?.type !== 'POLL' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="action-text">Action Button Text</Label>
+                            <Input
+                                id="action-text"
+                                placeholder="Text for the action button"
+                                value={actionButtonText}
+                                onChange={(e) => setActionButtonText(e.target.value)}
+                            />
+                        </div>
+                    )}
 
 
                     {/* Actions */}
                     <div className="flex flex-wrap gap-4 pt-4">
                         <Button
                             onClick={handleSave}
-                            disabled={!reasoning || isSaving || ((campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') && (!candidate1Name || !candidate2Name))}
+                            disabled={
+                                isSaving ||
+                                ((campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll' || campaign.bill?.type === 'POLL') ? (!pollTitle || !pollQuestion) :
+                                 (campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') ? (!candidate1Name || !candidate2Name || !reasoning) :
+                                 !reasoning)
+                            }
                         >
                             {isSaving ? (
                                 <>

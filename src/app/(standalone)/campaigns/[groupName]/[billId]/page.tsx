@@ -107,10 +107,13 @@ export default function CampaignDetailPage({
                             congress: data.congress || 119, // Use congress from Firebase if available
                             type: data.billType,
                             number: data.billNumber,
-                            title: data.billTitle || data.issueTitle
+                            title: data.billTitle || data.issueTitle || data.poll?.title
                         },
                         issueTitle: data.issueTitle,
                         candidate: data.candidate,
+                        poll: data.poll,
+                        responseCount: data.responseCount,
+                        results: data.results,
                         position: data.stance === 'support' ? 'Support' : data.stance === 'oppose' ? 'Oppose' : data.position || 'Support',
                         reasoning: data.reasoning,
                         actionButtonText: data.actionButtonText || 'Voice your opinion',

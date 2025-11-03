@@ -77,31 +77,15 @@ export function PollCampaignCard({
           </div>
         )}
 
-        {/* Answer Choices with Results */}
+        {/* Answer Choices */}
         {poll.answerType !== 'open-text' && poll.choices && poll.choices.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="font-semibold text-lg">Current Results</h3>
-            {poll.choices.map((choice, index) => {
-              const percentage = getPercentage(choice);
-              const voteCount = getVoteCount(choice);
-
-              return (
-                <div key={index} className="space-y-1">
-                  <div className="flex justify-between items-center text-sm">
-                    <span>{choice}</span>
-                    <span className="text-muted-foreground">
-                      {percentage}% ({voteCount} {voteCount === 1 ? 'vote' : 'votes'})
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div
-                      className="bg-purple-600 h-2.5 rounded-full transition-all duration-300"
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-2">
+            <h3 className="font-semibold text-lg">Options</h3>
+            <ul className="list-disc list-inside space-y-1">
+              {poll.choices.map((choice, index) => (
+                <li key={index} className="text-muted-foreground">{choice}</li>
+              ))}
+            </ul>
           </div>
         )}
 
@@ -114,18 +98,10 @@ export function PollCampaignCard({
           </div>
         )}
 
-        {/* Participation Count */}
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Users className="h-4 w-4" />
-          <span className="text-sm">
-            {responseCount} {responseCount === 1 ? 'person has' : 'people have'} responded
-          </span>
-        </div>
-
-        {/* Take the Poll Button */}
+        {/* Voice Your Opinion Button */}
         <Button asChild size="lg" className="w-full">
           <Link href={`/advocacy-message?poll=${pollId}`}>
-            Take the Poll
+            Voice your opinion
           </Link>
         </Button>
       </CardContent>

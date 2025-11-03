@@ -21,7 +21,11 @@ import { SummaryDisplay } from '@/components/bill-summary-display';
 import Link from 'next/link';
 import type { Member, Bill, Sponsor } from '@/types';
 import { AdvocacyMessageCandidate } from '@/components/AdvocacyMessageCandidate';
+import { AdvocacyMessagePoll } from '@/components/AdvocacyMessagePoll';
 import type { L2VoterRecord } from '@/lib/l2-api';
+
+// Feature flag to enable/disable L2 verification
+const ENABLE_L2_VERIFICATION = false;
 
 // Helper function to fetch bill details
 async function getBillDetails(congress: string, billType: string, billNumber: string): Promise<Bill | null> {
@@ -115,7 +119,8 @@ const AdvocacyMessageContent: React.FC = () => {
     const [selectedPolicyIssues, setSelectedPolicyIssues] = useState<string[]>([]);
     const [targetMember, setTargetMember] = useState<any>(null);
     const [nickname, setNickname] = useState('');
-    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+    // Upload Media feature removed - not in requirements
+    // const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
     // Verification state
     const [verificationStep, setVerificationStep] = useState<'initial' | 'selection' | 'manual'>('initial');
@@ -140,7 +145,8 @@ const AdvocacyMessageContent: React.FC = () => {
     const [manualState, setManualState] = useState('');
     const [manualZipCode, setManualZipCode] = useState('');
     const [constituentDescription, setConstituentDescription] = useState('');
-    const [deliveryMethod, setDeliveryMethod] = useState<'egutenberg' | 'email_provider'>('egutenberg');
+    // Delivery method removed - messages sent directly via eGutenberg
+    const deliveryMethod = 'egutenberg'; // Always use eGutenberg
     const [notificationEmail, setNotificationEmail] = useState('');
     const [bccEmails, setBccEmails] = useState<string[]>(['']);
     const [currentLetterIndex, setCurrentLetterIndex] = useState(0);
@@ -159,12 +165,12 @@ const AdvocacyMessageContent: React.FC = () => {
     const [profileProfession, setProfileProfession] = useState('');
     const [profileMilitaryService, setProfileMilitaryService] = useState<boolean | null>(null);
 
-    // Step 6 state (sending screen)
+    // Step 8 state (sending screen)
     const [isSending, setIsSending] = useState(false);
     const [messageSent, setMessageSent] = useState(false);
     const [sendingError, setSendingError] = useState<string | null>(null);
 
-    // Step 7 state (account creation)
+    // Step 9-10 state (account creation)
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isCreatingAccount, setIsCreatingAccount] = useState(false);
@@ -204,16 +210,20 @@ const AdvocacyMessageContent: React.FC = () => {
     const newsTitle = searchParams.get('newsTitle');
     const newsUrl = searchParams.get('newsUrl');
     const campaignId = searchParams.get('campaignId');
+    const pollId = searchParams.get('poll');
 
     // Check if this is a member contact flow (not bill-specific)
     // Either has member param OR has issue param but no bill params
     const isMemberContact = (!!memberBioguideId && !billType && !billNumber) ||
         (!!policyIssueParam && !billType && !billNumber && !memberBioguideId);
 
+    // Check if this is a poll flow
+    const isPollFlow = !!pollId;
+
     // Check if this is a candidate campaign flow
     // Either has both candidate names in URL OR has campaignId (which will fetch candidate data)
     const isCandidateFlow = (!!candidate1Name && !!candidate2Name) ||
-        (!!campaignId && !billType && !billNumber && !memberBioguideId);
+        (!!campaignId && !billType && !billNumber && !memberBioguideId && !pollId);
 
     // Check if this is a campaign context (e.g., from a campaign page)
     const isCampaignContext = !!campaignId;
@@ -223,6 +233,16 @@ const AdvocacyMessageContent: React.FC = () => {
     // - AdvocacyMessageBill: for legislation (has congress, type, number)
     // - AdvocacyMessageIssue: for issues, member contact, news (has issue or member params)
     // - AdvocacyMessageCandidate: for candidate campaigns (has candidate1, candidate2 OR campaignId)
+    // - AdvocacyMessagePoll: for poll campaigns (has poll parameter)
+
+    if (isPollFlow) {
+        return (
+            <AdvocacyMessagePoll
+                pollId={pollId || undefined}
+                campaignId={campaignId || undefined}
+            />
+        );
+    }
 
     if (isCandidateFlow) {
         return (
@@ -323,26 +343,27 @@ const AdvocacyMessageContent: React.FC = () => {
         const skippedVerification = !!(user && (user.address || (user.city && user.state && user.zipCode)));
 
         if (isMemberContact) {
-            // Member contact flow: Verification → Policy → Write → Personal → Review → Delivery → Success
-            // For logged-in users: Policy → Write → Personal → Review → Delivery → Success
+            // Member contact flow: Verification → Policy → Write → Select Recipients → Personal → Review → Success → Account
+            // For logged-in users: Policy → Write → Select Recipients → Personal → Review → Success → Account
             if (step === 1) return skippedVerification ? 0 : 1; // Verification (hidden for logged-in users)
             if (step === 2) return skippedVerification ? 1 : 2; // Choose policy issue
             if (step === 4) return skippedVerification ? 2 : 3; // Write Your Message
-            if (step === 7) return skippedVerification ? 3 : 4; // Personal Information
-            if (step === 8) return skippedVerification ? 4 : 5; // Review Message
-            if (step === 10) return skippedVerification ? 6 : 7; // Success screen
+            if (step === 5) return skippedVerification ? 3 : 4; // Select Recipients
+            if (step === 6) return skippedVerification ? 4 : 5; // Personal Information
+            if (step === 7) return skippedVerification ? 5 : 6; // Review Message
+            if (step === 8) return skippedVerification ? 6 : 7; // Success screen
             return 0;
         } else {
-            // Bill flow: Verification → Position → AI Help → Write → Select Reps → Personal → Review → Delivery → Success
-            // For logged-in users: Position → AI Help → Write → Select Reps → Personal → Review → Delivery → Success
+            // Bill flow: Verification → Position → AI Help → Write → Select Reps → Personal → Review → Success → Account
+            // For logged-in users: Position → AI Help → Write → Select Reps → Personal → Review → Success → Account
             if (step === 1) return skippedVerification ? 0 : 1; // Verification (hidden for logged-in users)
             if (step === 2) return skippedVerification ? 1 : 2; // Choose Your Position
             if (step === 3) return skippedVerification ? 2 : 3; // Writing Your Message - help writing?
             if (step === 4) return skippedVerification ? 3 : 4; // Write Your Message
-            if (step === 6) return skippedVerification ? 4 : 5; // Select representatives to send your message
-            if (step === 7) return skippedVerification ? 5 : 6; // Personal Information
-            if (step === 8) return skippedVerification ? 6 : 7; // Review Message
-            if (step === 10) return skippedVerification ? 7 : 8; // Success screen
+            if (step === 5) return skippedVerification ? 4 : 5; // Select representatives to send your message
+            if (step === 6) return skippedVerification ? 5 : 6; // Personal Information
+            if (step === 7) return skippedVerification ? 6 : 7; // Review Message
+            if (step === 8) return skippedVerification ? 7 : 8; // Success screen
             return 0;
         }
     };
@@ -350,27 +371,26 @@ const AdvocacyMessageContent: React.FC = () => {
     // Back navigation - all users go through verification
     const goBack = () => {
         if (isMemberContact) {
-            // Member contact flow: Verification → Policy → Write → Personal → Review → Delivery → Success
+            // Issue flow: Verification → Policy → Write → Select Recipients → Personal → Review → Success → Account
             if (step === 1) return; // Can't go back from first step (verification)
             else if (step === 2) setStep(1); // Policy Issues → verification
             else if (step === 4) setStep(2); // Write Message → Policy Issues (skip AI Help step 3)
-            else if (step === 7) setStep(4); // Personal Info → Write Message
-            else if (step === 8) setStep(7); // Review → Personal Info
-            else if (step === 9) setStep(8); // Delivery → Review
-            else if (step === 10) setStep(8); // Success → Review
-            else if (step === 12) setStep(8); // Sending Error → Review
+            else if (step === 5) setStep(4); // Select Recipients → Write Message
+            else if (step === 6) setStep(5); // Personal Info → Select Recipients
+            else if (step === 7) setStep(6); // Review → Personal Info
+            else if (step === 8) setStep(7); // Success → Review
+            else if (step === 9) setStep(7); // Account Creation → Review
         } else {
-            // Bill flow: Verification → Position → AI Help → Write → Select Reps → Personal → Review → Delivery → Success
+            // Bill flow: Verification → Position → AI Help → Write → Select Reps → Personal → Review → Success → Account
             if (step === 1) return; // Can't go back from first step (verification)
             else if (step === 2) setStep(1); // Position → verification
             else if (step === 3) setStep(2); // AI Help → Position
             else if (step === 4) setStep(3); // Write Message → AI Help
-            else if (step === 6) setStep(4); // Select Representatives → Write Message
-            else if (step === 7) setStep(6); // Personal Info → Select Representatives
-            else if (step === 8) setStep(7); // Review → Personal Info
-            else if (step === 9) setStep(8); // Delivery → Review
-            else if (step === 10) setStep(8); // Success → Review
-            else if (step === 12) setStep(8); // Sending Error → Review
+            else if (step === 5) setStep(4); // Select Representatives → Write Message
+            else if (step === 6) setStep(5); // Personal Info → Select Representatives
+            else if (step === 7) setStep(6); // Review → Personal Info
+            else if (step === 8) setStep(7); // Success → Review
+            else if (step === 9) setStep(7); // Account Creation → Review
         }
     };
 
@@ -617,7 +637,10 @@ const AdvocacyMessageContent: React.FC = () => {
 
         // For verified guest users (not logged in), return name, address, and L2 fields if available
         if (verifiedUserInfo) {
-            const addressValue = `${verifiedUserInfo.address}, ${verifiedUserInfo.city}, ${verifiedUserInfo.state} ${verifiedUserInfo.zipCode}`;
+            // If address already contains full address, use it as-is; otherwise construct it
+            const addressValue = verifiedUserInfo.address.includes(',')
+                ? verifiedUserInfo.address
+                : `${verifiedUserInfo.address}, ${verifiedUserInfo.city}, ${verifiedUserInfo.state} ${verifiedUserInfo.zipCode}`;
             const county = (verifiedUserInfo as any).county || '';
             const precinct = (verifiedUserInfo as any).precinct || '';
             const birthYear = (verifiedUserInfo as any).birthYear;
@@ -832,7 +855,8 @@ const AdvocacyMessageContent: React.FC = () => {
             return;
         }
 
-        if (state.toUpperCase() !== 'DE') {
+        // L2 verification is only available for Delaware, but if disabled we skip this check
+        if (ENABLE_L2_VERIFICATION && state.toUpperCase() !== 'DE') {
             setVerificationError('Voter verification is currently only available for Delaware residents');
             return;
         }
@@ -845,6 +869,25 @@ const AdvocacyMessageContent: React.FC = () => {
         setIsVerifying(true);
 
         try {
+            // When L2 verification is disabled, accept the data and proceed to step 2
+            if (!ENABLE_L2_VERIFICATION) {
+                // Store the verified user info
+                setVerifiedUserInfo({
+                    firstName,
+                    lastName,
+                    fullName: `${firstName} ${lastName}`,
+                    address,
+                    city,
+                    state,
+                    zipCode: verificationZipCode,
+                    isVerified: true,
+                    isGuest: !user,
+                });
+                setIsVerifying(false);
+                setStep(2); // Go directly to step 2 (choose position)
+                return;
+            }
+
             // Call L2 API to verify voter
             const response = await fetch('/api/l2/verify-voter', {
                 method: 'POST',
@@ -887,9 +930,19 @@ const AdvocacyMessageContent: React.FC = () => {
                 setMatches(transformedMatches);
                 setVerificationStep('selection');
             } else {
-                // No matches found - show vote.org registration CTA
-                setVerificationError('');
-                setVerificationFailed(true);
+                // No matches found - accept the data and proceed to step 2
+                setVerifiedUserInfo({
+                    firstName,
+                    lastName,
+                    fullName: `${firstName} ${lastName}`,
+                    address,
+                    city,
+                    state,
+                    zipCode: verificationZipCode,
+                    isVerified: true,
+                    isGuest: !user,
+                });
+                setStep(2); // Go directly to step 2 (choose position)
             }
         } catch (err) {
             console.error('Verification error:', err);
@@ -1295,7 +1348,7 @@ const AdvocacyMessageContent: React.FC = () => {
             } else {
                 // For non-logged-in users, show account creation options after a delay
                 setTimeout(() => {
-                    setStep(10); // Go to account creation step
+                    setStep(9); // Go to account creation step
                 }, 2000);
             }
 
@@ -1306,7 +1359,7 @@ const AdvocacyMessageContent: React.FC = () => {
         }
     };
 
-    // Step 2: Select Outreach
+    // Step 5: Select Recipients (Select Outreach)
     const renderStep1 = () => (
         <Card className="flex-1 flex flex-col">
             <CardHeader>
@@ -1324,15 +1377,45 @@ const AdvocacyMessageContent: React.FC = () => {
                     <div>
                         <h3 className="font-semibold mb-3">Your Congressional Representatives</h3>
                         <div className="space-y-2">
-                            {availableMembers.representatives.map(rep => (
-                                <div key={rep.bioguideId || rep.name} className="flex items-center space-x-2">
+                            {availableMembers.representatives.map(rep => {
+                                const title = rep.type === 'senator' ? 'Senator' :
+                                              rep.type === 'representative' ? 'Representative' :
+                                              rep.chamber?.toLowerCase() === 'senate' ||
+                                              rep.terms?.[0]?.chamber?.toLowerCase() === 'senate' ||
+                                              rep.terms?.some((term: any) => term.chamber?.toLowerCase() === 'senate') ? 'Senator' : 'Representative';
+                                return (
+                                    <div key={rep.bioguideId || rep.name} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            checked={selectedMembers.some(m => m.bioguideId === rep.bioguideId || m.name === rep.name)}
+                                            onCheckedChange={() => toggleMember(rep)}
+                                        />
+                                        <Label className="flex items-center space-x-2 cursor-pointer">
+                                            <span>{title} {rep.name}</span>
+                                            <span className="text-sm text-muted-foreground">({rep.party})</span>
+                                        </Label>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Committee Leadership (Bill flow only) */}
+                {!isMemberContact && availableMembers.committeeLeadership.length > 0 && (
+                    <div>
+                        <h3 className="font-semibold mb-3">Committee Leadership</h3>
+                        <div className="space-y-2">
+                            {availableMembers.committeeLeadership.map(member => (
+                                <div key={member.bioguideId || member.name} className="flex items-center space-x-2">
                                     <Checkbox
-                                        checked={selectedMembers.some(m => m.bioguideId === rep.bioguideId || m.name === rep.name)}
-                                        onCheckedChange={() => toggleMember(rep)}
+                                        checked={selectedMembers.some(m => m.bioguideId === member.bioguideId)}
+                                        onCheckedChange={() => toggleMember(member)}
                                     />
                                     <Label className="flex items-center space-x-2 cursor-pointer">
-                                        <span>{rep.name}</span>
-                                        <span className="text-sm text-muted-foreground">({rep.party})</span>
+                                        <span>{member.name || member.directOrderName}</span>
+                                        <span className="text-sm text-muted-foreground">
+                                            ({member.party}) - {member.role}
+                                        </span>
                                     </Label>
                                 </div>
                             ))}
@@ -1346,7 +1429,7 @@ const AdvocacyMessageContent: React.FC = () => {
                         Back
                     </Button>
                     <Button
-                        onClick={() => setStep(7)}
+                        onClick={() => setStep(6)}
                         disabled={selectedMembers.length === 0}
                     >
                         Continue
@@ -1356,7 +1439,7 @@ const AdvocacyMessageContent: React.FC = () => {
         </Card>
     );
 
-    // Step 1: Choose Your Position
+    // Step 2: Choose Your Position
     const renderStep1_Position = () => (
         <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
             <CardHeader className="bg-background">
@@ -1571,7 +1654,7 @@ const AdvocacyMessageContent: React.FC = () => {
         );
     };
 
-    // Step 2: Get Help Writing (Optional)
+    // Step 3: Get Help Writing (Optional)
     const renderStep2_AIHelp = () => (
         <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
             <CardHeader className="bg-background">
@@ -1656,7 +1739,7 @@ const AdvocacyMessageContent: React.FC = () => {
         </Card>
     );
 
-    // Step 3: Write Your Message
+    // Step 4: Write Your Message
     const renderStep3_WriteMessage = () => (
         <Card className="flex-1 flex flex-col border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
             <CardHeader className="bg-background">
@@ -1697,11 +1780,8 @@ const AdvocacyMessageContent: React.FC = () => {
                     </Button>
                     <Button
                         onClick={() => {
-                            if (isMemberContact) {
-                                setStep(7); // Go to personal info for member contact (skip upload)
-                            } else {
-                                setStep(6); // Go to select representatives for bill flow (skip upload)
-                            }
+                            // Both Issue and Bill flows now go to Select Recipients step
+                            setStep(5); // Go to select representatives
                         }}
                         disabled={!message}
                         size="lg"
@@ -1713,7 +1793,8 @@ const AdvocacyMessageContent: React.FC = () => {
         </Card>
     );
 
-    // Step 4: Add Supporting Files (Optional)
+    // Step 4: Add Supporting Files (Optional) - REMOVED (not in requirements)
+    /*
     const renderStep4_UploadMedia = () => (
         <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
             <CardHeader className="bg-background">
@@ -1726,97 +1807,11 @@ const AdvocacyMessageContent: React.FC = () => {
                 </p>
             </CardHeader>
             <CardContent className="space-y-6 flex-1 flex flex-col bg-background">
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
-                    <div className="text-center space-y-4">
-                        <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
-                        <div>
-                            <h4 className="text-lg font-medium">Upload Supporting Files</h4>
-                            <p className="text-sm text-muted-foreground">
-                                Add photos, documents, or other files to strengthen your message
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-2">
-                                Accepted formats: Images, PDFs, Word documents, and text files
-                            </p>
-                        </div>
-                        <div>
-                            <input
-                                type="file"
-                                multiple
-                                accept="image/*,.pdf,.doc,.docx,.txt"
-                                onChange={(e) => {
-                                    const files = Array.from(e.target.files || []);
-                                    setUploadedFiles(prev => [...prev, ...files]);
-                                }}
-                                className="hidden"
-                                id="media-upload"
-                            />
-                            <Label htmlFor="media-upload" className="cursor-pointer">
-                                <Button variant="outline" type="button" size="lg">
-                                    <Upload className="mr-2 h-4 w-4" />
-                                    Choose Files
-                                </Button>
-                            </Label>
-                        </div>
-                    </div>
-
-                    {/* Uploaded Files Display */}
-                    {uploadedFiles.length > 0 && (
-                        <div className="mt-6 space-y-3">
-                            <p className="text-sm font-medium">Uploaded Files:</p>
-                            {uploadedFiles.map((file, index) => (
-                                <div key={index} className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                                    <div className="flex items-center space-x-3">
-                                        {file.type.startsWith('image/') ? (
-                                            <Image className="h-5 w-5 text-blue-500" />
-                                        ) : (
-                                            <File className="h-5 w-5 text-gray-500" />
-                                        )}
-                                        <span className="text-sm font-medium">{file.name}</span>
-                                        <span className="text-xs text-muted-foreground">
-                      ({(file.size / 1024).toFixed(1)} KB)
-                    </span>
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                            setUploadedFiles(prev => prev.filter((_, i) => i !== index));
-                                        }}
-                                        className="h-8 w-8 p-0"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                <div className="flex-1"></div>
-                <div className="flex justify-between mt-auto pt-6">
-                    <Button
-                        onClick={goBack}
-                        variant="outline"
-                        size="lg"
-                    >
-                        Back
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            if (isMemberContact) {
-                                setStep(7); // Go to personal info for member contact (skip select outreach)
-                            } else {
-                                setStep(6); // Go to select outreach for bills flow
-                            }
-                        }}
-                        size="lg"
-                    >
-                        Continue
-                    </Button>
-                </div>
+                ... Upload UI ...
             </CardContent>
         </Card>
     );
+    */
 
     // Step 1: Help us verify that you are a registered voter
     const renderRoutingStep = () => {
@@ -1910,35 +1905,6 @@ const AdvocacyMessageContent: React.FC = () => {
                                     </p>
                                 </div>
                             </div>
-
-                            {verificationFailed && (
-                                <Alert className="bg-blue-50 border-blue-200">
-                                    <UserPlus className="h-4 w-4 text-blue-600" />
-                                    <AlertDescription>
-                                        <p className="font-medium mb-2 text-blue-900">We couldn’t find you in the database</p>
-                                        <p className="text-sm text-blue-800 mb-3">
-                                            To continue, please register at{' '}
-                                            <a
-                                                href="https://www.vote.org/register-to-vote/"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="font-semibold underline hover:text-blue-900"
-                                            >
-                                                vote.org
-                                            </a>
-                                            . It only takes a few minutes.
-                                        </p>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => window.open('https://www.vote.org/register-to-vote/', '_blank')}
-                                            className="text-blue-700 border-blue-300 hover:bg-blue-100"
-                                        >
-                                            Register to Vote
-                                        </Button>
-                                    </AlertDescription>
-                                </Alert>
-                            )}
 
 
                             <div className="flex-1"></div>
@@ -2114,38 +2080,11 @@ const AdvocacyMessageContent: React.FC = () => {
                                 </AlertDescription>
                             </Alert>
 
-                            <Alert className="bg-blue-50 border-blue-200">
-                                <UserPlus className="h-4 w-4 text-blue-600" />
-                                <AlertDescription>
-                                    <p className="font-medium mb-2 text-blue-900">We couldn’t find you in the database</p>
-                                    <p className="text-sm text-blue-800 mb-3">
-                                        To continue, please register at{' '}
-                                        <a
-                                            href="https://www.vote.org/register-to-vote/"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="font-semibold underline hover:text-blue-900"
-                                        >
-                                            vote.org
-                                        </a>
-                                        . It only takes a few minutes.
-                                    </p>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => window.open('https://www.vote.org/register-to-vote/', '_blank')}
-                                        className="text-blue-700 border-blue-300 hover:bg-blue-100"
-                                    >
-                                        Register to Vote
-                                    </Button>
-                                </AlertDescription>
-                            </Alert>
-
                             <div className="flex-1"></div>
                             <div className="flex justify-between mt-auto pt-6">
-                                <Button variant="ghost" onClick={() => setVerificationStep('selection')}>
+                                <Button variant="ghost" onClick={() => setVerificationStep('initial')}>
                                     <ChevronLeft className="mr-2 h-4 w-4" />
-                                    Back to Matches
+                                    Back
                                 </Button>
 
                                 <Button onClick={() => {
@@ -2169,7 +2108,7 @@ const AdvocacyMessageContent: React.FC = () => {
         );
     };
 
-    // Step 4: Personal Information
+    // Step 6: Personal Information
     const renderPersonalInfoStep = () => {
         // Helper function to handle field input changes and auto-save
         const handleFieldChange = async (fieldKey: string, value: string) => {
@@ -2812,7 +2751,7 @@ const AdvocacyMessageContent: React.FC = () => {
                             if (user) {
                                 await saveProfileData();
                             }
-                            setStep(8);
+                            setStep(7);
                         }}>
                             Continue
                         </Button>
@@ -2822,208 +2761,9 @@ const AdvocacyMessageContent: React.FC = () => {
         );
     };
 
-    // Step 5: Message Delivery
-    const renderDeliveryStep = () => {
-        return (
-            <Card className="flex-1 flex flex-col">
-                <CardHeader>
-                    <CardTitle>Message Delivery</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6 flex-1 flex flex-col">
-                    {/* Message Delivery Options */}
-                    {(user || verifiedUserInfo) && (
-                        <div>
-                            <h3 className="font-semibold mb-3">How would you like to send your message?</h3>
-                            <RadioGroup value={deliveryMethod} onValueChange={(value: 'egutenberg' | 'email_provider') => setDeliveryMethod(value)} className="space-y-3">
+    // Step 5: Message Delivery - REMOVED (not in requirements - messages sent directly)
 
-                                {/* Option 1: eGutenbergPress */}
-                                <div className="border rounded-lg p-4">
-                                    <label className="flex items-start space-x-3 cursor-pointer">
-                                        <RadioGroupItem value="egutenberg" className="mt-1" />
-                                        <div className="flex-1">
-                                            <div className="flex items-center space-x-2 mb-2">
-                                                <AtSign className="h-4 w-4 text-primary" />
-                                                <span className="font-medium">eGutenbergPress address</span>
-                                                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Recommended</span>
-                                            </div>
-                                            <p className="text-sm text-muted-foreground mb-3">
-                                                We'll send your message from our platform and notify you of any responses
-                                            </p>
-                                            {deliveryMethod === 'egutenberg' && (
-                                                <div className="space-y-3">
-                                                    <div>
-                                                        <Label htmlFor="notification-email-logged" className="text-xs font-medium">
-                                                            Enter your email for notifications
-                                                        </Label>
-                                                        <Input
-                                                            id="notification-email-logged"
-                                                            type="email"
-                                                            placeholder={user?.email || "your@email.com"}
-                                                            value={notificationEmail || user?.email || ''}
-                                                            onChange={(e) => setNotificationEmail(e.target.value)}
-                                                            className="mt-1"
-                                                        />
-                                                    </div>
-
-                                                    <div>
-                                                        <Label className="text-xs font-medium">BCC Email Addresses (Optional)</Label>
-                                                        <div className="space-y-2 mt-1">
-                                                            {bccEmails.map((email, index) => (
-                                                                <div key={index} className="flex gap-2">
-                                                                    <Input
-                                                                        type="email"
-                                                                        placeholder="bcc@email.com"
-                                                                        value={email}
-                                                                        onChange={(e) => {
-                                                                            const newBccEmails = [...bccEmails];
-                                                                            newBccEmails[index] = e.target.value;
-                                                                            setBccEmails(newBccEmails);
-                                                                        }}
-                                                                        className="flex-1"
-                                                                    />
-                                                                    {bccEmails.length > 1 && (
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => {
-                                                                                const newBccEmails = bccEmails.filter((_, i) => i !== index);
-                                                                                setBccEmails(newBccEmails.length === 0 ? [''] : newBccEmails);
-                                                                            }}
-                                                                        >
-                                                                            Remove
-                                                                        </Button>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                            {bccEmails.length < 5 && (
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => setBccEmails([...bccEmails, ''])}
-                                                                    className="text-xs"
-                                                                >
-                                                                    Add BCC Email
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </label>
-                                </div>
-
-                                {/* Option 2: Email Provider */}
-                                <div className="border rounded-lg p-4">
-                                    <label className="flex items-start space-x-3 cursor-pointer">
-                                        <RadioGroupItem value="email_provider" className="mt-1" />
-                                        <div className="flex-1">
-                                            <div className="flex items-center space-x-2 mb-2">
-                                                <Globe className="h-4 w-4 text-primary" />
-                                                <span className="font-medium">Sign into your email provider</span>
-                                            </div>
-                                            <p className="text-sm text-muted-foreground mb-2">
-                                                Connect with Gmail, Microsoft 365, Outlook, Yahoo, or other email providers
-                                            </p>
-                                            {deliveryMethod === 'email_provider' && (
-                                                <div className="space-y-3">
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                                                            <div className="w-4 h-4 bg-stone-500 rounded-sm flex items-center justify-center">
-                                                                <span className="text-white text-xs font-bold">G</span>
-                                                            </div>
-                                                            <span>Gmail</span>
-                                                        </Button>
-                                                        <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                                                            <div className="w-4 h-4 bg-slate-500 rounded-sm flex items-center justify-center">
-                                                                <span className="text-white text-xs font-bold">O</span>
-                                                            </div>
-                                                            <span>Outlook</span>
-                                                        </Button>
-                                                        <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                                                            <div className="w-4 h-4 bg-zinc-600 rounded-sm flex items-center justify-center">
-                                                                <span className="text-white text-xs font-bold">Y</span>
-                                                            </div>
-                                                            <span>Yahoo</span>
-                                                        </Button>
-                                                        <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                                                            <div className="w-4 h-4 bg-blue-600 rounded-sm flex items-center justify-center">
-                                                                <span className="text-white text-xs font-bold">M</span>
-                                                            </div>
-                                                            <span>Microsoft 365</span>
-                                                        </Button>
-                                                    </div>
-
-                                                    <div>
-                                                        <Label className="text-xs font-medium">BCC Email Addresses (Optional)</Label>
-                                                        <div className="space-y-2 mt-1">
-                                                            {bccEmails.map((email, index) => (
-                                                                <div key={index} className="flex gap-2">
-                                                                    <Input
-                                                                        type="email"
-                                                                        placeholder="bcc@email.com"
-                                                                        value={email}
-                                                                        onChange={(e) => {
-                                                                            const newBccEmails = [...bccEmails];
-                                                                            newBccEmails[index] = e.target.value;
-                                                                            setBccEmails(newBccEmails);
-                                                                        }}
-                                                                        className="flex-1"
-                                                                    />
-                                                                    {bccEmails.length > 1 && (
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => {
-                                                                                const newBccEmails = bccEmails.filter((_, i) => i !== index);
-                                                                                setBccEmails(newBccEmails.length === 0 ? [''] : newBccEmails);
-                                                                            }}
-                                                                        >
-                                                                            Remove
-                                                                        </Button>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                            {bccEmails.length < 5 && (
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => setBccEmails([...bccEmails, ''])}
-                                                                    className="text-xs"
-                                                                >
-                                                                    Add BCC Email
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </label>
-                                </div>
-                            </RadioGroup>
-                        </div>
-                    )}
-
-                    <div className="flex-1"></div>
-                    <div className="flex justify-between mt-auto pt-6">
-                        <Button variant="outline" onClick={goBack}>
-                            Back
-                        </Button>
-                        <Button onClick={() => setStep(12)}>
-                            Send Message
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    };
-
-    // Step 6: Review Message
+    // Step 7: Review Message
     const renderStep3 = () => {
         const selectedPersonalFields = personalDataFields.filter(f => selectedPersonalData.includes(f.key));
 
@@ -3399,9 +3139,9 @@ const AdvocacyMessageContent: React.FC = () => {
                                         </Alert>
 
                                         <div className="flex justify-between">
-                                            <Button variant="ghost" onClick={() => setVerificationStep('selection')}>
+                                            <Button variant="ghost" onClick={() => setVerificationStep('initial')}>
                                                 <ChevronLeft className="mr-2 h-4 w-4" />
-                                                Back to Matches
+                                                Back
                                             </Button>
 
                                             <Button onClick={handleManualSubmit}>
@@ -3433,7 +3173,7 @@ const AdvocacyMessageContent: React.FC = () => {
                         </Button>
                         {/* Continue button - skip delivery step for all users */}
                         {(user || verifiedUserInfo) && (
-                            <Button onClick={() => setStep(12)}>
+                            <Button onClick={() => setStep(8)}>
                                 Send Message
                             </Button>
                         )}
@@ -3443,7 +3183,7 @@ const AdvocacyMessageContent: React.FC = () => {
         );
     };
 
-    // Step 4: Create Account - Choose account type
+    // Step 9: Create Account - Choose account type
     const renderStep4 = () => {
         return (
             <Card className="max-w-4xl mx-auto">
@@ -3460,7 +3200,7 @@ const AdvocacyMessageContent: React.FC = () => {
                         <button
                             onClick={() => {
                                 setAccountType('free');
-                                setStep(11); // Go to email/password form
+                                setStep(10); // Go to email/password form
                             }}
                             className="border rounded-lg p-6 space-y-4 text-left hover:border-primary hover:shadow-lg transition-all"
                         >
@@ -3487,7 +3227,7 @@ const AdvocacyMessageContent: React.FC = () => {
                         <button
                             onClick={() => {
                                 setAccountType('membership');
-                                setStep(11); // Go to email/password form
+                                setStep(10); // Go to email/password form
                             }}
                             className="border-2 border-primary rounded-lg p-6 space-y-4 relative bg-primary/5 text-left hover:shadow-xl transition-all"
                         >
@@ -3535,7 +3275,7 @@ const AdvocacyMessageContent: React.FC = () => {
         );
     };
 
-    // Step 11: Email/Password Form (based on selected account type)
+    // Step 10: Email/Password Form (based on selected account type)
     const renderStep11 = () => {
         const isMembership = accountType === 'membership';
 
@@ -3667,7 +3407,7 @@ const AdvocacyMessageContent: React.FC = () => {
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => setStep(10)}
+                                onClick={() => setStep(9)}
                                 className="flex-1"
                             >
                                 Back
@@ -3698,7 +3438,7 @@ const AdvocacyMessageContent: React.FC = () => {
         );
     };
 
-    // Step 5: Create Account (for verified users) or Send Message (for authenticated users)
+    // UNUSED: Legacy Create Account/Send Message screen (kept for reference)
     const renderStep5 = () => {
         // If user is already authenticated, they can send directly
         if (user) {
@@ -3804,10 +3544,10 @@ const AdvocacyMessageContent: React.FC = () => {
         return renderStep4();
     };
 
-    // useEffect hooks for Step 12 (sending) - moved to component level to follow Rules of Hooks
+    // useEffect hooks for Step 8 (sending) - moved to component level to follow Rules of Hooks
     useEffect(() => {
-        // Reset and start sending when entering Step 12 (not Step 9 - that's the delivery form)
-        if (step === 12 && !isSending && !messageSent) {
+        // Reset and start sending when entering Step 8 (sending screen)
+        if (step === 8 && !isSending && !messageSent) {
             setIsSending(true);
             setSendingError(null);
             setMessageSent(false);
@@ -3815,7 +3555,7 @@ const AdvocacyMessageContent: React.FC = () => {
     }, [step, isSending, messageSent]);
 
     useEffect(() => {
-        if (step === 12 && isSending && !messageSent) {
+        if (step === 8 && isSending && !messageSent) {
             const sendMessage = async () => {
                 try {
                     // Use targetMember for member contact flow, selectedMembers for bill flow
@@ -3926,8 +3666,8 @@ const AdvocacyMessageContent: React.FC = () => {
                                 // If already authenticated, go to dashboard
                                 router.push(`/dashboard?message=sent`);
                             } else {
-                                // Show account creation step (step 10)
-                                setStep(10);
+                                // Show account creation step (step 9)
+                                setStep(9);
                             }
                         }, 2000);
                     }, 2000);
@@ -3943,7 +3683,7 @@ const AdvocacyMessageContent: React.FC = () => {
         }
     }, [step, isSending, messageSent, user, verifiedUserInfo, userStance, message, selectedMembers, selectedPersonalData, bill, billNumber, billType, congress, router]);
 
-    // Step 6: Sending Screen
+    // Step 8: Sending Screen
     const renderStep6 = () => {
         // Use targetMember for member contact flow, selectedMembers for bill flow
         const membersToSend = isMemberContact && targetMember ? [targetMember] : selectedMembers;
@@ -4070,15 +3810,14 @@ const AdvocacyMessageContent: React.FC = () => {
             <div className="flex-1 container mx-auto px-8 max-w-2xl pb-8 flex flex-col pt-4">
                 {step === 1 && renderRoutingStep()} {/* Verification */}
                 {step === 2 && (isMemberContact ? renderStep2_PolicyIssues() : renderStep1_Position())} {/* Policy/Position */}
-                {step === 3 && renderStep2_AIHelp()} {/* Writing Help */}
+                {step === 3 && renderStep2_AIHelp()} {/* Writing Help - Bills only */}
                 {step === 4 && renderStep3_WriteMessage()} {/* Write Message */}
-                {step === 6 && !isMemberContact && renderStep1()} {/* Select Outreach - Bills only */}
-                {step === 7 && renderPersonalInfoStep()} {/* Personal Information */}
-                {step === 8 && renderStep3()} {/* Review Message */}
-                {step === 9 && renderDeliveryStep()} {/* Message Delivery */}
-                {step === 10 && renderStep4()} {/* Choose Account Type */}
-                {step === 11 && renderStep11()} {/* Email/Password Form */}
-                {step === 12 && renderStep6()} {/* Sending Screen */}
+                {step === 5 && renderStep1()} {/* Select Recipients - Both flows */}
+                {step === 6 && renderPersonalInfoStep()} {/* Personal Information */}
+                {step === 7 && renderStep3()} {/* Review Message */}
+                {step === 8 && renderStep6()} {/* Sending Screen */}
+                {step === 9 && renderStep4()} {/* Choose Account Type */}
+                {step === 10 && renderStep11()} {/* Email/Password Form */}
             </div>
         </div>
     );

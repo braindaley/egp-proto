@@ -21,11 +21,14 @@ export async function GET(
         bill: data.bill || ((data.billType || data.billNumber || data.billTitle || data.congress) ? {
           type: data.billType,
           number: data.billNumber,
-          title: data.billTitle || data.issueSpecificTitle,
+          title: data.billTitle || data.issueSpecificTitle || data.poll?.title,
           congress: data.congress,
         } : undefined),
         campaignType: data.campaignType || 'Legislation',
         issueTitle: data.issueTitle,
+        poll: data.poll,
+        responseCount: data.responseCount,
+        results: data.results,
         isStatic: false,
       };
       return NextResponse.json({ campaign });
@@ -42,6 +45,7 @@ export async function GET(
         groupSlug: staticCampaign.groupSlug,
         bill: staticCampaign.bill,
         candidate: staticCampaign.candidate,
+        poll: staticCampaign.poll,
         campaignType: staticCampaign.campaignType,
         position: staticCampaign.position,
         reasoning: staticCampaign.reasoning,

@@ -57,6 +57,29 @@ let campaigns: Campaign[] = [
     updatedAt: '2024-01-01T00:00:00Z',
     isActive: true
   },
+  // League of Women Voters poll campaign
+  {
+    id: 'poll-testtitle',
+    groupSlug: 'league-of-women-voters',
+    groupName: 'League of Women Voters',
+    campaignType: 'Poll',
+    poll: {
+      title: 'Communities priorities survey',
+      question: 'What issue is most important to you?',
+      answerType: 'multiple-choice-single',
+      choices: ['Immigration', 'Schools', 'Small business'],
+      description: 'Please share your opinion on what priority the government should focus on in 2026'
+    },
+    position: 'Support',
+    reasoning: 'Your input helps us advocate for community priorities.',
+    actionButtonText: 'Voice your opinion',
+    supportCount: 0,
+    opposeCount: 0,
+    responseCount: 127,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+    isActive: true
+  },
   // Sample candidate poll campaign
   {
     id: 'sample-candidate-poll',

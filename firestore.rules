@@ -65,6 +65,12 @@ service cloud.firestore {
       allow read: if request.auth != null;  // Only authenticated users can read poll responses
     }
 
+    // Allow anyone to submit general poll responses (both authenticated and guest users)
+    match /poll_responses/{responseId} {
+      allow create: if true;  // Anyone can submit a poll response
+      allow read: if request.auth != null;  // Only authenticated users can read poll responses
+    }
+
     // Fallback rule to deny all other access
     match /{document=**} {
       allow read, write: if false;

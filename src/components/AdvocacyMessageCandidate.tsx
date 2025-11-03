@@ -6,10 +6,15 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { CheckCircle, Loader2, AlertCircle, Crown, Heart } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
+import { useRouter } from 'next/navigation';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, firestore as db } from '@/lib/firebase';
 
 interface AdvocacyMessageCandidateProps {
   candidate1Name?: string;
@@ -35,7 +40,7 @@ export function AdvocacyMessageCandidate({
   candidate2Bio: propCandidate2Bio,
   campaignId
 }: AdvocacyMessageCandidateProps) {
-  const [step, setStep] = useState<'verify' | 'poll' | 'success'>('verify');
+  const [step, setStep] = useState<'verify' | 'poll' | 'success' | 'account'>('verify');
   const [selectedCandidate, setSelectedCandidate] = useState<'1' | '2' | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -58,8 +63,17 @@ export function AdvocacyMessageCandidate({
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
 
+  // Account creation state
+  const [accountType, setAccountType] = useState<'free' | 'membership'>('free');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [accountError, setAccountError] = useState('');
+
   const { user } = useAuth();
   const { zipCode, saveZipCode } = useZipCode();
+  const router = useRouter();
 
   // Fetch campaign data if only campaignId is provided
   React.useEffect(() => {
@@ -215,7 +229,13 @@ export function AdvocacyMessageCandidate({
         }
       };
 
-      await addDoc(collection(db, 'candidate_poll_responses'), pollResponse);
+      const docRef = await addDoc(collection(db, 'candidate_poll_responses'), pollResponse);
+
+      // Store response ID for account linking if user is not logged in
+      if (!user) {
+        sessionStorage.setItem('pendingCandidateResponseId', docRef.id);
+      }
+
       setStep('success');
     } catch (error) {
       console.error('Error submitting poll response:', error);
@@ -225,51 +245,146 @@ export function AdvocacyMessageCandidate({
     }
   };
 
+  const handleCreateAccount = async () => {
+    setAccountError('');
+
+    // Validate inputs
+    if (!email || !password) {
+      setAccountError('Please enter email and password');
+      return;
+    }
+
+    if (password.length < 6) {
+      setAccountError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (!acceptedTerms) {
+      setAccountError('Please accept the terms and conditions');
+      return;
+    }
+
+    setIsCreatingAccount(true);
+
+    try {
+      // Create Firebase auth account
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+
+      // Link candidate poll response to new account
+      const pendingResponseId = sessionStorage.getItem('pendingCandidateResponseId');
+
+      if (pendingResponseId) {
+        await updateDoc(doc(db, 'candidate_poll_responses', pendingResponseId), {
+          userId: newUser.uid,
+          linkedAt: serverTimestamp()
+        });
+        sessionStorage.removeItem('pendingCandidateResponseId');
+      }
+
+      // Create user profile document
+      await setDoc(doc(db, 'users', newUser.uid), {
+        email: email,
+        firstName: verificationData?.firstName || '',
+        lastName: verificationData?.lastName || '',
+        address: verificationData?.address || '',
+        city: verificationData?.city || '',
+        state: verificationData?.state || '',
+        zipCode: verificationData?.zipCode || '',
+        accountType: accountType,
+        createdAt: serverTimestamp()
+      });
+
+      // Redirect based on account type
+      if (accountType === 'membership') {
+        router.push('/membership/checkout');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (error: any) {
+      console.error('Account creation error:', error);
+      if (error.code === 'auth/email-already-in-use') {
+        setAccountError('This email is already registered. Please sign in instead.');
+      } else if (error.code === 'auth/weak-password') {
+        setAccountError('Password should be at least 6 characters');
+      } else if (error.code === 'auth/invalid-email') {
+        setAccountError('Please enter a valid email address');
+      } else {
+        setAccountError('Failed to create account. Please try again.');
+      }
+    } finally {
+      setIsCreatingAccount(false);
+    }
+  };
+
   // Verification step
   if (step === 'verify') {
     return (
       <div className="flex-1 container mx-auto px-8 max-w-2xl pb-8 overflow-y-auto flex flex-col pt-4">
         <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
           <CardHeader className="bg-background">
+            {!user && (
+              <div className="text-sm font-medium text-muted-foreground mb-2">Step 1</div>
+            )}
             <CardTitle>Help us verify that you are a registered voter</CardTitle>
-            <CardDescription>
-              <strong>Verification = Impact</strong><br/><br/>
-              We verify your voter registration to ensure your opinion is taken seriously. This also allows us to provide demographic insights that give your voice more weight.
-            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 flex-1 flex flex-col bg-background">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="John"
-                  disabled={isVerifying}
-                />
-              </div>
+          <CardContent className="space-y-6 flex-1 flex flex-col">
+            <p className="text-sm text-muted-foreground">
+              <strong>Verification = Impact</strong><br/><br/>
+              We verify your voter registration to ensure your messages are taken seriously by policymakers. Verified info also allows us to autofill your profile and personalize your letters with relevant demographic insights, giving your voice more weight.
+            </p>
 
-              <div>
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Smith"
-                  disabled={isVerifying}
-                />
+            {verificationError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{verificationError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div>
+              <h4 className="font-semibold mb-3">Enter Your Information</h4>
+              <p className="text-sm text-muted-foreground mb-4">
+                Please enter your full details to ensure your message is delivered to your representatives.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    placeholder="John"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="mt-1"
+                    disabled={isVerifying}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    placeholder="Smith"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="mt-1"
+                    disabled={isVerifying}
+                  />
+                </div>
               </div>
 
               <div className="relative">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="address">Full Address (Delaware only)</Label>
                 <Input
                   id="address"
+                  placeholder="448 Emerson Rd, Middletown, DE 19709"
                   value={address}
                   onChange={(e) => handleAddressChange(e.target.value)}
                   onFocus={() => address.length >= 3 && setShowAddressSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowAddressSuggestions(false), 150)}
-                  placeholder="Start typing your address..."
+                  className="mt-1"
                   disabled={isVerifying}
                 />
                 {showAddressSuggestions && addressSuggestions.length > 0 && (
@@ -285,25 +400,21 @@ export function AdvocacyMessageCandidate({
                     ))}
                   </div>
                 )}
-                <p className="text-sm text-muted-foreground mt-1">
-                  Start typing your address to see suggestions
+                <p className="text-xs text-muted-foreground mt-1">
+                  Start typing to see address suggestions, then select one to auto-fill
                 </p>
               </div>
             </div>
 
-            {verificationError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{verificationError}</AlertDescription>
-              </Alert>
-            )}
-
             <div className="flex-1"></div>
-            <div className="flex justify-end pt-6">
+            <div className="flex justify-between items-center mt-auto pt-6">
+              <Button variant="ghost">
+                Already have an account? Login
+              </Button>
+
               <Button
                 onClick={handleVerification}
-                disabled={isVerifying}
-                className="min-w-[200px]"
+                disabled={isVerifying || !firstName || !lastName || !address}
               >
                 {isVerifying ? (
                   <>
@@ -326,12 +437,274 @@ export function AdvocacyMessageCandidate({
     return (
       <div className="flex-1 container mx-auto px-8 max-w-2xl pb-8 overflow-y-auto flex flex-col pt-4">
         <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
-          <CardContent className="flex flex-col items-center justify-center py-16 space-y-4">
-            <CheckCircle className="h-16 w-16 text-green-600" />
-            <h2 className="text-2xl font-bold">Thank You!</h2>
-            <p className="text-center text-muted-foreground max-w-md">
-              Your opinion has been recorded. Thank you for participating in this poll.
-            </p>
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <CheckCircle className="h-16 w-16 text-green-600" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-primary mb-2">Thank You!</CardTitle>
+            <CardDescription className="text-lg">
+              Your response has been recorded. Thank you for participating in this poll.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {!user && (
+              <>
+                <div className="text-center mb-4">
+                  <p className="text-muted-foreground">Create an account to track your advocacy efforts</p>
+                </div>
+
+                {/* Two Options Side by Side */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Free Account Option */}
+                  <button
+                    onClick={() => setStep('account')}
+                    className="border rounded-lg p-6 space-y-4 text-left hover:border-primary hover:shadow-lg transition-all"
+                  >
+                    <div className="text-center">
+                      <h3 className="text-xl font-semibold mb-2">Create Free Account</h3>
+                      <p className="text-sm text-muted-foreground">Track your advocacy messages for free</p>
+                    </div>
+
+                    <div className="space-y-3 py-4">
+                      <div className="flex items-start gap-2 text-sm">
+                        <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Send advocacy messages</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-4">
+                      <div className="w-full bg-secondary text-center py-3 rounded-md font-medium">
+                        Continue →
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Premium Membership Option */}
+                  <button
+                    onClick={() => setStep('account')}
+                    className="border-2 border-primary rounded-lg p-6 space-y-4 relative bg-primary/5 text-left hover:shadow-xl transition-all"
+                  >
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">Recommended</span>
+                    </div>
+
+                    <div className="text-center">
+                      <h3 className="text-xl font-semibold mb-2 flex items-center justify-center gap-2">
+                        <Crown className="h-5 w-5 text-primary" />
+                        Become a Member
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-2">$6/quarter ($24/year) <span className="text-primary font-semibold">• Use code SAVE for 50% off</span></p>
+                    </div>
+
+                    <div className="space-y-2 py-2">
+                      <div className="flex items-start gap-2 text-sm">
+                        <Heart className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Support the Organization</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>View Messages & Responses</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Advocacy Impact Analytics</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Customized Feed</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-4">
+                      <div className="w-full bg-primary text-primary-foreground text-center py-3 rounded-md font-medium flex items-center justify-center gap-2">
+                        <Crown className="h-4 w-4" />
+                        Continue →
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+            {user && (
+              <Button className="w-full" onClick={() => window.location.href = '/dashboard'}>
+                View Dashboard
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Account creation step
+  if (step === 'account') {
+    return (
+      <div className="flex-1 container mx-auto px-8 max-w-2xl pb-8 overflow-y-auto flex flex-col pt-4">
+        <Card className="flex-1 flex flex-col m-0 md:m-auto border-0 md:border rounded-none md:rounded-lg overflow-hidden bg-background">
+          <CardHeader className="bg-background">
+            <CardTitle>Create Your Account</CardTitle>
+            <CardDescription>
+              Save your candidate preference and track all your advocacy activity
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6 bg-background">
+            {accountError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{accountError}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Account Type Selection */}
+            <div className="space-y-4">
+              <Label>Choose Your Account Type</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card
+                  className={`cursor-pointer transition-all ${
+                    accountType === 'free'
+                      ? 'border-primary border-2 bg-primary/5'
+                      : 'hover:border-primary/50'
+                  }`}
+                  onClick={() => setAccountType('free')}
+                >
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">Free Account</CardTitle>
+                      <Heart className="h-5 w-5 text-primary" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-start">
+                        <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-green-600" />
+                        <span>Track your advocacy</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-green-600" />
+                        <span>View your activity</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-green-600" />
+                        <span>Basic features</span>
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+
+                <Card
+                  className={`cursor-pointer transition-all ${
+                    accountType === 'membership'
+                      ? 'border-primary border-2 bg-primary/5'
+                      : 'hover:border-primary/50'
+                  }`}
+                  onClick={() => setAccountType('membership')}
+                >
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">Membership</CardTitle>
+                      <Crown className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <CardDescription>$5/month</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-start">
+                        <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-green-600" />
+                        <span>Everything in Free</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-green-600" />
+                        <span>Premium features</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-green-600" />
+                        <span>Priority support</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-green-600" />
+                        <span>Advanced analytics</span>
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Email & Password Inputs */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="At least 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Terms checkbox */}
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="terms"
+                  checked={acceptedTerms}
+                  onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                />
+                <Label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
+                  I agree to the{' '}
+                  <a href="/terms" target="_blank" className="text-primary hover:underline">
+                    Terms of Service
+                  </a>{' '}
+                  and{' '}
+                  <a href="/privacy" target="_blank" className="text-primary hover:underline">
+                    Privacy Policy
+                  </a>
+                </Label>
+              </div>
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="space-y-3">
+              <Button
+                onClick={handleCreateAccount}
+                disabled={isCreatingAccount || !email || !password || !acceptedTerms}
+                className="w-full"
+                size="lg"
+              >
+                {isCreatingAccount ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  <>
+                    Create {accountType === 'membership' ? 'Membership' : 'Free'} Account
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => window.location.href = '/'}
+                disabled={isCreatingAccount}
+              >
+                Skip for now
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
