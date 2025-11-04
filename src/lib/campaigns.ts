@@ -26,6 +26,14 @@ export interface Campaign {
     description?: string;
     imageUrl?: string;
   };
+  // Member of Congress targeting (optional)
+  bioguideId?: string;
+  memberInfo?: {
+    name: string;
+    state: string;
+    district?: string;
+    party?: string;
+  };
   position: 'Support' | 'Oppose' | string;
   reasoning: string;
   actionButtonText: string;
@@ -39,6 +47,23 @@ export interface Campaign {
   updatedAt: string;
   isActive: boolean;
 }
+
+// User selection types for partners dashboard
+export type UserType = 'organization' | 'member';
+
+export interface MemberSelection {
+  type: 'member';
+  bioguideId: string;
+  stateName: string;
+  memberName: string;
+}
+
+export interface OrganizationSelection {
+  type: 'organization';
+  groupSlug: string;
+}
+
+export type DashboardSelection = MemberSelection | OrganizationSelection;
 
 // In-memory storage for campaigns (in production, this would be a database)
 let campaigns: Campaign[] = [
@@ -220,6 +245,11 @@ export const campaignsService = {
   // Get campaigns by group
   getCampaignsByGroup: (groupSlug: string): Campaign[] => {
     return campaigns.filter(c => c.groupSlug === groupSlug && c.isActive);
+  },
+
+  // Get campaigns by member (bioguideId)
+  getCampaignsByMember: (bioguideId: string): Campaign[] => {
+    return campaigns.filter(c => c.bioguideId === bioguideId && c.isActive);
   },
 
   // Get single campaign

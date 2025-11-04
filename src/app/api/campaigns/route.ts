@@ -31,7 +31,9 @@ export async function POST(request: Request) {
       issueTitle,
       issueSpecificTitle,
       candidate,
-      poll
+      poll,
+      bioguideId,
+      memberInfo
     } = body;
 
     // Get userId if not provided
@@ -69,7 +71,10 @@ export async function POST(request: Request) {
       opposeCount: 0,
       isActive: true,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      // Add member targeting fields if provided
+      bioguideId: bioguideId || null,
+      memberInfo: memberInfo || null
     };
 
     // Validate required fields based on campaign type

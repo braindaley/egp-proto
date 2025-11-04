@@ -18,10 +18,11 @@ import {
 } from '@/components/ui/select';
 import { Search, Loader2, X, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { campaignsService } from '@/lib/campaigns';
+import { campaignsService, DashboardSelection } from '@/lib/campaigns';
 import type { Bill } from '@/types';
 import type { SiteIssueCategory } from '@/lib/policy-area-mapping';
 import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
+import { convertStateToSlug } from '@/lib/states';
 import debounce from 'lodash/debounce';
 
 // Force dynamic rendering to prevent prerendering issues
@@ -60,8 +61,9 @@ function CreateCampaignPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, loading: authLoading } = useAuth();
-    
+
     const [selectedGroup, setSelectedGroup] = useState<string>(searchParams.get('group') || '');
+    const [dashboardSelection, setDashboardSelection] = useState<DashboardSelection | null>(null);
     const [campaignType, setCampaignType] = useState<'Legislation' | 'Issue' | 'Candidate Advocacy' | 'Voter Poll'>('Legislation');
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Bill[]>([]);
@@ -124,6 +126,22 @@ function CreateCampaignPageContent() {
         searchBills(searchQuery);
     }, [searchQuery, searchBills]);
 
+    // Load dashboard selection from localStorage
+    useEffect(() => {
+        try {
+            const savedSelection = localStorage.getItem('dashboard-selection');
+            if (savedSelection) {
+                const selection: DashboardSelection = JSON.parse(savedSelection);
+                setDashboardSelection(selection);
+                if (selection.type === 'organization') {
+                    setSelectedGroup(selection.groupSlug);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading dashboard selection:', error);
+        }
+    }, []);
+
     const handleSave = async () => {
         // Validate required fields based on campaign type
         if (!startDate || !endDate) {
@@ -182,6 +200,15 @@ function CreateCampaignPageContent() {
                 startDate,
                 endDate
             };
+
+            // Add member information if creating campaign for a member
+            if (dashboardSelection?.type === 'member') {
+                requestBody.bioguideId = dashboardSelection.bioguideId;
+                requestBody.memberInfo = {
+                    name: dashboardSelection.memberName,
+                    state: dashboardSelection.stateName
+                };
+            }
 
             if (campaignType === 'Candidate Advocacy') {
                 // For Candidate campaigns
@@ -258,8 +285,13 @@ function CreateCampaignPageContent() {
                 throw new Error(error.error || 'Failed to create campaign');
             }
 
-            // Redirect to the group's campaigns page
-            router.push(`/partners/groups/${selectedGroup}/campaigns`);
+            // Redirect based on selection type
+            if (dashboardSelection?.type === 'member') {
+                const stateSlug = convertStateToSlug(dashboardSelection.stateName);
+                router.push(`/federal/congress/119/states/${stateSlug}/${dashboardSelection.bioguideId}#campaigns`);
+            } else {
+                router.push(`/partners/groups/${selectedGroup}/campaigns`);
+            }
         } catch (error) {
             console.error('Error creating campaign:', error);
             alert(error instanceof Error ? error.message : 'Failed to create campaign');
@@ -295,7 +327,10 @@ function CreateCampaignPageContent() {
             <header className="mb-8">
                 <h1 className="text-3xl font-bold font-headline">Create New Campaign</h1>
                 <p className="text-muted-foreground mt-2">
-                    Create a new advocacy campaign for legislation or issues.
+                    {dashboardSelection?.type === 'member'
+                        ? `Create a campaign targeting ${dashboardSelection.memberName}`
+                        : 'Create a new advocacy campaign for legislation or issues.'
+                    }
                 </p>
             </header>
 
