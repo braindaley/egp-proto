@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,52 +18,31 @@ import {
 } from '@/components/ui/select';
 import { Search, Loader2, X, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { campaignsService, DashboardSelection } from '@/lib/campaigns';
 import type { Bill } from '@/types';
 import type { SiteIssueCategory } from '@/lib/policy-area-mapping';
 import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
-import { convertStateToSlug } from '@/lib/states';
 import debounce from 'lodash/debounce';
 
 // Force dynamic rendering to prevent prerendering issues
 export const dynamic = 'force-dynamic';
 
-const advocacyGroups = [
-    { name: 'League of Women Voters', slug: 'league-of-women-voters' },
-    { name: 'Brennan Center for Justice', slug: 'brennan-center-for-justice' },
-    { name: 'Common Cause', slug: 'common-cause' },
-    { name: 'Fair Elections Center', slug: 'fair-elections-center' },
-    { name: 'FairVote', slug: 'fairvote' },
-    { name: 'Vote Smart', slug: 'vote-smart' },
-    { name: 'VoteRiders', slug: 'voteriders' },
-    { name: 'Rock the Vote', slug: 'rock-the-vote' },
-    { name: 'Mi Familia Vota', slug: 'mi-familia-vota' },
-    { name: 'Black Voters Matter', slug: 'black-voters-matter' },
-    { name: 'When We All Vote', slug: 'when-we-all-vote' },
-    { name: 'Fair Fight Action', slug: 'fair-fight-action' },
-    { name: 'Campaign Legal Center', slug: 'campaign-legal-center' },
-    { name: 'BallotReady', slug: 'ballotready' },
-    { name: 'Democracy Works (TurboVote)', slug: 'democracy-works-turbovote' },
-    { name: 'HeadCount', slug: 'headcount' },
-    { name: 'State Voices', slug: 'state-voices' },
-    { name: 'Asian Americans Advancing Justice', slug: 'asian-americans-advancing-justice' },
-    { name: 'NAACP Legal Defense Fund', slug: 'naacp-legal-defense-fund' },
-    { name: 'Voto Latino', slug: 'voto-latino' },
-    { name: 'Alliance for Youth Action', slug: 'alliance-for-youth-action' },
-    { name: 'National Vote at Home Institute', slug: 'national-vote-at-home-institute' },
-    { name: 'National Voter Registration Day', slug: 'national-voter-registration-day' },
-    { name: 'Democracy NC', slug: 'democracy-nc' },
-    { name: 'The Civics Center', slug: 'the-civics-center' },
-    { name: 'No Labels', slug: 'no-labels' },
-].sort((a, b) => a.name.localeCompare(b.name));
+interface MemberInfo {
+    bioguideId: string;
+    name: string;
+    state: string;
+    district?: string;
+    party?: string;
+    chamber?: string;
+}
 
-function CreateCampaignPageContent() {
+function CreateMemberCampaignPageContent() {
     const router = useRouter();
-    const searchParams = useSearchParams();
+    const params = useParams();
+    const bioguideId = params.bioguideId as string;
     const { user, loading: authLoading } = useAuth();
 
-    const [selectedGroup, setSelectedGroup] = useState<string>(searchParams.get('group') || '');
-    const [dashboardSelection, setDashboardSelection] = useState<DashboardSelection | null>(null);
+    const [memberInfo, setMemberInfo] = useState<MemberInfo | null>(null);
+    const [loadingMember, setLoadingMember] = useState(true);
     const [campaignType, setCampaignType] = useState<'Legislation' | 'Issue' | 'Candidate Advocacy' | 'Voter Poll'>('Legislation');
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Bill[]>([]);
@@ -97,6 +76,36 @@ function CreateCampaignPageContent() {
     const [pollImagePreview, setPollImagePreview] = useState<string>('');
     const [pollChoices, setPollChoices] = useState<string[]>(['', '']);
 
+    // Fetch member info on mount
+    useEffect(() => {
+        const fetchMemberInfo = async () => {
+            try {
+                const response = await fetch(`/api/congress/member/${bioguideId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setMemberInfo({
+                        bioguideId: data.bioguideId,
+                        name: data.name,
+                        state: data.state,
+                        district: data.district,
+                        party: data.party,
+                        chamber: data.chamber
+                    });
+                } else {
+                    console.error('Failed to fetch member info');
+                }
+            } catch (error) {
+                console.error('Error fetching member info:', error);
+            } finally {
+                setLoadingMember(false);
+            }
+        };
+
+        if (bioguideId) {
+            fetchMemberInfo();
+        }
+    }, [bioguideId]);
+
     // Debounced search function
     const searchBills = useCallback(
         debounce(async (query: string) => {
@@ -126,23 +135,6 @@ function CreateCampaignPageContent() {
         searchBills(searchQuery);
     }, [searchQuery, searchBills]);
 
-    // Load dashboard selection from localStorage
-    useEffect(() => {
-        try {
-            const savedSelection = localStorage.getItem('dashboard-selection');
-            if (savedSelection) {
-                const selection: DashboardSelection = JSON.parse(savedSelection);
-                setDashboardSelection(selection);
-                // Pre-fill organization for organization type only
-                if (selection.type === 'organization') {
-                    setSelectedGroup(selection.groupSlug);
-                }
-            }
-        } catch (error) {
-            console.error('Error loading dashboard selection:', error);
-        }
-    }, []);
-
     const handleSave = async () => {
         // Validate required fields based on campaign type
         if (!startDate || !endDate) {
@@ -156,21 +148,18 @@ function CreateCampaignPageContent() {
             return;
         }
 
-        // For organization selections, require group. For member selections, it's optional.
-        const requiresGroup = !dashboardSelection || dashboardSelection.type === 'organization';
-
         if (campaignType === 'Issue') {
-            if ((requiresGroup && !selectedGroup) || !selectedIssue || !issueSpecificTitle || !reasoning) {
+            if (!selectedIssue || !issueSpecificTitle || !reasoning) {
                 alert('Please fill in all required fields');
                 return;
             }
         } else if (campaignType === 'Candidate Advocacy') {
-            if ((requiresGroup && !selectedGroup) || !candidate1Name || !candidate2Name || !reasoning) {
+            if (!candidate1Name || !candidate2Name || !reasoning) {
                 alert('Please fill in all required fields (both candidate names and reasoning)');
                 return;
             }
         } else if (campaignType === 'Voter Poll') {
-            if ((requiresGroup && !selectedGroup) || !pollTitle || !pollQuestion) {
+            if (!pollTitle || !pollQuestion) {
                 alert('Please fill in all required fields (poll title and question)');
                 return;
             }
@@ -183,7 +172,7 @@ function CreateCampaignPageContent() {
                 }
             }
         } else {
-            if ((requiresGroup && !selectedGroup) || !selectedBill || !reasoning) {
+            if (!selectedBill || !reasoning) {
                 alert('Please fill in all required fields');
                 return;
             }
@@ -191,29 +180,22 @@ function CreateCampaignPageContent() {
 
         setIsSaving(true);
         try {
-            // For member campaigns, groupSlug and groupName can be empty
-            const groupName = selectedGroup ? advocacyGroups.find(g => g.slug === selectedGroup)?.name || '' : '';
-
             let requestBody: any = {
                 userId: user?.uid,
-                groupSlug: selectedGroup || '',
-                groupName,
+                groupSlug: '',
+                groupName: '',
                 position,
                 reasoning,
                 actionButtonText,
                 campaignType,
                 startDate,
-                endDate
+                endDate,
+                bioguideId,
+                memberInfo: {
+                    name: memberInfo?.name,
+                    state: memberInfo?.state
+                }
             };
-
-            // Add member information if creating campaign for a member
-            if (dashboardSelection?.type === 'member') {
-                requestBody.bioguideId = dashboardSelection.bioguideId;
-                requestBody.memberInfo = {
-                    name: dashboardSelection.memberName,
-                    state: dashboardSelection.stateName
-                };
-            }
 
             if (campaignType === 'Candidate Advocacy') {
                 // For Candidate campaigns
@@ -290,13 +272,8 @@ function CreateCampaignPageContent() {
                 throw new Error(error.error || 'Failed to create campaign');
             }
 
-            // Redirect based on selection type
-            if (dashboardSelection?.type === 'member') {
-                const stateSlug = convertStateToSlug(dashboardSelection.stateName);
-                router.push(`/federal/congress/119/states/${stateSlug}/${dashboardSelection.bioguideId}#campaigns`);
-            } else {
-                router.push(`/partners/groups/${selectedGroup}/campaigns`);
-            }
+            // Redirect to member campaigns page
+            router.push(`/partners/members/${bioguideId}/campaigns`);
         } catch (error) {
             console.error('Error creating campaign:', error);
             alert(error instanceof Error ? error.message : 'Failed to create campaign');
@@ -305,7 +282,7 @@ function CreateCampaignPageContent() {
         }
     };
 
-    if (authLoading) {
+    if (authLoading || loadingMember) {
         return <p>Loading...</p>;
     }
 
@@ -327,65 +304,72 @@ function CreateCampaignPageContent() {
         );
     }
 
+    if (!memberInfo) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <Card className="w-full max-w-md p-8 text-center">
+                    <CardHeader>
+                        <CardTitle className="text-2xl font-bold">Member Not Found</CardTitle>
+                        <CardDescription>Could not load member information.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild>
+                            <Link href="/partners">Back to Partners</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
     return (
         <div className="container mx-auto p-4 md:p-8 max-w-[800px]">
+            {/* Breadcrumbs */}
+            <div className="mb-4 text-sm text-muted-foreground">
+                <Link href="/partners" className="hover:underline">Partners</Link>
+                {' / '}
+                <Link href={`/partners/members/${bioguideId}/campaigns`} className="hover:underline">
+                    {memberInfo.name}
+                </Link>
+                {' / '}
+                <span>Create Campaign</span>
+            </div>
+
             <header className="mb-8">
                 <h1 className="text-3xl font-bold font-headline">Create New Campaign</h1>
                 <p className="text-muted-foreground mt-2">
-                    {dashboardSelection?.type === 'member'
-                        ? `Create a campaign targeting ${dashboardSelection.memberName}`
-                        : 'Create a new advocacy campaign for legislation or issues.'
-                    }
+                    Create a campaign targeting {memberInfo.name}
                 </p>
             </header>
+
+            {/* Member Info Card */}
+            <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle>Campaign Target</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-2">
+                        <div>
+                            <span className="font-medium text-lg">{memberInfo.name}</span>
+                            {memberInfo.party && (
+                                <span className="ml-2 text-sm text-muted-foreground">({memberInfo.party})</span>
+                            )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                            {memberInfo.chamber === 'House' && memberInfo.district
+                                ? `${memberInfo.state} - District ${memberInfo.district}`
+                                : memberInfo.state
+                            }
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>
                     <CardTitle>Campaign Details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    {/* Group Selection - only show for organization selections or no dashboard selection */}
-                    {(!dashboardSelection || dashboardSelection.type === 'organization') && (
-                        <div className="space-y-2">
-                            <Label htmlFor="group">Advocacy Group *</Label>
-                            <Select
-                                value={selectedGroup}
-                                onValueChange={setSelectedGroup}
-                                disabled={dashboardSelection?.type === 'organization'}
-                            >
-                                <SelectTrigger id="group">
-                                    <SelectValue placeholder="Select an advocacy group" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {advocacyGroups.map((group) => (
-                                        <SelectItem key={group.slug} value={group.slug}>
-                                            {group.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {dashboardSelection && (
-                                <p className="text-xs text-muted-foreground">
-                                    Selected from partners dashboard. To change, go back to /partners.
-                                </p>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Show member info for member selections */}
-                    {dashboardSelection?.type === 'member' && (
-                        <div className="space-y-2">
-                            <Label>Creating Campaign For</Label>
-                            <div className="p-3 bg-muted rounded-md">
-                                <p className="font-medium">{dashboardSelection.memberName}</p>
-                                <p className="text-sm text-muted-foreground">{dashboardSelection.stateName}</p>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                This campaign will appear on {dashboardSelection.memberName}'s page. To change the member, go back to /partners.
-                            </p>
-                        </div>
-                    )}
-
                     {/* Campaign Type */}
                     <div className="space-y-2">
                         <Label htmlFor="campaign-type">Campaign Type</Label>
@@ -769,7 +753,6 @@ function CreateCampaignPageContent() {
                         <Button
                             onClick={handleSave}
                             disabled={
-                                ((!dashboardSelection || dashboardSelection.type === 'organization') && !selectedGroup) ||
                                 !startDate ||
                                 !endDate ||
                                 isSaving ||
@@ -789,7 +772,7 @@ function CreateCampaignPageContent() {
                             )}
                         </Button>
                         <Button variant="outline" asChild>
-                            <Link href="/partners">Cancel</Link>
+                            <Link href={`/partners/members/${bioguideId}/campaigns`}>Cancel</Link>
                         </Button>
                     </div>
                 </CardContent>
@@ -798,10 +781,10 @@ function CreateCampaignPageContent() {
     );
 }
 
-export default function CreateCampaignPage() {
+export default function CreateMemberCampaignPage() {
     return (
         <Suspense fallback={<div>Loading...</div>}>
-            <CreateCampaignPageContent />
+            <CreateMemberCampaignPageContent />
         </Suspense>
     );
 }

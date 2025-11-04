@@ -112,6 +112,7 @@ export default function PartnersPage() {
                     setSelectedGroup(selection.groupSlug);
                 } else {
                     setUserType('member');
+                    setSelectedGroup(selection.groupSlug);
                     setSelectedState(selection.stateName);
                     setSelectedMember({
                         bioguideId: selection.bioguideId,
@@ -173,30 +174,37 @@ export default function PartnersPage() {
 
                 if (response.ok && data) {
                     const allMembers: SimpleMember[] = [];
+                    const seenBioguideIds = new Set<string>();
 
                     // Process senators
                     if (data.senators) {
                         data.senators.forEach((member: any) => {
-                            allMembers.push({
-                                bioguideId: member.bioguideId,
-                                name: `${member.name} (Sen.)`,
-                                state: selectedState,
-                                party: member.partyName
-                            });
+                            if (!seenBioguideIds.has(member.bioguideId)) {
+                                seenBioguideIds.add(member.bioguideId);
+                                allMembers.push({
+                                    bioguideId: member.bioguideId,
+                                    name: `${member.name} (Sen.)`,
+                                    state: selectedState,
+                                    party: member.partyName
+                                });
+                            }
                         });
                     }
 
                     // Process representatives
                     if (data.representatives) {
                         data.representatives.forEach((member: any) => {
-                            const district = member.district ? `-${member.district}` : '';
-                            allMembers.push({
-                                bioguideId: member.bioguideId,
-                                name: `${member.name} (Rep.${district})`,
-                                state: selectedState,
-                                district: member.district,
-                                party: member.partyName
-                            });
+                            if (!seenBioguideIds.has(member.bioguideId)) {
+                                seenBioguideIds.add(member.bioguideId);
+                                const district = member.district ? `-${member.district}` : '';
+                                allMembers.push({
+                                    bioguideId: member.bioguideId,
+                                    name: `${member.name} (Rep.${district})`,
+                                    state: selectedState,
+                                    district: member.district,
+                                    party: member.partyName
+                                });
+                            }
                         });
                     }
 
@@ -306,11 +314,19 @@ export default function PartnersPage() {
         if (userType === 'organization' && selectedGroup) {
             return `/partners/groups/${selectedGroup}/campaigns`;
         } else if (userType === 'member' && selectedMember) {
-            // Link to member page with campaigns anchor
-            const stateSlug = convertStateToSlug(selectedMember.state);
-            return `/federal/congress/119/states/${stateSlug}/${selectedMember.bioguideId}#campaigns`;
+            return `/partners/members/${selectedMember.bioguideId}/campaigns`;
         }
         return '/partners';
+    };
+
+    // Determine the correct create campaign href based on selection type
+    const getCreateCampaignHref = () => {
+        if (userType === 'organization') {
+            return '/partners/create';
+        } else if (userType === 'member' && selectedMember) {
+            return `/partners/members/${selectedMember.bioguideId}/campaigns/create`;
+        }
+        return '/partners/create';
     };
 
     const dashboardNavItems = [
@@ -593,13 +609,32 @@ export default function PartnersPage() {
                                             </CardHeader>
                                             <CardContent>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <Link href={getCreateCampaignHref()} className="block">
+                                                        <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
+                                                            <CardContent className="p-6">
+                                                                <div className="flex items-start gap-3">
+                                                                    <Megaphone className="h-5 w-5 mt-0.5" />
+                                                                    <div className="flex-1">
+                                                                        <h3 className="font-semibold mb-1">Create Campaign</h3>
+                                                                        <p className="text-sm text-muted-foreground">
+                                                                            {userType === 'member'
+                                                                                ? `Create a new campaign as ${selectedMember?.name}`
+                                                                                : 'Create a new advocacy campaign'
+                                                                            }
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </CardContent>
+                                                        </Card>
+                                                    </Link>
+
                                                     <Link href={getManageCampaignsHref()} className="block">
                                                         <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
                                                             <CardContent className="p-6">
                                                                 <div className="flex items-start gap-3">
                                                                     <Megaphone className="h-5 w-5 mt-0.5" />
                                                                     <div className="flex-1">
-                                                                        <h3 className="font-semibold mb-1">Manage Campaigns</h3>
+                                                                        <h3 className="font-semibold mb-1">View Campaigns</h3>
                                                                         <p className="text-sm text-muted-foreground">
                                                                             View and manage your advocacy campaigns.
                                                                         </p>

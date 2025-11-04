@@ -148,6 +148,13 @@ export async function POST(request: Request) {
       }
     }
 
+    // Remove undefined fields (Firestore doesn't allow undefined values)
+    Object.keys(campaignData).forEach(key => {
+      if (campaignData[key] === undefined) {
+        delete campaignData[key];
+      }
+    });
+
     // Create the campaign in Firestore
     const docRef = await adminDb.collection('campaigns').add(campaignData);
     

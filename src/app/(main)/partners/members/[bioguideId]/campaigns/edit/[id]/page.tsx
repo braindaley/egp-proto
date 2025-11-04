@@ -1,0 +1,738 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Loader2, ArrowLeft, Pause, Play, Plus, X } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { campaignsService, type Campaign } from '@/lib/campaigns';
+import { convertStateToSlug } from '@/lib/states';
+
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic';
+
+interface MemberInfo {
+    bioguideId: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    state: string;
+    district?: string;
+    party: string;
+    chamber: string;
+}
+
+export default function EditMemberCampaignPage() {
+    const router = useRouter();
+    const params = useParams();
+    const { user, loading: authLoading } = useAuth();
+    const [campaign, setCampaign] = useState<Campaign | null>(null);
+    const [memberInfo, setMemberInfo] = useState<MemberInfo | null>(null);
+    const [position, setPosition] = useState<string>('Support');
+    const [reasoning, setReasoning] = useState('');
+    const [actionButtonText, setActionButtonText] = useState('Voice your opinion');
+    const [isSaving, setIsSaving] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isPaused, setIsPaused] = useState(false);
+
+    // Candidate fields
+    const [candidate1Name, setCandidate1Name] = useState('');
+    const [candidate1Bio, setCandidate1Bio] = useState('');
+    const [candidate2Name, setCandidate2Name] = useState('');
+    const [candidate2Bio, setCandidate2Bio] = useState('');
+    const [selectedCandidate, setSelectedCandidate] = useState<1 | 2>(1);
+
+    // Poll fields
+    const [pollTitle, setPollTitle] = useState('');
+    const [pollQuestion, setPollQuestion] = useState('');
+    const [answerType, setAnswerType] = useState<'multiple-choice-single' | 'multiple-choice-multiple' | 'open-text'>('multiple-choice-single');
+    const [pollDescription, setPollDescription] = useState('');
+    const [pollImagePreview, setPollImagePreview] = useState('');
+    const [pollChoices, setPollChoices] = useState<string[]>(['', '']);
+
+    const bioguideId = params?.bioguideId as string;
+    const campaignId = params?.id as string;
+
+    useEffect(() => {
+        async function loadMemberInfo() {
+            if (!bioguideId) return;
+
+            try {
+                const response = await fetch(`/api/congress/member/${bioguideId}`);
+
+                if (!response.ok) {
+                    setError('Member not found');
+                    return;
+                }
+
+                const data = await response.json();
+                setMemberInfo(data);
+            } catch (err) {
+                setError('Failed to load member information');
+                console.error('Error loading member:', err);
+            }
+        }
+
+        loadMemberInfo();
+    }, [bioguideId]);
+
+    useEffect(() => {
+        async function loadCampaign() {
+            if (!user || !campaignId) return;
+
+            try {
+                // Load campaign from API (handles both Firebase and static campaigns)
+                const response = await fetch(`/api/campaigns/${campaignId}`);
+
+                if (!response.ok) {
+                    setError('Campaign not found');
+                    return;
+                }
+
+                const data = await response.json();
+                const foundCampaign = data.campaign;
+
+                // Verify this campaign belongs to the correct member
+                if (foundCampaign.bioguideId !== bioguideId) {
+                    setError('Campaign not found for this member');
+                    return;
+                }
+
+                console.log('Campaign data:', foundCampaign);
+
+                setCampaign(foundCampaign);
+                setPosition(foundCampaign.stance === 'support' ? 'Support' : foundCampaign.stance === 'oppose' ? 'Oppose' : foundCampaign.position || 'Support');
+                setReasoning(foundCampaign.reasoning || '');
+                setActionButtonText(foundCampaign.actionButtonText || 'Voice your opinion');
+                setIsPaused(foundCampaign.isPaused || false);
+
+                // Set candidate fields if this is a candidate campaign
+                if ((foundCampaign.campaignType === 'Candidate' || foundCampaign.campaignType === 'Candidate Advocacy') && foundCampaign.candidate) {
+                    setCandidate1Name(foundCampaign.candidate.candidate1Name || '');
+                    setCandidate1Bio(foundCampaign.candidate.candidate1Bio || '');
+                    setCandidate2Name(foundCampaign.candidate.candidate2Name || '');
+                    setCandidate2Bio(foundCampaign.candidate.candidate2Bio || '');
+                    setSelectedCandidate(foundCampaign.candidate.selectedCandidate || 1);
+                }
+
+                // Set poll fields if this is a poll campaign
+                if ((foundCampaign.campaignType === 'Poll' || foundCampaign.campaignType === 'Voter Poll' || foundCampaign.bill?.type === 'POLL') && foundCampaign.poll) {
+                    setPollTitle(foundCampaign.poll.title || '');
+                    setPollQuestion(foundCampaign.poll.question || '');
+                    setAnswerType(foundCampaign.poll.answerType || 'multiple-choice-single');
+                    setPollDescription(foundCampaign.poll.description || '');
+                    setPollImagePreview(foundCampaign.poll.imageUrl || '');
+                    setPollChoices(foundCampaign.poll.choices || ['', '']);
+                }
+            } catch (err) {
+                setError('Failed to load campaign');
+                console.error('Error loading campaign:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        loadCampaign();
+    }, [campaignId, user, bioguideId]);
+
+    const handleSave = async () => {
+        if (!campaign) {
+            alert('Campaign data not loaded');
+            return;
+        }
+
+        // Validate based on campaign type
+        if (campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll' || campaign.bill?.type === 'POLL') {
+            if (!pollTitle || !pollQuestion) {
+                alert('Please fill in poll title and question');
+                return;
+            }
+        } else if (campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') {
+            if (!candidate1Name || !candidate2Name || !reasoning) {
+                alert('Please enter both candidate names and reasoning');
+                return;
+            }
+        } else {
+            if (!reasoning) {
+                alert('Please fill in all required fields');
+                return;
+            }
+        }
+
+        setIsSaving(true);
+        try {
+            if (campaign.isStatic) {
+                // For static campaigns, create a new Firebase campaign to make it editable
+                const response = await fetch('/api/campaigns', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        bioguideId,
+                        billType: campaign.bill.type,
+                        billNumber: campaign.bill.number,
+                        billTitle: campaign.bill.title,
+                        position,
+                        reasoning,
+                        actionButtonText,
+                        supportCount: campaign.supportCount || 0,
+                        opposeCount: campaign.opposeCount || 0
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to create editable campaign');
+                }
+
+                console.log('Static campaign migrated to Firebase successfully');
+            } else {
+                // For Firebase campaigns, update normally
+                const response = await fetch(`/api/campaigns/${campaign.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        position,
+                        reasoning,
+                        actionButtonText,
+                        ...((campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') && {
+                            candidate: {
+                                candidate1Name,
+                                candidate1Bio,
+                                candidate2Name,
+                                candidate2Bio,
+                                selectedCandidate
+                            }
+                        }),
+                        ...((campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll' || campaign.bill?.type === 'POLL') && {
+                            poll: {
+                                title: pollTitle,
+                                question: pollQuestion,
+                                answerType,
+                                description: pollDescription,
+                                imageUrl: pollImagePreview,
+                                choices: answerType !== 'open-text' ? pollChoices.filter(c => c.trim() !== '') : []
+                            }
+                        })
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to update campaign');
+                }
+            }
+
+            // Redirect back to member campaigns dashboard
+            router.push(`/partners/members/${bioguideId}/campaigns`);
+        } catch (error) {
+            console.error('Error saving campaign:', error);
+            alert(error instanceof Error ? error.message : 'Failed to save campaign');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleTogglePause = async () => {
+        if (!campaign) return;
+
+        try {
+            const newPausedState = !isPaused;
+
+            const response = await fetch(`/api/campaigns/${campaign.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    isPaused: newPausedState
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to update campaign status');
+            }
+
+            setIsPaused(newPausedState);
+            alert(`Campaign ${newPausedState ? 'paused' : 'resumed'} successfully`);
+        } catch (error) {
+            console.error('Error toggling campaign pause:', error);
+            alert(error instanceof Error ? error.message : 'Failed to update campaign status');
+        }
+    };
+
+    if (authLoading || isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <Card className="w-full max-w-md p-8 text-center">
+                    <CardHeader>
+                        <CardTitle className="text-2xl font-bold">Access Restricted</CardTitle>
+                        <CardDescription>Please log in to edit campaigns.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild>
+                            <Link href="/login">Log In</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    if (!memberInfo) {
+        return (
+            <div className="container mx-auto p-4 md:p-8 max-w-[800px]">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Member Not Found</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">The requested member was not found.</p>
+                        <Button className="mt-4" asChild>
+                            <Link href="/partners">Back to Partners</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    if (error || !campaign) {
+        return (
+            <div className="container mx-auto p-4 md:p-8 max-w-[800px]">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Error</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">{error || 'Campaign not found'}</p>
+                        <Button className="mt-4" asChild>
+                            <Link href={`/partners/members/${bioguideId}/campaigns`}>Back to {memberInfo.fullName} Campaigns</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    return (
+        <div className="container mx-auto p-4 md:p-8 max-w-[800px]">
+            <header className="mb-8">
+                <div className="flex items-center gap-4 mb-4">
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/partners/members/${bioguideId}/campaigns`} className="flex items-center gap-2">
+                            <ArrowLeft className="h-4 w-4" />
+                            Back to {memberInfo.fullName} Campaigns
+                        </Link>
+                    </Button>
+                </div>
+                <h1 className="text-3xl font-bold font-headline">Edit Campaign</h1>
+                <p className="text-muted-foreground mt-2">
+                    {campaign.campaignType === 'Issue'
+                        ? `Edit ${campaign.issueTitle || 'issue'} campaign`
+                        : (campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy')
+                            ? `Edit candidate campaign`
+                            : campaign.bill
+                                ? `Edit campaign for ${campaign.bill.type} ${campaign.bill.number}`
+                                : 'Edit campaign'
+                    }
+                </p>
+                {campaign?.isStatic && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <p className="text-sm text-blue-700">
+                            <strong>Note:</strong> This is a template campaign. When you save your changes, it will be copied to your account and become fully editable.
+                        </p>
+                    </div>
+                )}
+            </header>
+
+            <div className="space-y-6">
+                <Card>
+                <CardHeader>
+                    <CardTitle>Campaign Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {/* Read-only fields */}
+                    <div className="space-y-2">
+                        <Label>Member of Congress</Label>
+                        <Input value={`${memberInfo.fullName} (${memberInfo.party}-${memberInfo.state}${memberInfo.district ? `-${memberInfo.district}` : ''})`} disabled />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Campaign Type</Label>
+                        <Input value={campaign.campaignType || 'Legislation'} disabled />
+                    </div>
+
+                    {campaign.campaignType === 'Issue' ? (
+                        <>
+                            <div className="space-y-2">
+                                <Label>Issue Category</Label>
+                                <Input value={campaign.issueTitle || 'N/A'} disabled />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Issue Specific Title</Label>
+                                <Input
+                                    value={campaign.bill?.title || 'N/A'}
+                                    disabled
+                                />
+                            </div>
+                        </>
+                    ) : (campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') ? (
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="candidate1-name">Candidate 1 Name *</Label>
+                                <Input
+                                    id="candidate1-name"
+                                    placeholder="e.g., John Smith"
+                                    value={candidate1Name}
+                                    onChange={(e) => setCandidate1Name(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="candidate1-bio">Candidate 1 Bio (Optional)</Label>
+                                <Textarea
+                                    id="candidate1-bio"
+                                    placeholder="Brief background about this candidate"
+                                    value={candidate1Bio}
+                                    onChange={(e) => setCandidate1Bio(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="candidate2-name">Candidate 2 Name *</Label>
+                                <Input
+                                    id="candidate2-name"
+                                    placeholder="e.g., Jane Doe"
+                                    value={candidate2Name}
+                                    onChange={(e) => setCandidate2Name(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="candidate2-bio">Candidate 2 Bio (Optional)</Label>
+                                <Textarea
+                                    id="candidate2-bio"
+                                    placeholder="Brief background about this candidate"
+                                    value={candidate2Bio}
+                                    onChange={(e) => setCandidate2Bio(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="selected-candidate">Which candidate do you support? *</Label>
+                                <Select value={selectedCandidate.toString()} onValueChange={(value) => setSelectedCandidate(parseInt(value) as 1 | 2)}>
+                                    <SelectTrigger id="selected-candidate">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="1">{candidate1Name || 'Candidate 1'}</SelectItem>
+                                        <SelectItem value="2">{candidate2Name || 'Candidate 2'}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </>
+                    ) : (campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll' || campaign.bill?.type === 'POLL') ? (
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="poll-title">Poll Title *</Label>
+                                <Input
+                                    id="poll-title"
+                                    placeholder="e.g., Community Priorities Survey"
+                                    value={pollTitle}
+                                    onChange={(e) => setPollTitle(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="poll-question">Poll Question *</Label>
+                                <Input
+                                    id="poll-question"
+                                    placeholder="e.g., What issue should I prioritize?"
+                                    value={pollQuestion}
+                                    onChange={(e) => setPollQuestion(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="answer-type">Answer Type *</Label>
+                                <Select value={answerType} onValueChange={(value) => setAnswerType(value as 'multiple-choice-single' | 'multiple-choice-multiple' | 'open-text')}>
+                                    <SelectTrigger id="answer-type">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="multiple-choice-single">Multiple Choice - Single Select</SelectItem>
+                                        <SelectItem value="multiple-choice-multiple">Multiple Choice - Multiple Select</SelectItem>
+                                        <SelectItem value="open-text">Open Text</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Answer Choices - only show for multiple choice types */}
+                            {(answerType === 'multiple-choice-single' || answerType === 'multiple-choice-multiple') && (
+                                <div className="space-y-2">
+                                    <Label>Answer Choices *</Label>
+                                    <div className="space-y-2">
+                                        {pollChoices.map((choice, index) => (
+                                            <div key={index} className="flex gap-2">
+                                                <Input
+                                                    placeholder={`Choice ${index + 1}`}
+                                                    value={choice}
+                                                    onChange={(e) => {
+                                                        const newChoices = [...pollChoices];
+                                                        newChoices[index] = e.target.value;
+                                                        setPollChoices(newChoices);
+                                                    }}
+                                                />
+                                                {pollChoices.length > 2 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => {
+                                                            setPollChoices(pollChoices.filter((_, i) => i !== index));
+                                                        }}
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => setPollChoices([...pollChoices, ''])}
+                                        >
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Add Choice
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <Label htmlFor="poll-description">Description (Optional)</Label>
+                                <Textarea
+                                    id="poll-description"
+                                    placeholder="Provide context or instructions for the poll..."
+                                    value={pollDescription}
+                                    onChange={(e) => setPollDescription(e.target.value)}
+                                    rows={4}
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <div className="space-y-2">
+                            <Label>Bill</Label>
+                            <Input
+                                value={campaign.bill ? `${campaign.bill.type} ${campaign.bill.number}${campaign.bill.title ? ` - ${campaign.bill.title}` : ''}` : 'Bill information not available'}
+                                disabled
+                            />
+                            {campaign.bill && (
+                                <Link
+                                    href={`/bill/${campaign.bill.congress}/${campaign.bill.type.toLowerCase()}/${campaign.bill.number}`}
+                                    target="_blank"
+                                    className="text-sm text-primary hover:underline inline-block"
+                                >
+                                    View bill details →
+                                </Link>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Editable fields */}
+                    {campaign.campaignType !== 'Candidate' && campaign.campaignType !== 'Candidate Advocacy' && campaign.campaignType !== 'Poll' && campaign.campaignType !== 'Voter Poll' && campaign.bill?.type !== 'POLL' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="position">
+                                {campaign.campaignType === 'Issue'
+                                    ? `Your Position on ${campaign.issueTitle || 'this issue'} *`
+                                    : 'Position *'
+                                }
+                            </Label>
+                            {campaign.campaignType === 'Issue' ? (
+                                <Input
+                                    id="position"
+                                    placeholder="e.g., Support, Oppose, Reform Needed, etc."
+                                    value={position}
+                                    onChange={(e) => setPosition(e.target.value)}
+                                />
+                            ) : (
+                                <Select value={position} onValueChange={(value) => setPosition(value)}>
+                                    <SelectTrigger id="position">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Support">Support</SelectItem>
+                                        <SelectItem value="Oppose">Oppose</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
+                    )}
+
+                    {campaign.campaignType !== 'Poll' && campaign.campaignType !== 'Voter Poll' && campaign.bill?.type !== 'POLL' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="reasoning">Reasoning *</Label>
+                        <Textarea
+                            id="reasoning"
+                            placeholder={
+                                campaign.campaignType === 'Issue'
+                                    ? "Explain your position on this issue. You can use Markdown formatting."
+                                    : (campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy')
+                                    ? `Explain why you support ${selectedCandidate === 1 ? candidate1Name || 'Candidate 1' : candidate2Name || 'Candidate 2'}. You can use Markdown formatting.`
+                                    : "Explain your position on this bill. You can use Markdown formatting."
+                            }
+                            value={reasoning}
+                            onChange={(e) => setReasoning(e.target.value)}
+                            rows={8}
+                            className="font-mono text-sm"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Supports Markdown formatting. Use ### for headings, ** for bold, * for bullet points.
+                        </p>
+                        </div>
+                    )}
+
+                    {campaign.campaignType !== 'Poll' && campaign.campaignType !== 'Voter Poll' && campaign.bill?.type !== 'POLL' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="action-text">Action Button Text</Label>
+                            <Input
+                                id="action-text"
+                                placeholder="Text for the action button"
+                                value={actionButtonText}
+                                onChange={(e) => setActionButtonText(e.target.value)}
+                            />
+                        </div>
+                    )}
+
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-4 pt-4">
+                        <Button
+                            onClick={handleSave}
+                            disabled={
+                                isSaving ||
+                                ((campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll' || campaign.bill?.type === 'POLL') ? (!pollTitle || !pollQuestion) :
+                                 (campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') ? (!candidate1Name || !candidate2Name || !reasoning) :
+                                 !reasoning)
+                            }
+                        >
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                'Save Changes'
+                            )}
+                        </Button>
+                        <Button variant="outline" asChild>
+                            <Link href={`/partners/members/${bioguideId}/campaigns`}>Cancel</Link>
+                        </Button>
+                        {campaign.bioguideId && memberInfo && (
+                            <Button variant="outline" asChild>
+                                <Link
+                                    href={`/federal/congress/119/states/${convertStateToSlug(memberInfo.state)}/${campaign.bioguideId}#campaigns`}
+                                    target="_blank"
+                                >
+                                    View on Member Page
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Campaign Status */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Campaign Status</CardTitle>
+                    <CardDescription>
+                        {isPaused
+                            ? 'This campaign is currently paused and not visible to users.'
+                            : 'This campaign is currently active and visible to users.'}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant={isPaused ? "default" : "destructive"} className="gap-2">
+                                {isPaused ? (
+                                    <>
+                                        <Play className="h-4 w-4" />
+                                        Resume Campaign
+                                    </>
+                                ) : (
+                                    <>
+                                        <Pause className="h-4 w-4" />
+                                        Pause Campaign
+                                    </>
+                                )}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                    {isPaused ? 'Resume Campaign' : 'Pause Campaign'}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    {isPaused
+                                        ? 'Are you sure you want to resume this campaign? It will become visible to users again and they will be able to take actions.'
+                                        : 'Are you sure you want to pause this campaign? It will be hidden from users and no new actions can be taken until you resume it.'}
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleTogglePause}>
+                                    {isPaused ? 'Resume Campaign' : 'Pause Campaign'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardContent>
+            </Card>
+
+            </div>
+        </div>
+    );
+}

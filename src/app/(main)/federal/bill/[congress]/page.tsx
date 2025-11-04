@@ -3,22 +3,9 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ALLOWED_SUBJECTS, extractSubjectsFromApiResponse } from '@/lib/subjects';
-import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
+import { ALLOWED_SUBJECTS } from '@/lib/subjects';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Bill } from '@/types';
-
-function convertTitleToSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/&/g, 'and')
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 interface BillRowProps {
   bill: Bill;
@@ -70,43 +57,64 @@ export default function BillsOverviewPage({ params }: { params: Promise<{ congre
 
   useEffect(() => {
     if (!congress) return;
-    
-    async function fetchBillsByIssue() {
+
+    async function fetchBills() {
       setLoading(true);
       const issuesMap = new Map<string, Bill[]>();
-      
+
       try {
-        await Promise.all(
-          ALLOWED_SUBJECTS.map(async (subject) => {
-            try {
-              const url = `/api/bills/search-cached?subjects=${encodeURIComponent(subject)}&limit=20&_t=${Date.now()}`;
-              const response = await fetch(url, {
-                cache: 'no-cache',
-                headers: {
-                  'Cache-Control': 'no-cache'
+        // If filters are selected, fetch bills for each selected filter
+        if (selectedFilters.size > 0) {
+          await Promise.all(
+            Array.from(selectedFilters).map(async (subject) => {
+              try {
+                const url = `/api/bills/search?subjects=${encodeURIComponent(subject)}&limit=25&congress=${congress}`;
+                const response = await fetch(url);
+
+                if (response.ok) {
+                  const data = await response.json();
+                  const bills = (data.bills || []).sort((a: Bill, b: Bill) => {
+                    const dateA = new Date(a.latestAction.actionDate);
+                    const dateB = new Date(b.latestAction.actionDate);
+                    return dateB.getTime() - dateA.getTime();
+                  });
+
+                  if (bills.length > 0) {
+                    issuesMap.set(subject, bills);
+                  }
+                } else {
+                  console.error(`Failed to fetch bills for ${subject}:`, response.status);
                 }
-              });
-              
-              if (response.ok) {
-                const data = await response.json();
-                const bills = (data.bills || []).sort((a: Bill, b: Bill) => {
-                  const dateA = new Date(a.latestAction.actionDate);
-                  const dateB = new Date(b.latestAction.actionDate);
-                  return dateB.getTime() - dateA.getTime();
-                });
-                
-                if (bills.length > 0) {
-                  issuesMap.set(subject, bills);
-                }
-              } else {
-                console.error(`Failed to fetch bills for ${subject}:`, response.status);
+              } catch (error) {
+                console.error(`Error fetching bills for ${subject}:`, error);
               }
-            } catch (error) {
-              console.error(`Error fetching bills for ${subject}:`, error);
+            })
+          );
+        } else {
+          // No filters selected - fetch latest 25 bills
+          try {
+            const url = `/api/bills/search?limit=25&congress=${congress}`;
+            const response = await fetch(url);
+
+            if (response.ok) {
+              const data = await response.json();
+              const bills = (data.bills || []).sort((a: Bill, b: Bill) => {
+                const dateA = new Date(a.latestAction.actionDate);
+                const dateB = new Date(b.latestAction.actionDate);
+                return dateB.getTime() - dateA.getTime();
+              });
+
+              if (bills.length > 0) {
+                issuesMap.set('Recent Bills', bills);
+              }
+            } else {
+              console.error('Failed to fetch bills:', response.status);
             }
-          })
-        );
-        
+          } catch (error) {
+            console.error('Error fetching bills:', error);
+          }
+        }
+
         setBillsByIssue(issuesMap);
       } catch (error) {
         console.error('Error fetching bills:', error);
@@ -114,9 +122,9 @@ export default function BillsOverviewPage({ params }: { params: Promise<{ congre
         setLoading(false);
       }
     }
-    
-    fetchBillsByIssue();
-  }, [congress]);
+
+    fetchBills();
+  }, [congress, selectedFilters]);
 
   // Filter and sort issue groups
   const filteredIssueGroups = selectedFilters.size === 0 

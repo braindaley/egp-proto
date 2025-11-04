@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Megaphone } from 'lucide-react';
+import { Megaphone, ThumbsUp, ThumbsDown, Eye, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface Campaign {
@@ -69,16 +69,17 @@ export function MemberCampaignsSection({ bioguideId, memberName, congress }: Mem
         const campaignsData = querySnapshot.docs
           .map(doc => {
             const data = doc.data();
+            console.log('Campaign data from Firestore:', { id: doc.id, data }); // Debug log
             return {
               id: doc.id,
-              groupSlug: data.groupSlug,
-              groupName: data.groupName,
+              groupSlug: data.groupSlug || '',
+              groupName: data.groupName || '',
               campaignType: data.campaignType,
               bill: data.bill,
               candidate: data.candidate,
               poll: data.poll,
-              position: data.position,
-              reasoning: data.reasoning,
+              position: data.position || 'Support',
+              reasoning: data.reasoning || '',
               actionButtonText: data.actionButtonText || 'Voice your opinion',
               supportCount: data.supportCount || 0,
               opposeCount: data.opposeCount || 0,
@@ -97,6 +98,7 @@ export function MemberCampaignsSection({ bioguideId, memberName, congress }: Mem
             return bTime - aTime;
           });
 
+        console.log('Processed campaigns:', campaignsData); // Debug log
         setCampaigns(campaignsData as Campaign[]);
       } catch (error) {
         console.error('Error fetching member campaigns:', error);
@@ -158,84 +160,123 @@ export function MemberCampaignsSection({ bioguideId, memberName, congress }: Mem
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            {campaigns.map((campaign) => (
-              <Card key={campaign.id} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg">
-                          {campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll'
-                            ? campaign.poll?.title
-                            : campaign.campaignType === 'Candidate'
-                            ? `${campaign.candidate?.candidate1Name} vs ${campaign.candidate?.candidate2Name}`
-                            : campaign.campaignType === 'Issue'
-                            ? campaign.bill?.title
-                            : campaign.bill?.title || `${campaign.bill?.type} ${campaign.bill?.number}`
-                          }
-                        </h3>
-                        {campaign.bill && campaign.campaignType === 'Legislation' && (
-                          <p className="text-sm text-muted-foreground">
-                            {campaign.bill.type} {campaign.bill.number}
-                          </p>
+            {campaigns.map((campaign) => {
+              // Check if this is a poll campaign
+              if (campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll') {
+                return (
+                  <Card key={campaign.id} className="w-full">
+                    <CardContent className="p-6">
+                      {/* Header with Badge and Organization */}
+                      <div className="flex items-center gap-2 mb-4">
+                        <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-200">
+                          Poll
+                        </Badge>
+                        {campaign.groupName && (
+                          <span className="text-sm text-muted-foreground">{campaign.groupName}</span>
                         )}
                       </div>
-                      <Badge variant={campaign.position === 'Support' ? 'default' : 'destructive'}>
-                        {campaign.position}
-                      </Badge>
-                    </div>
 
-                    {/* Organization attribution */}
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {campaign.groupName}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {campaign.reasoning}
-                  </div>
+                      {/* Title */}
+                      <h3 className="text-2xl font-bold mb-2">{campaign.poll?.title}</h3>
 
-                  {/* Engagement metrics */}
-                  <div className="flex items-center gap-4 text-sm">
-                    {(campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll') ? (
-                      <div className="flex items-center gap-1">
-                        <span className="font-semibold text-blue-600">{campaign.responseCount || 0}</span>
-                        <span className="text-muted-foreground">responses</span>
+                      {/* Question */}
+                      <h4 className="text-lg text-muted-foreground mb-4">{campaign.poll?.question}</h4>
+
+                      {/* Description */}
+                      {campaign.poll?.description && (
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {campaign.poll.description}
+                        </p>
+                      )}
+
+                      {/* Options */}
+                      {campaign.poll?.choices && campaign.poll.choices.length > 0 && (
+                        <div className="mb-6">
+                          <h5 className="font-semibold mb-2">Options</h5>
+                          <ul className="list-disc list-inside space-y-1">
+                            {campaign.poll.choices.map((choice, index) => (
+                              <li key={index} className="text-sm text-muted-foreground">{choice}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Action Button */}
+                      <Button asChild size="lg" className="w-full">
+                        <Link href={`/advocacy-message?poll=${campaign.id}`}>
+                          {campaign.actionButtonText || 'Voice your opinion'}
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              // Regular campaign (Legislation, Issue, Candidate)
+              // Determine badge variant and icon
+              const badgeVariant = campaign.position === 'Support' ? 'default' : 'destructive';
+              const PositionIcon = campaign.position === 'Support' ? ThumbsUp : ThumbsDown;
+
+              // Determine advocacy URL
+              const advocacyUrl = campaign.campaignType === 'Candidate'
+                ? `/advocacy-message?candidate1=${encodeURIComponent(campaign.candidate?.candidate1Name || '')}&candidate2=${encodeURIComponent(campaign.candidate?.candidate2Name || '')}`
+                : `/advocacy-message?congress=${congress}&type=${campaign.bill?.type.toLowerCase()}&number=${campaign.bill?.number}`;
+
+              // Get bill display
+              const billNumber = campaign.campaignType === 'Legislation' && campaign.bill
+                ? `${campaign.bill.type} ${campaign.bill.number}`
+                : campaign.campaignType === 'Candidate'
+                ? 'Candidate'
+                : 'Issue';
+
+              const billTitle = campaign.campaignType === 'Candidate'
+                ? `${campaign.candidate?.candidate1Name} vs ${campaign.candidate?.candidate2Name}`
+                : campaign.bill?.title || 'Campaign';
+
+              return (
+                <Card key={campaign.id} className="overflow-hidden">
+                  <CardContent className="p-6">
+                    {/* Organization name - only show if it exists */}
+                    {campaign.groupName && (
+                      <div className="mb-3">
+                        <div className="text-sm text-muted-foreground font-semibold">{campaign.groupName}</div>
                       </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-1">
-                          <span className="font-semibold text-green-600">{campaign.supportCount.toLocaleString()}</span>
-                          <span className="text-muted-foreground">support</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="font-semibold text-red-600">{campaign.opposeCount.toLocaleString()}</span>
-                          <span className="text-muted-foreground">oppose</span>
-                        </div>
-                      </>
                     )}
-                  </div>
 
-                  {/* Action button */}
-                  <Button asChild className="w-full">
-                    <Link
-                      href={
-                        campaign.campaignType === 'Poll' || campaign.campaignType === 'Voter Poll'
-                          ? `/advocacy-message?pollId=${campaign.id}`
-                          : campaign.campaignType === 'Candidate'
-                          ? `/advocacy-message?candidate1=${encodeURIComponent(campaign.candidate?.candidate1Name || '')}&candidate2=${encodeURIComponent(campaign.candidate?.candidate2Name || '')}`
-                          : `/advocacy-message?congress=${congress}&type=${campaign.bill?.type.toLowerCase()}&number=${campaign.bill?.number}`
-                      }
-                    >
-                      {campaign.actionButtonText}
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                    {/* Position badge with icon */}
+                    <div className="mb-4">
+                      <Badge variant={badgeVariant} className="flex items-center gap-1 text-sm px-3 py-1 w-fit">
+                        <PositionIcon className="h-4 w-4" />
+                        <span>{campaign.position}</span>
+                      </Badge>
+                    </div>
+
+                    {/* Bill number and title */}
+                    <h3 className="text-xl font-bold mb-4 leading-tight">
+                      {billNumber}: {billTitle}
+                    </h3>
+
+                    {/* Description/Reasoning */}
+                    {campaign.reasoning && (
+                      <p className="text-muted-foreground text-sm mb-6 leading-relaxed line-clamp-3">
+                        {campaign.reasoning}
+                      </p>
+                    )}
+
+                    {/* Action button and eye icon */}
+                    <div className="flex items-center justify-between">
+                      <Button size="default" variant="outline" asChild>
+                        <Link href={advocacyUrl}>
+                          {campaign.actionButtonText || `${campaign.position} ${billNumber}`}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Eye className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
