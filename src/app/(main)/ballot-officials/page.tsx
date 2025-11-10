@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
+// Disable static generation for this interactive search page
+export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -199,7 +202,7 @@ export default function ElectedOfficialsPage() {
         return;
       }
 
-      const response = await fetch(`/api/elected-officials?${params.toString()}`);
+      const response = await fetch(`/api/ballot-officials?${params.toString()}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -224,7 +227,7 @@ export default function ElectedOfficialsPage() {
       <div className="container mx-auto px-4 py-6 md:py-12 max-w-6xl">
         <header className="text-center mb-12">
           <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">
-            Find Your Elected Officials
+            BallotReady Elected Officials
           </h1>
           <p className="text-lg text-muted-foreground">
             Search by address, ZIP code, or coordinates to find your representatives at all levels of government
