@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getLocalOfficials } from '@/lib/legistorm-api';
 
-// Helper function to convert address/zip/coords to state using Geocodio API
-async function getStateFromLocation(address?: string, zip?: string, lat?: string, lng?: string): Promise<string | null> {
+interface LocationInfo {
+  state: string;
+  county?: string;
+  city?: string;
+  zip?: string;
+  county_fips?: string;
+}
+
+// Helper function to convert address/zip/coords to full location info using Geocodio API
+async function getLocationInfo(address?: string, zip?: string, lat?: string, lng?: string): Promise<LocationInfo | null> {
   const apiKey = process.env.GEOCODIO_API_KEY;
 
   if (!apiKey) {
@@ -11,7 +19,7 @@ async function getStateFromLocation(address?: string, zip?: string, lat?: string
     if (address) {
       const stateMatch = address.match(/\b([A-Z]{2})\b/i);
       if (stateMatch) {
-        return stateMatch[1].toUpperCase();
+        return { state: stateMatch[1].toUpperCase() };
       }
     }
     return null;
@@ -38,7 +46,7 @@ async function getStateFromLocation(address?: string, zip?: string, lat?: string
       if (address) {
         const stateMatch = address.match(/\b([A-Z]{2})\b/i);
         if (stateMatch) {
-          return stateMatch[1].toUpperCase();
+          return { state: stateMatch[1].toUpperCase() };
         }
       }
       return null;
@@ -48,8 +56,15 @@ async function getStateFromLocation(address?: string, zip?: string, lat?: string
 
     if (data.results && data.results.length > 0) {
       const result = data.results[0];
-      const state = result.address_components?.state;
-      return state || null;
+      const components = result.address_components;
+
+      return {
+        state: components?.state || '',
+        county: components?.county || undefined,
+        city: components?.city || undefined,
+        zip: components?.zip || zip || undefined,
+        county_fips: components?.county_fips || undefined,
+      };
     }
 
     return null;
@@ -59,11 +74,57 @@ async function getStateFromLocation(address?: string, zip?: string, lat?: string
     if (address) {
       const stateMatch = address.match(/\b([A-Z]{2})\b/i);
       if (stateMatch) {
-        return stateMatch[1].toUpperCase();
+        return { state: stateMatch[1].toUpperCase() };
       }
     }
     return null;
   }
+}
+
+// Helper function to check if official's location matches user's location
+function isLocalMatch(official: any, userLocation: LocationInfo): boolean {
+  const addresses = official.addresses || [];
+  const organization = official.organization || {};
+
+  // If no addresses, can't filter by location
+  if (addresses.length === 0) {
+    return false;
+  }
+
+  // Check each address for a match
+  for (const addr of addresses) {
+    // Match by ZIP code (exact match)
+    if (userLocation.zip && addr.zip) {
+      // Remove any ZIP+4 extensions for comparison
+      const userZip = userLocation.zip.split('-')[0].trim();
+      const addrZip = String(addr.zip).split('-')[0].trim();
+      if (userZip === addrZip) {
+        return true;
+      }
+    }
+
+    // Match by city (case-insensitive)
+    if (userLocation.city && addr.city) {
+      const userCity = userLocation.city.toLowerCase().trim();
+      const addrCity = String(addr.city).toLowerCase().trim();
+      if (userCity === addrCity) {
+        return true;
+      }
+    }
+  }
+
+  // Match by county in organization name (since addresses don't have county field)
+  if (userLocation.county && organization.name) {
+    const userCounty = userLocation.county.toLowerCase().replace(/\s+county$/i, '').trim();
+    const orgName = organization.name.toLowerCase();
+
+    // Check if organization name contains the county name
+    if (orgName.includes(userCounty)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 // Helper function to convert LegiStorm data to BallotReady format
@@ -151,28 +212,76 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Convert location to state
-    const state = await getStateFromLocation(address, zip, lat, lng);
+    // Get full location info (state, county, city, zip)
+    const locationInfo = await getLocationInfo(address, zip, lat, lng);
 
-    if (!state) {
+    if (!locationInfo || !locationInfo.state) {
       return NextResponse.json(
-        { error: 'Could not determine state from location. Please include a 2-letter state code (e.g., CA, NY) in your address.' },
+        { error: 'Could not determine location. Please include a 2-letter state code (e.g., CA, NY) in your address.' },
         { status: 400 }
       );
     }
 
-    // Fetch local officials from LegiStorm (broader data than just legislators)
-    const response = await getLocalOfficials(state, { limit: 100 });
+    // Fetch ALL local officials from LegiStorm for the entire state (all pages)
+    // Note: LegiStorm API only supports state-level filtering, so we get all state officials
+    // and filter by location afterward
+    const allOfficials: any[] = [];
+    let page = 1;
+    let hasMore = true;
+    const limit = 1000; // Max per page
 
-    if (!response.success) {
-      return NextResponse.json(
-        { error: response.error || 'Failed to fetch elected officials from LegiStorm' },
-        { status: 500 }
-      );
+    while (hasMore) {
+      const response = await getLocalOfficials(locationInfo.state, { limit, page });
+
+      if (!response.success) {
+        return NextResponse.json(
+          { error: response.error || 'Failed to fetch elected officials from LegiStorm' },
+          { status: 500 }
+        );
+      }
+
+      const officialsCount = response.officials.length;
+
+      if (officialsCount === 0) {
+        hasMore = false;
+      } else {
+        allOfficials.push(...response.officials);
+
+        // If we got less than the limit, we're on the last page
+        if (officialsCount < limit) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      }
+
+      // Safety limit: max 10 pages (10,000 officials)
+      if (page > 10) {
+        hasMore = false;
+      }
     }
 
+    // Debug: Check what cities and organizations we actually have
+    const allCities = new Set<string>();
+    const allZips = new Set<string>();
+    const allOrgs = new Set<string>();
+    allOfficials.forEach(o => {
+      o.addresses?.forEach((a: any) => {
+        if (a.city) allCities.add(a.city);
+        if (a.zip) allZips.add(String(a.zip).split('-')[0]);
+      });
+      if (o.organization?.name) allOrgs.add(o.organization.name);
+    });
+
+
+    // Filter officials by location (ZIP, city, or county match)
+    const localOfficials = allOfficials.filter(official =>
+      isLocalMatch(official, locationInfo)
+    );
+
+
     // Convert to BallotReady format
-    const convertedData = convertLegistormToBallotReadyFormat(response.officials);
+    const convertedData = convertLegistormToBallotReadyFormat(localOfficials);
 
     // Group by level (like BallotReady)
     const byLevel = {
@@ -186,6 +295,12 @@ export async function GET(req: Request) {
       officeHolders: convertedData,
       byLevel,
       count: convertedData.length,
+      debug: {
+        userLocation: locationInfo,
+        totalStateOfficials: allOfficials.length,
+        filteredOfficials: localOfficials.length,
+        totalPages: page,
+      },
     });
 
   } catch (err: any) {
