@@ -103,33 +103,33 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
     }
 
     if (user) {
-        return (
-            <>
-                <Button variant="ghost" size="sm" asChild>
-                    <Link href="/dashboard">
-                        <User className="mr-2 h-4 w-4" />
-                        Dashboard
-                    </Link>
-                </Button>
-                <Button variant="ghost" size="sm" asChild>
-                    <Link href="/partners">
-                        <Building2 className="mr-2 h-4 w-4" />
-                        Partners
-                    </Link>
-                </Button>
-            </>
-        );
+      return (
+        <>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard">
+              <User className="mr-2 h-4 w-4" />
+              Dashboard
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/partners">
+              <Building2 className="mr-2 h-4 w-4" />
+              Partners
+            </Link>
+          </Button>
+        </>
+      );
     }
 
     return (
-        <>
-            <Button variant="ghost" size="sm" asChild>
-                <Link href="/login">Login</Link>
-            </Button>
-            <Button size="sm" asChild>
-                <Link href="/signup">Sign Up</Link>
-            </Button>
-        </>
+      <>
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/login">Login</Link>
+        </Button>
+        <Button size="sm" asChild>
+          <Link href="/signup">Sign Up</Link>
+        </Button>
+      </>
     );
   };
 
@@ -139,12 +139,12 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
         <div className="relative flex h-16 items-center justify-between">
           {/* Left Section - Logo */}
           <div className="flex items-center gap-6">
-             <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
-                <Landmark className="h-6 w-6" />
-                <span className="hidden sm:inline">eGp Prototype</span>
+            <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
+              <Landmark className="h-6 w-6" />
+              <span className="hidden sm:inline">eGp Prototype</span>
             </Link>
           </div>
-          
+
           {/* Center Section - Main Nav */}
           <nav className="hidden lg:flex items-center gap-4 absolute left-1/2 transform -translate-x-1/2">
             <NavigationMenu>
@@ -152,34 +152,54 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                 <NavigationMenuItem>
                   <NavigationMenuTrigger>Issues</NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <div className="grid w-[600px] xl:w-[1240px] grid-cols-3 xl:grid-cols-5 gap-3 p-4">
-                      {SITE_ISSUE_CATEGORIES.map((category) => (
-                        <NavigationMenuLink key={category} asChild>
-                          <Link
-                            href={`/issues/${convertCategoryToSlug(category)}`}
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                          >
-                            <div className="text-sm font-medium leading-none">{category}</div>
-                          </Link>
-                        </NavigationMenuLink>
-                      ))}
+                    <div className="w-[600px] xl:w-[1240px] p-4">
+                      <NavigationMenuLink asChild>
+                        <Link
+                          href="/issues"
+                          className="block select-none space-y-1 rounded-md p-3 mb-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground font-semibold border-b"
+                        >
+                          <div className="text-sm font-medium leading-none">All Issues</div>
+                        </Link>
+                      </NavigationMenuLink>
+                      <div className="grid grid-cols-3 xl:grid-cols-5 gap-3">
+                        {SITE_ISSUE_CATEGORIES.map((category) => (
+                          <NavigationMenuLink key={category} asChild>
+                            <Link
+                              href={`/issues/${convertCategoryToSlug(category)}`}
+                              className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            >
+                              <div className="text-sm font-medium leading-none">{category}</div>
+                            </Link>
+                          </NavigationMenuLink>
+                        ))}
+                      </div>
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger>Organizations</NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <div className="grid w-[600px] xl:w-[1240px] grid-cols-2 xl:grid-cols-4 gap-3 p-4">
-                      {advocacyGroups.map((group) => (
-                        <NavigationMenuLink key={group.slug} asChild>
-                          <Link
-                            href={`/organizations/${group.slug}`}
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                          >
-                            <div className="text-sm font-medium leading-none">{group.name}</div>
-                          </Link>
-                        </NavigationMenuLink>
-                      ))}
+                    <div className="w-[600px] xl:w-[1240px] p-4">
+                      <NavigationMenuLink asChild>
+                        <Link
+                          href="/organizations"
+                          className="block select-none space-y-1 rounded-md p-3 mb-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground font-semibold border-b"
+                        >
+                          <div className="text-sm font-medium leading-none">All Organizations</div>
+                        </Link>
+                      </NavigationMenuLink>
+                      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                        {advocacyGroups.map((group) => (
+                          <NavigationMenuLink key={group.slug} asChild>
+                            <Link
+                              href={`/organizations/${group.slug}`}
+                              className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            >
+                              <div className="text-sm font-medium leading-none">{group.name}</div>
+                            </Link>
+                          </NavigationMenuLink>
+                        ))}
+                      </div>
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
@@ -222,7 +242,7 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
             )}
 
             <div className="hidden md:flex items-center gap-2">
-                {renderAuthContent()}
+              {renderAuthContent()}
             </div>
 
             {/* Hamburger Menu (visible on mobile only) */}
@@ -259,23 +279,23 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                             <div className="space-y-2">
                               <label className="text-sm font-medium">Congress Session</label>
                               <CongressSelector
-                                  congresses={congresses}
-                                  selectedCongress={selectedCongress}
-                                  setSelectedCongress={handleSetSelectedCongress}
+                                congresses={congresses}
+                                selectedCongress={selectedCongress}
+                                setSelectedCongress={handleSetSelectedCongress}
                               />
                             </div>
 
                             <Separator />
 
                             <div className="space-y-2">
-                            <SheetClose asChild>
-                              <Link href="/federal" className="block w-full text-left p-3 rounded-md hover:bg-accent">
+                              <SheetClose asChild>
+                                <Link href="/federal" className="block w-full text-left p-3 rounded-md hover:bg-accent">
                                   Federal
-                              </Link>
-                            </SheetClose>
+                                </Link>
+                              </SheetClose>
                               <SheetClose asChild>
                                 <Link href="/state" className="block w-full text-left p-3 rounded-md hover:bg-accent">
-                                    State
+                                  State
                                 </Link>
                               </SheetClose>
                             </div>
@@ -285,49 +305,49 @@ export function Header({ congresses: initialCongresses }: { congresses: Congress
                     </Sheet>
 
                     <Separator />
-                    
+
                     <div className="space-y-2">
-                         {loading ? (
-                            <div className="flex justify-center p-2"><Loader2 className="h-5 w-5 animate-spin" /></div>
-                        ) : user ? (
-                            <>
-                                <SheetClose asChild>
-                                    <Button variant="ghost" className="w-full justify-start" asChild>
-                                        <Link href="/dashboard">
-                                            <User className="mr-2 h-4 w-4" />
-                                            Dashboard
-                                        </Link>
-                                    </Button>
-                                </SheetClose>
-                                <SheetClose asChild>
-                                    <Button variant="ghost" className="w-full justify-start" asChild>
-                                        <Link href="/partners">
-                                            <Building2 className="mr-2 h-4 w-4" />
-                                            Partners
-                                        </Link>
-                                    </Button>
-                                </SheetClose>
-                                <SheetClose asChild>
-                                    <Button variant="outline" className="w-full justify-start" onClick={logout}>
-                                        <LogOut className="mr-2 h-4 w-4" />
-                                        Logout
-                                    </Button>
-                                </SheetClose>
-                            </>
-                        ) : (
-                            <>
-                                <SheetClose asChild>
-                                    <Button variant="ghost" className="w-full justify-start" asChild>
-                                        <Link href="/login">Login</Link>
-                                    </Button>
-                                </SheetClose>
-                                <SheetClose asChild>
-                                     <Button className="w-full justify-start" asChild>
-                                         <Link href="/signup">Sign Up</Link>
-                                    </Button>
-                                </SheetClose>
-                            </>
-                        )}
+                      {loading ? (
+                        <div className="flex justify-center p-2"><Loader2 className="h-5 w-5 animate-spin" /></div>
+                      ) : user ? (
+                        <>
+                          <SheetClose asChild>
+                            <Button variant="ghost" className="w-full justify-start" asChild>
+                              <Link href="/dashboard">
+                                <User className="mr-2 h-4 w-4" />
+                                Dashboard
+                              </Link>
+                            </Button>
+                          </SheetClose>
+                          <SheetClose asChild>
+                            <Button variant="ghost" className="w-full justify-start" asChild>
+                              <Link href="/partners">
+                                <Building2 className="mr-2 h-4 w-4" />
+                                Partners
+                              </Link>
+                            </Button>
+                          </SheetClose>
+                          <SheetClose asChild>
+                            <Button variant="outline" className="w-full justify-start" onClick={logout}>
+                              <LogOut className="mr-2 h-4 w-4" />
+                              Logout
+                            </Button>
+                          </SheetClose>
+                        </>
+                      ) : (
+                        <>
+                          <SheetClose asChild>
+                            <Button variant="ghost" className="w-full justify-start" asChild>
+                              <Link href="/login">Login</Link>
+                            </Button>
+                          </SheetClose>
+                          <SheetClose asChild>
+                            <Button className="w-full justify-start" asChild>
+                              <Link href="/signup">Sign Up</Link>
+                            </Button>
+                          </SheetClose>
+                        </>
+                      )}
                     </div>
 
                     {!user && (

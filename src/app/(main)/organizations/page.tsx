@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 const advocacyGroups = [
   { name: 'League of Women Voters', slug: 'league-of-women-voters' },
@@ -33,10 +34,15 @@ export default function OrganizationsPage() {
   return (
     <div className="container mx-auto px-4 py-8 md:py-12 max-w-2xl">
       <header className="text-center mb-12">
-          <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">Explore Organizations</h1>
-          <p className="text-lg text-muted-foreground">
-            Browse Advocacy Organizations
-          </p>
+        <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-2">Explore Organizations</h1>
+        <p className="text-lg text-muted-foreground mb-6">
+          Browse Advocacy Organizations
+        </p>
+        <Button asChild>
+          <Link href="/organizations/apply">
+            Register your organization
+          </Link>
+        </Button>
       </header>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {advocacyGroups.map((group) => (

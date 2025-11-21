@@ -699,8 +699,8 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
     const title = isFederal
       ? ('officeTitle' in rep ? (rep.officeTitle.includes('Senate') ? 'Senator' : `Rep. - District ${rep.districtNumber}`) : '')
       : isLocal
-      ? (rep as LocalRepresentative).position
-      : (isState ? (rep.chamber === 'Senate' ? 'State Senator' : `State Rep.${rep.district ? ` - District ${rep.district}` : ''}`) : '');
+        ? (rep as LocalRepresentative).position
+        : (isState ? (rep.chamber === 'Senate' ? 'State Senator' : `State Rep.${rep.district ? ` - District ${rep.district}` : ''}`) : '');
 
     return (
       <div className="flex-shrink-0 w-[180px]">

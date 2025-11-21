@@ -447,14 +447,14 @@ This document catalogs all external API services integrated into the EGP platfor
 
 ---
 
-## 9. WorldNews API (worldnewsapi.com)
+## 9. Google News RSS Feed (news.google.com)
 
-**Provider:** WorldNews API
+**Provider:** Google News
 **Primary Purpose:** News aggregation for congressional members
 
 ### Endpoints Used
 
-- **`/search-news`** - Search news articles for a topic (parameterized by member name)
+- **`/rss/search`** - Search news articles by query (member name)
 
 ### What It's Used For
 
@@ -464,21 +464,21 @@ This document catalogs all external API services integrated into the EGP platfor
 
 ### Key API Fields Used
 
-**News Article Fields:**
-- `title` - Article headline
-- `link` - URL to full article
-- `pubDate` - Publication date/time
-- `source.url` - News source website
-- `source` (text) - News source name
-- `author` - Article author
-- `image` - Article image URL
-- `text` - Article excerpt/snippet
-- `language` - Article language code
-- `sentiment` - Sentiment score (if available)
+**RSS Feed Fields:**
+- `items[].title` - Article headline
+- `items[].link` - URL to full article
+- `items[].pubDate` - Publication date/time
+- `items[].source` - News source information
+- `items[].content` - HTML content (used to extract images)
+
+**Extracted Data:**
+- `imageUrl` - Extracted from `<img>` tags in content HTML
 
 ### Configuration
 
-**API Key Variable:** `WORLDNEWS_API_KEY`
+**Library Used:** rss-parser (no API key required)
+
+**Note:** Fetches member name from Congress API first, then searches Google News RSS for that member's name
 
 ---
 
@@ -494,7 +494,7 @@ This document catalogs all external API services integrated into the EGP platfor
 | L2 Political | Voter verification | `L2_API_CUSTOMER_ID`, `L2_API_KEY` | 2 |
 | Google Gemini | AI content generation | `GOOGLE_GENAI_API_KEY` | 1 |
 | Congress.gov RSS | Popular bills feed | None (RSS) | 1 |
-| WorldNews API | News aggregation | `WORLDNEWS_API_KEY` | 1 |
+| Google News RSS | Member news articles | None (RSS) | 1 |
 
 ---
 
@@ -512,7 +512,7 @@ This document catalogs all external API services integrated into the EGP platfor
 
 ### Content Generation Flow
 1. **Congress API** or **LegiScan API** → Get bill data
-2. **WorldNews API** → Get related news articles
+2. **Google News RSS** → Get related news articles about members
 3. **Google Gemini AI** → Generate summaries, overviews, advocacy messages
 
 ### User Data Flow
