@@ -181,7 +181,7 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
                     size="lg"
                     className="bg-black text-white hover:bg-gray-800"
                   >
-                    Voice Opinion
+                    Send Message
                   </Button>
                 </Link>
               </div>
