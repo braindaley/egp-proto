@@ -4,6 +4,7 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { ENABLE_WATCH_FEATURE } from '@/config/features';
 
 type FeedTab = 'foryou' | 'following';
 
@@ -16,7 +17,7 @@ export function FeedNavigation({ className }: FeedNavigationProps) {
   
   const tabs: { href: string; label: string }[] = [
     { href: '/', label: 'For you' },
-    { href: '/following', label: 'Following' },
+    ...(ENABLE_WATCH_FEATURE ? [{ href: '/following', label: 'Following' }] : []),
     { href: '/issues', label: 'Issues' },
   ];
 

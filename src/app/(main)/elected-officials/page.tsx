@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { MessageSquare } from 'lucide-react';
+import Link from 'next/link';
 
 interface Representative {
     id: string;
@@ -882,18 +885,18 @@ function RepresentativeCard({ rep }: { rep: Representative }) {
                         <p className="text-sm leading-relaxed text-muted-foreground">{rep.biography}</p>
                     )}
 
-                    {/* Contact Information */}
-                    <div className="space-y-2 pt-2 border-t">
-                        {/* Email Address */}
-                        {rep.email && (
-                            <div className="flex items-start gap-2 text-sm">
-                                <span className="text-muted-foreground">📧</span>
-                                <a href={`mailto:${rep.email}`} className="text-blue-600 hover:underline break-all">
-                                    {rep.email}
-                                </a>
-                            </div>
-                        )}
+                    {/* Send Message Button */}
+                    <div className="pt-3 border-t">
+                        <Button asChild className="w-full" size="sm">
+                            <Link href={`/advocacy-message?recipientName=${encodeURIComponent(rep.name)}&recipientTitle=${encodeURIComponent(rep.title)}&recipientEmail=${encodeURIComponent(rep.email || '')}&recipientState=${encodeURIComponent(rep.state || '')}&recipientDistrict=${encodeURIComponent(rep.district || '')}&recipientJurisdiction=${encodeURIComponent(rep.jurisdiction)}`}>
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Send message
+                            </Link>
+                        </Button>
+                    </div>
 
+                    {/* Contact Information */}
+                    <div className="space-y-2 pt-2">
                         {/* Website */}
                         {rep.website && (
                             <div className="flex items-start gap-2 text-sm">

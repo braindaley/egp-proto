@@ -15,6 +15,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import type { FeedBill, Bill } from '@/types';
+import { ENABLE_WATCH_FEATURE } from '@/config/features';
 import { mapApiSubjectToAllowed } from '@/lib/subjects';
 
 async function fetchBill(congress: number, type: string, number: string): Promise<Bill | null> {
@@ -72,7 +73,14 @@ export default function FollowingPage() {
   const { watchedBills } = useWatchedBills();
   const { data: allBills = [], isLoading: loading, error, refetch } = useBills();
   const [additionalBills, setAdditionalBills] = useState<FeedBill[]>([]);
-  
+
+  // Redirect if watch feature is disabled
+  useEffect(() => {
+    if (!ENABLE_WATCH_FEATURE) {
+      router.push('/');
+    }
+  }, [router]);
+
   // Redirect check - redirect if user is not authenticated
   useEffect(() => {
     if (isInitialLoadComplete && !authLoading && !user) {
@@ -80,6 +88,11 @@ export default function FollowingPage() {
       return;
     }
   }, [user, authLoading, isInitialLoadComplete, router]);
+
+  // Don't render if feature is disabled
+  if (!ENABLE_WATCH_FEATURE) {
+    return null;
+  }
 
   // Early return if user is not authenticated (after all hooks are called)
   if (isInitialLoadComplete && !authLoading && !user) {

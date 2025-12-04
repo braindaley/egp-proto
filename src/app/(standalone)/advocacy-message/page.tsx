@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Loader2, AlertCircle, User, Search, X, CheckCircle, Mail, Shield, UserPlus, Upload, File, Image, ChevronLeft, ChevronRight, Check, AtSign, Globe, Crown, Heart, Eye, TrendingUp, Filter, ArrowRight } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, User, Search, X, CheckCircle, Mail, Shield, UserPlus, Upload, File, Image, ChevronLeft, ChevronRight, Check, AtSign, Globe, Crown, Heart, Eye, TrendingUp, Filter, ArrowRight, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
@@ -170,6 +170,10 @@ const AdvocacyMessageContent: React.FC = () => {
     const [messageSent, setMessageSent] = useState(false);
     const [sendingError, setSendingError] = useState<string | null>(null);
 
+    // Share with others state
+    const [shareEmails, setShareEmails] = useState<string[]>(['', '', '']);
+    const [invitationsSent, setInvitationsSent] = useState(false);
+
     // Step 9-10 state (account creation)
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -211,6 +215,18 @@ const AdvocacyMessageContent: React.FC = () => {
     const newsUrl = searchParams.get('newsUrl');
     const campaignId = searchParams.get('campaignId');
     const pollId = searchParams.get('poll');
+    const orgPosition = searchParams.get('orgPosition'); // Organization's position from campaign
+
+    // Local/State official params (for elected-officials page)
+    const recipientName = searchParams.get('recipientName');
+    const recipientTitle = searchParams.get('recipientTitle');
+    const recipientEmail = searchParams.get('recipientEmail');
+    const recipientState = searchParams.get('recipientState');
+    const recipientDistrict = searchParams.get('recipientDistrict');
+    const recipientJurisdiction = searchParams.get('recipientJurisdiction');
+
+    // Check if this is a local official contact flow
+    const isLocalOfficialFlow = !!recipientName && !!recipientEmail;
 
     // Check if this is a member contact flow (not bill-specific)
     // Either has member param OR has issue param but no bill params
@@ -316,6 +332,13 @@ const AdvocacyMessageContent: React.FC = () => {
         loadUserProfile();
     }, [user]);
 
+    // Set user stance from organization position when coming from a campaign
+    useEffect(() => {
+        if (orgPosition === 'support' || orgPosition === 'oppose') {
+            setUserStance(orgPosition);
+        }
+    }, [orgPosition]);
+
     // Member contact flow uses completely different step numbers
     const memberSteps = {
         policy: 1,      // Choose policy issues
@@ -342,7 +365,15 @@ const AdvocacyMessageContent: React.FC = () => {
         // Check if user is logged in with address (skipped verification)
         const skippedVerification = !!(user && (user.address || (user.city && user.state && user.zipCode)));
 
-        if (isMemberContact) {
+        if (isLocalOfficialFlow) {
+            // Local official flow: Write → Personal → Review → Success
+            // Simplified flow since recipient is already selected
+            if (step === 4) return 1; // Write Your Message
+            if (step === 6) return 2; // Personal Information
+            if (step === 7) return 3; // Review Message
+            if (step === 8) return 4; // Success screen
+            return 0;
+        } else if (isMemberContact) {
             // Member contact flow: Verification → Policy → Write → Select Recipients → Personal → Review → Success → Account
             // For logged-in users: Policy → Write → Select Recipients → Personal → Review → Success → Account
             if (step === 1) return skippedVerification ? 0 : 1; // Verification (hidden for logged-in users)
@@ -370,7 +401,13 @@ const AdvocacyMessageContent: React.FC = () => {
 
     // Back navigation - all users go through verification
     const goBack = () => {
-        if (isMemberContact) {
+        if (isLocalOfficialFlow) {
+            // Local official flow: Write → Personal → Review → Success
+            if (step === 4) return; // Can't go back from first step (write message)
+            else if (step === 6) setStep(4); // Personal Info → Write Message (skip Select Recipients step 5)
+            else if (step === 7) setStep(6); // Review → Personal Info
+            else if (step === 8) setStep(7); // Success → Review
+        } else if (isMemberContact) {
             // Issue flow: Verification → Policy → Write → Select Recipients → Personal → Review → Success → Account
             if (step === 1) return; // Can't go back from first step (verification)
             else if (step === 2) setStep(1); // Policy Issues → verification
@@ -520,6 +557,27 @@ const AdvocacyMessageContent: React.FC = () => {
 
         fetchMember();
     }, [isMemberContact, memberBioguideId]);
+
+    // Set up local official as selected member for local official flow
+    useEffect(() => {
+        if (!isLocalOfficialFlow || !recipientName || !recipientEmail) return;
+
+        const localOfficial = {
+            name: recipientName,
+            firstName: recipientName.split(' ')[0],
+            lastName: recipientName.split(' ').slice(1).join(' '),
+            title: recipientTitle || 'Elected Official',
+            email: recipientEmail,
+            state: recipientState || '',
+            district: recipientDistrict || '',
+            jurisdiction: recipientJurisdiction || 'Local',
+            isLocalOfficial: true, // Flag to identify local officials
+        };
+        setTargetMember(localOfficial);
+        setSelectedMembers([localOfficial]);
+        // Start at step 4 (write message) for local official flow since recipient is already selected
+        setStep(4);
+    }, [isLocalOfficialFlow, recipientName, recipientEmail, recipientTitle, recipientState, recipientDistrict, recipientJurisdiction]);
 
     // Pre-select policy issue from URL parameter
     useEffect(() => {
@@ -1229,11 +1287,12 @@ const AdvocacyMessageContent: React.FC = () => {
 
     // Handle send message
     const handleSend = async () => {
-        // Use targetMember for member contact flow, selectedMembers for bill flow
-        const membersToSend = isMemberContact && targetMember ? [targetMember] : selectedMembers;
+        // Use targetMember for member contact flow or local official flow, selectedMembers for bill flow
+        const membersToSend = (isMemberContact || isLocalOfficialFlow) && targetMember ? [targetMember] : selectedMembers;
 
-        // Validate required fields
-        if (!message || !userStance || membersToSend.length === 0) {
+        // Validate required fields (userStance not required for local officials)
+        const stanceRequired = !isLocalOfficialFlow;
+        if (!message || (stanceRequired && !userStance) || membersToSend.length === 0) {
             alert('Please complete all required fields before sending.');
             return;
         }
@@ -1311,7 +1370,7 @@ const AdvocacyMessageContent: React.FC = () => {
             } else {
                 // Mark as general advocacy message (not tied to specific bill)
                 messageActivity.isGeneralAdvocacy = true;
-                messageActivity.topic = isMemberContact && targetMember
+                messageActivity.topic = (isMemberContact || isLocalOfficialFlow) && targetMember
                     ? selectedPolicyIssues.length > 0
                         ? `${selectedPolicyIssues.join(', ')} - ${targetMember.directOrderName || targetMember.fullName || targetMember.name || 'Representative'}`
                         : `Member Contact: ${targetMember.directOrderName || targetMember.fullName || targetMember.name || 'Representative'}`
@@ -1339,18 +1398,6 @@ const AdvocacyMessageContent: React.FC = () => {
 
             // Mark message as sent
             setMessageSent(true);
-
-            // For logged-in users, redirect to dashboard after a delay
-            if (user) {
-                setTimeout(() => {
-                    router.push('/dashboard?message=sent');
-                }, 2000);
-            } else {
-                // For non-logged-in users, show account creation options after a delay
-                setTimeout(() => {
-                    setStep(9); // Go to account creation step
-                }, 2000);
-            }
 
         } catch (error) {
             console.error('Error saving message:', error);
@@ -1514,44 +1561,53 @@ const AdvocacyMessageContent: React.FC = () => {
 
                 <div>
                     <h3 className="font-semibold mb-4 text-lg">
-                        {newsTitle ? 'Do you support or oppose the position in this article?' :
-                            'Do you support or oppose this bill?'}
+                        {orgPosition ? (
+                            `You are joining this campaign to ${orgPosition} this bill`
+                        ) : newsTitle ? (
+                            'Do you support or oppose the position in this article?'
+                        ) : (
+                            'Do you support or oppose this bill?'
+                        )}
                     </h3>
                     <div className="flex flex-col sm:flex-row gap-4">
-                        <Button
-                            variant={userStance === 'support' ? 'default' : 'outline'}
-                            onClick={() => setUserStance('support')}
-                            size="lg"
-                            className="flex-1 flex-col"
-                            style={{paddingTop: '24px', paddingBottom: '24px', minHeight: '100px'}}
-                        >
-                            <svg className="mb-1" style={{width: '24px', height: '24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                            </svg>
-                            <div className="text-center">
-                                <div className="font-semibold">Support</div>
-                                <div className="text-sm opacity-75">
-                                    {newsTitle ? 'I agree with this article' : 'I am in favor of this bill'}
+                        {(!orgPosition || orgPosition === 'support') && (
+                            <Button
+                                variant={userStance === 'support' ? 'default' : 'outline'}
+                                onClick={() => setUserStance('support')}
+                                size="lg"
+                                className="flex-1 flex-col"
+                                style={{paddingTop: '24px', paddingBottom: '24px', minHeight: '100px'}}
+                            >
+                                <svg className="mb-1" style={{width: '24px', height: '24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                </svg>
+                                <div className="text-center">
+                                    <div className="font-semibold">Support</div>
+                                    <div className="text-sm opacity-75">
+                                        {newsTitle ? 'I agree with this article' : 'I am in favor of this bill'}
+                                    </div>
                                 </div>
-                            </div>
-                        </Button>
-                        <Button
-                            variant={userStance === 'oppose' ? 'destructive' : 'outline'}
-                            onClick={() => setUserStance('oppose')}
-                            size="lg"
-                            className="flex-1 flex-col"
-                            style={{paddingTop: '24px', paddingBottom: '24px', minHeight: '100px'}}
-                        >
-                            <svg className="mb-1" style={{width: '24px', height: '24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .904-.405.904-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
-                            </svg>
-                            <div className="text-center">
-                                <div className="font-semibold">Oppose</div>
-                                <div className="text-sm opacity-75">
-                                    {newsTitle ? 'I disagree with this article' : 'I am against this bill'}
+                            </Button>
+                        )}
+                        {(!orgPosition || orgPosition === 'oppose') && (
+                            <Button
+                                variant={userStance === 'oppose' ? 'destructive' : 'outline'}
+                                onClick={() => setUserStance('oppose')}
+                                size="lg"
+                                className="flex-1 flex-col"
+                                style={{paddingTop: '24px', paddingBottom: '24px', minHeight: '100px'}}
+                            >
+                                <svg className="mb-1" style={{width: '24px', height: '24px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .904-.405.904-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                                </svg>
+                                <div className="text-center">
+                                    <div className="font-semibold">Oppose</div>
+                                    <div className="text-sm opacity-75">
+                                        {newsTitle ? 'I disagree with this article' : 'I am against this bill'}
+                                    </div>
                                 </div>
-                            </div>
-                        </Button>
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -1780,8 +1836,13 @@ const AdvocacyMessageContent: React.FC = () => {
                     </Button>
                     <Button
                         onClick={() => {
-                            // Both Issue and Bill flows now go to Select Recipients step
-                            setStep(5); // Go to select representatives
+                            if (isLocalOfficialFlow) {
+                                // Local official flow skips Select Recipients (already selected)
+                                setStep(6); // Go directly to Personal Info
+                            } else {
+                                // Both Issue and Bill flows now go to Select Recipients step
+                                setStep(5); // Go to select representatives
+                            }
                         }}
                         disabled={!message}
                         size="lg"
@@ -2784,7 +2845,7 @@ const AdvocacyMessageContent: React.FC = () => {
         };
 
         // Use targetMember for member contact flow, selectedMembers for bill flow
-        const membersToPreview = isMemberContact && targetMember ? [targetMember] : selectedMembers;
+        const membersToPreview = (isMemberContact || isLocalOfficialFlow) && targetMember ? [targetMember] : selectedMembers;
 
         return (
             <Card className="flex-1 flex flex-col">
@@ -3559,7 +3620,7 @@ const AdvocacyMessageContent: React.FC = () => {
             const sendMessage = async () => {
                 try {
                     // Use targetMember for member contact flow, selectedMembers for bill flow
-                    const membersToSend = isMemberContact && targetMember ? [targetMember] : selectedMembers;
+                    const membersToSend = (isMemberContact || isLocalOfficialFlow) && targetMember ? [targetMember] : selectedMembers;
 
                     // Import Firebase functions
                     const { getFirestore, collection, addDoc, Timestamp } = await import('firebase/firestore');
@@ -3626,7 +3687,7 @@ const AdvocacyMessageContent: React.FC = () => {
                     } else {
                         // Mark as general advocacy message (not tied to specific bill)
                         messageActivity.isGeneralAdvocacy = true;
-                        messageActivity.topic = isMemberContact && targetMember
+                        messageActivity.topic = (isMemberContact || isLocalOfficialFlow) && targetMember
                             ? selectedPolicyIssues.length > 0
                                 ? `${selectedPolicyIssues.join(', ')} - ${targetMember.directOrderName || targetMember.fullName || targetMember.name || 'Representative'}`
                                 : `Member Contact: ${targetMember.directOrderName || targetMember.fullName || targetMember.name || 'Representative'}`
@@ -3659,17 +3720,6 @@ const AdvocacyMessageContent: React.FC = () => {
 
                         // Clear verified user session storage only after successful send
                         sessionStorage.removeItem('verifiedUser');
-
-                        // After another moment, show the account creation form
-                        setTimeout(() => {
-                            if (user) {
-                                // If already authenticated, go to dashboard
-                                router.push(`/dashboard?message=sent`);
-                            } else {
-                                // Show account creation step (step 9)
-                                setStep(9);
-                            }
-                        }, 2000);
                     }, 2000);
 
                 } catch (error) {
@@ -3686,7 +3736,7 @@ const AdvocacyMessageContent: React.FC = () => {
     // Step 8: Sending Screen
     const renderStep6 = () => {
         // Use targetMember for member contact flow, selectedMembers for bill flow
-        const membersToSend = isMemberContact && targetMember ? [targetMember] : selectedMembers;
+        const membersToSend = (isMemberContact || isLocalOfficialFlow) && targetMember ? [targetMember] : selectedMembers;
 
         if (sendingError) {
             return (
@@ -3705,6 +3755,21 @@ const AdvocacyMessageContent: React.FC = () => {
         }
 
         if (messageSent) {
+            const handleShareEmailChange = (index: number, value: string) => {
+                const newEmails = [...shareEmails];
+                newEmails[index] = value;
+                setShareEmails(newEmails);
+            };
+
+            const handleAddEmailField = () => {
+                setShareEmails([...shareEmails, '']);
+            };
+
+            const handleSendInvitations = () => {
+                // Mock sending invitations
+                setInvitationsSent(true);
+            };
+
             return (
                 <Card>
                     <CardHeader className="text-center">
@@ -3716,10 +3781,55 @@ const AdvocacyMessageContent: React.FC = () => {
                             Your message has been sent to {membersToSend.length} representative{membersToSend.length !== 1 ? 's' : ''}
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="text-center">
-                        <p className="text-muted-foreground">
-                            {user ? 'Redirecting to dashboard...' : 'Preparing account creation options...'}
-                        </p>
+                    <CardContent>
+                        <div className="border-t pt-6 mt-4">
+                            <h3 className="font-semibold text-lg mb-2">Share with Others</h3>
+                            <p className="text-sm text-muted-foreground mb-4">
+                                Send a link to your colleagues for their consideration.
+                            </p>
+
+                            {invitationsSent ? (
+                                <div className="text-center py-4">
+                                    <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                                    <p className="text-green-600 font-medium">Invitations sent successfully!</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {shareEmails.map((email, index) => (
+                                        <div key={index}>
+                                            <Label htmlFor={`share-email-${index}`} className="text-sm">
+                                                Email Address
+                                            </Label>
+                                            <Input
+                                                id={`share-email-${index}`}
+                                                type="email"
+                                                value={email}
+                                                onChange={(e) => handleShareEmailChange(index, e.target.value)}
+                                                placeholder=""
+                                                className="mt-1"
+                                            />
+                                        </div>
+                                    ))}
+
+                                    <Button
+                                        variant="ghost"
+                                        className="w-full text-sm"
+                                        onClick={handleAddEmailField}
+                                    >
+                                        <PlusCircle className="h-4 w-4 mr-2" />
+                                        Add Another Email Address
+                                    </Button>
+
+                                    <Button
+                                        className="w-full"
+                                        onClick={handleSendInvitations}
+                                        disabled={shareEmails.every(e => !e.trim())}
+                                    >
+                                        Send Invitations
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
             );

@@ -91,7 +91,7 @@ function CreateCampaignPageContent() {
     // Voter poll fields
     const [pollTitle, setPollTitle] = useState('');
     const [pollQuestion, setPollQuestion] = useState('');
-    const [answerType, setAnswerType] = useState<'multiple-choice-single' | 'multiple-choice-multiple' | 'open-text'>('multiple-choice-single');
+    const [answerType] = useState<'multiple-choice-single'>('multiple-choice-single');
     const [pollDescription, setPollDescription] = useState('');
     const [pollImageFile, setPollImageFile] = useState<File | null>(null);
     const [pollImagePreview, setPollImagePreview] = useState<string>('');
@@ -174,13 +174,11 @@ function CreateCampaignPageContent() {
                 alert('Please fill in all required fields (poll title and question)');
                 return;
             }
-            // Validate choices for multiple choice types
-            if (answerType !== 'open-text') {
-                const filledChoices = pollChoices.filter(c => c.trim() !== '');
-                if (filledChoices.length < 2) {
-                    alert('Please provide at least 2 answer choices for multiple choice questions');
-                    return;
-                }
+            // Validate choices for multiple choice (always required since only single-select is supported)
+            const filledChoices = pollChoices.filter(c => c.trim() !== '');
+            if (filledChoices.length < 2) {
+                alert('Please provide at least 2 answer choices');
+                return;
             }
         } else {
             if ((requiresGroup && !selectedGroup) || !selectedBill || !reasoning) {
@@ -256,7 +254,7 @@ function CreateCampaignPageContent() {
                         answerType,
                         description: pollDescription,
                         imageUrl: pollImagePreview,
-                        choices: answerType !== 'open-text' ? filledChoices : []
+                        choices: filledChoices
                     },
                     // Use poll data for display
                     billTitle: pollTitle,
@@ -514,64 +512,48 @@ function CreateCampaignPageContent() {
                                     onChange={(e) => setPollQuestion(e.target.value)}
                                 />
                             </div>
+                            {/* Answer Choices - always show since only Multiple Choice - Single Select is supported */}
                             <div className="space-y-2">
-                                <Label htmlFor="answer-type">Answer Type *</Label>
-                                <Select value={answerType} onValueChange={(value) => setAnswerType(value as 'multiple-choice-single' | 'multiple-choice-multiple' | 'open-text')}>
-                                    <SelectTrigger id="answer-type">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="multiple-choice-single">Multiple Choice - Single Select</SelectItem>
-                                        <SelectItem value="multiple-choice-multiple">Multiple Choice - Multiple Select</SelectItem>
-                                        <SelectItem value="open-text">Open Text</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Answer Choices - only show for multiple choice types */}
-                            {(answerType === 'multiple-choice-single' || answerType === 'multiple-choice-multiple') && (
+                                <Label>Answer Choices *</Label>
                                 <div className="space-y-2">
-                                    <Label>Answer Choices *</Label>
-                                    <div className="space-y-2">
-                                        {pollChoices.map((choice, index) => (
-                                            <div key={index} className="flex gap-2">
-                                                <Input
-                                                    placeholder={`Choice ${index + 1}`}
-                                                    value={choice}
-                                                    onChange={(e) => {
-                                                        const newChoices = [...pollChoices];
-                                                        newChoices[index] = e.target.value;
+                                    {pollChoices.map((choice, index) => (
+                                        <div key={index} className="flex gap-2">
+                                            <Input
+                                                placeholder={`Choice ${index + 1}`}
+                                                value={choice}
+                                                onChange={(e) => {
+                                                    const newChoices = [...pollChoices];
+                                                    newChoices[index] = e.target.value;
+                                                    setPollChoices(newChoices);
+                                                }}
+                                            />
+                                            {pollChoices.length > 2 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        const newChoices = pollChoices.filter((_, i) => i !== index);
                                                         setPollChoices(newChoices);
                                                     }}
-                                                />
-                                                {pollChoices.length > 2 && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => {
-                                                            const newChoices = pollChoices.filter((_, i) => i !== index);
-                                                            setPollChoices(newChoices);
-                                                        }}
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        ))}
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setPollChoices([...pollChoices, ''])}
-                                            className="w-full"
-                                        >
-                                            <Plus className="h-4 w-4 mr-2" />
-                                            Add Choice
-                                        </Button>
-                                    </div>
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPollChoices([...pollChoices, ''])}
+                                        className="w-full"
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Add Choice
+                                    </Button>
                                 </div>
-                            )}
+                            </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="poll-description">Description (Optional)</Label>

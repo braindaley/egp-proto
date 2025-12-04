@@ -20,6 +20,7 @@ import { remark } from 'remark';
 import html from 'remark-html';
 import { useAuth } from '@/hooks/use-auth';
 import { useState, useEffect } from 'react';
+import { ENABLE_WATCH_FEATURE } from '@/config/features';
 
 // Interfaces for API responses, to be used internally in this file
 interface ApiResponse {
@@ -113,7 +114,7 @@ function OrganizationHeader({ group }: { group: any }) {
                     <div className="flex-1">
                         <div className="flex items-center gap-4 mb-2">
                             <h1 className="text-3xl font-bold font-headline text-primary">{group.name}</h1>
-                            <WatchButton groupSlug={group.slug} groupName={group.name} />
+                            {ENABLE_WATCH_FEATURE && <WatchButton groupSlug={group.slug} groupName={group.name} />}
                         </div>
                         <p className="mt-2 text-muted-foreground">{group.description}</p>
                         <a href={group.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-4">
@@ -386,7 +387,8 @@ export default function GroupDetailPage({ params }: { params: { groupName: strin
                                                             {currentUserAction === 'oppose' ? 'Opposed!' : item.opposeCount.toLocaleString()}
                                                         </span>
                                                     </Button>
-                                                    <Button 
+{ENABLE_WATCH_FEATURE && (
+                                                    <Button
                                                         variant="outline"
                                                         size="sm"
                                                         className="flex items-center gap-2 text-muted-foreground"
@@ -394,6 +396,7 @@ export default function GroupDetailPage({ params }: { params: { groupName: strin
                                                         <Eye className="h-4 w-4" />
                                                         Watch
                                                     </Button>
+                                                    )}
                                                 </div>
                                                 <Button size="sm" asChild className="w-full sm:w-auto">
                                                     <Link href={`/campaigns/${groupName}/${item.bill.type?.toLowerCase()}-${item.bill.number}`}>

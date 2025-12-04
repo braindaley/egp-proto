@@ -24,6 +24,7 @@ import { useWatchedBills } from '@/hooks/use-watched-bills';
 import { campaignsService } from '@/lib/campaigns';
 import { BillProgress, type BillProgressStage } from '@/components/BillProgress';
 import { RepresentativeVotes } from '@/components/RepresentativeVotes';
+import { ENABLE_WATCH_FEATURE } from '@/config/features';
 
 const getBillStatus = (latestAction: any): string => {
     if (!latestAction?.text) return 'Introduced';
@@ -284,14 +285,15 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                   </span>
                 </div>
                 
+{ENABLE_WATCH_FEATURE && (
                 <button
                   onClick={(e) => {
                     e.preventDefault();
                     handleWatchClick();
                   }}
                   className={`flex items-center gap-0.5 sm:gap-1 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 transition-colors group flex-shrink-0 ${
-                    isWatched 
-                      ? 'text-blue-600 bg-blue-50' 
+                    isWatched
+                      ? 'text-blue-600 bg-blue-50'
                       : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
                   }`}
                   title={user ? (isWatched ? 'Stop watching this bill' : 'Watch this bill for updates') : 'Login to watch this bill'}
@@ -299,6 +301,7 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                   <Eye className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                   <span className="text-xs sm:text-sm font-medium">123K</span>
                 </button>
+                )}
                 
                 <a
                   href={constructBillUrl(bill)}

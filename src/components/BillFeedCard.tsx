@@ -15,6 +15,7 @@ import { useBillSupportCounts } from '@/hooks/use-bill-support-counts';
 import { useWatchedBills } from '@/hooks/use-watched-bills';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
+import { ENABLE_WATCH_FEATURE } from '@/config/features';
 
 const BillStatusIndicator = ({ status }: { status: string }) => {
     const steps: string[] = ['Introduced', 'In Committee', 'Passed House', 'Passed Senate', 'To President', 'Became Law'];
@@ -234,7 +235,8 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                     <span>{countsLoading ? '...' : opposeCount.toLocaleString()}</span>
                     <span className="hidden sm:inline">oppose</span>
                 </div>
-                <Button 
+{ENABLE_WATCH_FEATURE && (
+                <Button
                     variant="outline"
                     size="sm"
                     onClick={handleWatch}
@@ -246,6 +248,7 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                     <Eye className={cn("h-4 w-4", isWatched && "text-blue-600")} />
                     {isWatched ? 'Watching' : 'Watch'}
                 </Button>
+                )}
                 <Button 
                     variant="outline"
                     size="sm"

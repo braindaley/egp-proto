@@ -29,6 +29,7 @@ import {
   Eye
 } from 'lucide-react';
 import { LEGISCAN_STATE_IDS } from '@/lib/legiscan-connector';
+import { ENABLE_WATCH_FEATURE } from '@/config/features';
 
 // Based on actual Legiscan API documentation
 interface LegiscanBill {
@@ -494,12 +495,13 @@ export default function LegiscanBillDetailPage() {
                   {userAction === 'oppose' ? 'Opposed!' : opposeCount.toLocaleString()}
                 </span>
               </Button>
-              <Button 
+{ENABLE_WATCH_FEATURE && (
+              <Button
                 variant={isWatched ? "default" : "outline"}
                 size="sm"
                 className={`flex items-center gap-2 ${
-                  isWatched 
-                    ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                  isWatched
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 onClick={() => {
@@ -508,11 +510,11 @@ export default function LegiscanBillDetailPage() {
                     router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
                     return;
                   }
-                  
+
                   toggleWatchBill(
-                    'state', 
-                    bill.bill_type || 'bill', 
-                    bill.bill_id.toString(), 
+                    'state',
+                    bill.bill_type || 'bill',
+                    bill.bill_id.toString(),
                     bill.title
                   );
                 }}
@@ -521,6 +523,7 @@ export default function LegiscanBillDetailPage() {
                 <Eye className="h-4 w-4" />
                 {isWatched ? 'Watching' : 'Watch'}
               </Button>
+              )}
             </CardFooter>
           </Card>
 

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, Heart, Eye, Lock } from 'lucide-react';
+import { ENABLE_WATCH_FEATURE } from '@/config/features';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +73,13 @@ export default function FollowingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
 
+  // Redirect if watch feature is disabled
+  useEffect(() => {
+    if (!ENABLE_WATCH_FEATURE) {
+      router.push('/dashboard');
+    }
+  }, [router]);
+
   // Check membership status from localStorage (for testing)
   const [isPremium, setIsPremium] = useState(false);
 
@@ -80,6 +88,11 @@ export default function FollowingPage() {
       setIsPremium(localStorage.getItem('testAsPremium') === 'true');
     }
   }, []);
+
+  // Don't render if feature is disabled
+  if (!ENABLE_WATCH_FEATURE) {
+    return null;
+  }
   
   useEffect(() => {
     const fetchBillDetails = async () => {

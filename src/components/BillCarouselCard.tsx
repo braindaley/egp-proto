@@ -14,6 +14,7 @@ import { useBillSupportCounts } from '@/hooks/use-bill-support-counts';
 import { useWatchedBills } from '@/hooks/use-watched-bills';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
+import { ENABLE_WATCH_FEATURE } from '@/config/features';
 type BillCarouselOutput = {
   headline: string;
   explainer: string;
@@ -261,17 +262,19 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
           </span>
         </div>
         
+{ENABLE_WATCH_FEATURE && (
         <button
           onClick={handleWatch}
           className={`flex items-center gap-1 rounded-full px-3 py-2 transition-colors group ${
-            isWatched 
-              ? 'text-blue-600 bg-blue-50' 
+            isWatched
+              ? 'text-blue-600 bg-blue-50'
               : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
           }`}
         >
           <Eye className="h-4 w-4" />
           <span className="text-sm font-medium">123K</span>
         </button>
+        )}
         
         <Link
           href={detailUrl}

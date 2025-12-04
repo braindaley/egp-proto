@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useWatchedBills } from '@/hooks/use-watched-bills';
+import { ENABLE_WATCH_FEATURE } from '@/config/features';
 
 interface AdvocacyBillCardProps {
     bill: Bill | Partial<Bill>;
@@ -65,10 +66,12 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
 
     const handleVoiceOpinionClick = () => {
         // For Issue campaigns, use issue parameter; for Legislation, use bill parameters
+        // Include organization position to pre-select and enforce the stance
+        const orgPosition = position.toLowerCase();
         if (isIssueCampaign && issueCategory) {
-            router.push(`/advocacy-message?issue=${encodeURIComponent(issueCategory)}`);
+            router.push(`/advocacy-message?issue=${encodeURIComponent(issueCategory)}&orgPosition=${orgPosition}`);
         } else {
-            router.push(`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}`);
+            router.push(`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}&orgPosition=${orgPosition}`);
         }
     };
 
@@ -131,7 +134,8 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                                 <ThumbsDown className="h-4 w-4" />
                                 <span className="font-semibold">{opposeCount.toLocaleString()}</span>
                             </Button>
-                            <Button 
+{ENABLE_WATCH_FEATURE && (
+                            <Button
                                 variant={isWatched ? 'secondary' : 'outline'}
                                 size="sm"
                                 onClick={(e) => {
@@ -145,14 +149,15 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                                     toggleWatchBill(bill.congress!, bill.type!, bill.number!, bill.title || bill.shortTitle);
                                 }}
                                 className={`flex items-center gap-2 ${
-                                    isWatched 
-                                        ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' 
+                                    isWatched
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
                                         : 'text-muted-foreground'
                                 }`}
                             >
                                 <Eye className={`h-4 w-4 ${isWatched ? 'text-blue-600' : ''}`} />
                                 {isWatched ? 'Watching' : 'Watch'}
                             </Button>
+                            )}
                         </div>
                         <Button size="sm" onClick={handleVoiceOpinionClick} className="w-full sm:w-auto">
                             {actionButtonText}

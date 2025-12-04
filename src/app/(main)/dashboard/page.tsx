@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, ThumbsUp, ThumbsDown, Megaphone, Eye, LogOut, CheckCircle, AlertCircle, Check, ExternalLink } from 'lucide-react';
+import { ENABLE_WATCH_FEATURE } from '@/config/features';
 
 // Force dynamic rendering to prevent prerendering issues
 export const dynamic = 'force-dynamic';
@@ -79,7 +80,7 @@ export default function DashboardPage() {
         { label: 'Membership', href: '/dashboard/membership', icon: Crown },
         { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
         { label: 'Activity', href: '/dashboard/activity', icon: BarChart3 },
-        { label: 'Following', href: '/dashboard/following', icon: Eye },
+        ...(ENABLE_WATCH_FEATURE ? [{ label: 'Following', href: '/dashboard/following', icon: Eye }] : []),
         { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },
         { label: 'Log Out', href: '#', icon: LogOut, onClick: logout },
     ];
