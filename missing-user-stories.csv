@@ -1,0 +1,92 @@
+ID,Feature,User Story,Prototype Link,Success Criteria,BED Estimate,FED Estimate,Comments
+STATE-001,State Legislation Browsing,"As a user I would like to browse state-level legislation so that I can stay informed about bills in my state legislature and take action on issues that affect me locally.",https://egp.gscadmin.com/state/[state]/bill/[billId],"- User can select their state from a list or have it auto-detected from profile
+- User can browse recent state bills
+- User can view bill details including title, summary, status, sponsors
+- User can filter bills by status, topic, or chamber
+- User can take advocacy action on state bills (support/oppose)",,,
+STATE-002,State Legislators Directory,"As a user I would like to view my state legislators so that I can see who represents me at the state level and contact them about state issues.",https://egp.gscadmin.com/state/[state],"- User can view list of state legislators for their state
+- User can filter by chamber (Senate/House/Assembly)
+- User can see legislator party, district, and contact info
+- User can click through to individual legislator profiles",,,
+REP-001,Federal Representative Profile,"As a user I would like to view detailed information about my federal representatives so that I can understand their positions, voting record, and how to contact them.",https://egp.gscadmin.com/federal/congress/119/[state]/[bioguideId],"- User can view representative biography and photo
+- User can see party affiliation and district
+- User can view committee memberships
+- User can see contact information (office address, phone, website)
+- User can view ideology/voting scores
+- User can see recent voting record
+- User can view sponsored and cosponsored legislation
+- User can see campaign finance information
+- User can view recent news articles about the representative",,,
+REP-002,Congress Members Directory by State,"As a user I would like to browse all members of Congress from a specific state so that I can see the full delegation and compare representatives.",https://egp.gscadmin.com/federal/congress/119/states/[state],"- User can select a state to view its congressional delegation
+- User can see both Senators and House Representatives
+- User can filter by chamber or party
+- User can sort by name, district, or seniority
+- Each member links to their full profile page",,,
+ISSUE-001,Policy Issues Browsing,"As a user I would like to browse legislation by policy issue category so that I can find bills related to topics I care about.",https://egp.gscadmin.com/issues/[issue]/[jurisdiction],"- User can browse predefined policy categories (Immigration, Climate, Healthcare, etc.)
+- User can filter by jurisdiction (Federal, State, or specific state)
+- User can see bills tagged with each policy category
+- User can see bill count per category
+- User can click through to individual bill pages",,,
+ISSUE-002,Issue Category Homepage,"As a user I would like to see an overview page for each policy issue so that I can understand the current landscape and find relevant bills and campaigns.",https://egp.gscadmin.com/issues/[issue]/homepage,"- User sees issue title and description
+- User sees featured/trending bills for this issue
+- User sees active campaigns from organizations on this issue
+- User can navigate to federal or state-specific bill lists
+- User can set this as a policy interest from the page",,,
+CAMP-001,Candidate Comparison Campaign,"As an organization user I would like to create a candidate comparison campaign so that our members can compare two candidates' positions and share their preference.",https://egp.gscadmin.com/partners/create,"- Organization can create campaign with two candidates
+- Organization can add candidate names and bios
+- Organization can set campaign start and end dates
+- Users can view candidate comparison side-by-side
+- Users can select their preferred candidate
+- Organization can view results showing preference breakdown
+- Campaign tracks total responses and preference percentages",,,Campaign Type: Candidate Advocacy
+CAMP-002,Voter Poll Campaign,"As an organization user I would like to create voter polls so that I can survey our members on policy questions and gather constituent opinions.",https://egp.gscadmin.com/partners/create,"- Organization can create poll with custom question
+- Organization can add multiple answer choices (minimum 2, maximum 6)
+- Organization can optionally add image to poll
+- Organization can set poll start and end dates
+- Users can vote on poll (one vote per verified user)
+- Organization can view poll results with vote counts and percentages
+- Poll results can be displayed as chart visualization",,,Campaign Type: Voter Poll
+CAMP-003,Public Campaign Page,"As a user I would like to view organization campaigns so that I can see their position on legislation and add my voice to their advocacy efforts.",https://egp.gscadmin.com/campaigns/[orgSlug]/[billType]-[billNumber],"- User can view organization's campaign page
+- User can see organization's position (Support/Oppose) and reasoning
+- User can see the associated bill details
+- User can take action (support/oppose) directly from campaign
+- User can see how many others have taken action
+- User can send advocacy message linked to campaign
+- Campaign tracks engagement metrics for organization",,,
+FY-001,For You Personalized Feed,"As a logged-in user I would like to see a personalized For You page so that I can quickly find bills and campaigns relevant to my policy interests and location.",https://egp.gscadmin.com/for-you,"- User sees bills filtered by their policy interests
+- User sees bills relevant to their congressional district
+- User sees campaigns from organizations they follow
+- User sees trending/featured content
+- Content is sorted by relevance score based on user preferences
+- User can adjust their interests to change recommendations
+- Page requires login to view personalized content",,,
+MSG-003,Individual Message View,"As a user I would like to view the full details of a message I've sent so that I can review what I wrote and who received it.",https://egp.gscadmin.com/letter/[messageId],"- User can view full message content they sent
+- User can see list of recipients (representatives)
+- User can see the bill/issue the message was about
+- User can see their stance (Support/Oppose)
+- User can see date and time message was sent
+- User can see delivery status for each recipient
+- User can navigate back to message history
+- Only the message author can view their own messages",,,
+NEWS-001,Representative News Feed,"As a user I would like to see recent news articles about my representatives so that I can stay informed about their activities and statements.",https://egp.gscadmin.com/federal/congress/119/[state]/[bioguideId],"- Representative profile page shows recent news articles
+- Articles show headline, source, date, and thumbnail
+- User can click through to read full article on source site
+- News feed shows 5-10 most recent articles
+- News refreshes periodically to show current coverage",,,News section on profile page
+BILL-001,Federal Bills Directory,"As a user I would like to browse all federal bills so that I can discover legislation and stay informed about what Congress is considering.",https://egp.gscadmin.com/federal/bills,"- User can view list of federal bills from current Congress
+- User can filter by bill type (HR, S, HJRES, SJRES, etc.)
+- User can filter by status (Introduced, Passed House, Passed Senate, Enacted)
+- User can search bills by keyword or bill number
+- User can sort by date introduced, last action, or popularity
+- Each bill links to full bill detail page
+- Pagination for browsing large lists",,,
+BILL-002,Bill Detail Page,"As a user I would like to view detailed information about a specific bill so that I can understand what it does and take informed action.",https://egp.gscadmin.com/federal/bill/119/hr/[number],"- User can view bill title, number, and congress session
+- User can read bill summary (plain language explanation)
+- User can see bill sponsors and cosponsors
+- User can see current bill status and progress visualization
+- User can see committee assignments
+- User can see related actions and timeline
+- User can see voting records if votes have occurred
+- User can take action (Support/Oppose) on the bill
+- User can send advocacy message about the bill
+- User can see how many others have supported/opposed",,,
