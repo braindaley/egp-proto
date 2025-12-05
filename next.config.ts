@@ -23,6 +23,12 @@ const nextConfig: NextConfig = {
         hostname: 'www.congress.gov',
         port: '',
         pathname: '/img/member/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'assets.civicengine.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },

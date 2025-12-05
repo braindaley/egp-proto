@@ -38,7 +38,7 @@ This document outlines the user stories and success criteria for all personas in
 **Acceptance Criteria:**
 - **Popular Bills Strip:** Horizontal scroll showing most active bills across all categories
 - **About/Activity Section:**
-  - Not logged in: "What is eGutenbergPress?" card with Get Started CTA
+  - Not logged in: "What is eVotersUnited.org?" card with Get Started CTA
   - Logged in: User's advocacy activity summary (messages, follows, engagement)
 - **Info Grid (3 columns):**
   - Column 1: About/Activity card

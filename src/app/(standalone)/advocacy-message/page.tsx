@@ -145,8 +145,8 @@ const AdvocacyMessageContent: React.FC = () => {
     const [manualState, setManualState] = useState('');
     const [manualZipCode, setManualZipCode] = useState('');
     const [constituentDescription, setConstituentDescription] = useState('');
-    // Delivery method removed - messages sent directly via eGutenberg
-    const deliveryMethod = 'egutenberg'; // Always use eGutenberg
+    // Delivery method removed - messages sent directly via eVotersUnited.org
+    const deliveryMethod = 'evotersunited'; // Always use eVotersUnited.org
     const [notificationEmail, setNotificationEmail] = useState('');
     const [bccEmails, setBccEmails] = useState<string[]>(['']);
     const [currentLetterIndex, setCurrentLetterIndex] = useState(0);

@@ -1059,7 +1059,7 @@ export default function Home() {
         <div className="hidden md:block py-10">
           <div className="px-4">
             <div className="flex items-center justify-between mb-4">
-              <div className="text-2xl font-medium">eGutenbergPress.org</div>
+              <div className="text-2xl font-medium">eVotersUnited.org</div>
               <div className="flex items-center gap-2">
                 <button
                   className={`cursor-pointer transition-colors text-sm px-4 py-1.5 rounded-full border ${
@@ -1109,7 +1109,7 @@ export default function Home() {
         {/* Mobile Filters and Headline */}
         <div className="md:hidden">
           <div className="px-4 py-6">
-            <div className="text-2xl font-medium mb-4">eGutenbergPress.org</div>
+            <div className="text-2xl font-medium mb-4">eVotersUnited.org</div>
             <div className="flex gap-2 overflow-x-auto">
               <button
                 className={`cursor-pointer transition-colors text-sm px-4 py-1.5 rounded-full border whitespace-nowrap ${

@@ -1,6 +1,6 @@
 # Advocacy Form Flow Documentation
 
-Quick reference guide for all advocacy form flows in the eGutenberg Platform.
+Quick reference guide for all advocacy form flows in the eVotersUnited.org Platform.
 
 ---
 
@@ -360,7 +360,7 @@ Optional: `candidate1Bio`, `candidate2Bio`
   - ✅ Step numbering consolidated to sequential 1-9 (previously 1,2,3,4,6,7,8,10,11,12)
   - ✅ All navigation logic (forward and back buttons) updated
   - ✅ Progress indicators updated for both Bill and Issue flows
-  - Messages now sent directly via eGutenberg
+  - Messages now sent directly via eVotersUnited.org
 
 ---
 

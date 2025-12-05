@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: { params: Promise<{ policy: s
   }
 
   return {
-    title: `${policyTitle} News & Action | eGutenberg Press`,
+    title: `${policyTitle} News & Action | eVotersUnited.org`,
     description: `Stay informed about ${policyTitle.toLowerCase()} legislation and policy developments. Track bills, connect with advocacy groups, and make your voice heard.`,
   };
 }

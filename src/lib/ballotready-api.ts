@@ -52,6 +52,7 @@ export interface Person {
   lastName?: string;
   middleName?: string;
   nickname?: string;
+  suffix?: string;
   contacts: Contact[];
   urls: Url[];
   headshot?: {
@@ -60,10 +61,19 @@ export interface Person {
 }
 
 export interface Position {
+  id?: string;
   name: string;
   level: 'FEDERAL' | 'STATE' | 'COUNTY' | 'LOCAL' | 'CITY' | 'REGIONAL';
   description?: string;
   state?: string;
+  mtfcc?: string;
+  geoId?: string;
+  normalizedPosition?: {
+    name?: string;
+  };
+  electionFrequencies?: Array<{
+    frequency?: string;
+  }>;
 }
 
 export interface OfficeHolder {
@@ -303,6 +313,7 @@ export async function getOfficeHolderById(
 
   try {
     // Use the Relay node query with inline fragment for OfficeHolder
+    // Fetching extended fields for detailed view
     const query = `
       query GetOfficeHolder($id: ID!) {
         node(id: $id) {
@@ -320,6 +331,7 @@ export async function getOfficeHolderById(
               lastName
               middleName
               nickname
+              suffix
               headshot {
                 thumbnailUrl
               }
@@ -335,10 +347,19 @@ export async function getOfficeHolderById(
               }
             }
             position {
+              id
               name
               level
               description
               state
+              mtfcc
+              geoId
+              normalizedPosition {
+                name
+              }
+              electionFrequencies {
+                frequency
+              }
             }
             addresses {
               addressLine1

@@ -40,6 +40,6 @@ export default function IssuesPage() {
 }
 
 export const metadata = {
-  title: 'Policy Issues | eGutenberg Press',
+  title: 'Policy Issues | eVotersUnited.org',
   description: 'Explore policy issues and legislation across various categories.',
 };
