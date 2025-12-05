@@ -3,6 +3,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface PollCampaignFeedCardProps {
@@ -29,21 +30,21 @@ export function PollCampaignFeedCard({
   choices = []
 }: PollCampaignFeedCardProps) {
   return (
-    <Card className="w-full">
+    <Card className="relative w-full overflow-hidden">
       <CardContent className="p-6">
-        {/* Header with Badge and Organization */}
-        <div className="flex items-center gap-2 mb-4">
-          <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-200">
-            Poll
-          </Badge>
-          <span className="text-sm text-muted-foreground">{groupName}</span>
+        <Badge variant="secondary" className="mb-2 w-fit text-xs px-2 py-1 bg-purple-100 text-purple-700">
+          Poll
+        </Badge>
+
+        <div className="text-xs text-muted-foreground mb-2">
+          {groupName}
         </div>
 
-        {/* Title */}
-        <h3 className="text-2xl font-bold mb-2">{pollTitle}</h3>
+        <h3 className="text-base md:text-lg font-bold mb-3">{pollTitle}</h3>
 
-        {/* Question */}
-        <h4 className="text-lg text-muted-foreground mb-4">{pollQuestion}</h4>
+        <p className="text-muted-foreground text-sm mb-4">
+          {pollQuestion}
+        </p>
 
         {/* Description */}
         {description && (
@@ -52,22 +53,22 @@ export function PollCampaignFeedCard({
           </p>
         )}
 
-        {/* Options */}
+        {/* Stacked options layout */}
         {choices && choices.length > 0 && (
-          <div className="mb-6">
-            <h5 className="font-semibold mb-2">Options</h5>
-            <ul className="list-disc list-inside space-y-1">
-              {choices.map((choice, index) => (
-                <li key={index} className="text-sm text-muted-foreground">{choice}</li>
-              ))}
-            </ul>
+          <div className="grid grid-cols-1 gap-3 mb-4">
+            {choices.map((choice, index) => (
+              <div key={index} className="p-3 rounded-lg border border-border">
+                <div className="font-semibold text-sm">{choice}</div>
+              </div>
+            ))}
           </div>
         )}
 
         {/* Action Button */}
-        <Button asChild size="lg" className="w-full">
+        <Button asChild size="sm" variant="default" className="w-full md:w-auto">
           <Link href={`/advocacy-message?poll=${pollId}`}>
             Voice your opinion
+            <ArrowRight className="ml-1 h-3 w-3" />
           </Link>
         </Button>
       </CardContent>

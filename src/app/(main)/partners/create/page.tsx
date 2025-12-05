@@ -17,6 +17,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Search, Loader2, X, Plus } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { campaignsService, DashboardSelection } from '@/lib/campaigns';
 import type { Bill } from '@/types';
@@ -96,6 +97,9 @@ function CreateCampaignPageContent() {
     const [pollImageFile, setPollImageFile] = useState<File | null>(null);
     const [pollImagePreview, setPollImagePreview] = useState<string>('');
     const [pollChoices, setPollChoices] = useState<string[]>(['', '']);
+
+    // Discoverability
+    const [isDiscoverable, setIsDiscoverable] = useState(true);
 
     // Debounced search function
     const searchBills = useCallback(
@@ -201,7 +205,8 @@ function CreateCampaignPageContent() {
                 actionButtonText,
                 campaignType,
                 startDate,
-                endDate
+                endDate,
+                isDiscoverable
             };
 
             // Add member information if creating campaign for a member
@@ -743,6 +748,24 @@ function CreateCampaignPageContent() {
                                 onChange={(e) => setEndDate(e.target.value)}
                                 min={startDate}
                             />
+                        </div>
+                    </div>
+
+                    {/* Discoverability */}
+                    <div className="flex items-start space-x-3 pt-2">
+                        <Checkbox
+                            id="is-discoverable"
+                            checked={isDiscoverable}
+                            onCheckedChange={(checked) => setIsDiscoverable(checked === true)}
+                        />
+                        <div className="space-y-1">
+                            <Label htmlFor="is-discoverable" className="cursor-pointer">
+                                Allow campaign to be discovered through navigation
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                                When enabled, this campaign will appear on the homepage feed and organization detail page.
+                                Disable this if you only want users to access the campaign via direct link.
+                            </p>
                         </div>
                     </div>
 

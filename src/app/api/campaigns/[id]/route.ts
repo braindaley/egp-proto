@@ -52,6 +52,7 @@ export async function GET(
         actionButtonText: staticCampaign.actionButtonText,
         supportCount: staticCampaign.supportCount,
         opposeCount: staticCampaign.opposeCount,
+        isDiscoverable: staticCampaign.isDiscoverable !== false, // Default to true
         isStatic: true
       };
       return NextResponse.json({ campaign });

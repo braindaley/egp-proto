@@ -1383,7 +1383,7 @@ export default function Home() {
                       <div className="flex items-center justify-between">
                         <Button size="sm" variant="outline" className="text-xs" asChild>
                           <Link href={`/advocacy-message?issue=${encodeURIComponent(item.category)}`}>
-                            Voice Opinion
+                            Send Message
                           </Link>
                         </Button>
                         <Eye className="h-4 w-4 text-muted-foreground" />
@@ -1431,7 +1431,7 @@ export default function Home() {
                       <div className="flex items-center justify-between">
                         <Button size="sm" variant="outline" className="text-xs" asChild>
                           <Link href={`/advocacy-message?issue=${encodeURIComponent(item.category)}`}>
-                            Voice Opinion
+                            Send Message
                           </Link>
                         </Button>
                         <Eye className="h-4 w-4 text-muted-foreground" />

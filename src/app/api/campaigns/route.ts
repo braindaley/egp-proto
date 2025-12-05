@@ -33,7 +33,8 @@ export async function POST(request: Request) {
       candidate,
       poll,
       bioguideId,
-      memberInfo
+      memberInfo,
+      isDiscoverable = true
     } = body;
 
     // Get userId if not provided
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
       supportCount: 0,
       opposeCount: 0,
       isActive: true,
+      isDiscoverable: isDiscoverable,
       createdAt: new Date(),
       updatedAt: new Date(),
       // Add member targeting fields if provided

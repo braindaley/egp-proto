@@ -46,6 +46,7 @@ export interface Campaign {
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+  isDiscoverable?: boolean; // Whether campaign appears in navigation (homepage feed, org detail page)
 }
 
 // User selection types for partners dashboard

@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Loader2, ArrowLeft, Pause, Play, Plus, X } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -75,6 +76,7 @@ export default function EditCampaignPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isPaused, setIsPaused] = useState(false);
+    const [isDiscoverable, setIsDiscoverable] = useState(true);
 
     // Candidate fields
     const [candidate1Name, setCandidate1Name] = useState('');
@@ -124,6 +126,7 @@ export default function EditCampaignPage() {
                 setReasoning(foundCampaign.reasoning || '');
                 setActionButtonText(foundCampaign.actionButtonText || 'Voice your opinion');
                 setIsPaused(foundCampaign.isPaused || false);
+                setIsDiscoverable(foundCampaign.isDiscoverable !== false); // Default to true if not set
 
                 // Set candidate fields if this is a candidate campaign
                 if ((foundCampaign.campaignType === 'Candidate' || foundCampaign.campaignType === 'Candidate Advocacy') && foundCampaign.candidate) {
@@ -217,6 +220,7 @@ export default function EditCampaignPage() {
                         position,
                         reasoning,
                         actionButtonText,
+                        isDiscoverable,
                         ...((campaign.campaignType === 'Candidate' || campaign.campaignType === 'Candidate Advocacy') && {
                             candidate: {
                                 candidate1Name,
@@ -639,6 +643,23 @@ export default function EditCampaignPage() {
                         </div>
                     )}
 
+                    {/* Discoverability */}
+                    <div className="flex items-start space-x-3 pt-2">
+                        <Checkbox
+                            id="is-discoverable"
+                            checked={isDiscoverable}
+                            onCheckedChange={(checked) => setIsDiscoverable(checked === true)}
+                        />
+                        <div className="space-y-1">
+                            <Label htmlFor="is-discoverable" className="cursor-pointer">
+                                Allow campaign to be discovered through navigation
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                                When enabled, this campaign will appear on the homepage feed and organization detail page.
+                                Disable this if you only want users to access the campaign via direct link.
+                            </p>
+                        </div>
+                    </div>
 
                     {/* Actions */}
                     <div className="flex flex-wrap gap-4 pt-4">

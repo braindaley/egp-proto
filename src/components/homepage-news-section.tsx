@@ -732,10 +732,10 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
           >
             {isFederal && 'bioguideId' in rep ? (
               <Link href={`/advocacy-message?member=${rep.bioguideId}&congress=119`}>
-                Voice Opinion
+                Send Message
               </Link>
             ) : (
-              <div>Voice Opinion</div>
+              <div>Send Message</div>
             )}
           </Button>
         </div>

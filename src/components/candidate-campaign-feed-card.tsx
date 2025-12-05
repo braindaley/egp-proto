@@ -71,8 +71,8 @@ export function CandidateCampaignFeedCard({
           {candidate1Name} vs {candidate2Name}
         </h3>
 
-        {/* Two-column candidate layout */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        {/* Stacked candidate layout */}
+        <div className="grid grid-cols-1 gap-3 mb-4">
           <div className={`p-3 rounded-lg border ${selectedCandidate === 1 ? 'border-primary bg-primary/5' : 'border-border'}`}>
             <div className="font-semibold text-sm mb-1">{candidate1Name}</div>
             {candidate1Bio && (

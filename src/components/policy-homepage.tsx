@@ -1601,7 +1601,7 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
                       <h4 className="text-base font-semibold mb-4 line-clamp-2">{story.headline}</h4>
                       <div className="flex items-center justify-between">
                         <Button size="sm" variant="outline" className="text-xs">
-                          Voice Opinion
+                          Send Message
                         </Button>
                         <Eye className="h-4 w-4 text-muted-foreground" />
                       </div>
@@ -1905,7 +1905,7 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
                         </div>
                         <div className="flex items-center justify-between">
                           <Button size="sm" variant="outline" className="text-xs">
-                            Voice Opinion
+                            Send Message
                           </Button>
                           <Eye className="h-4 w-4 text-muted-foreground" />
                         </div>
@@ -1940,7 +1940,7 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
                         </div>
                         <div className="flex items-center justify-between">
                           <Button size="sm" variant="outline" className="text-xs">
-                            Voice Opinion
+                            Send Message
                           </Button>
                           <Eye className="h-4 w-4 text-muted-foreground" />
                         </div>
