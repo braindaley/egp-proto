@@ -29,6 +29,8 @@ import {
   Facebook,
   Twitter,
 } from 'lucide-react';
+import { usePremiumAccess } from '@/hooks/use-premium-access';
+import { PremiumUpgradeCTA } from '@/components/premium-upgrade-cta';
 
 interface Contact {
   email?: string;
@@ -167,6 +169,7 @@ export default function OfficialDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const { isPremium, isLoading: premiumLoading } = usePremiumAccess();
 
   const [official, setOfficial] = useState<OfficeHolder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -174,7 +177,7 @@ export default function OfficialDetailPage() {
 
   useEffect(() => {
     const fetchOfficial = async () => {
-      if (!id) return;
+      if (!id || !isPremium) return;
 
       try {
         setLoading(true);
@@ -195,7 +198,18 @@ export default function OfficialDetailPage() {
     };
 
     fetchOfficial();
-  }, [id]);
+  }, [id, isPremium]);
+
+  // Show premium upgrade CTA for non-premium users
+  if (!premiumLoading && !isPremium) {
+    return (
+      <PremiumUpgradeCTA
+        variant="full-page"
+        title="Elected Official Details"
+        description="Access detailed information about all your elected officials with a premium membership."
+      />
+    );
+  }
 
   if (loading) {
     return (

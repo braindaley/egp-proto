@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
+import { usePremiumAccess } from '@/hooks/use-premium-access';
+import { PremiumUpgradeCTA } from '@/components/premium-upgrade-cta';
 
 export const dynamic = 'force-dynamic';
 
@@ -266,6 +268,7 @@ function OfficialSection({
 export default function ElectedOfficialsPage() {
   const { user, isInitialLoadComplete } = useAuth();
   const { zipCode: savedZipCode } = useZipCode();
+  const { isPremium, isLoading: premiumLoading } = usePremiumAccess();
   const zipToUse = user?.zipCode || savedZipCode || '';
   const stateCode = getStateFromZip(zipToUse);
 
@@ -283,7 +286,8 @@ export default function ElectedOfficialsPage() {
   // Fetch federal representative images with caching
   useEffect(() => {
     const fetchMemberImages = async () => {
-      if (!federalReps || federalReps.length === 0) {
+      // Skip if not premium to avoid unnecessary API calls
+      if (!isPremium || !federalReps || federalReps.length === 0) {
         setFederalRepsWithImages([]);
         return;
       }
@@ -340,7 +344,7 @@ export default function ElectedOfficialsPage() {
     };
 
     fetchMemberImages();
-  }, [federalReps]);
+  }, [federalReps, isPremium]);
 
   // Build full address for more accurate BallotReady lookup
   const fullAddress = user?.address && user?.city && user?.state && user?.zipCode
@@ -351,6 +355,12 @@ export default function ElectedOfficialsPage() {
   // Fetch Ballot Ready officials for non-federal levels
   // Using full address is more accurate than ZIP code for district matching
   useEffect(() => {
+    // Skip if not premium to avoid unnecessary API calls
+    if (!isPremium) {
+      setBallotReadyLoading(false);
+      return;
+    }
+
     // Wait for auth to complete before deciding we only have ZIP
     // This prevents fetching with ZIP when the user might have a full address
     if (!isInitialLoadComplete && !fullAddress) {
@@ -409,7 +419,7 @@ export default function ElectedOfficialsPage() {
     };
 
     fetchBallotReadyOfficials();
-  }, [zipToUse, fullAddress, isInitialLoadComplete]);
+  }, [zipToUse, fullAddress, isInitialLoadComplete, isPremium]);
 
   // Sort federal representatives: Senators first, then House rep
   const sortedFederalReps = [...federalRepsWithImages].sort((a, b) => {
@@ -419,6 +429,17 @@ export default function ElectedOfficialsPage() {
     if (!aIsSenator && bIsSenator) return 1;
     return 0;
   });
+
+  // Show premium upgrade CTA for non-premium users
+  if (!premiumLoading && !isPremium) {
+    return (
+      <PremiumUpgradeCTA
+        variant="full-page"
+        title="All Elected Officials"
+        description="Access all your elected officials at every level of government with a premium membership."
+      />
+    );
+  }
 
   // Show loading if we don't have zip code yet
   if (!zipToUse) {

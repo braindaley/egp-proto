@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRight, Calendar, FileText, Users, ExternalLink, Loader2 } from 'lucide-react';
+import { usePremiumAccess } from '@/hooks/use-premium-access';
+import { PremiumUpgradeCTA } from '@/components/premium-upgrade-cta';
 
 const states = [
   { name: 'Alabama', abbr: 'AL' }, { name: 'Alaska', abbr: 'AK' },
@@ -40,7 +42,8 @@ const states = [
 export default function StateOverviewPage() {
   const params = useParams();
   const stateCode = (params.state as string)?.toUpperCase();
-  
+  const { isPremium, isLoading: premiumLoading } = usePremiumAccess();
+
   const [sessions, setSessions] = useState<any[]>([]);
   const [currentSession, setCurrentSession] = useState<any | null>(null);
   const [recentBills, setRecentBills] = useState<any[]>([]);
@@ -52,6 +55,17 @@ export default function StateOverviewPage() {
   const [apiError, setApiError] = useState<string | null>(null);
 
   const stateName = states.find(s => s.abbr === stateCode)?.name || stateCode;
+
+  // Show premium upgrade CTA for non-premium users
+  if (!premiumLoading && !isPremium) {
+    return (
+      <PremiumUpgradeCTA
+        variant="full-page"
+        title="State Legislation"
+        description={`Access ${stateName} bills, legislators, and legislative sessions with a premium membership.`}
+      />
+    );
+  }
 
   const getStatusText = (status: number) => {
     const statusMap: { [key: number]: string } = {

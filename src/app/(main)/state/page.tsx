@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Users, FileText } from 'lucide-react';
+import { usePremiumAccess } from '@/hooks/use-premium-access';
+import { PremiumUpgradeCTA } from '@/components/premium-upgrade-cta';
 
 const states = [
   { name: 'Alabama', abbr: 'AL', capital: 'Montgomery' }, 
@@ -59,6 +61,30 @@ const states = [
 ];
 
 export default function StateListingPage() {
+  const { isPremium, isLoading } = usePremiumAccess();
+
+  // Show loading state briefly
+  if (isLoading) {
+    return (
+      <div className="bg-secondary/30 flex-1">
+        <div className="container mx-auto px-4 py-12 text-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show premium upgrade CTA for non-premium users
+  if (!isPremium) {
+    return (
+      <PremiumUpgradeCTA
+        variant="full-page"
+        title="State Legislation"
+        description="Access state bills, legislators, and legislative sessions with a premium membership."
+      />
+    );
+  }
+
   return (
     <div className="bg-secondary/30 flex-1">
       <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">

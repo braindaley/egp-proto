@@ -10,6 +10,8 @@ import { campaignsService } from '@/lib/campaigns';
 import { useAuth } from '@/hooks/use-auth';
 import { HomeAdvocacySummary } from '@/components/home-advocacy-summary';
 import { useZipCode } from '@/hooks/use-zip-code';
+import { usePremiumAccess } from '@/hooks/use-premium-access';
+import { PremiumUpgradeCTA } from '@/components/premium-upgrade-cta';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { BillProgress } from '@/components/BillProgress';
@@ -227,6 +229,7 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
   const { user, loading: authLoading } = useAuth();
   const { zipCode } = useZipCode();
   const { representatives: federalReps, isLoading: federalLoading } = useMembersByZip(zipCode);
+  const { isPremium } = usePremiumAccess();
   // Mix up the stories to get diverse categories
   // Instead of taking the first 3 (all abortion), let's pick from different positions
   const firstStory = newsStories[4];  // Climate story (index 4)
@@ -836,8 +839,8 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
               </div>
             </div>
 
-            {/* State Representatives */}
-            {zipCode && userState && (
+            {/* State Representatives - Premium Only */}
+            {isPremium && zipCode && userState && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <h3 className="text-base font-semibold">My State Representatives</h3>
@@ -856,15 +859,33 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
                 </div>
               </div>
             )}
+            {/* Premium upgrade CTA for state representatives when not premium */}
+            {!isPremium && zipCode && userState && (
+              <PremiumUpgradeCTA
+                variant="compact"
+                title="State Representatives"
+                description="Upgrade to see your state legislators"
+              />
+            )}
 
-            {/* View All Elected Officials */}
-            <div>
-              <Button asChild variant="default" size="sm">
-                <Link href="/elected-officials">
-                  View all elected officials
-                </Link>
-              </Button>
-            </div>
+            {/* View All Elected Officials - Premium Only */}
+            {isPremium && (
+              <div>
+                <Button asChild variant="default" size="sm">
+                  <Link href="/elected-officials">
+                    View all elected officials
+                  </Link>
+                </Button>
+              </div>
+            )}
+            {/* Premium upgrade CTA for elected officials when not premium */}
+            {!isPremium && (
+              <PremiumUpgradeCTA
+                variant="compact"
+                title="All Elected Officials"
+                description="Upgrade to view all your representatives"
+              />
+            )}
           </div>
 
           {/* Column 3: Recent Campaigns and Latest Bills - 3 columns */}
@@ -942,8 +963,8 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
                 </ul>
               </div>
 
-              {/* State Bills */}
-              {userState && (
+              {/* State Bills - Premium Only */}
+              {isPremium && userState && (
                 <div>
                   <h3 className="text-lg font-bold mb-4">Important bills in {userState.name}</h3>
                   <ul className="space-y-2 list-disc list-inside">
@@ -964,6 +985,14 @@ export function HomepageNewsSection({ newsStories }: HomepageNewsSectionProps) {
                     )}
                   </ul>
                 </div>
+              )}
+              {/* Premium upgrade CTA for state bills when not premium */}
+              {!isPremium && userState && (
+                <PremiumUpgradeCTA
+                  variant="compact"
+                  title="State Legislation"
+                  description="Upgrade to view important bills in your state"
+                />
               )}
             </div>
           </div>

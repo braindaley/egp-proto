@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRight, Calendar, Users, Search, Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
+import { usePremiumAccess } from '@/hooks/use-premium-access';
+import { PremiumUpgradeCTA } from '@/components/premium-upgrade-cta';
 
 const states = [
   { name: 'Alabama', abbr: 'AL' }, { name: 'Alaska', abbr: 'AK' },
@@ -41,7 +43,8 @@ const states = [
 export default function StateMembersPage() {
   const params = useParams();
   const stateCode = (params.state as string)?.toUpperCase();
-  
+  const { isPremium, isLoading: premiumLoading } = usePremiumAccess();
+
   const [sessions, setSessions] = useState<any[]>([]);
   const [currentSession, setCurrentSession] = useState<any | null>(null);
   const [members, setMembers] = useState<any[]>([]);
@@ -53,6 +56,17 @@ export default function StateMembersPage() {
   const [partyFilter, setPartyFilter] = useState('all');
 
   const stateName = states.find(s => s.abbr === stateCode)?.name || stateCode;
+
+  // Show premium upgrade CTA for non-premium users
+  if (!premiumLoading && !isPremium) {
+    return (
+      <PremiumUpgradeCTA
+        variant="full-page"
+        title="State Legislators"
+        description={`Access ${stateName} legislators and their contact information with a premium membership.`}
+      />
+    );
+  }
 
   // Fetch sessions for this state
   useEffect(() => {

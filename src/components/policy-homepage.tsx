@@ -19,6 +19,8 @@ import { PopularBills } from '@/components/popular-bills';
 import { HomepageNewsSection } from '@/components/homepage-news-section';
 import USMap from '@/components/USMap';
 import { useZipCode } from '@/hooks/use-zip-code';
+import { usePremiumAccess } from '@/hooks/use-premium-access';
+import { PremiumUpgradeCTA } from '@/components/premium-upgrade-cta';
 
 interface PolicyHomepageProps {
   policyCategory: string;
@@ -27,6 +29,7 @@ interface PolicyHomepageProps {
 export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>(policyCategory.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and'));
   const { zipCode } = useZipCode();
+  const { isPremium } = usePremiumAccess();
 
   // State for the new sections
   const [latestBills, setLatestBills] = useState<any[]>([]);
@@ -1671,8 +1674,8 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
                   </ul>
                 </div>
 
-                {/* Important bills in [State] */}
-                {currentUserState && (
+                {/* Important bills in [State] - Premium Only */}
+                {isPremium && currentUserState && (
                   <div>
                     <h3 className="text-lg font-bold mb-4">Important bills in {currentUserState.name}</h3>
                     <ul className="space-y-2 list-disc list-inside">
@@ -1693,6 +1696,14 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
                       )}
                     </ul>
                   </div>
+                )}
+                {/* Premium upgrade CTA for state bills when not premium */}
+                {!isPremium && currentUserState && (
+                  <PremiumUpgradeCTA
+                    variant="compact"
+                    title="State Legislation"
+                    description="Upgrade to view important bills in your state"
+                  />
                 )}
               </div>
             </div>

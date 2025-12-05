@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, ArrowLeft, FileText, Calendar, Users, ExternalLink, Loader2, Vote, Clock, User, Building, Tags } from 'lucide-react';
 import { processLegiscanBillSubjects } from '@/lib/legiscan-subjects';
+import { usePremiumAccess } from '@/hooks/use-premium-access';
+import { PremiumUpgradeCTA } from '@/components/premium-upgrade-cta';
 
 const states = [
   { name: 'Alabama', abbr: 'AL' }, { name: 'Alaska', abbr: 'AK' },
@@ -41,13 +43,25 @@ export default function BillDetailPage() {
   const params = useParams();
   const stateCode = (params.state as string)?.toUpperCase();
   const billNumber = params.bill_number as string;
-  
+  const { isPremium, isLoading: premiumLoading } = usePremiumAccess();
+
   const [currentSession, setCurrentSession] = useState<any | null>(null);
   const [bill, setBill] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const stateName = states.find(s => s.abbr === stateCode)?.name || stateCode;
+
+  // Show premium upgrade CTA for non-premium users
+  if (!premiumLoading && !isPremium) {
+    return (
+      <PremiumUpgradeCTA
+        variant="full-page"
+        title="State Bill Details"
+        description={`Access detailed information about ${stateName} bills with a premium membership.`}
+      />
+    );
+  }
 
   // Fetch most recent session for this state
   useEffect(() => {

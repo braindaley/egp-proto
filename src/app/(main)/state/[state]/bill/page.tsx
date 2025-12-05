@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRight, Calendar, FileText, Search, Loader2, ArrowLeft } from 'lucide-react';
+import { usePremiumAccess } from '@/hooks/use-premium-access';
+import { PremiumUpgradeCTA } from '@/components/premium-upgrade-cta';
 
 const states = [
   { name: 'Alabama', abbr: 'AL' }, { name: 'Alaska', abbr: 'AK' },
@@ -52,7 +54,8 @@ export default function StateBillsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const stateCode = (params.state as string)?.toUpperCase();
-  
+  const { isPremium, isLoading: premiumLoading } = usePremiumAccess();
+
   const [sessions, setSessions] = useState<any[]>([]);
   const [currentSession, setCurrentSession] = useState<any | null>(null);
   const [bills, setBills] = useState<any[]>([]);
@@ -63,6 +66,17 @@ export default function StateBillsPage() {
   const [statusFilter, setStatusFilter] = useState(searchParams?.get('status') || 'all');
 
   const stateName = states.find(s => s.abbr === stateCode)?.name || stateCode;
+
+  // Show premium upgrade CTA for non-premium users
+  if (!premiumLoading && !isPremium) {
+    return (
+      <PremiumUpgradeCTA
+        variant="full-page"
+        title="State Bills"
+        description={`Access ${stateName} legislation and bill tracking with a premium membership.`}
+      />
+    );
+  }
 
   // Fetch sessions for this state
   useEffect(() => {
