@@ -505,11 +505,13 @@ export default function DashboardPage() {
                                                     <CardContent className="p-0 flex flex-col justify-between flex-1">
                                                         <div>
                                                             <p className="text-sm text-muted-foreground mb-2">
-                                                                Current plan: <span className="font-medium">Free</span>
+                                                                Current plan: <span className="font-medium">{testAsPremium ? 'Premium' : 'Free'}</span>
                                                             </p>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Upgrade to Premium for exclusive features and benefits.
-                                                            </p>
+                                                            {!testAsPremium && (
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    Upgrade to Premium for exclusive features and benefits.
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </CardContent>
                                                 </Card>

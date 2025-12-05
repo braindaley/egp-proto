@@ -2,15 +2,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getFirestore, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { format, formatDistanceToNow } from 'date-fns';
-import { Mail, FileText, Users, Clock, CheckCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { Reply } from 'lucide-react';
+
+interface MessageReply {
+  id: string;
+  from: string;
+  fromTitle?: string;
+  receivedAt: any;
+  content: string;
+  isRead?: boolean;
+}
 
 interface MessageActivity {
   id: string;
@@ -43,6 +49,7 @@ interface MessageActivity {
   userInfo?: any;
   isGeneralAdvocacy?: boolean;
   topic?: string;
+  replies?: MessageReply[];
 }
 
 interface GroupedMessages {
@@ -161,8 +168,9 @@ const MessageHistory: React.FC = () => {
             <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
               <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
                 <div className="col-span-4">Recipients</div>
-                <div className="col-span-5">Subject</div>
-                <div className="col-span-3">Date</div>
+                <div className="col-span-4">Subject</div>
+                <div className="col-span-2">Date</div>
+                <div className="col-span-2">Status</div>
               </div>
             </div>
 
@@ -184,7 +192,7 @@ const MessageHistory: React.FC = () => {
                       </div>
 
                       {/* Subject */}
-                      <div className="col-span-5">
+                      <div className="col-span-4">
                         <div className="text-sm text-gray-900 truncate">
                           {activity.isGeneralAdvocacy || (!activity.billNumber && !activity.billType) ?
                             `${activity.topic || 'General Advocacy'} - ${activity.recipients.map(r => r.name).join(', ')}` :
@@ -196,10 +204,27 @@ const MessageHistory: React.FC = () => {
                       </div>
 
                       {/* Date */}
-                      <div className="col-span-3">
+                      <div className="col-span-2">
                         <div className="text-sm text-gray-500">
                           {format(activity.sentAt?.toDate() || new Date(), 'MMM d, yyyy')}
                         </div>
+                      </div>
+
+                      {/* Status */}
+                      <div className="col-span-2 flex items-center gap-2">
+                        {activity.replies && activity.replies.length > 0 ? (
+                          <div className="flex items-center gap-1.5">
+                            <Reply className="h-4 w-4 text-blue-600" />
+                            <span className="text-sm font-medium text-blue-600">
+                              {activity.replies.length} {activity.replies.length === 1 ? 'Reply' : 'Replies'}
+                            </span>
+                            {activity.replies.some(r => !r.isRead) && (
+                              <span className="h-2 w-2 bg-blue-600 rounded-full" />
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">Sent</span>
+                        )}
                       </div>
                     </div>
                   </div>
