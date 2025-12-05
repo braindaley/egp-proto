@@ -225,13 +225,21 @@ const AdvocacyMessageContent: React.FC = () => {
     const recipientDistrict = searchParams.get('recipientDistrict');
     const recipientJurisdiction = searchParams.get('recipientJurisdiction');
 
-    // Check if this is a local official contact flow
+    // Ballot Ready official params (for elected-officials page)
+    const officialName = searchParams.get('officialName');
+    const officialPosition = searchParams.get('position');
+
+    // Check if this is a local official contact flow (requires email for direct contact)
     const isLocalOfficialFlow = !!recipientName && !!recipientEmail;
 
+    // Check if this is a Ballot Ready official contact flow (no email required)
+    const isBallotReadyOfficialFlow = !!officialName && !!officialPosition && !memberBioguideId;
+
     // Check if this is a member contact flow (not bill-specific)
-    // Either has member param OR has issue param but no bill params
+    // Either has member param, issue param, or Ballot Ready official params
     const isMemberContact = (!!memberBioguideId && !billType && !billNumber) ||
-        (!!policyIssueParam && !billType && !billNumber && !memberBioguideId);
+        (!!policyIssueParam && !billType && !billNumber && !memberBioguideId) ||
+        isBallotReadyOfficialFlow;
 
     // Check if this is a poll flow
     const isPollFlow = !!pollId;
@@ -365,13 +373,14 @@ const AdvocacyMessageContent: React.FC = () => {
         // Check if user is logged in with address (skipped verification)
         const skippedVerification = !!(user && (user.address || (user.city && user.state && user.zipCode)));
 
-        if (isLocalOfficialFlow) {
-            // Local official flow: Write → Personal → Review → Success
+        if (isLocalOfficialFlow || isBallotReadyOfficialFlow) {
+            // Local official / Ballot Ready official flow: Policy → Write → Personal → Review → Success
             // Simplified flow since recipient is already selected
-            if (step === 4) return 1; // Write Your Message
-            if (step === 6) return 2; // Personal Information
-            if (step === 7) return 3; // Review Message
-            if (step === 8) return 4; // Success screen
+            if (step === 2) return 1; // Choose policy issue (Ballot Ready officials)
+            if (step === 4) return isBallotReadyOfficialFlow ? 2 : 1; // Write Your Message
+            if (step === 6) return isBallotReadyOfficialFlow ? 3 : 2; // Personal Information
+            if (step === 7) return isBallotReadyOfficialFlow ? 4 : 3; // Review Message
+            if (step === 8) return isBallotReadyOfficialFlow ? 5 : 4; // Success screen
             return 0;
         } else if (isMemberContact) {
             // Member contact flow: Verification → Policy → Write → Select Recipients → Personal → Review → Success → Account
@@ -404,6 +413,13 @@ const AdvocacyMessageContent: React.FC = () => {
         if (isLocalOfficialFlow) {
             // Local official flow: Write → Personal → Review → Success
             if (step === 4) return; // Can't go back from first step (write message)
+            else if (step === 6) setStep(4); // Personal Info → Write Message (skip Select Recipients step 5)
+            else if (step === 7) setStep(6); // Review → Personal Info
+            else if (step === 8) setStep(7); // Success → Review
+        } else if (isBallotReadyOfficialFlow) {
+            // Ballot Ready official flow: Policy → Write → Personal → Review → Success
+            if (step === 2) return; // Can't go back from first step (policy issue)
+            else if (step === 4) setStep(2); // Write Message → Policy Issue
             else if (step === 6) setStep(4); // Personal Info → Write Message (skip Select Recipients step 5)
             else if (step === 7) setStep(6); // Review → Personal Info
             else if (step === 8) setStep(7); // Success → Review
@@ -578,6 +594,27 @@ const AdvocacyMessageContent: React.FC = () => {
         // Start at step 4 (write message) for local official flow since recipient is already selected
         setStep(4);
     }, [isLocalOfficialFlow, recipientName, recipientEmail, recipientTitle, recipientState, recipientDistrict, recipientJurisdiction]);
+
+    // Set up Ballot Ready official as selected member
+    useEffect(() => {
+        if (!isBallotReadyOfficialFlow || !officialName || !officialPosition) return;
+
+        const ballotReadyOfficial = {
+            name: officialName,
+            firstName: officialName.split(' ')[0],
+            lastName: officialName.split(' ').slice(1).join(' '),
+            title: officialPosition,
+            email: generateMemberEmail({ officialName }), // Generate placeholder email
+            jurisdiction: officialPosition.includes('State') ? 'State' :
+                         officialPosition.includes('County') ? 'County' :
+                         officialPosition.includes('City') ? 'City' : 'Local',
+            isBallotReadyOfficial: true, // Flag to identify Ballot Ready officials
+        };
+        setTargetMember(ballotReadyOfficial);
+        setSelectedMembers([ballotReadyOfficial]);
+        // Start at step 2 (policy issue) for Ballot Ready official flow
+        setStep(2);
+    }, [isBallotReadyOfficialFlow, officialName, officialPosition]);
 
     // Pre-select policy issue from URL parameter
     useEffect(() => {
@@ -1836,8 +1873,8 @@ const AdvocacyMessageContent: React.FC = () => {
                     </Button>
                     <Button
                         onClick={() => {
-                            if (isLocalOfficialFlow) {
-                                // Local official flow skips Select Recipients (already selected)
+                            if (isLocalOfficialFlow || isBallotReadyOfficialFlow) {
+                                // Local official and Ballot Ready official flows skip Select Recipients (already selected)
                                 setStep(6); // Go directly to Personal Info
                             } else {
                                 // Both Issue and Bill flows now go to Select Recipients step
