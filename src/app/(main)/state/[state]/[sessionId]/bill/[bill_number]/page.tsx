@@ -1,56 +1,39 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, ArrowLeft, FileText, Calendar, Users, ExternalLink, Loader2, Vote, Clock, User, Building, Tags } from 'lucide-react';
+import { ArrowRight, ArrowLeft, FileText, ExternalLink, Vote, Clock, User, Building, Tags } from 'lucide-react';
 import { processLegiscanBillSubjects } from '@/lib/legiscan-subjects';
 import { usePremiumAccess } from '@/hooks/use-premium-access';
 import { PremiumUpgradeCTA } from '@/components/premium-upgrade-cta';
 
-const states = [
-  { name: 'Alabama', abbr: 'AL' }, { name: 'Alaska', abbr: 'AK' },
-  { name: 'Arizona', abbr: 'AZ' }, { name: 'Arkansas', abbr: 'AR' },
-  { name: 'California', abbr: 'CA' }, { name: 'Colorado', abbr: 'CO' },
-  { name: 'Connecticut', abbr: 'CT' }, { name: 'Delaware', abbr: 'DE' },
-  { name: 'Florida', abbr: 'FL' }, { name: 'Georgia', abbr: 'GA' },
-  { name: 'Hawaii', abbr: 'HI' }, { name: 'Idaho', abbr: 'ID' },
-  { name: 'Illinois', abbr: 'IL' }, { name: 'Indiana', abbr: 'IN' },
-  { name: 'Iowa', abbr: 'IA' }, { name: 'Kansas', abbr: 'KS' },
-  { name: 'Kentucky', abbr: 'KY' }, { name: 'Louisiana', abbr: 'LA' },
-  { name: 'Maine', abbr: 'ME' }, { name: 'Maryland', abbr: 'MD' },
-  { name: 'Massachusetts', abbr: 'MA' }, { name: 'Michigan', abbr: 'MI' },
-  { name: 'Minnesota', abbr: 'MN' }, { name: 'Mississippi', abbr: 'MS' },
-  { name: 'Missouri', abbr: 'MO' }, { name: 'Montana', abbr: 'MT' },
-  { name: 'Nebraska', abbr: 'NE' }, { name: 'Nevada', abbr: 'NV' },
-  { name: 'New Hampshire', abbr: 'NH' }, { name: 'New Jersey', abbr: 'NJ' },
-  { name: 'New Mexico', abbr: 'NM' }, { name: 'New York', abbr: 'NY' },
-  { name: 'North Carolina', abbr: 'NC' }, { name: 'North Dakota', abbr: 'ND' },
-  { name: 'Ohio', abbr: 'OH' }, { name: 'Oklahoma', abbr: 'OK' },
-  { name: 'Oregon', abbr: 'OR' }, { name: 'Pennsylvania', abbr: 'PA' },
-  { name: 'Rhode Island', abbr: 'RI' }, { name: 'South Carolina', abbr: 'SC' },
-  { name: 'South Dakota', abbr: 'SD' }, { name: 'Tennessee', abbr: 'TN' },
-  { name: 'Texas', abbr: 'TX' }, { name: 'Utah', abbr: 'UT' },
-  { name: 'Vermont', abbr: 'VT' }, { name: 'Virginia', abbr: 'VA' },
-  { name: 'Washington', abbr: 'WA' }, { name: 'West Virginia', abbr: 'WV' },
-  { name: 'Wisconsin', abbr: 'WI' }, { name: 'Wyoming', abbr: 'WY' }
-];
+const states: Record<string, string> = {
+  al: 'Alabama', ak: 'Alaska', az: 'Arizona', ar: 'Arkansas', ca: 'California',
+  co: 'Colorado', ct: 'Connecticut', de: 'Delaware', fl: 'Florida', ga: 'Georgia',
+  hi: 'Hawaii', id: 'Idaho', il: 'Illinois', in: 'Indiana', ia: 'Iowa',
+  ks: 'Kansas', ky: 'Kentucky', la: 'Louisiana', me: 'Maine', md: 'Maryland',
+  ma: 'Massachusetts', mi: 'Michigan', mn: 'Minnesota', ms: 'Mississippi', mo: 'Missouri',
+  mt: 'Montana', ne: 'Nebraska', nv: 'Nevada', nh: 'New Hampshire', nj: 'New Jersey',
+  nm: 'New Mexico', ny: 'New York', nc: 'North Carolina', nd: 'North Dakota', oh: 'Ohio',
+  ok: 'Oklahoma', or: 'Oregon', pa: 'Pennsylvania', ri: 'Rhode Island', sc: 'South Carolina',
+  sd: 'South Dakota', tn: 'Tennessee', tx: 'Texas', ut: 'Utah', vt: 'Vermont',
+  va: 'Virginia', wa: 'Washington', wv: 'West Virginia', wi: 'Wisconsin', wy: 'Wyoming'
+};
 
-export default function BillDetailPage() {
-  const params = useParams();
-  const stateCode = (params.state as string)?.toUpperCase();
-  const billNumber = params.bill_number as string;
+export default function BillDetailPage({ params }: { params: Promise<{ state: string; sessionId: string; bill_number: string }> }) {
+  const { state: stateParam, sessionId, bill_number: billNumber } = use(params);
+  const stateCode = stateParam?.toUpperCase();
+  const stateName = states[stateParam?.toLowerCase()] || stateCode;
+  const decodedBillNumber = decodeURIComponent(billNumber);
+
   const { isPremium, isLoading: premiumLoading } = usePremiumAccess();
-
-  const [currentSession, setCurrentSession] = useState<any | null>(null);
+  const [sessionInfo, setSessionInfo] = useState<any>(null);
   const [bill, setBill] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const stateName = states.find(s => s.abbr === stateCode)?.name || stateCode;
 
   // Show premium upgrade CTA for non-premium users
   if (!premiumLoading && !isPremium) {
@@ -63,61 +46,40 @@ export default function BillDetailPage() {
     );
   }
 
-  // Fetch most recent session for this state
+  // Fetch session info and bill details
   useEffect(() => {
-    async function fetchCurrentSession() {
-      if (!stateCode) return;
-      
-      try {
-        const response = await fetch(`/api/legiscan?action=sessions&state=${stateCode}`);
-        const data = await response.json();
-        
-        if (data.status === 'success' && data.data?.sessions?.length > 0) {
-          const sessionsList = data.data.sessions;
-          const currentYear = new Date().getFullYear();
-          // Find the first session that's not a future prefile session
-          const activeSession = sessionsList.find((s: any) => 
-            !s.prefile && s.year_start <= currentYear && !s.special
-          );
-          const recentSession = sessionsList.find((s: any) => 
-            s.year_start <= currentYear && !s.special
-          );
-          // Use active session, or most recent non-future session, or fallback to first
-          setCurrentSession(activeSession || recentSession || sessionsList[0]);
-        }
-      } catch (error) {
-        console.error('Error fetching current session:', error);
-      }
-    }
+    async function fetchData() {
+      if (!stateCode || !sessionId || !decodedBillNumber) return;
 
-    fetchCurrentSession();
-  }, [stateCode]);
-
-  // Fetch bill details
-  useEffect(() => {
-    async function fetchBill() {
-      if (!currentSession || !billNumber) return;
-      
       setLoading(true);
       setError(null);
-      
+
       try {
+        // Fetch session info
+        const sessionsResponse = await fetch(`/api/legiscan?action=sessions&state=${stateCode}`);
+        const sessionsData = await sessionsResponse.json();
+        if (sessionsData.status === 'success' && sessionsData.data?.sessions) {
+          const session = sessionsData.data.sessions.find((s: any) => s.session_id.toString() === sessionId);
+          if (session) {
+            setSessionInfo(session);
+          }
+        }
+
         // First get masterlist to find the bill by bill_number
-        const response = await fetch(`/api/legiscan?action=masterlist&sessionId=${currentSession.session_id}`);
+        const response = await fetch(`/api/legiscan?action=masterlist&sessionId=${sessionId}`);
         const data = await response.json();
-        
+
         if (data.status === 'success' && data.data?.masterlist) {
-          // Filter out 'session' key and only get actual bill objects
           const bills = Object.entries(data.data.masterlist)
             .filter(([key, value]: [string, any]) => key !== 'session' && value.bill_id)
             .map(([_, bill]) => bill) as any[];
-          const foundBill = bills.find((b: any) => b.number === billNumber);
-          
+          const foundBill = bills.find((b: any) => b.number === decodedBillNumber);
+
           if (foundBill) {
             // Get detailed bill information
             const billResponse = await fetch(`/api/legiscan?action=bill&billId=${foundBill.bill_id}`);
             const billData = await billResponse.json();
-            
+
             if (billData.status === 'success' && billData.data?.bill) {
               setBill(billData.data.bill);
             } else {
@@ -138,8 +100,8 @@ export default function BillDetailPage() {
       }
     }
 
-    fetchBill();
-  }, [currentSession, billNumber]);
+    fetchData();
+  }, [stateCode, sessionId, decodedBillNumber]);
 
   const getStatusText = (status: number) => {
     const statusMap: { [key: number]: string } = {
@@ -156,23 +118,6 @@ export default function BillDetailPage() {
     };
     return variantMap[status] || 'outline';
   };
-
-  if (!currentSession) {
-    return (
-      <div className="bg-secondary/30 flex-1">
-        <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-muted-foreground mb-4">
-              Select a Legislative Session
-            </h1>
-            <p className="text-muted-foreground">
-              Please select a session from the header to view bill details.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (loading) {
     return (
@@ -198,7 +143,7 @@ export default function BillDetailPage() {
             </h1>
             <p className="text-muted-foreground mb-6">{error}</p>
             <Button asChild>
-              <Link href={`/state/${stateCode.toLowerCase()}/bill`}>
+              <Link href={`/state/${stateParam}/${sessionId}/bill`}>
                 View All Bills
               </Link>
             </Button>
@@ -208,6 +153,8 @@ export default function BillDetailPage() {
     );
   }
 
+  const sessionName = sessionInfo?.session_name || sessionInfo?.name || `Session ${sessionId}`;
+
   return (
     <div className="bg-secondary/30 flex-1">
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
@@ -216,20 +163,20 @@ export default function BillDetailPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
             <Link href="/state" className="hover:text-primary">State</Link>
             <ArrowRight className="h-3 w-3" />
-            <Link href={`/state/${stateCode.toLowerCase()}`} className="hover:text-primary">
+            <Link href={`/state/${stateParam}`} className="hover:text-primary">
               {stateName}
             </Link>
             <ArrowRight className="h-3 w-3" />
-            <Link href={`/state/${stateCode.toLowerCase()}/bill`} className="hover:text-primary">
+            <Link href={`/state/${stateParam}/${sessionId}/bill`} className="hover:text-primary">
               Bills
             </Link>
             <ArrowRight className="h-3 w-3" />
             <span>{bill.number || bill.bill_number}</span>
           </div>
-          
+
           <div className="flex items-center justify-between mb-6">
             <Button variant="outline" asChild>
-              <Link href={`/state/${stateCode.toLowerCase()}/bill`}>
+              <Link href={`/state/${stateParam}/${sessionId}/bill`}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Bills
               </Link>
@@ -261,7 +208,7 @@ export default function BillDetailPage() {
                 </CardTitle>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-8">
               {/* Description */}
               {bill.description && (
@@ -314,12 +261,14 @@ export default function BillDetailPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Session:</span>
-                      <span>{currentSession.session_name || currentSession.name}</span>
+                      <span>{sessionName}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Years:</span>
-                      <span>{currentSession.year_start}-{currentSession.year_end}</span>
-                    </div>
+                    {sessionInfo && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Years:</span>
+                        <span>{sessionInfo.year_start}-{sessionInfo.year_end}</span>
+                      </div>
+                    )}
                     {bill.session?.session_tag && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Type:</span>
@@ -349,7 +298,7 @@ export default function BillDetailPage() {
                           </Badge>
                         </div>
                       )}
-                      
+
                       {/* Additional Categories */}
                       {subjectData.allCategories.length > 1 && (
                         <div>
@@ -363,7 +312,7 @@ export default function BillDetailPage() {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Raw Subjects */}
                       <div>
                         <p className="text-sm font-medium text-muted-foreground mb-2">State Legislative Subjects</p>
@@ -385,7 +334,7 @@ export default function BillDetailPage() {
                 <h3 className="font-semibold text-primary mb-3">External Resources</h3>
                 <div className="flex flex-wrap gap-4">
                   {bill.state_link && (
-                    <a 
+                    <a
                       href={bill.state_link}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -426,14 +375,14 @@ export default function BillDetailPage() {
                         {sponsor.role} - {sponsor.district}
                       </p>
                       <div className="flex items-center justify-between">
-                        <Link 
-                          href={`/state/${stateCode.toLowerCase()}/member/${sponsor.people_id}`}
+                        <Link
+                          href={`/state/${stateParam}/${sessionId}/member/${sponsor.people_id}`}
                           className="text-xs text-blue-600 hover:text-blue-800"
                         >
                           View Profile
                         </Link>
                         {sponsor.ballotpedia && (
-                          <a 
+                          <a
                             href={`https://ballotpedia.org/${sponsor.ballotpedia}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -526,7 +475,7 @@ export default function BillDetailPage() {
                         <span>{new Date(vote.date).toLocaleDateString()}</span>
                         <div className="flex gap-2">
                           {vote.state_link && (
-                            <a 
+                            <a
                               href={vote.state_link}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -580,12 +529,12 @@ export default function BillDetailPage() {
           {/* Additional Actions */}
           <div className="flex flex-wrap gap-4">
             <Button variant="outline" asChild>
-              <Link href={`/state/${stateCode.toLowerCase()}/member`}>
+              <Link href={`/state/${stateParam}/${sessionId}/member`}>
                 View {stateName} Legislators
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href={`/state/${stateCode.toLowerCase()}`}>
+              <Link href={`/state/${stateParam}`}>
                 {stateName} Legislature Overview
               </Link>
             </Button>

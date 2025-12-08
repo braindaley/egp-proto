@@ -1,57 +1,39 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, ArrowLeft, Users, ExternalLink, MapPin, Loader2, FileText, Vote, Building, Phone, Mail, Globe } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Users, ExternalLink, MapPin, Loader2, FileText, Vote, Building, Globe } from 'lucide-react';
 import { usePremiumAccess } from '@/hooks/use-premium-access';
 import { PremiumUpgradeCTA } from '@/components/premium-upgrade-cta';
 
-const states = [
-  { name: 'Alabama', abbr: 'AL' }, { name: 'Alaska', abbr: 'AK' },
-  { name: 'Arizona', abbr: 'AZ' }, { name: 'Arkansas', abbr: 'AR' },
-  { name: 'California', abbr: 'CA' }, { name: 'Colorado', abbr: 'CO' },
-  { name: 'Connecticut', abbr: 'CT' }, { name: 'Delaware', abbr: 'DE' },
-  { name: 'Florida', abbr: 'FL' }, { name: 'Georgia', abbr: 'GA' },
-  { name: 'Hawaii', abbr: 'HI' }, { name: 'Idaho', abbr: 'ID' },
-  { name: 'Illinois', abbr: 'IL' }, { name: 'Indiana', abbr: 'IN' },
-  { name: 'Iowa', abbr: 'IA' }, { name: 'Kansas', abbr: 'KS' },
-  { name: 'Kentucky', abbr: 'KY' }, { name: 'Louisiana', abbr: 'LA' },
-  { name: 'Maine', abbr: 'ME' }, { name: 'Maryland', abbr: 'MD' },
-  { name: 'Massachusetts', abbr: 'MA' }, { name: 'Michigan', abbr: 'MI' },
-  { name: 'Minnesota', abbr: 'MN' }, { name: 'Mississippi', abbr: 'MS' },
-  { name: 'Missouri', abbr: 'MO' }, { name: 'Montana', abbr: 'MT' },
-  { name: 'Nebraska', abbr: 'NE' }, { name: 'Nevada', abbr: 'NV' },
-  { name: 'New Hampshire', abbr: 'NH' }, { name: 'New Jersey', abbr: 'NJ' },
-  { name: 'New Mexico', abbr: 'NM' }, { name: 'New York', abbr: 'NY' },
-  { name: 'North Carolina', abbr: 'NC' }, { name: 'North Dakota', abbr: 'ND' },
-  { name: 'Ohio', abbr: 'OH' }, { name: 'Oklahoma', abbr: 'OK' },
-  { name: 'Oregon', abbr: 'OR' }, { name: 'Pennsylvania', abbr: 'PA' },
-  { name: 'Rhode Island', abbr: 'RI' }, { name: 'South Carolina', abbr: 'SC' },
-  { name: 'South Dakota', abbr: 'SD' }, { name: 'Tennessee', abbr: 'TN' },
-  { name: 'Texas', abbr: 'TX' }, { name: 'Utah', abbr: 'UT' },
-  { name: 'Vermont', abbr: 'VT' }, { name: 'Virginia', abbr: 'VA' },
-  { name: 'Washington', abbr: 'WA' }, { name: 'West Virginia', abbr: 'WV' },
-  { name: 'Wisconsin', abbr: 'WI' }, { name: 'Wyoming', abbr: 'WY' }
-];
+const states: Record<string, string> = {
+  al: 'Alabama', ak: 'Alaska', az: 'Arizona', ar: 'Arkansas', ca: 'California',
+  co: 'Colorado', ct: 'Connecticut', de: 'Delaware', fl: 'Florida', ga: 'Georgia',
+  hi: 'Hawaii', id: 'Idaho', il: 'Illinois', in: 'Indiana', ia: 'Iowa',
+  ks: 'Kansas', ky: 'Kentucky', la: 'Louisiana', me: 'Maine', md: 'Maryland',
+  ma: 'Massachusetts', mi: 'Michigan', mn: 'Minnesota', ms: 'Mississippi', mo: 'Missouri',
+  mt: 'Montana', ne: 'Nebraska', nv: 'Nevada', nh: 'New Hampshire', nj: 'New Jersey',
+  nm: 'New Mexico', ny: 'New York', nc: 'North Carolina', nd: 'North Dakota', oh: 'Ohio',
+  ok: 'Oklahoma', or: 'Oregon', pa: 'Pennsylvania', ri: 'Rhode Island', sc: 'South Carolina',
+  sd: 'South Dakota', tn: 'Tennessee', tx: 'Texas', ut: 'Utah', vt: 'Vermont',
+  va: 'Virginia', wa: 'Washington', wv: 'West Virginia', wi: 'Wisconsin', wy: 'Wyoming'
+};
 
-export default function MemberDetailPage() {
-  const params = useParams();
-  const stateCode = (params.state as string)?.toUpperCase();
-  const memberId = params.id as string;
+export default function MemberDetailPage({ params }: { params: Promise<{ state: string; sessionId: string; id: string }> }) {
+  const { state: stateParam, sessionId, id: memberId } = use(params);
+  const stateCode = stateParam?.toUpperCase();
+  const stateName = states[stateParam?.toLowerCase()] || stateCode;
+
   const { isPremium, isLoading: premiumLoading } = usePremiumAccess();
-
-  const [currentSession, setCurrentSession] = useState<any | null>(null);
+  const [sessionInfo, setSessionInfo] = useState<any>(null);
   const [member, setMember] = useState<any>(null);
   const [sponsoredBills, setSponsoredBills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [billsLoading, setBillsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const stateName = states.find(s => s.abbr === stateCode)?.name || stateCode;
 
   // Show premium upgrade CTA for non-premium users
   if (!premiumLoading && !isPremium) {
@@ -64,45 +46,34 @@ export default function MemberDetailPage() {
     );
   }
 
-  // Fetch most recent session for this state
+  // Fetch session info and member details
   useEffect(() => {
-    async function fetchCurrentSession() {
-      if (!stateCode) return;
-      
-      try {
-        const response = await fetch(`/api/legiscan?action=sessions&state=${stateCode}`);
-        const data = await response.json();
-        
-        if (data.status === 'success' && data.data?.sessions?.length > 0) {
-          // Use the most recent session (first one)
-          setCurrentSession(data.data.sessions[0]);
-        }
-      } catch (error) {
-        console.error('Error fetching current session:', error);
-      }
-    }
+    async function fetchData() {
+      if (!stateCode || !sessionId || !memberId) return;
 
-    fetchCurrentSession();
-  }, [stateCode]);
-
-  // Fetch member details
-  useEffect(() => {
-    async function fetchMember() {
-      if (!currentSession || !memberId) return;
-      
       setLoading(true);
       setError(null);
-      
+
       try {
-        // First get all session people to find this specific member
-        const response = await fetch(`/api/legiscan?action=session-people&sessionId=${currentSession.session_id}`);
+        // Fetch session info
+        const sessionsResponse = await fetch(`/api/legiscan?action=sessions&state=${stateCode}`);
+        const sessionsData = await sessionsResponse.json();
+        if (sessionsData.status === 'success' && sessionsData.data?.sessions) {
+          const session = sessionsData.data.sessions.find((s: any) => s.session_id.toString() === sessionId);
+          if (session) {
+            setSessionInfo(session);
+          }
+        }
+
+        // Get all session people to find this specific member
+        const response = await fetch(`/api/legiscan?action=session-people&sessionId=${sessionId}`);
         const data = await response.json();
-        
+
         if (data.status === 'success' && data.data?.sessionpeople?.people) {
           const foundMember = data.data.sessionpeople.people.find(
             (p: any) => p.people_id.toString() === memberId
           );
-          
+
           if (foundMember) {
             setMember(foundMember);
             // Fetch sponsored bills
@@ -121,28 +92,30 @@ export default function MemberDetailPage() {
       }
     }
 
-    fetchMember();
-  }, [currentSession, memberId]);
+    fetchData();
+  }, [stateCode, sessionId, memberId]);
 
   // Fetch bills sponsored by this member
   async function fetchSponsoredBills(memberData: any) {
-    if (!currentSession) return;
-    
+    if (!sessionId) return;
+
     setBillsLoading(true);
     try {
       // Get all bills for the session
-      const response = await fetch(`/api/legiscan?action=masterlist&sessionId=${currentSession.session_id}`);
+      const response = await fetch(`/api/legiscan?action=masterlist&sessionId=${sessionId}`);
       const data = await response.json();
-      
+
       if (data.status === 'success' && data.data?.masterlist) {
-        const bills = Object.values(data.data.masterlist) as any[];
-        
+        const bills = Object.entries(data.data.masterlist)
+          .filter(([key, value]: [string, any]) => key !== 'session' && value.bill_id)
+          .map(([_, bill]) => bill) as any[];
+
         // Get detailed bill information to check sponsors
         const sponsoredBillsPromises = bills.slice(0, 20).map(async (bill: any) => {
           try {
             const billResponse = await fetch(`/api/legiscan?action=bill&billId=${bill.bill_id}`);
             const billData = await billResponse.json();
-            
+
             if (billData.status === 'success' && billData.data?.bill?.sponsors) {
               const isSponsored = billData.data.bill.sponsors.some(
                 (sponsor: any) => sponsor.people_id.toString() === memberId
@@ -162,7 +135,7 @@ export default function MemberDetailPage() {
             return null;
           }
         });
-        
+
         const results = await Promise.all(sponsoredBillsPromises);
         const filteredBills = results.filter(bill => bill !== null);
         setSponsoredBills(filteredBills);
@@ -172,23 +145,6 @@ export default function MemberDetailPage() {
     } finally {
       setBillsLoading(false);
     }
-  }
-
-  if (!currentSession) {
-    return (
-      <div className="bg-secondary/30 flex-1">
-        <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-muted-foreground mb-4">
-              Select a Legislative Session
-            </h1>
-            <p className="text-muted-foreground">
-              Please select a session from the header to view member details.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   if (loading) {
@@ -215,7 +171,7 @@ export default function MemberDetailPage() {
             </h1>
             <p className="text-muted-foreground mb-6">{error}</p>
             <Button asChild>
-              <Link href={`/state/${stateCode.toLowerCase()}/member`}>
+              <Link href={`/state/${stateParam}/${sessionId}/member`}>
                 View All Members
               </Link>
             </Button>
@@ -225,6 +181,8 @@ export default function MemberDetailPage() {
     );
   }
 
+  const sessionName = sessionInfo?.session_name || sessionInfo?.name || `Session ${sessionId}`;
+
   return (
     <div className="bg-secondary/30 flex-1">
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
@@ -233,20 +191,20 @@ export default function MemberDetailPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
             <Link href="/state" className="hover:text-primary">State</Link>
             <ArrowRight className="h-3 w-3" />
-            <Link href={`/state/${stateCode.toLowerCase()}`} className="hover:text-primary">
+            <Link href={`/state/${stateParam}`} className="hover:text-primary">
               {stateName}
             </Link>
             <ArrowRight className="h-3 w-3" />
-            <Link href={`/state/${stateCode.toLowerCase()}/member`} className="hover:text-primary">
+            <Link href={`/state/${stateParam}/${sessionId}/member`} className="hover:text-primary">
               Members
             </Link>
             <ArrowRight className="h-3 w-3" />
             <span>{member.name}</span>
           </div>
-          
+
           <div className="flex items-center justify-between mb-6">
             <Button variant="outline" asChild>
-              <Link href={`/state/${stateCode.toLowerCase()}/member`}>
+              <Link href={`/state/${stateParam}/${sessionId}/member`}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Members
               </Link>
@@ -272,7 +230,7 @@ export default function MemberDetailPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Profile Info */}
                   <div>
                     <CardTitle className="text-2xl md:text-3xl font-bold text-primary mb-2">
@@ -282,11 +240,11 @@ export default function MemberDetailPage() {
                       <Badge variant="secondary" className="text-sm">
                         {member.role}
                       </Badge>
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className={`text-sm border-2 ${
-                          member.party === 'R' 
-                            ? 'border-red-500 text-red-700 bg-red-50' 
+                          member.party === 'R'
+                            ? 'border-red-500 text-red-700 bg-red-50'
                             : member.party === 'D'
                             ? 'border-blue-500 text-blue-700 bg-blue-50'
                             : 'border-gray-500 text-gray-700 bg-gray-50'
@@ -311,7 +269,7 @@ export default function MemberDetailPage() {
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-8">
               {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -325,8 +283,8 @@ export default function MemberDetailPage() {
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Full Name:</span>
                         <span className="font-medium">
-                          {member.first_name} 
-                          {member.middle_name && ` ${member.middle_name}`} 
+                          {member.first_name}
+                          {member.middle_name && ` ${member.middle_name}`}
                           {member.last_name}
                           {member.suffix && ` ${member.suffix}`}
                         </span>
@@ -334,11 +292,11 @@ export default function MemberDetailPage() {
                     )}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Party:</span>
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className={`text-xs border-2 ${
-                          member.party === 'R' 
-                            ? 'border-red-500 text-red-700 bg-red-50' 
+                          member.party === 'R'
+                            ? 'border-red-500 text-red-700 bg-red-50'
                             : member.party === 'D'
                             ? 'border-blue-500 text-blue-700 bg-blue-50'
                             : 'border-gray-500 text-gray-700 bg-gray-50'
@@ -375,12 +333,14 @@ export default function MemberDetailPage() {
                   <div className="text-sm space-y-3">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Session:</span>
-                      <span className="font-medium">{currentSession.session_name || currentSession.name}</span>
+                      <span className="font-medium">{sessionName}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Years:</span>
-                      <Badge variant="outline" className="text-xs">{currentSession.year_start}-{currentSession.year_end}</Badge>
-                    </div>
+                    {sessionInfo && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Years:</span>
+                        <Badge variant="outline" className="text-xs">{sessionInfo.year_start}-{sessionInfo.year_end}</Badge>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">State:</span>
                       <span className="font-medium">{stateName}</span>
@@ -391,10 +351,10 @@ export default function MemberDetailPage() {
                         {member.role === 'Sen' ? 'State Senate' : member.role === 'Rep' ? 'State House' : member.role}
                       </Badge>
                     </div>
-                    {currentSession.session_tag && (
+                    {sessionInfo?.session_tag && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Session Type:</span>
-                        <span className="text-xs">{currentSession.session_tag}</span>
+                        <span className="text-xs">{sessionInfo.session_tag}</span>
                       </div>
                     )}
                   </div>
@@ -409,7 +369,7 @@ export default function MemberDetailPage() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {member.ballotpedia && (
-                    <a 
+                    <a
                       href={`https://ballotpedia.org/${member.ballotpedia}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -423,7 +383,7 @@ export default function MemberDetailPage() {
                     </a>
                   )}
                   {member.votesmart_id && (
-                    <a 
+                    <a
                       href={`https://justfacts.votesmart.org/candidate/${member.votesmart_id}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -437,7 +397,7 @@ export default function MemberDetailPage() {
                     </a>
                   )}
                   {member.opensecrets_id && (
-                    <a 
+                    <a
                       href={`https://www.opensecrets.org/members-of-congress/summary?cid=${member.opensecrets_id}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -475,9 +435,9 @@ export default function MemberDetailPage() {
               ) : sponsoredBills.length > 0 ? (
                 <div className="space-y-4">
                   {sponsoredBills.map((bill) => (
-                    <Link 
+                    <Link
                       key={bill.bill_id}
-                      href={`/state/${stateCode.toLowerCase()}/bill/${bill.number || bill.bill_number}`}
+                      href={`/state/${stateParam}/${sessionId}/bill/${encodeURIComponent(bill.number || bill.bill_number)}`}
                       className="block"
                     >
                       <div className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer hover:border-primary/50">
@@ -497,7 +457,7 @@ export default function MemberDetailPage() {
                         </h4>
                         {bill.description && (
                           <p className="text-xs text-muted-foreground leading-relaxed">
-                            {bill.description.length > 150 
+                            {bill.description.length > 150
                               ? `${bill.description.substring(0, 150)}...`
                               : bill.description
                             }
@@ -528,12 +488,12 @@ export default function MemberDetailPage() {
           {/* Additional Actions */}
           <div className="flex flex-wrap gap-4">
             <Button variant="outline" asChild>
-              <Link href={`/state/${stateCode.toLowerCase()}/bill`}>
+              <Link href={`/state/${stateParam}/${sessionId}/bill`}>
                 View {stateName} Bills
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href={`/state/${stateCode.toLowerCase()}`}>
+              <Link href={`/state/${stateParam}`}>
                 {stateName} Legislature Overview
               </Link>
             </Button>

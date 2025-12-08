@@ -27,8 +27,7 @@ export default function EditGroupPage({ params }: { params: { groupSlug: string 
         logoUrl: '',
         website: '',
         nonprofitStatus: '',
-        yearsActive: '',
-        billsSupportedCount: ''
+        yearsActive: ''
     });
     const [saving, setSaving] = useState(false);
 
@@ -52,8 +51,7 @@ export default function EditGroupPage({ params }: { params: { groupSlug: string 
                 logoUrl: groupData.logoUrl || '',
                 website: groupData.website,
                 nonprofitStatus: groupData.nonprofitStatus,
-                yearsActive: groupData.yearsActive.toString(),
-                billsSupportedCount: groupData.billsSupportedCount.toString()
+                yearsActive: groupData.yearsActive.toString()
             });
         }
     }, [groupSlug]);
@@ -81,8 +79,7 @@ export default function EditGroupPage({ params }: { params: { groupSlug: string 
             console.log('Saving group data:', {
                 groupSlug,
                 ...formData,
-                yearsActive: parseInt(formData.yearsActive),
-                billsSupportedCount: parseInt(formData.billsSupportedCount)
+                yearsActive: parseInt(formData.yearsActive)
             });
             
             toast({
@@ -243,30 +240,16 @@ export default function EditGroupPage({ params }: { params: { groupSlug: string 
                                     <CardTitle>Statistics</CardTitle>
                                 </CardHeader>
                                             <CardContent className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="yearsActive">Years Active</Label>
-                                                        <Input
-                                                id="yearsActive"
-                                                value={formData.yearsActive}
-                                                onChange={(e) => handleInputChange('yearsActive', e.target.value)}
-                                                placeholder="10"
-                                                type="number"
-                                                min="0"
-                                            />
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label htmlFor="billsSupportedCount">Bills Supported Count</Label>
-                                                        <Input
-                                                id="billsSupportedCount"
-                                                value={formData.billsSupportedCount}
-                                                onChange={(e) => handleInputChange('billsSupportedCount', e.target.value)}
-                                                placeholder="100"
-                                                type="number"
-                                                min="0"
-                                            />
-                                        </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="yearsActive">Years Active</Label>
+                                                    <Input
+                                            id="yearsActive"
+                                            value={formData.yearsActive}
+                                            onChange={(e) => handleInputChange('yearsActive', e.target.value)}
+                                            placeholder="10"
+                                            type="number"
+                                            min="0"
+                                        />
                                     </div>
                                 </CardContent>
                             </Card>

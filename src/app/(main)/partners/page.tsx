@@ -442,109 +442,115 @@ export default function PartnersPage() {
 
                             <main className="space-y-8">
 
-                                <div className="mb-6">
-                                    <div className="mb-3">
-                                        <h2 className="text-xl font-semibold">You are managing:</h2>
+                                {/* Testing Controls Section */}
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 className="text-base font-semibold text-blue-900">You are managing:</h2>
+                                        <Badge variant="outline" className="text-blue-600 border-blue-300 bg-blue-100">
+                                            Development Only
+                                        </Badge>
                                     </div>
 
-                                    {/* User Type Selection */}
-                                    <div className="w-full max-w-sm mb-4">
-                                        <label className="text-sm font-medium mb-2 block">Select User Type</label>
-                                        <Select
-                                            value={userType}
-                                            onValueChange={(value: UserType) => {
-                                                setUserType(value);
-                                                // Reset selections when changing type
-                                                setSelectedGroup('');
-                                                setSelectedState('');
-                                                setSelectedMember(null);
-                                            }}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select user type" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="organization">Organization</SelectItem>
-                                                <SelectItem value="member">Member of Congress</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    {/* Organization Selection */}
-                                    {userType === 'organization' && (
+                                    <div className="space-y-4">
+                                        {/* User Type Selection */}
                                         <div className="w-full max-w-sm">
-                                            <label className="text-sm font-medium mb-2 block">Select Organization</label>
-                                            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select an advocacy group" />
+                                            <label className="text-sm font-medium mb-2 block">Select User Type</label>
+                                            <Select
+                                                value={userType}
+                                                onValueChange={(value: UserType) => {
+                                                    setUserType(value);
+                                                    // Reset selections when changing type
+                                                    setSelectedGroup('');
+                                                    setSelectedState('');
+                                                    setSelectedMember(null);
+                                                }}
+                                            >
+                                                <SelectTrigger className="bg-white">
+                                                    <SelectValue placeholder="Select user type" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {advocacyGroups.map((group) => (
-                                                        <SelectItem key={group.slug} value={group.slug}>
-                                                            {group.name}
-                                                        </SelectItem>
-                                                    ))}
+                                                    <SelectItem value="organization">Organization</SelectItem>
+                                                    <SelectItem value="member">Member of Congress</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                    )}
 
-                                    {/* Member Selection */}
-                                    {userType === 'member' && (
-                                        <div className="space-y-4 w-full max-w-sm">
-                                            {/* State Selection */}
-                                            <div>
-                                                <label className="text-sm font-medium mb-2 block">Select State</label>
-                                                <Select
-                                                    value={selectedState}
-                                                    onValueChange={(value) => {
-                                                        setSelectedState(value);
-                                                        setSelectedMember(null); // Reset member when state changes
-                                                    }}
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select a state" />
+                                        {/* Organization Selection */}
+                                        {userType === 'organization' && (
+                                            <div className="w-full max-w-sm">
+                                                <label className="text-sm font-medium mb-2 block">Select Organization</label>
+                                                <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                                                    <SelectTrigger className="bg-white">
+                                                        <SelectValue placeholder="Select an advocacy group" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {US_STATES.map((state) => (
-                                                            <SelectItem key={state} value={state}>
-                                                                {state}
+                                                        {advocacyGroups.map((group) => (
+                                                            <SelectItem key={group.slug} value={group.slug}>
+                                                                {group.name}
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
                                             </div>
+                                        )}
 
-                                            {/* Member Selection - only show if state is selected */}
-                                            {selectedState && (
+                                        {/* Member Selection */}
+                                        {userType === 'member' && (
+                                            <div className="space-y-4 w-full max-w-sm">
+                                                {/* State Selection */}
                                                 <div>
-                                                    <label className="text-sm font-medium mb-2 block">Select Member</label>
-                                                    {loadingMembers ? (
-                                                        <div className="text-sm text-muted-foreground">Loading members...</div>
-                                                    ) : (
-                                                        <Select
-                                                            value={selectedMember?.bioguideId || ''}
-                                                            onValueChange={(value) => {
-                                                                const member = members.find(m => m.bioguideId === value);
-                                                                setSelectedMember(member || null);
-                                                            }}
-                                                        >
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select a member" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                {members.map((member) => (
-                                                                    <SelectItem key={member.bioguideId} value={member.bioguideId}>
-                                                                        {member.name}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    )}
+                                                    <label className="text-sm font-medium mb-2 block">Select State</label>
+                                                    <Select
+                                                        value={selectedState}
+                                                        onValueChange={(value) => {
+                                                            setSelectedState(value);
+                                                            setSelectedMember(null); // Reset member when state changes
+                                                        }}
+                                                    >
+                                                        <SelectTrigger className="bg-white">
+                                                            <SelectValue placeholder="Select a state" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {US_STATES.map((state) => (
+                                                                <SelectItem key={state} value={state}>
+                                                                    {state}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
-                                            )}
-                                        </div>
-                                    )}
+
+                                                {/* Member Selection - only show if state is selected */}
+                                                {selectedState && (
+                                                    <div>
+                                                        <label className="text-sm font-medium mb-2 block">Select Member</label>
+                                                        {loadingMembers ? (
+                                                            <div className="text-sm text-muted-foreground">Loading members...</div>
+                                                        ) : (
+                                                            <Select
+                                                                value={selectedMember?.bioguideId || ''}
+                                                                onValueChange={(value) => {
+                                                                    const member = members.find(m => m.bioguideId === value);
+                                                                    setSelectedMember(member || null);
+                                                                }}
+                                                            >
+                                                                <SelectTrigger className="bg-white">
+                                                                    <SelectValue placeholder="Select a member" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {members.map((member) => (
+                                                                        <SelectItem key={member.bioguideId} value={member.bioguideId}>
+                                                                            {member.name}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Campaign Summary Card */}
