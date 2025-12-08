@@ -27,6 +27,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import {
   ArrowLeft,
   Crown,
   Mail,
@@ -156,46 +164,25 @@ const getMockUser = (id: string) => ({
   }
 });
 
-const getMockMessages = () => [
-  {
-    id: 'msg-1',
-    bill: 'HR-1 - For the People Act',
-    recipients: ['Rep. Nancy Pelosi', 'Sen. Dianne Feinstein'],
-    sentAt: new Date('2025-01-08'),
-    status: 'delivered',
-  },
-  {
-    id: 'msg-2',
-    bill: 'HR-22 - Voting Rights Act',
-    recipients: ['Rep. Nancy Pelosi'],
-    sentAt: new Date('2025-01-05'),
-    status: 'delivered',
-  },
-  {
-    id: 'msg-3',
-    bill: 'S-854 - Climate Action Now',
-    recipients: ['Sen. Dianne Feinstein', 'Sen. Alex Padilla'],
-    sentAt: new Date('2024-12-28'),
-    status: 'delivered',
-  },
-];
 
-const getMockLoginHistory = () => [
-  { date: new Date('2025-01-08'), ip: '192.168.1.1', device: 'Chrome on macOS' },
-  { date: new Date('2025-01-05'), ip: '192.168.1.1', device: 'Chrome on macOS' },
-  { date: new Date('2025-01-02'), ip: '192.168.1.1', device: 'Safari on iOS' },
-  { date: new Date('2024-12-28'), ip: '192.168.1.1', device: 'Chrome on macOS' },
-  { date: new Date('2024-12-20'), ip: '192.168.1.1', device: 'Chrome on macOS' },
+// Mock organizations for assignment
+const mockOrganizations = [
+  { id: 'org-1', name: 'League of Women Voters', slug: 'league-of-women-voters' },
+  { id: 'org-2', name: 'Common Cause', slug: 'common-cause' },
+  { id: 'org-3', name: 'Sunrise Movement', slug: 'sunrise-movement' },
+  { id: 'org-4', name: 'Fair Fight Action', slug: 'fair-fight-action' },
+  { id: 'org-5', name: 'American Promise', slug: 'american-promise' },
+  { id: 'org-6', name: 'Mi Familia Vota', slug: 'mi-familia-vota' },
 ];
 
 export default function UserDetailsPage() {
   const params = useParams();
   const userId = params?.id as string;
   const user = getMockUser(userId);
-  const messages = getMockMessages();
-  const loginHistory = getMockLoginHistory();
 
   const [actionInProgress, setActionInProgress] = useState(false);
+  const [selectedOrganization, setSelectedOrganization] = useState<string>('');
+  const [assignedOrganization, setAssignedOrganization] = useState<string | null>(null);
 
   const handleSuspend = () => {
     setActionInProgress(true);
@@ -233,6 +220,33 @@ export default function UserDetailsPage() {
     // In production, this would set up an impersonation session
     window.location.href = '/';
   };
+
+  const handleAssignOrganization = () => {
+    if (!selectedOrganization) {
+      alert('Please select an organization');
+      return;
+    }
+    setActionInProgress(true);
+    setTimeout(() => {
+      const org = mockOrganizations.find(o => o.id === selectedOrganization);
+      setAssignedOrganization(selectedOrganization);
+      alert(`${user.firstName} ${user.lastName} has been assigned to ${org?.name}. They now have organization admin access.`);
+      setActionInProgress(false);
+    }, 500);
+  };
+
+  const handleRemoveFromOrganization = () => {
+    setActionInProgress(true);
+    setTimeout(() => {
+      const org = mockOrganizations.find(o => o.id === assignedOrganization);
+      setAssignedOrganization(null);
+      setSelectedOrganization('');
+      alert(`${user.firstName} ${user.lastName} has been removed from ${org?.name}.`);
+      setActionInProgress(false);
+    }, 500);
+  };
+
+  const currentOrg = assignedOrganization ? mockOrganizations.find(o => o.id === assignedOrganization) : null;
 
   return (
     <div className="space-y-6">
@@ -341,78 +355,6 @@ export default function UserDetailsPage() {
               </CardContent>
             </Card>
           )}
-
-          {/* Recent Messages */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Messages</CardTitle>
-              <CardDescription>Last 10 advocacy messages sent</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Bill</TableHead>
-                    <TableHead>Recipients</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {messages.map((message) => (
-                    <TableRow key={message.id}>
-                      <TableCell className="font-medium">{message.bill}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {message.recipients.length} recipients
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(message.sentAt, 'MMM d, yyyy')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          {message.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Login History */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Login History</CardTitle>
-              <CardDescription>Last 10 login attempts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date & Time</TableHead>
-                    <TableHead>IP Address</TableHead>
-                    <TableHead>Device</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loginHistory.map((login, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="text-sm">
-                        {format(login.date, 'MMM d, yyyy h:mm a')}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground font-mono">
-                        {login.ip}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {login.device}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
 
           {/* L2 Political Data Section */}
           <Card className="mt-6">
@@ -868,6 +810,74 @@ export default function UserDetailsPage() {
                   </Badge>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Organization Assignment */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Organization Assignment</CardTitle>
+              <CardDescription>Assign this user as an admin of an organization</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {currentOrg ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{currentOrg.name}</p>
+                      <p className="text-xs text-muted-foreground">Organization Admin</p>
+                    </div>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full" disabled={actionInProgress}>
+                        Remove from Organization
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remove from Organization</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to remove {user.firstName} {user.lastName} from {currentOrg.name}? They will lose admin access to this organization.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleRemoveFromOrganization}>
+                          Remove
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="organization">Select Organization</Label>
+                    <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
+                      <SelectTrigger id="organization">
+                        <SelectValue placeholder="Choose an organization..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockOrganizations.map((org) => (
+                          <SelectItem key={org.id} value={org.id}>
+                            {org.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    onClick={handleAssignOrganization}
+                    disabled={!selectedOrganization || actionInProgress}
+                    className="w-full"
+                  >
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Assign to Organization
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 

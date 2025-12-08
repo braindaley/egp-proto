@@ -10,7 +10,6 @@ import {
   Users,
   Building2,
   Megaphone,
-  Settings,
   Menu,
   X,
   ChevronRight
@@ -22,7 +21,7 @@ const adminNavItems = [
   { label: 'Organizations', href: '/admin/organizations', icon: Building2 },
   // { label: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard }, // Hidden for now
   { label: 'Campaigns', href: '/admin/campaigns', icon: Megaphone },
-  { label: 'Settings', href: '/admin/settings', icon: Settings },
+  // { label: 'Settings', href: '/admin/settings', icon: Settings }, // Hidden for now
 ];
 
 export default function AdminLayout({
