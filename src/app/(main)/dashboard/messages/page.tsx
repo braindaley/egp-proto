@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import MessageHistory from '@/components/dashboard/MessageHistory';
 import { useUserActivity } from '@/hooks/use-user-activity';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, Lock, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, Lock, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,8 +41,6 @@ export default function MessagesPage() {
     { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
     { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare, isActive: true },
-    { label: 'Activity', href: '/dashboard/activity', icon: BarChart3 },
-    { label: 'Following', href: '/dashboard/following', icon: Eye },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },
   ];
 

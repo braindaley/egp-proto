@@ -63,9 +63,11 @@ export default function SendMessagePage() {
         })) || [],
         personalDataIncluded: messageData.selectedPersonalData || [],
         sentAt: Timestamp.now(),
-        deliveryStatus: 'sent'
+        deliveryStatus: 'sent',
+        // Campaign tracking for performance analytics
+        campaignId: messageData.campaignId || null
       };
-      
+
       // Add verified user info if available
       if (messageData.verifiedUserInfo) {
         messageActivity.verifiedUserInfo = {

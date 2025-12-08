@@ -643,50 +643,8 @@ export default function GroupCampaignsPage() {
                                                 </CardHeader>
                                                 <CardContent>
                                                     <div className="text-sm text-muted-foreground mb-4">
-                                                        Support: {campaign.supportCount} &nbsp;&nbsp; Oppose: {campaign.opposeCount} &nbsp;&nbsp; {Math.floor(((campaign.supportCount || 0) + (campaign.opposeCount || 0)) * 0.75).toLocaleString()} emails &nbsp;&nbsp; 87% delivery
+                                                        Support: {campaign.supportCount} &nbsp;&nbsp; Oppose: {campaign.opposeCount} &nbsp;&nbsp; {((campaign.supportCount || 0) + (campaign.opposeCount || 0)).toLocaleString()} Submittals
                                                     </div>
-                                                    
-                                                    {(() => {
-                                                        const billKey = `${campaign.bill.type}-${campaign.bill.number}`;
-                                                        const otherCampaignsForBill = otherCampaigns[billKey] || [];
-                                                        
-                                                        if (otherCampaignsForBill.length > 0) {
-                                                            return (
-                                                                <div className="border-t pt-4">
-                                                                    <h4 className="text-sm font-semibold mb-3">Other network campaigns:</h4>
-                                                                    <div className="space-y-2">
-                                                                        {otherCampaignsForBill.map((otherCampaign) => (
-                                                                            <div key={otherCampaign.id} className="flex items-center justify-between text-xs">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <span className="font-medium">{otherCampaign.organizationName}</span>
-                                                                                    <Badge 
-                                                                                        variant={otherCampaign.position === 'Support' ? 'default' : 'destructive'}
-                                                                                        className="text-xs px-1 py-0"
-                                                                                    >
-                                                                                        {otherCampaign.position === 'Support' ? 'Support' : 'Oppose'}
-                                                                                    </Badge>
-                                                                                    <div className="text-xs text-muted-foreground ml-2">
-                                                                                        Support: {otherCampaign.supportCount} • Oppose: {otherCampaign.opposeCount} • {Math.floor(((otherCampaign.supportCount || 0) + (otherCampaign.opposeCount || 0)) * 0.75).toLocaleString()} emails
-                                                                                    </div>
-                                                                                </div>
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    variant="outline"
-                                                                                    className="text-xs h-6 px-2"
-                                                                                    asChild
-                                                                                >
-                                                                                    <Link href={`/campaigns/${otherCampaign.groupSlug}/${campaign.bill.type?.toLowerCase()}-${campaign.bill.number}`}>
-                                                                                        Send message
-                                                                                    </Link>
-                                                                                </Button>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })()}
                                                 </CardContent>
                                             </Card>
                                         ))}

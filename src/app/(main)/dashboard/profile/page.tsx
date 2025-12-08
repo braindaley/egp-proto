@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3 } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,10 +118,9 @@ export default function ProfilePage() {
 
   const dashboardNavItems = [
     { label: 'Dashboard', href: '/dashboard', icon: UserIcon },
-    { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
-    { label: 'Activity', href: '/dashboard/activity', icon: BarChart3 },
-    { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon, isActive: true },
+    { label: 'Membership', href: '/dashboard/membership', icon: Crown },
+    { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },
   ];
 

@@ -1366,7 +1366,9 @@ const AdvocacyMessageContent: React.FC = () => {
                 notificationEmail: notificationEmail || null,
                 bccEmails: bccEmails.filter(email => email.trim() !== ''),
                 sentAt: Timestamp.now(),
-                deliveryStatus: 'sent'
+                deliveryStatus: 'sent',
+                // Campaign tracking for performance analytics
+                campaignId: campaignId || null
             };
 
             // Add verified user info if available
@@ -3684,7 +3686,9 @@ const AdvocacyMessageContent: React.FC = () => {
                         personalDataIncluded: selectedPersonalData,
                         constituentDescription: constituentDescription || null,
                         sentAt: Timestamp.now(),
-                        deliveryStatus: 'sent'
+                        deliveryStatus: 'sent',
+                        // Campaign tracking for performance analytics
+                        campaignId: campaignId || null
                     };
 
                     // Add verified user info if available

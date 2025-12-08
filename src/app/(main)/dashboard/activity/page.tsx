@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, ThumbsUp, ThumbsDown, Eye, Lock, TrendingUp } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, ThumbsUp, ThumbsDown, Lock, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getStatusBadgeVariant } from '@/lib/bill-status-utils';
 
@@ -100,8 +100,8 @@ export default function ActivityPage() {
     { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
     { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
-    { label: 'Activity', href: '/dashboard/activity', icon: BarChart3, isActive: true },
-    { label: 'Following', href: '/dashboard/following', icon: Eye },
+    // { label: 'Activity', href: '/dashboard/activity', icon: BarChart3, isActive: true },
+    // { label: 'Following', href: '/dashboard/following', icon: Eye },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },
   ];
 

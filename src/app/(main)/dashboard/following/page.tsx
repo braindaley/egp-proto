@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, Heart, Eye, Lock } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Heart, Eye, Lock } from 'lucide-react';
 import { ENABLE_WATCH_FEATURE } from '@/config/features';
 
 export const dynamic = 'force-dynamic';
@@ -174,8 +174,6 @@ export default function FollowingPage() {
     { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
     { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
-    { label: 'Activity', href: '/dashboard/activity', icon: BarChart3 },
-    { label: 'Following', href: '/dashboard/following', icon: Eye, isActive: true },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },
   ];
 

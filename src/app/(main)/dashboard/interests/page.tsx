@@ -11,7 +11,7 @@ import { app } from '@/lib/firebase';
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, Lock, Eye } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export const dynamic = 'force-dynamic';
@@ -215,8 +215,6 @@ export default function InterestsPage() {
     { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
     { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
-    { label: 'Activity', href: '/dashboard/activity', icon: BarChart3 },
-    { label: 'Following', href: '/dashboard/following', icon: Eye },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings, isActive: true },
   ];
 
