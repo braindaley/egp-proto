@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -40,7 +40,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Search, Download, Check, X, Ban, TrendingUp, FileText } from 'lucide-react';
+import { Search, Check, X, Ban, TrendingUp, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 
 // Mock organization data
@@ -55,6 +55,22 @@ const mockOrganizations = [
     campaignCount: 8,
     totalMessages: 3456,
     lastActive: new Date('2025-01-08'),
+    application: {
+      organizationType: '501c4',
+      taxId: '52-1077270',
+      yearsActive: '105',
+      memberCount: '500,000',
+      missionStatement: 'The League of Women Voters encourages informed and active participation in government, works to increase understanding of major public policy issues, and influences public policy through education and advocacy.',
+      focusAreas: 'Voting rights, election reform, civic education, voter registration',
+      contactName: 'Dr. Deborah Turner',
+      contactEmail: 'info@lwv.org',
+      contactPhone: '(202) 429-1965',
+      website: 'https://www.lwv.org',
+      address: '1730 M Street NW, Suite 1000',
+      city: 'Washington',
+      state: 'DC',
+      zipCode: '20036',
+    },
   },
   {
     id: 'org-2',
@@ -66,6 +82,22 @@ const mockOrganizations = [
     campaignCount: 5,
     totalMessages: 2341,
     lastActive: new Date('2025-01-07'),
+    application: {
+      organizationType: '501c4',
+      taxId: '52-0843763',
+      yearsActive: '55',
+      memberCount: '1,500,000',
+      missionStatement: 'Common Cause is a nonpartisan, grassroots organization dedicated to upholding the core values of American democracy. We work to create open, honest, and accountable government that serves the public interest.',
+      focusAreas: 'Campaign finance reform, voting rights, ethics in government, media democracy',
+      contactName: 'Virginia Kase Solomón',
+      contactEmail: 'info@commoncause.org',
+      contactPhone: '(202) 833-1200',
+      website: 'https://www.commoncause.org',
+      address: '805 15th Street NW, Suite 800',
+      city: 'Washington',
+      state: 'DC',
+      zipCode: '20005',
+    },
   },
   {
     id: 'org-3',
@@ -160,6 +192,8 @@ export default function OrganizationsManagementPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [organizations, setOrganizations] = useState(mockOrganizations);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Filter organizations
   const filteredOrgs = organizations.filter((org) => {
@@ -175,6 +209,21 @@ export default function OrganizationsManagementPage() {
   const activeCount = filteredOrgs.filter(o => o.status === 'active').length;
   const pendingCount = filteredOrgs.filter(o => o.status === 'pending').length;
   const suspendedCount = filteredOrgs.filter(o => o.status === 'suspended').length;
+
+  // Pagination
+  const totalPages = Math.ceil(filteredOrgs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedOrgs = filteredOrgs.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to page 1 when filters change
+  const handleFilterChange = (value: string, type: 'search' | 'status') => {
+    setCurrentPage(1);
+    if (type === 'search') {
+      setSearchQuery(value);
+    } else {
+      setStatusFilter(value);
+    }
+  };
 
   const handleApprove = (orgId: string, orgName: string) => {
     setOrganizations(orgs =>
@@ -195,34 +244,24 @@ export default function OrganizationsManagementPage() {
     alert(`${orgName} has been suspended.`);
   };
 
-  const handleReinstate = (orgId: string, orgName: string) => {
+  const handleReactivate = (orgId: string, orgName: string) => {
     setOrganizations(orgs =>
       orgs.map(org => org.id === orgId ? { ...org, status: 'active' as const } : org)
     );
-    alert(`${orgName} has been reinstated and is now active.`);
-  };
-
-  const handleExport = () => {
-    alert(`Export functionality would download CSV of ${filteredOrgs.length} organizations`);
+    alert(`${orgName} has been reactivated and is now active.`);
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold font-headline">Organization Management</h1>
-          <p className="text-muted-foreground mt-1">
-            {filteredOrgs.length} organizations
-            {activeCount > 0 && ` • ${activeCount} active`}
-            {pendingCount > 0 && ` • ${pendingCount} pending approval`}
-            {suspendedCount > 0 && ` • ${suspendedCount} suspended`}
-          </p>
-        </div>
-        <Button onClick={handleExport} variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          Export CSV
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold font-headline">Organization Management</h1>
+        <p className="text-muted-foreground mt-1">
+          {filteredOrgs.length} organizations
+          {activeCount > 0 && ` • ${activeCount} active`}
+          {pendingCount > 0 && ` • ${pendingCount} pending approval`}
+          {suspendedCount > 0 && ` • ${suspendedCount} suspended`}
+        </p>
       </div>
 
       {/* Pending Approvals Alert */}
@@ -249,13 +288,13 @@ export default function OrganizationsManagementPage() {
               <Input
                 placeholder="Search by name..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleFilterChange(e.target.value, 'search')}
                 className="pl-10"
               />
             </div>
 
             {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(value) => handleFilterChange(value, 'status')}>
               <SelectTrigger>
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
@@ -279,7 +318,6 @@ export default function OrganizationsManagementPage() {
                 <TableRow>
                   <TableHead>Organization</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Members</TableHead>
                   <TableHead>Campaigns</TableHead>
                   <TableHead>Messages</TableHead>
                   <TableHead>Created</TableHead>
@@ -288,14 +326,14 @@ export default function OrganizationsManagementPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrgs.length === 0 ? (
+                {paginatedOrgs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No organizations found matching your filters
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredOrgs.map((org) => (
+                  paginatedOrgs.map((org) => (
                     <TableRow key={org.id}>
                       <TableCell className="font-medium">
                         <Link href={`/organizations/${org.slug}`} className="hover:underline">
@@ -315,7 +353,6 @@ export default function OrganizationsManagementPage() {
                           <Badge variant="destructive">Suspended</Badge>
                         )}
                       </TableCell>
-                      <TableCell>{org.memberCount}</TableCell>
                       <TableCell>{org.campaignCount}</TableCell>
                       <TableCell>{org.totalMessages.toLocaleString()}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -326,100 +363,102 @@ export default function OrganizationsManagementPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {org.status === 'pending' ? (
-                            <>
-                              {/* View Application */}
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="outline" size="sm" className="gap-1">
-                                    <FileText className="h-3 w-3" />
-                                    View Application
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                                  <DialogHeader>
-                                    <DialogTitle>{org.name} - Application</DialogTitle>
-                                    <DialogDescription>
-                                      Submitted on {format(org.createdDate, 'MMMM d, yyyy')}
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="space-y-6 mt-4">
-                                    {/* Organization Information */}
-                                    <div>
-                                      <h3 className="font-semibold text-sm mb-3">Organization Information</h3>
-                                      <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                          <p className="text-muted-foreground">Organization Type</p>
-                                          <p className="font-medium mt-1">{org.application?.organizationType}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-muted-foreground">Tax ID / EIN</p>
-                                          <p className="font-medium mt-1">{org.application?.taxId}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-muted-foreground">Years Active</p>
-                                          <p className="font-medium mt-1">{org.application?.yearsActive}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-muted-foreground">Member Count</p>
-                                          <p className="font-medium mt-1">{org.application?.memberCount}</p>
-                                        </div>
+                          {/* View Application - show for any org with application data */}
+                          {org.application && (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="gap-1">
+                                  <FileText className="h-3 w-3" />
+                                  View Application
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                  <DialogTitle>{org.name} - Application</DialogTitle>
+                                  <DialogDescription>
+                                    Submitted on {format(org.createdDate, 'MMMM d, yyyy')}
+                                    {org.status === 'active' && ' • Approved'}
+                                    {org.status === 'suspended' && ' • Suspended'}
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-6 mt-4">
+                                  {/* Organization Information */}
+                                  <div>
+                                    <h3 className="font-semibold text-sm mb-3">Organization Information</h3>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                      <div>
+                                        <p className="text-muted-foreground">Organization Type</p>
+                                        <p className="font-medium mt-1">{org.application?.organizationType}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-muted-foreground">Tax ID / EIN</p>
+                                        <p className="font-medium mt-1">{org.application?.taxId}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-muted-foreground">Years Active</p>
+                                        <p className="font-medium mt-1">{org.application?.yearsActive}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-muted-foreground">Member Count</p>
+                                        <p className="font-medium mt-1">{org.application?.memberCount}</p>
                                       </div>
                                     </div>
+                                  </div>
 
-                                    {/* Mission Statement */}
-                                    <div>
-                                      <h3 className="font-semibold text-sm mb-2">Mission Statement</h3>
-                                      <p className="text-sm text-muted-foreground leading-relaxed">
-                                        {org.application?.missionStatement}
-                                      </p>
-                                    </div>
+                                  {/* Mission Statement */}
+                                  <div>
+                                    <h3 className="font-semibold text-sm mb-2">Mission Statement</h3>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                      {org.application?.missionStatement}
+                                    </p>
+                                  </div>
 
-                                    {/* Focus Areas */}
-                                    <div>
-                                      <h3 className="font-semibold text-sm mb-2">Policy Focus Areas</h3>
-                                      <p className="text-sm text-muted-foreground">
-                                        {org.application?.focusAreas}
-                                      </p>
-                                    </div>
+                                  {/* Focus Areas */}
+                                  <div>
+                                    <h3 className="font-semibold text-sm mb-2">Policy Focus Areas</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                      {org.application?.focusAreas}
+                                    </p>
+                                  </div>
 
-                                    {/* Contact Information */}
-                                    <div>
-                                      <h3 className="font-semibold text-sm mb-3">Contact Information</h3>
-                                      <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                          <p className="text-muted-foreground">Contact Name</p>
-                                          <p className="font-medium mt-1">{org.application?.contactName}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-muted-foreground">Email</p>
-                                          <p className="font-medium mt-1">{org.application?.contactEmail}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-muted-foreground">Phone</p>
-                                          <p className="font-medium mt-1">{org.application?.contactPhone}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-muted-foreground">Website</p>
-                                          <p className="font-medium mt-1">
-                                            <a href={org.application?.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                              {org.application?.website}
-                                            </a>
-                                          </p>
-                                        </div>
+                                  {/* Contact Information */}
+                                  <div>
+                                    <h3 className="font-semibold text-sm mb-3">Contact Information</h3>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                      <div>
+                                        <p className="text-muted-foreground">Contact Name</p>
+                                        <p className="font-medium mt-1">{org.application?.contactName}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-muted-foreground">Email</p>
+                                        <p className="font-medium mt-1">{org.application?.contactEmail}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-muted-foreground">Phone</p>
+                                        <p className="font-medium mt-1">{org.application?.contactPhone}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-muted-foreground">Website</p>
+                                        <p className="font-medium mt-1">
+                                          <a href={org.application?.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                            {org.application?.website}
+                                          </a>
+                                        </p>
                                       </div>
                                     </div>
+                                  </div>
 
-                                    {/* Address */}
-                                    <div>
-                                      <h3 className="font-semibold text-sm mb-2">Address</h3>
-                                      <div className="text-sm text-muted-foreground">
-                                        <p>{org.application?.address}</p>
-                                        <p>{org.application?.city}, {org.application?.state} {org.application?.zipCode}</p>
-                                      </div>
+                                  {/* Address */}
+                                  <div>
+                                    <h3 className="font-semibold text-sm mb-2">Address</h3>
+                                    <div className="text-sm text-muted-foreground">
+                                      <p>{org.application?.address}</p>
+                                      <p>{org.application?.city}, {org.application?.state} {org.application?.zipCode}</p>
                                     </div>
+                                  </div>
 
-                                    {/* Action Buttons */}
+                                  {/* Action Buttons - only for pending applications */}
+                                  {org.status === 'pending' && (
                                     <div className="flex gap-2 pt-4 border-t">
                                       <AlertDialog>
                                         <AlertDialogTrigger asChild>
@@ -470,10 +509,15 @@ export default function OrganizationsManagementPage() {
                                         </AlertDialogContent>
                                       </AlertDialog>
                                     </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
+                                  )}
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          )}
 
+                          {/* Status-specific actions */}
+                          {org.status === 'pending' && (
+                            <>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="outline" size="sm" className="gap-1">
@@ -523,7 +567,9 @@ export default function OrganizationsManagementPage() {
                                 </AlertDialogContent>
                               </AlertDialog>
                             </>
-                          ) : org.status === 'active' ? (
+                          )}
+
+                          {org.status === 'active' && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="gap-1">
@@ -546,30 +592,33 @@ export default function OrganizationsManagementPage() {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
-                          ) : (
+                          )}
+
+                          {org.status === 'suspended' && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="gap-1">
                                   <TrendingUp className="h-3 w-3" />
-                                  Reinstate
+                                  Reactivate
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Reinstate Organization</AlertDialogTitle>
+                                  <AlertDialogTitle>Reactivate Organization</AlertDialogTitle>
                                   <AlertDialogDescription>
                                     Are you sure you want to reinstate {org.name}? They will be able to create campaigns and manage their organization again.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleReinstate(org.id, org.name)}>
-                                    Reinstate
+                                  <AlertDialogAction onClick={() => handleReactivate(org.id, org.name)}>
+                                    Reactivate
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
                           )}
+
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/organizations/${org.slug}`}>View</Link>
                           </Button>
@@ -582,6 +631,48 @@ export default function OrganizationsManagementPage() {
             </Table>
           </div>
         </CardContent>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t">
+            <p className="text-sm text-muted-foreground">
+              Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredOrgs.length)} of {filteredOrgs.length} organizations
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-8"
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

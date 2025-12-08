@@ -9,7 +9,7 @@ import { campaignsService } from '@/lib/campaigns';
 import { ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Users, Calendar, BarChart, Mic, Edit, CheckCircle } from 'lucide-react';
+import { ExternalLink, Calendar, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { WatchButton } from '@/components/WatchButton';
 import CandidateCampaignCard from '@/components/candidate-campaign-card';
@@ -125,7 +125,6 @@ function OrganizationHeader({ group }: { group: any }) {
                 <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground border-t pt-4">
                     <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-500" /> {group.nonprofitStatus}</div>
                     <div className="flex items-center gap-2"><Calendar className="h-4 w-4" /> {group.yearsActive} years active</div>
-                    <div className="flex items-center gap-2"><BarChart className="h-4 w-4" /> {group.billsSupportedCount} bills supported</div>
                 </div>
             </CardContent>
         </Card>
@@ -283,7 +282,7 @@ export default function GroupDetailPage({ params }: { params: { groupName: strin
 
                 {priorityBillsWithData && priorityBillsWithData.length > 0 ? (
                     <>
-                        <h2 className="text-2xl font-bold font-headline text-center">Priority Legislation</h2>
+                        <h2 className="text-2xl font-bold font-headline text-center">Campaigns</h2>
                         <div className="space-y-4 md:space-y-6">
                             {priorityBillsWithData.map((item, index) => {
                                 // Render candidate campaigns with CandidateCampaignCard

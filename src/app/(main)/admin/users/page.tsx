@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Search, Download, Crown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Crown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 
 // Mock user data
@@ -50,7 +50,6 @@ export default function UsersManagementPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [membershipFilter, setMembershipFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('registrationDate');
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 50;
 
@@ -66,19 +65,10 @@ export default function UsersManagementPage() {
     return matchesSearch && matchesMembership && matchesStatus;
   });
 
-  // Sort users
-  filteredUsers = [...filteredUsers].sort((a, b) => {
-    if (sortBy === 'registrationDate') {
-      return b.registrationDate.getTime() - a.registrationDate.getTime();
-    }
-    if (sortBy === 'lastLogin') {
-      return b.lastLogin.getTime() - a.lastLogin.getTime();
-    }
-    if (sortBy === 'name') {
-      return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
-    }
-    return 0;
-  });
+  // Sort users by registration date (newest first)
+  filteredUsers = [...filteredUsers].sort((a, b) =>
+    b.registrationDate.getTime() - a.registrationDate.getTime()
+  );
 
   // Pagination
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
@@ -89,26 +79,16 @@ export default function UsersManagementPage() {
   const premiumCount = filteredUsers.filter(u => u.membershipTier === 'premium').length;
   const suspendedCount = filteredUsers.filter(u => u.status === 'suspended').length;
 
-  const handleExport = () => {
-    alert(`Export functionality would download CSV of ${filteredUsers.length} users`);
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold font-headline">User Management</h1>
-          <p className="text-muted-foreground mt-1">
-            {filteredUsers.length.toLocaleString()} users
-            {premiumCount > 0 && ` • ${premiumCount} premium`}
-            {suspendedCount > 0 && ` • ${suspendedCount} suspended`}
-          </p>
-        </div>
-        <Button onClick={handleExport} variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          Export CSV
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold font-headline">User Management</h1>
+        <p className="text-muted-foreground mt-1">
+          {filteredUsers.length.toLocaleString()} users
+          {premiumCount > 0 && ` • ${premiumCount} premium`}
+          {suspendedCount > 0 && ` • ${suspendedCount} suspended`}
+        </p>
       </div>
 
       {/* Filters */}
@@ -117,7 +97,7 @@ export default function UsersManagementPage() {
           <CardTitle className="text-base">Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -150,18 +130,6 @@ export default function UsersManagementPage() {
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="suspended">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Sort By */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="registrationDate">Registration Date</SelectItem>
-                <SelectItem value="lastLogin">Last Login</SelectItem>
-                <SelectItem value="name">Name</SelectItem>
               </SelectContent>
             </Select>
           </div>

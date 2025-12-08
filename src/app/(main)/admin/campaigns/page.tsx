@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +32,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Search, Download, TrendingUp, TrendingDown, ExternalLink, Ban, PlayCircle } from 'lucide-react';
+import { Search, ExternalLink, Ban, PlayCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 
 // Mock campaign data
@@ -173,10 +173,16 @@ export default function CampaignsPerformancePage() {
   const [orgFilter, setOrgFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('actions');
+  const [currentPage, setCurrentPage] = useState(1);
+  const campaignsPerPage = 10;
 
   // Get unique organizations
   const organizations = Array.from(new Set(campaigns.map(c => c.organization))).sort();
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, orgFilter, typeFilter, statusFilter]);
 
   // Filter campaigns
   let filteredCampaigns = campaigns.filter((campaign) => {
@@ -192,24 +198,18 @@ export default function CampaignsPerformancePage() {
     return matchesSearch && matchesOrg && matchesType && matchesStatus;
   });
 
-  // Sort campaigns
+  // Sort campaigns by date (newest first)
   filteredCampaigns = [...filteredCampaigns].sort((a, b) => {
-    if (sortBy === 'actions') return b.totalActions - a.totalActions;
-    if (sortBy === 'messages') return b.messagesGenerated - a.messagesGenerated;
-    if (sortBy === 'engagement') return b.engagementRate - a.engagementRate;
-    if (sortBy === 'date') return b.createdDate.getTime() - a.createdDate.getTime();
-    return 0;
+    return b.createdDate.getTime() - a.createdDate.getTime();
   });
 
-  const totalActions = filteredCampaigns.reduce((sum, c) => sum + c.totalActions, 0);
-  const totalMessages = filteredCampaigns.reduce((sum, c) => sum + c.messagesGenerated, 0);
-  const avgEngagement = filteredCampaigns.length > 0
-    ? Math.round(filteredCampaigns.reduce((sum, c) => sum + c.engagementRate, 0) / filteredCampaigns.length)
-    : 0;
+  // Pagination
+  const totalPages = Math.ceil(filteredCampaigns.length / campaignsPerPage);
+  const startIndex = (currentPage - 1) * campaignsPerPage;
+  const endIndex = startIndex + campaignsPerPage;
+  const currentCampaigns = filteredCampaigns.slice(startIndex, endIndex);
 
-  const handleExport = () => {
-    alert(`Export functionality would download CSV of ${filteredCampaigns.length} campaigns with full metrics`);
-  };
+  const totalMessages = filteredCampaigns.reduce((sum, c) => sum + c.messagesGenerated, 0);
 
   const handleSuspend = (campaignId: string, campaignTitle: string) => {
     setCampaigns(camps =>
@@ -228,65 +228,20 @@ export default function CampaignsPerformancePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold font-headline">Campaign Performance</h1>
-          <p className="text-muted-foreground mt-1">
-            {filteredCampaigns.length} campaigns • {totalActions.toLocaleString()} total actions
-          </p>
-        </div>
-        <Button onClick={handleExport} variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          Export Report
-        </Button>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalActions.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Across all campaigns
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Messages Generated</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalMessages.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {totalActions > 0 ? Math.round((totalMessages / totalActions) * 100) : 0}% conversion rate
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Engagement</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{avgEngagement}%</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Campaign engagement rate
-            </p>
-          </CardContent>
-        </Card>
+      <div>
+        <h1 className="text-3xl font-bold font-headline">Campaign Performance</h1>
+        <p className="text-muted-foreground mt-1">
+          {filteredCampaigns.length} campaigns • {totalMessages.toLocaleString()} messages generated
+        </p>
       </div>
 
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Filters & Sort</CardTitle>
+          <CardTitle className="text-base">Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div className="relative md:col-span-2">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -337,21 +292,6 @@ export default function CampaignsPerformancePage() {
               </SelectContent>
             </Select>
           </div>
-
-          <div className="mt-4">
-            <Label className="text-sm font-medium mb-2 block">Sort By</Label>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="actions">Total Actions (High to Low)</SelectItem>
-                <SelectItem value="messages">Messages (High to Low)</SelectItem>
-                <SelectItem value="engagement">Engagement (High to Low)</SelectItem>
-                <SelectItem value="date">Date Created (Newest)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </CardContent>
       </Card>
 
@@ -365,23 +305,21 @@ export default function CampaignsPerformancePage() {
                   <TableHead>Campaign</TableHead>
                   <TableHead>Organization</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Total Actions</TableHead>
                   <TableHead>Messages</TableHead>
-                  <TableHead>Engagement</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCampaigns.length === 0 ? (
+                {currentCampaigns.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No campaigns found matching your filters
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCampaigns.map((campaign) => (
+                  currentCampaigns.map((campaign) => (
                     <TableRow key={campaign.id}>
                       <TableCell>
                         <div>
@@ -395,30 +333,7 @@ export default function CampaignsPerformancePage() {
                       <TableCell>
                         <Badge variant="outline">{campaign.type}</Badge>
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {campaign.totalActions.toLocaleString()}
-                      </TableCell>
                       <TableCell>{campaign.messagesGenerated.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {campaign.engagementRate >= 60 ? (
-                            <TrendingUp className="h-3 w-3 text-green-600" />
-                          ) : campaign.engagementRate >= 45 ? (
-                            <TrendingUp className="h-3 w-3 text-amber-600" />
-                          ) : (
-                            <TrendingDown className="h-3 w-3 text-red-600" />
-                          )}
-                          <span className={
-                            campaign.engagementRate >= 60
-                              ? 'text-green-600 font-medium'
-                              : campaign.engagementRate >= 45
-                              ? 'text-amber-600 font-medium'
-                              : 'text-red-600 font-medium'
-                          }>
-                            {campaign.engagementRate}%
-                          </span>
-                        </div>
-                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {format(campaign.createdDate, 'MMM d, yyyy')}
                       </TableCell>
@@ -504,9 +419,38 @@ export default function CampaignsPerformancePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {startIndex + 1}-{Math.min(endIndex, filteredCampaigns.length)} of {filteredCampaigns.length} campaigns
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-// Add Label import
-import { Label } from '@/components/ui/label';

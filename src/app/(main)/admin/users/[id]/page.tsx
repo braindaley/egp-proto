@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -51,26 +50,23 @@ import {
   Vote,
   Users,
   Home,
-  ShoppingBag,
-  Target,
   BarChart3,
   Phone,
-  CheckCircle2,
-  UserCircle2
+  CheckCircle2
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-// Mock user data generator
+// Mock user data generator - based on actual L2 data fields
 const getMockUser = (id: string) => ({
   id,
-  firstName: 'Sarah',
-  lastName: 'Johnson',
-  email: 'sarah.johnson@example.com',
-  phone: '(555) 123-4567',
-  address: '123 Main St',
-  city: 'San Francisco',
-  state: 'CA',
-  zipCode: '94102',
+  firstName: 'Julie',
+  lastName: 'Munley',
+  email: 'julie.munley@example.com',
+  phone: '(302) 555-1234',
+  address: '731 Edgemoor Rd',
+  city: 'Wilmington',
+  state: 'DE',
+  zipCode: '19809',
   membershipTier: 'premium',
   subscriptionStatus: 'active',
   subscriptionStartDate: new Date('2024-06-15'),
@@ -83,84 +79,141 @@ const getMockUser = (id: string) => ({
   orgsFollowed: 3,
   policyInterests: ['Voting Rights', 'Climate Change', 'Healthcare'],
   l2Data: {
-    // Voter Registration
-    voterRegistrationStatus: 'Active',
-    voterRegistrationDate: new Date('2006-09-15'),
-    partyAffiliation: 'Democratic',
-    registeredPrecinct: 'SF-0847',
-    congressionalDistrict: 'CA-11',
-    stateSenateDistrict: 'SD-11',
-    stateHouseDistrict: 'AD-17',
+    // L2 Core IDs
+    lalVoterId: 'LALDE503272020',
+    lalHouseId: '673240969',
+    votersStateVoterId: '150209913',
+    votersCountyVoterId: '003',
 
-    // Vote History (Last 10 elections)
+    // Voter Registration
+    votersActive: 'Active',
+    votersCalculatedRegDate: new Date('2016-01-12'),
+    votersOfficialRegDate: new Date('2016-01-12'),
+    partiesDescription: 'Democratic',
+
+    // Location/Districts
+    state: 'DE',
+    county: 'NEW CASTLE',
+    precinct: '06 ED 05-06',
+    usCongressionalDistrict: '00', // DE is at-large
+    stateSenateDistrict: '06',
+    stateHouseDistrict: '02',
+    unifiedSchoolDistrict: 'BRANDYWINE SD',
+
+    // Vote History (EG = General, EP = Primary)
     voteHistory: {
-      '2024_General': 'Voted',
-      '2024_Primary': 'Voted',
-      '2022_General': 'Voted',
-      '2022_Primary': 'Voted',
-      '2020_General': 'Voted',
-      '2020_Primary': 'Voted',
-      '2018_General': 'Voted',
-      '2018_Primary': 'Did Not Vote',
-      '2016_General': 'Voted',
-      '2016_Primary': 'Voted',
+      'EG_2024': '0',
+      'EG_2022': '0',
+      'EG_2020': '1',
+      'EG_2018': '0',
+      'EG_2016': '1',
+      'EP_2024': '0',
+      'EP_2022': '0',
+      'EP_2020': '0',
+      'EP_2018': '0',
+      'EP_2016': '0',
     },
-    voterParticipationScore: 92,
+    votingPerformanceEvenYearGeneral: '40%',
+    votingPerformanceEvenYearPrimary: '20%',
+    votingPerformanceEvenYearGeneralAndPrimary: '0%',
+    voteFrequency: 2,
 
     // Demographics
-    age: 42,
-    dateOfBirth: new Date('1982-04-15'),
-    gender: 'Female',
-    ethnicity: 'White/Caucasian',
-    maritalStatus: 'Married',
-    householdIncome: '$100,000 - $149,999',
-    education: 'Graduate Degree',
-    occupation: 'Healthcare Professional',
-    language: 'English',
+    votersBirthDate: new Date('2000-01-01'),
+    votersAge: 25,
+    votersAgeRange: '25 to 29',
+    votersGender: 'F',
+    votersMiddleName: 'Michelle',
+    ethnicDescription: 'European',
+    ethnicGroupsEthnicGroup1Desc: 'English/Welsh',
+
+    // Residence Address
+    residenceAddressLine: '731 Edgemoor Rd',
+    residenceCity: 'Wilmington',
+    residenceState: 'DE',
+    residenceZip: '19809',
+    residenceZipPlus4: '3425',
+    residenceLatitude: 39.755260,
+    residenceLongitude: -75.506700,
+    residenceLatLongAccuracy: 'GeoMatchRooftop',
+    residenceCensusTract: '010704',
+    residenceCensusBlock: '2021',
+    residenceDensity: '11,001-15,000',
 
     // Household
-    householdSize: 4,
-    numberOfChildren: 2,
-    childrenAges: '8, 12',
-    homeOwnership: 'Owner',
-    homeValue: '$850,000',
-    lengthOfResidence: 16,
-    dwellingType: 'Single Family',
+    residenceFamilyId: 'R002152329',
+    residenceHHVotersCount: 3,
+    residenceHHGenderDescription: 'Mixed Gender Household',
+    residenceHHPartiesDescription: 'Democratic & Independent',
 
-    // Consumer Data
-    consumerSegment: 'Affluent Professionals',
-    lifestyleCluster: 'Urban Achievers',
-    netWorth: '$500,000 - $999,999',
-    vehicleOwnership: 'Yes (2)',
-    vehicleTypes: 'Tesla Model Y, Honda CR-V',
+    // Consumer Data - Demographics
+    consumerDataDwellingType: 'Single Family Dwelling Unit',
+    consumerDataHomeownerProbabilityModel: 'Owner',
+    consumerDataHomeEstCurrentValueCode: '$300,000 - $349,999',
+    consumerDataLengthOfResidenceCode: '5',
+    consumerDataNumberOfAdultsInHH: 6,
+    consumerDataNumberOfChildrenInHH: 0,
+    consumerDataNumberOfPersonsInHH: 6,
+    consumerDataPresenceOfChildrenInHH: 'No',
 
-    // Political Engagement
-    donorHistory: 'Active Donor',
-    donorFrequency: 'Regular (2-4x/year)',
-    averageDonationAmount: '$150',
-    totalLifetimeDonations: '$3,600',
-    issueInterests: ['Healthcare', 'Education', 'Climate Change', 'Voting Rights'],
-    advocacyEngagement: 'High',
-    volunteerLikelihood: 'Very Likely',
+    // Consumer Data - Socioeconomic
+    consumerDataEducationOfPerson: 'Completed College Likely',
+    consumerDataEstimatedIncomeRange: '$75,000-$99,999',
+    consumerDataEstimatedIncomeAmount: 87500,
+    consumerDataOccupationGroup: 'Other',
+    consumerDataLanguageCode: 'English',
+    consumerDataMaritalStatus: null,
 
-    // Propensity Scores (0-100)
-    turnoutPropensity2024: 98,
-    turnoutPropensity2026: 85,
-    democraticSupport: 88,
-    republicanSupport: 12,
-    persuadability: 15,
+    // Consumer Data - Political Scores
+    consumerDataConservativeRepublicanScore: null,
+    consumerDataForLiberalDemocratsScore: null,
+    consumerDataModerateRepublicanScore: null,
+    consumerDataModerateDemocratScore: null,
+    consumerDataProgressiveDemocratScore: null,
 
-    // Contact Preferences
-    phoneType: 'Mobile',
-    emailOptIn: 'Yes',
-    smsOptIn: 'Yes',
-    mailOptIn: 'Yes',
-    doNotContact: 'No',
+    // Consumer Data - Geographic
+    consumerDataCBSA: 'Philadelphia-Camden-Wilmington (PA-NJ-DE-MD)',
+    consumerDataCBSACode: '37980',
+    consumerDataCSA: 'Philadelphia-Reading-Camden (PA-NJ-DE-MD)',
+    consumerDataMSA: 'PHILADELPHIA-CAMDEN-WILMINGTON, PA-NJ-DE-MD',
+    consumerDataMSACode: '37980',
+    consumerDataTimeZone: 'Eastern Time Zone',
+    consumerDataRUSCode: 'Suburban',
+    designatedMarketAreaDMA: 'PHILADELPHIA DMA',
+    radioMarketArea: 'PHILADELPHIA RADIO MKT AREA|WILMINGTON DE RADIO MKT AREA',
 
-    // Data Quality
-    l2Confidence: 'High',
-    lastVerified: new Date('2024-12-01'),
-    recordMatchQuality: 'Exact Match',
+    // Consumer Data - Property
+    consumerDataHomeSwimmingPool: 'No Pool Present',
+    consumerDataBedroomsCount: null,
+    consumerDataRoomsCount: 7,
+    consumerDataTaxAssessedValueTotal: 66400,
+    residencePropertyHomeSquareFootage: '0-2,000',
+    residencePropertyLandSquareFootage: '8,001-9,000',
+    residencePropertyType: 'Residential',
+
+    // Consumer Data - Household Composition
+    consumerDataGenerationsInHH: 2,
+    consumerDataSeniorAdultInHH: 'Yes',
+    consumerDataVeteranInHH: 'Yes',
+
+    // Contact Data
+    cellPhoneNumberAvailable: 'Yes',
+    landlinePhoneNumberAvailable: 'Yes',
+    voterTelephonesCellPhoneFormatted: null, // Actual number redacted
+    voterTelephonesLandlineFormatted: null, // Actual number redacted
+    voterTelephonesCellConfidenceCode: null,
+    voterTelephonesLandlineConfidenceCode: null,
+
+    // Consumer Data - Interests (from sample)
+    consumerDataCurrentAffairsPolitics: 'Yes',
+    consumerDataDonorPoliticalLiberal: null,
+    consumerDataDonorPoliticalConservative: null,
+    consumerDataDonorEnvironmental: 'Yes',
+    consumerDataDonorCharitableCauses: 'Yes',
+    consumerDataReligionCode: 'Protestant',
+
+    // Data Timestamp
+    lastUpdated: new Date('2024-12-01'),
   }
 });
 
@@ -175,14 +228,128 @@ const mockOrganizations = [
   { id: 'org-6', name: 'Mi Familia Vota', slug: 'mi-familia-vota' },
 ];
 
+// US States for member selection
+const US_STATES = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
+  'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa',
+  'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan',
+  'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire',
+  'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio',
+  'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
+  'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
+  'Wisconsin', 'Wyoming'
+];
+
+// Helper to convert state name to abbreviation
+const getStateAbbreviation = (stateName: string): string => {
+  const stateMap: { [key: string]: string } = {
+    'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR', 'California': 'CA',
+    'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE', 'Florida': 'FL', 'Georgia': 'GA',
+    'Hawaii': 'HI', 'Idaho': 'ID', 'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA',
+    'Kansas': 'KS', 'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+    'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS', 'Missouri': 'MO',
+    'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV', 'New Hampshire': 'NH', 'New Jersey': 'NJ',
+    'New Mexico': 'NM', 'New York': 'NY', 'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH',
+    'Oklahoma': 'OK', 'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+    'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT', 'Vermont': 'VT',
+    'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV', 'Wisconsin': 'WI', 'Wyoming': 'WY'
+  };
+  return stateMap[stateName] || '';
+};
+
+interface SimpleMember {
+  bioguideId: string;
+  name: string;
+  state: string;
+  district?: string;
+  party?: string;
+}
+
+type UserType = 'organization' | 'member';
+
 export default function UserDetailsPage() {
   const params = useParams();
   const userId = params?.id as string;
   const user = getMockUser(userId);
 
   const [actionInProgress, setActionInProgress] = useState(false);
+
+  // Assignment state
+  const [userType, setUserType] = useState<UserType>('organization');
   const [selectedOrganization, setSelectedOrganization] = useState<string>('');
   const [assignedOrganization, setAssignedOrganization] = useState<string | null>(null);
+
+  // Member assignment state
+  const [selectedState, setSelectedState] = useState<string>('');
+  const [selectedMember, setSelectedMember] = useState<SimpleMember | null>(null);
+  const [assignedMember, setAssignedMember] = useState<SimpleMember | null>(null);
+  const [members, setMembers] = useState<SimpleMember[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
+  // Fetch members when state is selected
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (userType !== 'member' || !selectedState) {
+        setMembers([]);
+        return;
+      }
+
+      setLoadingMembers(true);
+      try {
+        const stateAbbr = getStateAbbreviation(selectedState);
+        const response = await fetch(`/api/congress/members?congress=119&state=${stateAbbr}`);
+        const data = await response.json();
+
+        if (response.ok && data) {
+          const allMembers: SimpleMember[] = [];
+          const seenBioguideIds = new Set<string>();
+
+          // Process senators
+          if (data.senators) {
+            data.senators.forEach((member: any) => {
+              if (!seenBioguideIds.has(member.bioguideId)) {
+                seenBioguideIds.add(member.bioguideId);
+                allMembers.push({
+                  bioguideId: member.bioguideId,
+                  name: `${member.name} (Sen.)`,
+                  state: selectedState,
+                  party: member.partyName
+                });
+              }
+            });
+          }
+
+          // Process representatives
+          if (data.representatives) {
+            data.representatives.forEach((member: any) => {
+              if (!seenBioguideIds.has(member.bioguideId)) {
+                seenBioguideIds.add(member.bioguideId);
+                const district = member.district ? `-${member.district}` : '';
+                allMembers.push({
+                  bioguideId: member.bioguideId,
+                  name: `${member.name} (Rep.${district})`,
+                  state: selectedState,
+                  district: member.district,
+                  party: member.partyName
+                });
+              }
+            });
+          }
+
+          // Sort by name
+          allMembers.sort((a, b) => a.name.localeCompare(b.name));
+          setMembers(allMembers);
+        }
+      } catch (error) {
+        console.error('Error fetching members:', error);
+        setMembers([]);
+      } finally {
+        setLoadingMembers(false);
+      }
+    };
+
+    fetchMembers();
+  }, [userType, selectedState]);
 
   const handleSuspend = () => {
     setActionInProgress(true);
@@ -216,11 +383,6 @@ export default function UserDetailsPage() {
     }, 500);
   };
 
-  const handleImpersonate = () => {
-    // In production, this would set up an impersonation session
-    window.location.href = '/';
-  };
-
   const handleAssignOrganization = () => {
     if (!selectedOrganization) {
       alert('Please select an organization');
@@ -246,7 +408,32 @@ export default function UserDetailsPage() {
     }, 500);
   };
 
+  const handleAssignMember = () => {
+    if (!selectedMember) {
+      alert('Please select a member');
+      return;
+    }
+    setActionInProgress(true);
+    setTimeout(() => {
+      setAssignedMember(selectedMember);
+      alert(`${user.firstName} ${user.lastName} has been assigned to manage ${selectedMember.name}. They now have member staff access.`);
+      setActionInProgress(false);
+    }, 500);
+  };
+
+  const handleRemoveFromMember = () => {
+    setActionInProgress(true);
+    setTimeout(() => {
+      alert(`${user.firstName} ${user.lastName} has been removed from ${assignedMember?.name}.`);
+      setAssignedMember(null);
+      setSelectedMember(null);
+      setSelectedState('');
+      setActionInProgress(false);
+    }, 500);
+  };
+
   const currentOrg = assignedOrganization ? mockOrganizations.find(o => o.id === assignedOrganization) : null;
+  const hasAssignment = currentOrg || assignedMember;
 
   return (
     <div className="space-y-6">
@@ -361,7 +548,10 @@ export default function UserDetailsPage() {
             <CardHeader>
               <CardTitle>L2 Political Data</CardTitle>
               <CardDescription>
-                Voter file data provided by L2 Political. Last verified {format(user.l2Data.lastVerified, 'MMM d, yyyy')}.
+                Voter file data provided by L2 Political. Last updated {format(user.l2Data.lastUpdated, 'MMM d, yyyy')}.
+                <span className="block text-xs mt-1 font-mono text-muted-foreground">
+                  LALVOTERID: {user.l2Data.lalVoterId} | LALHOUSEID: {user.l2Data.lalHouseId}
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -375,32 +565,62 @@ export default function UserDetailsPage() {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Status</p>
                       <Badge variant="outline" className="mt-1 bg-green-50 text-green-700 border-green-200">
-                        {user.l2Data.voterRegistrationStatus}
+                        {user.l2Data.votersActive}
                       </Badge>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Registration Date</p>
-                      <p className="text-sm mt-1">{format(user.l2Data.voterRegistrationDate, 'MMM d, yyyy')}</p>
+                      <p className="text-sm mt-1">{format(user.l2Data.votersCalculatedRegDate, 'MMM d, yyyy')}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Party Affiliation</p>
-                      <p className="text-sm mt-1">{user.l2Data.partyAffiliation}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Party</p>
+                      <p className="text-sm mt-1">{user.l2Data.partiesDescription}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">State Voter ID</p>
+                      <p className="text-sm mt-1 font-mono">{user.l2Data.votersStateVoterId}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Districts */}
+                <div className="border-t pt-6 space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Districts</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">State</p>
+                      <p className="text-sm mt-1">{user.l2Data.state}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">County</p>
+                      <p className="text-sm mt-1">{user.l2Data.county}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Precinct</p>
-                      <p className="text-sm mt-1 font-mono">{user.l2Data.registeredPrecinct}</p>
+                      <p className="text-sm mt-1 font-mono">{user.l2Data.precinct}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Congressional District</p>
-                      <p className="text-sm mt-1">{user.l2Data.congressionalDistrict}</p>
+                      <p className="text-sm mt-1">{user.l2Data.usCongressionalDistrict === '00' ? 'At-Large' : `CD-${user.l2Data.usCongressionalDistrict}`}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">State Senate District</p>
-                      <p className="text-sm mt-1">{user.l2Data.stateSenateDistrict}</p>
+                      <p className="text-sm mt-1">SD-{user.l2Data.stateSenateDistrict}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">State House District</p>
-                      <p className="text-sm mt-1">{user.l2Data.stateHouseDistrict}</p>
+                      <p className="text-sm mt-1">HD-{user.l2Data.stateHouseDistrict}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">School District</p>
+                      <p className="text-sm mt-1">{user.l2Data.unifiedSchoolDistrict}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">DMA</p>
+                      <p className="text-sm mt-1">{user.l2Data.designatedMarketAreaDMA}</p>
                     </div>
                   </div>
                 </div>
@@ -410,36 +630,45 @@ export default function UserDetailsPage() {
                   <div className="flex items-center gap-2 mb-4">
                     <CheckCircle2 className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold">Vote History</h3>
-                    <Badge variant="outline" className="ml-auto">
-                      Participation Score: {user.l2Data.voterParticipationScore}%
-                    </Badge>
+                    <div className="ml-auto flex gap-2">
+                      <Badge variant="outline">
+                        General: {user.l2Data.votingPerformanceEvenYearGeneral}
+                      </Badge>
+                      <Badge variant="outline">
+                        Primary: {user.l2Data.votingPerformanceEvenYearPrimary}
+                      </Badge>
+                    </div>
                   </div>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Election</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Voted</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Object.entries(user.l2Data.voteHistory).map(([election, status]) => (
-                        <TableRow key={election}>
-                          <TableCell className="font-medium">
-                            {election.replace('_', ' ')}
-                          </TableCell>
-                          <TableCell>
-                            {status === 'Voted' ? (
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                {status}
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                                {status}
-                              </Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {Object.entries(user.l2Data.voteHistory).map(([election, status]) => {
+                        const [type, year] = election.split('_');
+                        const electionType = type === 'EG' ? 'General' : 'Primary';
+                        return (
+                          <TableRow key={election}>
+                            <TableCell className="font-medium">{year}</TableCell>
+                            <TableCell>{electionType}</TableCell>
+                            <TableCell>
+                              {status === '1' ? (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  Yes
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                                  No
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -453,39 +682,62 @@ export default function UserDetailsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Age</p>
-                      <p className="text-sm mt-1">{user.l2Data.age}</p>
+                      <p className="text-sm mt-1">{user.l2Data.votersAge}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Date of Birth</p>
-                      <p className="text-sm mt-1">{format(user.l2Data.dateOfBirth, 'MMM d, yyyy')}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Age Range</p>
+                      <p className="text-sm mt-1">{user.l2Data.votersAgeRange}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Birth Date</p>
+                      <p className="text-sm mt-1">{format(user.l2Data.votersBirthDate, 'MMM d, yyyy')}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Gender</p>
-                      <p className="text-sm mt-1">{user.l2Data.gender}</p>
+                      <p className="text-sm mt-1">{user.l2Data.votersGender === 'F' ? 'Female' : user.l2Data.votersGender === 'M' ? 'Male' : user.l2Data.votersGender}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Ethnicity</p>
-                      <p className="text-sm mt-1">{user.l2Data.ethnicity}</p>
+                      <p className="text-sm mt-1">{user.l2Data.ethnicDescription}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Marital Status</p>
-                      <p className="text-sm mt-1">{user.l2Data.maritalStatus}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Ethnic Group</p>
+                      <p className="text-sm mt-1">{user.l2Data.ethnicGroupsEthnicGroup1Desc}</p>
                     </div>
+                  </div>
+                </div>
+
+                {/* Consumer Data - Socioeconomic */}
+                <div className="border-t pt-6 space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Consumer Data - Socioeconomic</h3>
+                    <Badge variant="outline" className="ml-auto text-xs">Modeled</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Education</p>
-                      <p className="text-sm mt-1">{user.l2Data.education}</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataEducationOfPerson || 'Not available'}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Occupation</p>
-                      <p className="text-sm mt-1">{user.l2Data.occupation}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Est. Income Range</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataEstimatedIncomeRange || 'Not available'}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Household Income</p>
-                      <p className="text-sm mt-1">{user.l2Data.householdIncome}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Occupation Group</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataOccupationGroup || 'Not available'}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Language</p>
-                      <p className="text-sm mt-1">{user.l2Data.language}</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataLanguageCode || 'Not available'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Religion</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataReligionCode || 'Not available'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Time Zone</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataTimeZone || 'Not available'}</p>
                     </div>
                   </div>
                 </div>
@@ -494,261 +746,201 @@ export default function UserDetailsPage() {
                 <div className="border-t pt-6 space-y-4">
                   <div className="flex items-center gap-2 mb-4">
                     <Home className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold">Household</h3>
+                    <h3 className="font-semibold">Household & Residence</h3>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Household Size</p>
-                      <p className="text-sm mt-1">{user.l2Data.householdSize} people</p>
+                      <p className="text-sm font-medium text-muted-foreground">Family ID</p>
+                      <p className="text-sm mt-1 font-mono">{user.l2Data.residenceFamilyId}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Number of Children</p>
-                      <p className="text-sm mt-1">{user.l2Data.numberOfChildren}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Voters in Household</p>
+                      <p className="text-sm mt-1">{user.l2Data.residenceHHVotersCount}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Children Ages</p>
-                      <p className="text-sm mt-1">{user.l2Data.childrenAges}</p>
+                      <p className="text-sm font-medium text-muted-foreground">HH Gender Composition</p>
+                      <p className="text-sm mt-1">{user.l2Data.residenceHHGenderDescription}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Home Ownership</p>
-                      <p className="text-sm mt-1">{user.l2Data.homeOwnership}</p>
+                      <p className="text-sm font-medium text-muted-foreground">HH Party Composition</p>
+                      <p className="text-sm mt-1">{user.l2Data.residenceHHPartiesDescription}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Home Value</p>
-                      <p className="text-sm mt-1">{user.l2Data.homeValue}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Persons in HH</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataNumberOfPersonsInHH}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Adults in HH</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataNumberOfAdultsInHH}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Children in HH</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataPresenceOfChildrenInHH}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Generations in HH</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataGenerationsInHH}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Senior in HH</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataSeniorAdultInHH}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Veteran in HH</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataVeteranInHH}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Property Data */}
+                <div className="border-t pt-6 space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Property Data</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Dwelling Type</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataDwellingType}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Homeowner Status</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataHomeownerProbabilityModel}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Est. Home Value</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataHomeEstCurrentValueCode}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Length of Residence</p>
-                      <p className="text-sm mt-1">{user.l2Data.lengthOfResidence} years</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataLengthOfResidenceCode} years</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Dwelling Type</p>
-                      <p className="text-sm mt-1">{user.l2Data.dwellingType}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Tax Assessed Value</p>
+                      <p className="text-sm mt-1">${user.l2Data.consumerDataTaxAssessedValueTotal?.toLocaleString() || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Home Square Footage</p>
+                      <p className="text-sm mt-1">{user.l2Data.residencePropertyHomeSquareFootage}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Land Square Footage</p>
+                      <p className="text-sm mt-1">{user.l2Data.residencePropertyLandSquareFootage}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Property Type</p>
+                      <p className="text-sm mt-1">{user.l2Data.residencePropertyType}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Rooms</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataRoomsCount || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Swimming Pool</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataHomeSwimmingPool}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Consumer & Lifestyle */}
+                {/* Geographic Data */}
                 <div className="border-t pt-6 space-y-4">
                   <div className="flex items-center gap-2 mb-4">
-                    <ShoppingBag className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold">Consumer & Lifestyle</h3>
+                    <MapPin className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Geographic Data</h3>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Consumer Segment</p>
-                      <p className="text-sm mt-1">{user.l2Data.consumerSegment}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Address</p>
+                      <p className="text-sm mt-1">{user.l2Data.residenceAddressLine}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Lifestyle Cluster</p>
-                      <p className="text-sm mt-1">{user.l2Data.lifestyleCluster}</p>
+                      <p className="text-sm font-medium text-muted-foreground">City, State ZIP</p>
+                      <p className="text-sm mt-1">{user.l2Data.residenceCity}, {user.l2Data.residenceState} {user.l2Data.residenceZip}-{user.l2Data.residenceZipPlus4}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Net Worth</p>
-                      <p className="text-sm mt-1">{user.l2Data.netWorth}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Latitude</p>
+                      <p className="text-sm mt-1 font-mono">{user.l2Data.residenceLatitude}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Vehicle Ownership</p>
-                      <p className="text-sm mt-1">{user.l2Data.vehicleOwnership}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Longitude</p>
+                      <p className="text-sm mt-1 font-mono">{user.l2Data.residenceLongitude}</p>
                     </div>
-                    <div className="col-span-2">
-                      <p className="text-sm font-medium text-muted-foreground">Vehicle Types</p>
-                      <p className="text-sm mt-1">{user.l2Data.vehicleTypes}</p>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Geocode Accuracy</p>
+                      <p className="text-sm mt-1">{user.l2Data.residenceLatLongAccuracy}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Census Tract</p>
+                      <p className="text-sm mt-1 font-mono">{user.l2Data.residenceCensusTract}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Census Block</p>
+                      <p className="text-sm mt-1 font-mono">{user.l2Data.residenceCensusBlock}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Population Density</p>
+                      <p className="text-sm mt-1">{user.l2Data.residenceDensity}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Urban/Suburban/Rural</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataRUSCode}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">CBSA</p>
+                      <p className="text-sm mt-1 text-xs">{user.l2Data.consumerDataCBSA}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Political Engagement */}
-                <div className="border-t pt-6 space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Target className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold">Political Engagement</h3>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Donor History</p>
-                      <p className="text-sm mt-1">{user.l2Data.donorHistory}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Donor Frequency</p>
-                      <p className="text-sm mt-1">{user.l2Data.donorFrequency}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Average Donation</p>
-                      <p className="text-sm mt-1">{user.l2Data.averageDonationAmount}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Lifetime Donations</p>
-                      <p className="text-sm mt-1">{user.l2Data.totalLifetimeDonations}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Advocacy Engagement</p>
-                      <Badge variant="outline" className="mt-1 bg-green-50 text-green-700 border-green-200">
-                        {user.l2Data.advocacyEngagement}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Volunteer Likelihood</p>
-                      <p className="text-sm mt-1">{user.l2Data.volunteerLikelihood}</p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-sm font-medium text-muted-foreground mb-2">Issue Interests</p>
-                      <div className="flex flex-wrap gap-2">
-                        {user.l2Data.issueInterests.map((interest) => (
-                          <Badge key={interest} variant="outline">
-                            {interest}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Propensity Scores */}
+                {/* Consumer Interests */}
                 <div className="border-t pt-6 space-y-4">
                   <div className="flex items-center gap-2 mb-4">
                     <BarChart3 className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold">Propensity Scores</h3>
+                    <h3 className="font-semibold">Consumer Interests</h3>
+                    <Badge variant="outline" className="ml-auto text-xs">Modeled</Badge>
                   </div>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium">Turnout Propensity 2024</p>
-                        <span className="text-sm font-semibold">{user.l2Data.turnoutPropensity2024}%</span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div
-                          className="bg-green-600 h-2 rounded-full"
-                          style={{ width: `${user.l2Data.turnoutPropensity2024}%` }}
-                        />
-                      </div>
+                      <p className="text-sm font-medium text-muted-foreground">Current Affairs/Politics</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataCurrentAffairsPolitics || 'No'}</p>
                     </div>
-
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium">Turnout Propensity 2026</p>
-                        <span className="text-sm font-semibold">{user.l2Data.turnoutPropensity2026}%</span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div
-                          className="bg-green-600 h-2 rounded-full"
-                          style={{ width: `${user.l2Data.turnoutPropensity2026}%` }}
-                        />
-                      </div>
+                      <p className="text-sm font-medium text-muted-foreground">Environmental Donor</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataDonorEnvironmental || 'No'}</p>
                     </div>
-
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium">Democratic Support</p>
-                        <span className="text-sm font-semibold">{user.l2Data.democraticSupport}%</span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full"
-                          style={{ width: `${user.l2Data.democraticSupport}%` }}
-                        />
-                      </div>
+                      <p className="text-sm font-medium text-muted-foreground">Charitable Donor</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataDonorCharitableCauses || 'No'}</p>
                     </div>
-
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium">Republican Support</p>
-                        <span className="text-sm font-semibold">{user.l2Data.republicanSupport}%</span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div
-                          className="bg-red-600 h-2 rounded-full"
-                          style={{ width: `${user.l2Data.republicanSupport}%` }}
-                        />
-                      </div>
+                      <p className="text-sm font-medium text-muted-foreground">Liberal Political Donor</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataDonorPoliticalLiberal || 'No'}</p>
                     </div>
-
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium">Persuadability</p>
-                        <span className="text-sm font-semibold">{user.l2Data.persuadability}%</span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div
-                          className="bg-purple-600 h-2 rounded-full"
-                          style={{ width: `${user.l2Data.persuadability}%` }}
-                        />
-                      </div>
+                      <p className="text-sm font-medium text-muted-foreground">Conservative Political Donor</p>
+                      <p className="text-sm mt-1">{user.l2Data.consumerDataDonorPoliticalConservative || 'No'}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Contact Preferences & Data Quality */}
+                {/* Contact Data */}
                 <div className="border-t pt-6 space-y-6">
                   <div className="flex items-center gap-2 mb-4">
                     <Phone className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold">Contact Preferences & Data Quality</h3>
+                    <h3 className="font-semibold">Contact Data Availability</h3>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-semibold mb-3">Contact Preferences</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Phone Type</p>
-                        <p className="text-sm mt-1">{user.l2Data.phoneType}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Email Opt-In</p>
-                        <Badge
-                          variant="outline"
-                          className={`mt-1 ${user.l2Data.emailOptIn === 'Yes' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
-                        >
-                          {user.l2Data.emailOptIn}
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">SMS Opt-In</p>
-                        <Badge
-                          variant="outline"
-                          className={`mt-1 ${user.l2Data.smsOptIn === 'Yes' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
-                        >
-                          {user.l2Data.smsOptIn}
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Mail Opt-In</p>
-                        <Badge
-                          variant="outline"
-                          className={`mt-1 ${user.l2Data.mailOptIn === 'Yes' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
-                        >
-                          {user.l2Data.mailOptIn}
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Do Not Contact</p>
-                        <Badge
-                          variant="outline"
-                          className={`mt-1 ${user.l2Data.doNotContact === 'No' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}
-                        >
-                          {user.l2Data.doNotContact}
-                        </Badge>
-                      </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Cell Phone Available</p>
+                      <Badge variant="outline" className={user.l2Data.cellPhoneNumberAvailable === 'Yes' ? 'mt-1 bg-green-50 text-green-700 border-green-200' : 'mt-1'}>
+                        {user.l2Data.cellPhoneNumberAvailable}
+                      </Badge>
                     </div>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <h4 className="text-sm font-semibold mb-3">Data Quality</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">L2 Confidence</p>
-                        <Badge variant="outline" className="mt-1 bg-green-50 text-green-700 border-green-200">
-                          {user.l2Data.l2Confidence}
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Last Verified</p>
-                        <p className="text-sm mt-1">{format(user.l2Data.lastVerified, 'MMM d, yyyy')}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Record Match Quality</p>
-                        <Badge variant="outline" className="mt-1 bg-green-50 text-green-700 border-green-200">
-                          {user.l2Data.recordMatchQuality}
-                        </Badge>
-                      </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Landline Available</p>
+                      <Badge variant="outline" className={user.l2Data.landlinePhoneNumberAvailable === 'Yes' ? 'mt-1 bg-green-50 text-green-700 border-green-200' : 'mt-1'}>
+                        {user.l2Data.landlinePhoneNumberAvailable}
+                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -758,68 +950,14 @@ export default function UserDetailsPage() {
 
         {/* Sidebar - Stats & Actions */}
         <div className="space-y-6">
-          {/* Activity Stats */}
+          {/* Campaign Management */}
           <Card>
             <CardHeader>
-              <CardTitle>Activity Summary</CardTitle>
+              <CardTitle>Campaign Management</CardTitle>
+              <CardDescription>Assign this user to manage an organization or member</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Messages Sent</span>
-                </div>
-                <span className="font-semibold">{user.messageCount}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Bills Followed</span>
-                </div>
-                <span className="font-semibold">{user.billsFollowed}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Orgs Followed</span>
-                </div>
-                <span className="font-semibold">{user.orgsFollowed}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Last Login</span>
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {format(user.lastLogin, 'MMM d, yyyy')}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Policy Interests */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Policy Interests</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {user.policyInterests.map((interest) => (
-                  <Badge key={interest} variant="outline">
-                    {interest}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Organization Assignment */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Organization Assignment</CardTitle>
-              <CardDescription>Assign this user as an admin of an organization</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              {/* Show current assignment if exists */}
               {currentOrg ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
@@ -851,31 +989,156 @@ export default function UserDetailsPage() {
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
-              ) : (
+              ) : assignedMember ? (
                 <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{assignedMember.name}</p>
+                      <p className="text-xs text-muted-foreground">Member Staff</p>
+                    </div>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full" disabled={actionInProgress}>
+                        Remove from Member
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remove from Member</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to remove {user.firstName} {user.lastName} from {assignedMember.name}? They will lose staff access.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleRemoveFromMember}>
+                          Remove
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* User Type Selection */}
                   <div className="space-y-2">
-                    <Label htmlFor="organization">Select Organization</Label>
-                    <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
-                      <SelectTrigger id="organization">
-                        <SelectValue placeholder="Choose an organization..." />
+                    <Label>Select User Type</Label>
+                    <Select
+                      value={userType}
+                      onValueChange={(value: UserType) => {
+                        setUserType(value);
+                        // Reset selections when changing type
+                        setSelectedOrganization('');
+                        setSelectedState('');
+                        setSelectedMember(null);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select user type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockOrganizations.map((org) => (
-                          <SelectItem key={org.id} value={org.id}>
-                            {org.name}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="organization">Organization</SelectItem>
+                        <SelectItem value="member">Member of Congress</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button
-                    onClick={handleAssignOrganization}
-                    disabled={!selectedOrganization || actionInProgress}
-                    className="w-full"
-                  >
-                    <Building2 className="h-4 w-4 mr-2" />
-                    Assign to Organization
-                  </Button>
+
+                  {/* Organization Selection */}
+                  {userType === 'organization' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="organization">Select Organization</Label>
+                        <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
+                          <SelectTrigger id="organization">
+                            <SelectValue placeholder="Choose an organization..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mockOrganizations.map((org) => (
+                              <SelectItem key={org.id} value={org.id}>
+                                {org.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        onClick={handleAssignOrganization}
+                        disabled={!selectedOrganization || actionInProgress}
+                        className="w-full"
+                      >
+                        <Building2 className="h-4 w-4 mr-2" />
+                        Assign to Organization
+                      </Button>
+                    </>
+                  )}
+
+                  {/* Member Selection */}
+                  {userType === 'member' && (
+                    <>
+                      {/* State Selection */}
+                      <div className="space-y-2">
+                        <Label>Select State</Label>
+                        <Select
+                          value={selectedState}
+                          onValueChange={(value) => {
+                            setSelectedState(value);
+                            setSelectedMember(null);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a state" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {US_STATES.map((state) => (
+                              <SelectItem key={state} value={state}>
+                                {state}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Member Selection - only show if state is selected */}
+                      {selectedState && (
+                        <div className="space-y-2">
+                          <Label>Select Member</Label>
+                          {loadingMembers ? (
+                            <div className="text-sm text-muted-foreground py-2">Loading members...</div>
+                          ) : (
+                            <Select
+                              value={selectedMember?.bioguideId || ''}
+                              onValueChange={(value) => {
+                                const member = members.find(m => m.bioguideId === value);
+                                setSelectedMember(member || null);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a member" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {members.map((member) => (
+                                  <SelectItem key={member.bioguideId} value={member.bioguideId}>
+                                    {member.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      )}
+
+                      <Button
+                        onClick={handleAssignMember}
+                        disabled={!selectedMember || actionInProgress}
+                        className="w-full"
+                      >
+                        <Users className="h-4 w-4 mr-2" />
+                        Assign to Member
+                      </Button>
+                    </>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -914,29 +1177,6 @@ export default function UserDetailsPage() {
                   Reinstate User
                 </Button>
               )}
-
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start">
-                    <UserCircle2 className="h-4 w-4 mr-2" />
-                    Impersonate User
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Impersonate User</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      You are about to view the platform as {user.firstName} {user.lastName}. You will be able to see their dashboard, messages, and all account information. This action will be logged for security purposes.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleImpersonate}>
-                      Start Impersonation
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
 
               <Button variant="outline" className="w-full justify-start" onClick={handleResetPassword} disabled={actionInProgress}>
                 <Key className="h-4 w-4 mr-2" />
