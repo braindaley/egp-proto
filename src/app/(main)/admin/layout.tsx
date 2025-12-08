@@ -9,8 +9,6 @@ import {
   LayoutDashboard,
   Users,
   Building2,
-  CreditCard,
-  MessageSquare,
   Megaphone,
   Settings,
   Menu,
@@ -22,7 +20,7 @@ const adminNavItems = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Organizations', href: '/admin/organizations', icon: Building2 },
-  { label: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard },
+  // { label: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard }, // Hidden for now
   { label: 'Campaigns', href: '/admin/campaigns', icon: Megaphone },
   { label: 'Settings', href: '/admin/settings', icon: Settings },
 ];
