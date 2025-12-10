@@ -1573,17 +1573,25 @@ export default function PolicyHomepage({ policyCategory }: PolicyHomepageProps) 
 
                   <div className="flex items-center gap-4">
                     <Button asChild>
-                      <Link href={`/issues/${convertCategoryToSlug(policyCategory)}/federal`}>
+                      <Link href={`/federal/bill/119?filter=${encodeURIComponent(policyCategory)}`}>
                         View Federal Bills
                       </Link>
                     </Button>
 
-                    <Link
-                      href={`/issues/${convertCategoryToSlug(policyCategory)}`}
-                      className="text-sm text-muted-foreground hover:text-foreground underline"
-                    >
-                      Browse by State
-                    </Link>
+                    {(() => {
+                      const userState = zipCode ? getStateFromZip(zipCode) : null;
+                      const stateLink = userState
+                        ? `/state/${userState.stateCode.toLowerCase()}?filter=${encodeURIComponent(policyCategory)}`
+                        : `/state?filter=${encodeURIComponent(policyCategory)}`;
+                      return (
+                        <Link
+                          href={stateLink}
+                          className="text-sm text-muted-foreground hover:text-foreground underline"
+                        >
+                          Browse by State{userState ? ` (${userState.stateCode})` : ''}
+                        </Link>
+                      );
+                    })()}
                   </div>
                 </CardContent>
               </Card>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -23,9 +23,11 @@ const states: Record<string, string> = {
 
 export default function StateLandingPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const stateParam = params.state as string;
   const stateCode = stateParam?.toUpperCase();
   const stateName = states[stateParam?.toLowerCase()] || stateCode;
+  const filterParam = searchParams.get('filter');
 
   const { isPremium, isLoading: premiumLoading } = usePremiumAccess();
   const [latestSessionId, setLatestSessionId] = useState<string | null>(null);
@@ -143,7 +145,7 @@ export default function StateLandingPage() {
             </Card>
           </Link>
 
-          <Link href={`/state/${stateParam}/${latestSessionId}/bill`} className="block">
+          <Link href={`/state/${stateParam}/${latestSessionId}/bill${filterParam ? `?filter=${encodeURIComponent(filterParam)}` : ''}`} className="block">
             <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader>
                 <CardTitle className="text-2xl text-primary">Bills ({sessionName})</CardTitle>

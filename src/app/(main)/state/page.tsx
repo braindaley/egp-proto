@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Users, FileText } from 'lucide-react';
@@ -62,6 +63,8 @@ const states = [
 
 export default function StateListingPage() {
   const { isPremium, isLoading } = usePremiumAccess();
+  const searchParams = useSearchParams();
+  const filterParam = searchParams.get('filter');
 
   // Show loading state briefly
   if (isLoading) {
@@ -100,9 +103,9 @@ export default function StateListingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {states.map((state) => (
-            <Link 
-              key={state.abbr} 
-              href={`/state/${state.abbr.toLowerCase()}`}
+            <Link
+              key={state.abbr}
+              href={`/state/${state.abbr.toLowerCase()}${filterParam ? `?filter=${encodeURIComponent(filterParam)}` : ''}`}
               className="block"
             >
               <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer hover:border-primary/50">

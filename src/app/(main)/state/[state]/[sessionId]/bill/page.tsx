@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ALLOWED_SUBJECTS } from '@/lib/subjects';
 import { processLegiscanBillSubjects } from '@/lib/legiscan-subjects';
@@ -93,6 +94,7 @@ function BillRow({ bill, stateParam, sessionId }: BillRowProps) {
 
 export default function StateBillsPage({ params }: { params: Promise<{ state: string; sessionId: string }> }) {
   const { state: stateParam, sessionId } = use(params);
+  const searchParams = useSearchParams();
   const stateCode = stateParam?.toUpperCase();
   const stateName = states[stateParam?.toLowerCase()] || stateCode;
 
@@ -101,7 +103,14 @@ export default function StateBillsPage({ params }: { params: Promise<{ state: st
   const [billsByIssue, setBillsByIssue] = useState<Map<string, StateBill[]>>(new Map());
   const [allBills, setAllBills] = useState<StateBill[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set());
+  const [selectedFilters, setSelectedFilters] = useState<Set<string>>(() => {
+    // Initialize from URL params if present
+    const filterParam = searchParams.get('filter');
+    if (filterParam && ALLOWED_SUBJECTS.includes(filterParam as any)) {
+      return new Set([filterParam]);
+    }
+    return new Set();
+  });
 
   // Fetch session info and bills
   useEffect(() => {

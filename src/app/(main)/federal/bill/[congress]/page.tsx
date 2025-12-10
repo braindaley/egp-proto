@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ALLOWED_SUBJECTS } from '@/lib/subjects';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -50,10 +51,18 @@ function BillRow({ bill }: BillRowProps) {
 export default function BillsOverviewPage({ params }: { params: Promise<{ congress: string }> }) {
   // Unwrap the Promise using React's use() hook
   const { congress } = use(params);
+  const searchParams = useSearchParams();
 
   const [billsByIssue, setBillsByIssue] = useState<Map<string, Bill[]>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set());
+  const [selectedFilters, setSelectedFilters] = useState<Set<string>>(() => {
+    // Initialize from URL params if present
+    const filterParam = searchParams.get('filter');
+    if (filterParam && ALLOWED_SUBJECTS.includes(filterParam as any)) {
+      return new Set([filterParam]);
+    }
+    return new Set();
+  });
 
   useEffect(() => {
     if (!congress) return;
