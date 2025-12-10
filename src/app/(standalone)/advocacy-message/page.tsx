@@ -195,6 +195,10 @@ const AdvocacyMessageContent: React.FC = () => {
         billSponsors: [],
     });
 
+    // Issue campaign AI help state
+    const [campaignReasoning, setCampaignReasoning] = useState<string | null>(null);
+    const [campaignIssueTitle, setCampaignIssueTitle] = useState<string | null>(null);
+
     const { user, loading, refreshUserData } = useAuth();
     const { zipCode, saveZipCode } = useZipCode();
     const { representatives: congressionalReps } = useMembersByZip(zipCode);
@@ -246,11 +250,15 @@ const AdvocacyMessageContent: React.FC = () => {
 
     // Check if this is a candidate campaign flow
     // Either has both candidate names in URL OR has campaignId (which will fetch candidate data)
+    // Exclude issue campaigns (which have policyIssueParam)
     const isCandidateFlow = (!!candidate1Name && !!candidate2Name) ||
-        (!!campaignId && !billType && !billNumber && !memberBioguideId && !pollId);
+        (!!campaignId && !billType && !billNumber && !memberBioguideId && !pollId && !policyIssueParam);
 
     // Check if this is a campaign context (e.g., from a campaign page)
     const isCampaignContext = !!campaignId;
+
+    // Check if we have campaign reasoning for AI help in issue campaigns
+    const hasIssueCampaignReasoning = isMemberContact && !!campaignReasoning;
 
     // Determine which flow to use and render appropriate component
     // TODO: Split into separate components for better maintainability
@@ -387,15 +395,29 @@ const AdvocacyMessageContent: React.FC = () => {
             if (step === 8) return isBallotReadyOfficialFlow ? 5 : 4; // Success screen
             return 0;
         } else if (isMemberContact) {
-            // Member contact flow: Verification → Policy → Write → Select Recipients → Personal → Review → Success → Account
-            // For logged-in users: Policy → Write → Select Recipients → Personal → Review → Success → Account
-            if (step === 1) return skippedVerification ? 0 : 1; // Verification (hidden for logged-in users)
-            if (step === 2) return skippedVerification ? 1 : 2; // Choose policy issue
-            if (step === 4) return skippedVerification ? 2 : 3; // Write Your Message
-            if (step === 5) return skippedVerification ? 3 : 4; // Select Recipients
-            if (step === 6) return skippedVerification ? 4 : 5; // Personal Information
-            if (step === 7) return skippedVerification ? 5 : 6; // Review Message
-            if (step === 8) return skippedVerification ? 6 : 7; // Success screen
+            // Member contact flow with AI help: Verification → Policy → AI Help → Write → Select Recipients → Personal → Review → Success → Account
+            // Member contact flow without AI help: Verification → Policy → Write → Select Recipients → Personal → Review → Success → Account
+            // For logged-in users: First visible step becomes step 1
+            if (hasIssueCampaignReasoning) {
+                // Flow with AI help step
+                if (step === 1) return skippedVerification ? 0 : 1; // Verification (hidden for logged-in users)
+                if (step === 2) return skippedVerification ? 1 : 2; // Choose policy issue
+                if (step === 3) return skippedVerification ? 2 : 3; // AI Help
+                if (step === 4) return skippedVerification ? 3 : 4; // Write Your Message
+                if (step === 5) return skippedVerification ? 4 : 5; // Select Recipients
+                if (step === 6) return skippedVerification ? 5 : 6; // Personal Information
+                if (step === 7) return skippedVerification ? 6 : 7; // Review Message
+                if (step === 8) return skippedVerification ? 7 : 8; // Success screen
+            } else {
+                // Flow without AI help step
+                if (step === 1) return skippedVerification ? 0 : 1; // Verification (hidden for logged-in users)
+                if (step === 2) return skippedVerification ? 1 : 2; // Choose policy issue
+                if (step === 4) return skippedVerification ? 2 : 3; // Write Your Message
+                if (step === 5) return skippedVerification ? 3 : 4; // Select Recipients
+                if (step === 6) return skippedVerification ? 4 : 5; // Personal Information
+                if (step === 7) return skippedVerification ? 5 : 6; // Review Message
+                if (step === 8) return skippedVerification ? 6 : 7; // Success screen
+            }
             return 0;
         } else {
             // Bill flow: Verification → Position → AI Help → Write → Select Reps → Personal → Review → Success → Account
@@ -428,10 +450,17 @@ const AdvocacyMessageContent: React.FC = () => {
             else if (step === 7) setStep(6); // Review → Personal Info
             else if (step === 8) setStep(7); // Success → Review
         } else if (isMemberContact) {
-            // Issue flow: Verification → Policy → Write → Select Recipients → Personal → Review → Success → Account
+            // Issue flow: Verification → Policy → [AI Help if reasoning] → Write → Select Recipients → Personal → Review → Success → Account
             if (step === 1) return; // Can't go back from first step (verification)
             else if (step === 2) setStep(1); // Policy Issues → verification
-            else if (step === 4) setStep(2); // Write Message → Policy Issues (skip AI Help step 3)
+            else if (step === 3) setStep(2); // AI Help → Policy Issues
+            else if (step === 4) {
+                if (hasIssueCampaignReasoning) {
+                    setStep(3); // Write Message → AI Help (when reasoning available)
+                } else {
+                    setStep(2); // Write Message → Policy Issues (skip AI Help when no reasoning)
+                }
+            }
             else if (step === 5) setStep(4); // Select Recipients → Write Message
             else if (step === 6) setStep(5); // Personal Info → Select Recipients
             else if (step === 7) setStep(6); // Review → Personal Info
@@ -543,16 +572,29 @@ const AdvocacyMessageContent: React.FC = () => {
         fetchNewsOverview();
     }, [newsTitle, newsUrl]);
 
-    // Handle campaign context
+    // Fetch campaign reasoning for AI help in issue campaigns
     useEffect(() => {
-        if (campaignId) {
-            // In a real implementation, this would fetch campaign details
-            // For now, we'll just log that we're in a campaign context
-            console.log('Campaign context detected:', campaignId);
-            // The campaign would typically include bill information, news articles, or candidate info
-            // which would be passed through the URL params
-        }
-    }, [campaignId]);
+        const fetchCampaignReasoning = async () => {
+            if (!campaignId || !isMemberContact) return;
+
+            try {
+                const { getFirestore, doc, getDoc } = await import('firebase/firestore');
+                const { app } = await import('@/lib/firebase');
+                const db = getFirestore(app);
+                const campaignDoc = await getDoc(doc(db, 'campaigns', campaignId));
+
+                if (campaignDoc.exists()) {
+                    const data = campaignDoc.data();
+                    setCampaignReasoning(data.reasoning || null);
+                    setCampaignIssueTitle(data.issueSpecificTitle || data.issueTitle || data.billTitle || null);
+                }
+            } catch (error) {
+                console.error('Failed to fetch campaign reasoning:', error);
+            }
+        };
+
+        fetchCampaignReasoning();
+    }, [campaignId, isMemberContact]);
 
     // Fetch member details for member contact flow
     useEffect(() => {
@@ -1229,16 +1271,26 @@ const AdvocacyMessageContent: React.FC = () => {
         setIsGenerating(true);
 
         try {
+            // Determine if this is an issue campaign with reasoning
+            const isIssueCampaign = hasIssueCampaignReasoning;
+
             const response = await fetch('/api/ai/generate-advocacy-message', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    billTitle: bill?.shortTitle || bill?.title || 'this legislation',
-                    billSummary: bill?.summaries?.summary?.text || 'This bill addresses important issues.',
+                    // For issue campaigns: use issue title and reasoning
+                    // For bill campaigns: use bill title and summary
+                    billTitle: isIssueCampaign
+                        ? (campaignIssueTitle || selectedPolicyIssues[0] || 'this issue')
+                        : (bill?.shortTitle || bill?.title || 'this legislation'),
+                    billSummary: isIssueCampaign
+                        ? campaignReasoning
+                        : (bill?.summaries?.summary?.text || 'This bill addresses important issues.'),
                     userStance: userStance.charAt(0).toUpperCase() + userStance.slice(1) as 'Support' | 'Oppose',
                     tone: 'Formal',
+                    isIssueCampaign: isIssueCampaign,
                     personalData: {
                         fullName: selectedPersonalData.includes('fullName'),
                         address: selectedPersonalData.includes('fullAddress'),
@@ -1741,7 +1793,13 @@ const AdvocacyMessageContent: React.FC = () => {
                     </div>
                     <div className="mt-auto pt-4">
                         <Button
-                            onClick={() => setStep(4)} // Skip AI help step (3) and go directly to write message (4)
+                            onClick={() => {
+                                if (hasIssueCampaignReasoning) {
+                                    setStep(3); // Go to AI Help step when reasoning is available
+                                } else {
+                                    setStep(4); // Skip AI help step and go directly to write message
+                                }
+                            }}
                             disabled={selectedPolicyIssues.length === 0}
                             size="lg"
                         >
@@ -4011,7 +4069,7 @@ const AdvocacyMessageContent: React.FC = () => {
             <div className="flex-1 container mx-auto px-8 max-w-2xl pb-8 flex flex-col pt-4">
                 {step === 1 && renderRoutingStep()} {/* Verification */}
                 {step === 2 && (isMemberContact ? renderStep2_PolicyIssues() : renderStep1_Position())} {/* Policy/Position */}
-                {step === 3 && renderStep2_AIHelp()} {/* Writing Help - Bills only */}
+                {step === 3 && renderStep2_AIHelp()} {/* Writing Help - Bills and Issue campaigns with reasoning */}
                 {step === 4 && renderStep3_WriteMessage()} {/* Write Message */}
                 {step === 5 && renderStep1()} {/* Select Recipients - Both flows */}
                 {step === 6 && renderPersonalInfoStep()} {/* Personal Information */}

@@ -27,9 +27,10 @@ interface AdvocacyBillCardProps {
     groupName?: string;
     campaignType?: 'Legislation' | 'Issue';
     issueCategory?: string;
+    campaignId?: string;
 }
 
-const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning, actionButtonText, supportCount, opposeCount, groupSlug, groupName, campaignType, issueCategory }) => {
+const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, reasoning, actionButtonText, supportCount, opposeCount, groupSlug, groupName, campaignType, issueCategory, campaignId }) => {
     const { user } = useAuth();
     const { isWatchedBill, toggleWatchBill } = useWatchedBills();
     const router = useRouter();
@@ -69,7 +70,15 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
         // Include organization position to pre-select and enforce the stance
         const orgPosition = position.toLowerCase();
         if (isIssueCampaign && issueCategory) {
-            router.push(`/advocacy-message?issue=${encodeURIComponent(issueCategory)}&orgPosition=${orgPosition}`);
+            const params = new URLSearchParams({
+                issue: issueCategory,
+                orgPosition: orgPosition
+            });
+            // Pass campaignId for AI help to fetch reasoning
+            if (campaignId) {
+                params.set('campaignId', campaignId);
+            }
+            router.push(`/advocacy-message?${params.toString()}`);
         } else {
             router.push(`/advocacy-message?congress=${bill.congress}&type=${billTypeSlug}&number=${bill.number}&orgPosition=${orgPosition}`);
         }

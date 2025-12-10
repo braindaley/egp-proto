@@ -270,6 +270,7 @@ export default function CampaignDetailPage({
                                 groupName={groupData.name}
                                 campaignType={campaign.campaignType}
                                 issueCategory={campaign.issueTitle}
+                                campaignId={campaign.id}
                             />
                         )}
                     </CardContent>

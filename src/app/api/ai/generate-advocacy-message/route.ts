@@ -1,25 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { billTitle, billSummary, userStance, tone, personalData } = body;
-
-    // Validate required fields
-    if (!billTitle || !billSummary || !userStance || !tone) {
-      return NextResponse.json(
-        { error: 'Missing required fields: billTitle, billSummary, userStance, and tone are required' },
-        { status: 400 }
-      );
-    }
-
-    // Use Google AI Gemini API directly
-    const apiKey = process.env.GOOGLE_GENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error('Google AI API key not configured');
-    }
-
-    const prompt = `You are an expert at writing compelling advocacy messages to elected officials. 
+function buildBillPrompt(billTitle: string, billSummary: string, userStance: string, tone: string): string {
+  return `You are an expert at writing compelling advocacy messages to elected officials.
 Your task is to generate a concise and effective message based on the user's stance and desired tone.
 
 **Instructions:**
@@ -39,6 +21,53 @@ Your task is to generate a concise and effective message based on the user's sta
 **Desired Tone:** ${tone}
 
 Generate the message now.`;
+}
+
+function buildIssueCampaignPrompt(issueTitle: string, reasoning: string, userStance: string, tone: string): string {
+  return `You are an expert at writing compelling advocacy messages to elected officials.
+Your task is to generate a concise and effective message about a policy issue based on the user's stance and an organization's position.
+
+**Instructions:**
+1. DO NOT include any salutation (no "Dear...", etc.) at the beginning.
+2. Clearly state the user's position (${userStance.toLowerCase()}) regarding this policy issue early in the message.
+3. Incorporate 1-2 key points from the organization's reasoning to show the user is informed about the issue.
+4. Adapt the language and style to match the ${tone} tone.
+5. Keep the message concise, ideally 3-4 short paragraphs.
+6. End with a clear call to action (e.g., "I urge you to take action on this issue...", "Please consider my position...").
+7. DO NOT include any closing signature (no "Sincerely", no name placeholder, etc.) at the end.
+
+**Policy Issue:** ${issueTitle}
+**Organization's Position:** ${reasoning}
+
+**User's Stance:** ${userStance}
+**Desired Tone:** ${tone}
+
+Generate the message now.`;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { billTitle, billSummary, userStance, tone, personalData, isIssueCampaign } = body;
+
+    // Validate required fields
+    if (!billTitle || !billSummary || !userStance || !tone) {
+      return NextResponse.json(
+        { error: 'Missing required fields: billTitle, billSummary, userStance, and tone are required' },
+        { status: 400 }
+      );
+    }
+
+    // Use Google AI Gemini API directly
+    const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('Google AI API key not configured');
+    }
+
+    // Build prompt based on campaign type
+    const prompt = isIssueCampaign
+      ? buildIssueCampaignPrompt(billTitle, billSummary, userStance, tone)
+      : buildBillPrompt(billTitle, billSummary, userStance, tone);
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
       method: 'POST',
