@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -61,7 +62,7 @@ const states = [
   { name: 'Wyoming', abbr: 'WY', capital: 'Cheyenne' }
 ];
 
-export default function StateListingPage() {
+function StateListingContent() {
   const { isPremium, isLoading } = usePremiumAccess();
   const searchParams = useSearchParams();
   const filterParam = searchParams.get('filter');
@@ -123,7 +124,7 @@ export default function StateListingPage() {
                     <span>{state.capital}</span>
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="pt-0">
                   <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-1 text-muted-foreground">
@@ -144,10 +145,10 @@ export default function StateListingPage() {
         <footer className="text-center mt-16 py-6 text-sm text-muted-foreground border-t">
           <p>
             State legislature data provided by{' '}
-            <a 
-              href="https://legiscan.com/" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://legiscan.com/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="underline hover:text-primary"
             >
               LegiScan
@@ -157,5 +158,19 @@ export default function StateListingPage() {
         </footer>
       </div>
     </div>
+  );
+}
+
+export default function StateListingPage() {
+  return (
+    <Suspense fallback={
+      <div className="bg-secondary/30 flex-1">
+        <div className="container mx-auto px-4 py-12 text-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <StateListingContent />
+    </Suspense>
   );
 }
