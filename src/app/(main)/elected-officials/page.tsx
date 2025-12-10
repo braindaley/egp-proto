@@ -202,7 +202,7 @@ function OfficialCard({ official }: { official: BallotReadyOfficeHolder }) {
           className="w-full mt-auto"
           asChild
         >
-          <Link href={`/advocacy-message?officialName=${encodeURIComponent(person.fullName)}&position=${encodeURIComponent(title)}`}>
+          <Link href={`/advocacy-message?officialName=${encodeURIComponent(person.fullName)}&position=${encodeURIComponent(title)}&level=${position.level}${position.state ? `&state=${position.state}` : ''}`}>
             Send Message
           </Link>
         </Button>

@@ -232,6 +232,8 @@ const AdvocacyMessageContent: React.FC = () => {
     // Ballot Ready official params (for elected-officials page)
     const officialName = searchParams.get('officialName');
     const officialPosition = searchParams.get('position');
+    const officialLevel = searchParams.get('level'); // FEDERAL, STATE, REGIONAL, COUNTY, CITY, LOCAL
+    const officialState = searchParams.get('state');
 
     // Check if this is a local official contact flow (requires email for direct contact)
     const isLocalOfficialFlow = !!recipientName && !!recipientEmail;
@@ -651,7 +653,13 @@ const AdvocacyMessageContent: React.FC = () => {
             lastName: officialName.split(' ').slice(1).join(' '),
             title: officialPosition,
             email: generateMemberEmail({ officialName }), // Generate placeholder email
-            jurisdiction: officialPosition.includes('State') ? 'State' :
+            level: officialLevel || 'LOCAL', // FEDERAL, STATE, REGIONAL, COUNTY, CITY, LOCAL
+            state: officialState || '',
+            jurisdiction: officialLevel === 'STATE' ? 'State' :
+                         officialLevel === 'COUNTY' ? 'County' :
+                         officialLevel === 'CITY' ? 'City' :
+                         officialLevel === 'REGIONAL' ? 'Regional' :
+                         officialPosition.includes('State') ? 'State' :
                          officialPosition.includes('County') ? 'County' :
                          officialPosition.includes('City') ? 'City' : 'Local',
             isBallotReadyOfficial: true, // Flag to identify Ballot Ready officials
@@ -660,7 +668,7 @@ const AdvocacyMessageContent: React.FC = () => {
         setSelectedMembers([ballotReadyOfficial]);
         // Start at step 2 (policy issue) for Ballot Ready official flow
         setStep(2);
-    }, [isBallotReadyOfficialFlow, officialName, officialPosition]);
+    }, [isBallotReadyOfficialFlow, officialName, officialPosition, officialLevel, officialState]);
 
     // Pre-select policy issue from URL parameter
     useEffect(() => {
@@ -2929,13 +2937,43 @@ const AdvocacyMessageContent: React.FC = () => {
     const renderStep3 = () => {
         const selectedPersonalFields = personalDataFields.filter(f => selectedPersonalData.includes(f.key));
 
+        // Extract salutation title from position (e.g., "Santa Ana City Mayor" -> "Mayor")
+        const extractSalutationTitle = (position: string): string => {
+            const positionLower = position.toLowerCase();
+            // Common titles to extract from position strings
+            if (positionLower.includes('mayor')) return 'Mayor';
+            if (positionLower.includes('governor')) return 'Governor';
+            if (positionLower.includes('council')) return 'Councilmember';
+            if (positionLower.includes('commissioner')) return 'Commissioner';
+            if (positionLower.includes('supervisor')) return 'Supervisor';
+            if (positionLower.includes('sheriff')) return 'Sheriff';
+            if (positionLower.includes('attorney')) return 'Attorney';
+            if (positionLower.includes('secretary')) return 'Secretary';
+            if (positionLower.includes('treasurer')) return 'Treasurer';
+            if (positionLower.includes('clerk')) return 'Clerk';
+            if (positionLower.includes('assessor')) return 'Assessor';
+            if (positionLower.includes('auditor')) return 'Auditor';
+            if (positionLower.includes('director')) return 'Director';
+            if (positionLower.includes('judge')) return 'Judge';
+            if (positionLower.includes('justice')) return 'Justice';
+            // Return the full position if no common title is found
+            return position;
+        };
+
         // Generate salutation based on member type
         const getSalutation = (member: any) => {
             const lastName = member.lastName ||
                 member.fullName?.split(' ').slice(-1)[0] ||
                 member.name?.split(' ').slice(-1)[0] ||
                 member.directOrderName?.split(' ').slice(-1)[0] ||
-                'Representative';
+                'Official';
+
+            // Use the title from the member object if available (for Ballot Ready officials, local officials)
+            if (member.title) {
+                const salutationTitle = extractSalutationTitle(member.title);
+                return `Dear ${salutationTitle} ${lastName}`;
+            }
+
             // Check if member is a senator based on officeTitle, chamber, or terms
             const isSenator = member.officeTitle?.toLowerCase().includes('senate') ||
                 member.chamber?.toLowerCase() === 'senate' ||
@@ -3006,13 +3044,17 @@ const AdvocacyMessageContent: React.FC = () => {
                                     {getSalutation(membersToPreview[currentLetterIndex]).replace('Dear ', '')}
                                 </div>
                                 <div className="text-sm text-muted-foreground mt-1">
-                                    {membersToPreview[currentLetterIndex].officeTitle ||
+                                    {membersToPreview[currentLetterIndex].title ||
+                                        membersToPreview[currentLetterIndex].officeTitle ||
                                         (membersToPreview[currentLetterIndex].chamber?.toLowerCase() === 'senate' ||
                                         membersToPreview[currentLetterIndex].url?.includes('/senate/') ? 'United States Senate' : 'House of Representatives')}
                                 </div>
-                                <div className="text-sm text-muted-foreground">
-                                    Washington, DC 20515
-                                </div>
+                                {/* Show appropriate address based on official level */}
+                                {!membersToPreview[currentLetterIndex].isBallotReadyOfficial && (
+                                    <div className="text-sm text-muted-foreground">
+                                        Washington, DC 20515
+                                    </div>
+                                )}
                             </div>
 
                             {/* Salutation */}
