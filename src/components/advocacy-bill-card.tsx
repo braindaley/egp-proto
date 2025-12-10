@@ -11,7 +11,7 @@ import { mapPolicyAreaToSiteCategory } from '@/lib/policy-area-mapping';
 import { getBillTypeSlug } from '@/lib/utils';
 import { parseSimpleMarkdown } from '@/lib/markdown-utils';
 import { useState } from 'react';
-import { ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
+import { ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useWatchedBills } from '@/hooks/use-watched-bills';
 import { ENABLE_WATCH_FEATURE } from '@/config/features';
@@ -163,7 +163,6 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                                         : 'text-muted-foreground'
                                 }`}
                             >
-                                <Eye className={`h-4 w-4 ${isWatched ? 'text-blue-600' : ''}`} />
                                 {isWatched ? 'Watching' : 'Watch'}
                             </Button>
                             )}

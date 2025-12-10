@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getBillTypeSlug } from '@/lib/utils';
-import { Users, Mail, Eye, ExternalLink, MessageSquareText } from 'lucide-react';
+import { Users, Mail, ExternalLink, MessageSquareText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
 import { useBillSupportCounts } from '@/hooks/use-bill-support-counts';
@@ -271,7 +271,6 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
               : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
           }`}
         >
-          <Eye className="h-4 w-4" />
           <span className="text-sm font-medium">123K</span>
         </button>
         )}

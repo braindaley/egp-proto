@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { getBillTypeSlug, formatDate } from '@/lib/utils';
-import { Check, Dot, Users, Library, ArrowRight, Mail, Eye, Flame, TrendingUp, Award, ClipboardCheck, Tags, Share } from 'lucide-react';
+import { Check, Dot, Users, Library, ArrowRight, Mail, Flame, TrendingUp, Award, ClipboardCheck, Tags, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
@@ -200,7 +200,6 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                 onClick={handleWatch}
                 className="flex items-center gap-1.5 text-muted-foreground"
             >
-                <Eye className={cn("h-4 w-4", isWatched && "text-blue-600")} />
                 Watch
             </Button>
             <Button 

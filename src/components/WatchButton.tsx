@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff } from 'lucide-react';
 import { useWatchedGroups } from '@/hooks/use-watched-groups';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
@@ -54,17 +53,7 @@ export function WatchButton({
         className
       )}
     >
-{watched ? (
-        <>
-          <EyeOff className="h-4 w-4" />
-          Unwatch
-        </>
-      ) : (
-        <>
-          <Eye className="h-4 w-4" />
-          Watch
-        </>
-      )}
+{watched ? 'Unwatch' : 'Watch'}
     </Button>
   );
 }

@@ -6,7 +6,6 @@ import { useMembersByZip } from '@/hooks/useMembersByZip';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
@@ -129,14 +128,6 @@ const CongressMembers: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    title="Watch this member"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
                 </div>
               );
             })}

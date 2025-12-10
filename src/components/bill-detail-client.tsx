@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Bill, RelatedBill } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, Mail, Eye, MessageSquareText, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ExternalLink, Landmark, Users, Library, FileText, UserSquare2, FileJson, Tags, BookText, Download, History, ArrowRight, Mail, MessageSquareText, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useBillSupportCounts } from '@/hooks/use-bill-support-counts';
 import { Button } from '@/components/ui/button';
@@ -298,7 +298,6 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                   }`}
                   title={user ? (isWatched ? 'Stop watching this bill' : 'Watch this bill for updates') : 'Login to watch this bill'}
                 >
-                  <Eye className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                   <span className="text-xs sm:text-sm font-medium">123K</span>
                 </button>
                 )}
