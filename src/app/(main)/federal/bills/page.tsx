@@ -2,6 +2,9 @@
 import { redirect } from 'next/navigation';
 import type { Congress } from '@/types';
 
+// Force dynamic rendering to avoid build-time fetch failures
+export const dynamic = 'force-dynamic';
+
 async function getCongresses(): Promise<Congress[]> {
     // This assumes the app is running on localhost, which is fine for dev.
     // In a real deployment, you'd use a relative URL or an env var for the base URL.
