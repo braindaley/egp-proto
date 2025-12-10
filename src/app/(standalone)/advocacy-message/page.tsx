@@ -281,25 +281,29 @@ const AdvocacyMessageContent: React.FC = () => {
     }
 
     // Check for verified user from session storage
+    // TESTING: Set to false to disable session storage restoration for testing non-logged-in flows
+    const RESTORE_VERIFIED_USER_FROM_SESSION = false;
+
     useEffect(() => {
-        if (isVerified) {
+        // Clear session storage when testing flag is disabled
+        if (!RESTORE_VERIFIED_USER_FROM_SESSION) {
+            sessionStorage.removeItem('verifiedUser');
+        }
+
+        if (isVerified && RESTORE_VERIFIED_USER_FROM_SESSION) {
             const storedInfo = sessionStorage.getItem('verifiedUser');
             if (storedInfo) {
                 try {
                     const parsedInfo = JSON.parse(storedInfo);
                     setVerifiedUserInfo(parsedInfo);
-                    // Don't clear sessionStorage immediately - let it persist for the session
-                    // sessionStorage.removeItem('verifiedUser');
                 } catch (e) {
                     console.error('Failed to parse verified user info:', e);
                     setVerifiedUserInfo(null);
                 }
             } else {
-                // If verified=true but no session storage, user is not actually verified
                 setVerifiedUserInfo(null);
             }
         } else {
-            // If not verified in URL, clear any verified user info
             setVerifiedUserInfo(null);
         }
     }, [isVerified]);
@@ -3409,12 +3413,11 @@ const AdvocacyMessageContent: React.FC = () => {
                     updatedAt: new Date().toISOString()
                 });
 
-                // If membership, set flag and redirect to membership signup
+                // Redirect based on account type (skip share step for new users)
                 if (isMembership) {
                     sessionStorage.setItem('membershipSignupIntent', 'true');
                     router.push('/membership/signup');
                 } else {
-                    // Free account - redirect to dashboard
                     router.push('/dashboard?message=sent');
                 }
             } catch (error: any) {
@@ -3533,6 +3536,94 @@ const AdvocacyMessageContent: React.FC = () => {
                             </Button>
                         </div>
                     </form>
+                </CardContent>
+            </Card>
+        );
+    };
+
+    // Step 11: Share with Others (final step)
+    const renderStep12 = () => {
+        const handleShareEmailChange = (index: number, value: string) => {
+            const newEmails = [...shareEmails];
+            newEmails[index] = value;
+            setShareEmails(newEmails);
+        };
+
+        const handleAddEmailField = () => {
+            setShareEmails([...shareEmails, '']);
+        };
+
+        const handleSendInvitations = () => {
+            // Mock sending invitations
+            setInvitationsSent(true);
+        };
+
+        const handleFinish = () => {
+            // Redirect based on account type
+            if (accountType === 'membership') {
+                sessionStorage.setItem('membershipSignupIntent', 'true');
+                router.push('/membership/signup');
+            } else {
+                router.push('/dashboard?message=sent');
+            }
+        };
+
+        return (
+            <Card>
+                <CardHeader className="text-center">
+                    <CardTitle className="text-2xl">Share with Others</CardTitle>
+                    <CardDescription>
+                        Send a link to your colleagues for their consideration.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {invitationsSent ? (
+                        <div className="text-center py-4">
+                            <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                            <p className="text-green-600 font-medium">Invitations sent successfully!</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {shareEmails.map((shareEmail, index) => (
+                                <div key={index}>
+                                    <Label htmlFor={`share-email-${index}`} className="text-sm">
+                                        Email Address
+                                    </Label>
+                                    <Input
+                                        id={`share-email-${index}`}
+                                        type="email"
+                                        value={shareEmail}
+                                        onChange={(e) => handleShareEmailChange(index, e.target.value)}
+                                        placeholder=""
+                                        className="mt-1"
+                                    />
+                                </div>
+                            ))}
+
+                            <Button
+                                variant="ghost"
+                                className="w-full text-sm"
+                                onClick={handleAddEmailField}
+                            >
+                                <PlusCircle className="h-4 w-4 mr-2" />
+                                Add Another Email Address
+                            </Button>
+
+                            <Button
+                                className="w-full"
+                                onClick={handleSendInvitations}
+                                disabled={shareEmails.every(e => !e.trim())}
+                            >
+                                Send Invitations
+                            </Button>
+                        </div>
+                    )}
+
+                    <div className="border-t pt-6 flex justify-center">
+                        <Button onClick={handleFinish}>
+                            {invitationsSent ? 'Done - Go to Dashboard' : 'Skip - Go to Dashboard'}
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
         );
@@ -3754,13 +3845,20 @@ const AdvocacyMessageContent: React.FC = () => {
                     }
 
 
-                    // Wait a moment to show the animation, then mark as sent
+                    // Wait a moment to show the animation, then advance to next step
                     setTimeout(() => {
                         setIsSending(false);
                         setMessageSent(true);
 
                         // Clear verified user session storage only after successful send
                         sessionStorage.removeItem('verifiedUser');
+
+                        // Auto-advance: logged-in users go to share step, others to account creation
+                        if (user) {
+                            setStep(11); // Share with others
+                        } else {
+                            setStep(9); // Account type selection
+                        }
                     }, 2000);
 
                 } catch (error) {
@@ -3796,21 +3894,6 @@ const AdvocacyMessageContent: React.FC = () => {
         }
 
         if (messageSent) {
-            const handleShareEmailChange = (index: number, value: string) => {
-                const newEmails = [...shareEmails];
-                newEmails[index] = value;
-                setShareEmails(newEmails);
-            };
-
-            const handleAddEmailField = () => {
-                setShareEmails([...shareEmails, '']);
-            };
-
-            const handleSendInvitations = () => {
-                // Mock sending invitations
-                setInvitationsSent(true);
-            };
-
             return (
                 <Card>
                     <CardHeader className="text-center">
@@ -3822,53 +3905,20 @@ const AdvocacyMessageContent: React.FC = () => {
                             Your message has been sent to {membersToSend.length} representative{membersToSend.length !== 1 ? 's' : ''}
                         </CardDescription>
                     </CardHeader>
+
+                    {/* Continue button to proceed to account creation or share step */}
                     <CardContent>
-                        <div className="border-t pt-6 mt-4">
-                            <h3 className="font-semibold text-lg mb-2">Share with Others</h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Send a link to your colleagues for their consideration.
-                            </p>
-
-                            {invitationsSent ? (
-                                <div className="text-center py-4">
-                                    <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                                    <p className="text-green-600 font-medium">Invitations sent successfully!</p>
-                                </div>
+                        <div className="flex justify-center">
+                            {user ? (
+                                // Logged-in user - go to share step
+                                <Button onClick={() => setStep(11)}>
+                                    Continue
+                                </Button>
                             ) : (
-                                <div className="space-y-3">
-                                    {shareEmails.map((email, index) => (
-                                        <div key={index}>
-                                            <Label htmlFor={`share-email-${index}`} className="text-sm">
-                                                Email Address
-                                            </Label>
-                                            <Input
-                                                id={`share-email-${index}`}
-                                                type="email"
-                                                value={email}
-                                                onChange={(e) => handleShareEmailChange(index, e.target.value)}
-                                                placeholder=""
-                                                className="mt-1"
-                                            />
-                                        </div>
-                                    ))}
-
-                                    <Button
-                                        variant="ghost"
-                                        className="w-full text-sm"
-                                        onClick={handleAddEmailField}
-                                    >
-                                        <PlusCircle className="h-4 w-4 mr-2" />
-                                        Add Another Email Address
-                                    </Button>
-
-                                    <Button
-                                        className="w-full"
-                                        onClick={handleSendInvitations}
-                                        disabled={shareEmails.every(e => !e.trim())}
-                                    >
-                                        Send Invitations
-                                    </Button>
-                                </div>
+                                // Not logged in - proceed to account creation
+                                <Button onClick={() => setStep(9)}>
+                                    Continue - Create Account
+                                </Button>
                             )}
                         </div>
                     </CardContent>
@@ -3969,6 +4019,7 @@ const AdvocacyMessageContent: React.FC = () => {
                 {step === 8 && renderStep6()} {/* Sending Screen */}
                 {step === 9 && renderStep4()} {/* Choose Account Type */}
                 {step === 10 && renderStep11()} {/* Email/Password Form */}
+                {step === 11 && renderStep12()} {/* Share with Others */}
             </div>
         </div>
     );

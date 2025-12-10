@@ -2,7 +2,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { ZipCodeBanner } from "@/components/ui/zip-code-banner";
-import { WelcomePopup } from "@/components/welcome-popup";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ZipCodeProvider } from "@/hooks/use-zip-code";
 import { SessionProvider } from "@/contexts/SessionContext";
@@ -79,7 +78,6 @@ export default async function MainLayout({
               <Toaster />
               <Footer />
               <ZipCodeBanner />
-              <WelcomePopup />
             </SessionProvider>
           </ZipCodeProvider>
         </AuthProvider>

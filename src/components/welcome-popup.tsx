@@ -69,8 +69,8 @@ export function WelcomePopup() {
             Welcome to eVotersUnited.org
           </DialogTitle>
 
-          <DialogDescription className="text-lg leading-relaxed space-y-4 text-left max-w-none">
-            <div className="space-y-4">
+          <DialogDescription asChild>
+            <div className="text-muted-foreground text-lg leading-relaxed space-y-4 text-left max-w-none">
               <p>
                 At eVotersUnited.org, our mission is to bring the power back to the people by connecting constituents directly with their elected officials in a simple, centralized, and meaningful way.
               </p>
