@@ -12,6 +12,12 @@ export interface L2VerificationRequest {
     city?: string;
     state?: string;
     zipCode?: string;
+    // Additional refinement fields for "Check Your Registration"
+    phone?: string;
+    dobMonth?: string;
+    dobDay?: string;
+    dobYear?: string;
+    voterId?: string;
 }
 
 export interface L2VoterRecord {
@@ -47,7 +53,6 @@ export async function verifyVoter(
 ): Promise<L2VerificationResponse> {
     const customerId = process.env.L2_API_CUSTOMER_ID;
     const apiKey = process.env.L2_API_KEY;
-    const demoState = process.env.L2_API_DEMO_STATE || 'Delaware';
 
     if (!customerId || !apiKey) {
         return {
@@ -74,21 +79,232 @@ export async function verifyVoter(
         });
 
         // Build filters for the search
-        // According to L2 API docs, STRING fields support wildcard matching
-        const filters: Record<string, string | string[]> = {
-            Voters_FirstName: request.firstName,
-            Voters_LastName: request.lastName,
-        };
+        const filters: Record<string, string | string[]> = {};
 
-        // Add ZIP code if provided
-        if (request.zipCode) {
-            filters.Residence_Addresses_Zip = request.zipCode;
+        // Check if this is a refined search (has phone or DOB)
+        const isRefinedSearch = request.phone || request.dobYear;
+
+        if (isRefinedSearch) {
+            // Refined search: use progressive fallback strategy
+            // Try strict first, then loosen criteria if no results
+
+            // Prepare phone number (strip non-digits)
+            let phoneDigits: string | null = null;
+            if (request.phone) {
+                const digits = request.phone.replace(/\D/g, '');
+                if (digits.length === 10) {
+                    phoneDigits = digits;
+                }
+            }
+
+            // Prepare DOB (format: YYYY-MM-DD)
+            let dob: string | null = null;
+            if (request.dobYear && request.dobMonth && request.dobDay) {
+                dob = `${request.dobYear}-${request.dobMonth.padStart(2, '0')}-${request.dobDay.padStart(2, '0')}`;
+            }
+
+            // Define search attempts in order of strictness
+            const searchAttempts: Record<string, string>[] = [];
+
+            // Attempt 1: All provided fields (most strict)
+            const allFilters: Record<string, string> = { Voters_LastName: request.lastName };
+            if (phoneDigits) allFilters.VoterTelephones_CellPhoneUnformatted = phoneDigits;
+            if (dob) allFilters.Voters_BirthDate = dob;
+            if (request.voterId) allFilters.Voters_StateVoterID = request.voterId;
+            searchAttempts.push(allFilters);
+
+            // Attempt 2: Last name + DOB only (drop phone)
+            if (dob) {
+                searchAttempts.push({
+                    Voters_LastName: request.lastName,
+                    Voters_BirthDate: dob,
+                    ...(request.voterId && { Voters_StateVoterID: request.voterId }),
+                });
+            }
+
+            // Attempt 3: Last name + Phone only (drop DOB)
+            if (phoneDigits) {
+                searchAttempts.push({
+                    Voters_LastName: request.lastName,
+                    VoterTelephones_CellPhoneUnformatted: phoneDigits,
+                    ...(request.voterId && { Voters_StateVoterID: request.voterId }),
+                });
+            }
+
+            // Attempt 4: Last name + Voter ID only (if provided)
+            if (request.voterId) {
+                searchAttempts.push({
+                    Voters_LastName: request.lastName,
+                    Voters_StateVoterID: request.voterId,
+                });
+            }
+
+            // Try each search attempt until we get results
+            for (let i = 0; i < searchAttempts.length; i++) {
+                const attemptFilters = searchAttempts[i];
+
+                console.log(`L2 API Refined Search Attempt ${i + 1}:`, {
+                    endpoint,
+                    filters: attemptFilters,
+                    application,
+                });
+
+                const attemptResponse = await fetch(`${endpoint}?${authParams.toString()}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        filters: attemptFilters,
+                        format: 'json',
+                        fieldset: 'SIMPLE',
+                        limit: 50,
+                        wait: 30000,
+                    }),
+                });
+
+                if (attemptResponse.ok) {
+                    const records = await attemptResponse.json();
+                    if (Array.isArray(records) && records.length > 0) {
+                        console.log(`L2 API Refined Search found ${records.length} results on attempt ${i + 1}`);
+                        // Transform and return results
+                        const matches: L2VoterRecord[] = records.map((record: any) => ({
+                            voterId: record.LALVOTERID || record.VoterID || '',
+                            firstName: record.Voters_FirstName || '',
+                            lastName: record.Voters_LastName || '',
+                            middleName: record.Voters_MiddleName || undefined,
+                            fullName: `${record.Voters_FirstName || ''} ${record.Voters_MiddleName || ''} ${record.Voters_LastName || ''}`.trim(),
+                            address: record.Residence_Addresses_AddressLine || record.Residence_Addresses_FullAddress || '',
+                            city: record.Residence_Addresses_City || '',
+                            state: record.Residence_Addresses_State || stateCode,
+                            zipCode: record.Residence_Addresses_Zip || record.Residence_Addresses_Zip5 || '',
+                            birthYear: record.Voters_BirthYear || record.Voters_Age || undefined,
+                            gender: record.Voters_Gender || undefined,
+                            politicalAffiliation: record.Parties_Description || undefined,
+                            registrationDate: record.VoterRegistration_Date || undefined,
+                            voterStatus: record.Voters_Active || 'Active',
+                            constituentDescription: record.ConstituentDescription || null,
+                        }));
+                        return { success: true, matches };
+                    }
+                }
+
+                // If this was the last attempt, return empty results
+                if (i === searchAttempts.length - 1) {
+                    console.log('L2 API Refined Search: No results found after all attempts');
+                    return { success: true, matches: [] };
+                }
+            }
+
+            // This shouldn't be reached, but just in case
+            return { success: true, matches: [] };
+        } else {
+            // Initial search: use progressive fallback strategy
+            // Try strict first, then loosen criteria if no results
+
+            // Extract house number from address
+            let houseNumber: string | null = null;
+            if (request.address) {
+                const houseNumberMatch = request.address.match(/^(\d+)/);
+                if (houseNumberMatch) {
+                    houseNumber = houseNumberMatch[1];
+                }
+            }
+
+            // Define search attempts in order of strictness
+            const searchAttempts = [
+                // Attempt 1: All 4 filters (most strict)
+                {
+                    Voters_FirstName: request.firstName,
+                    Voters_LastName: request.lastName,
+                    ...(houseNumber && { Residence_Addresses_HouseNumber: houseNumber }),
+                    ...(request.zipCode && { Residence_Addresses_Zip: request.zipCode }),
+                },
+                // Attempt 2: First + Last + ZIP (no house number)
+                {
+                    Voters_FirstName: request.firstName,
+                    Voters_LastName: request.lastName,
+                    ...(request.zipCode && { Residence_Addresses_Zip: request.zipCode }),
+                },
+                // Attempt 3: First + Last + House (no ZIP)
+                {
+                    Voters_FirstName: request.firstName,
+                    Voters_LastName: request.lastName,
+                    ...(houseNumber && { Residence_Addresses_HouseNumber: houseNumber }),
+                },
+                // Attempt 4: First + Last only (least strict)
+                {
+                    Voters_FirstName: request.firstName,
+                    Voters_LastName: request.lastName,
+                },
+            ];
+
+            // Try each search attempt until we get results
+            for (let i = 0; i < searchAttempts.length; i++) {
+                const attemptFilters = searchAttempts[i];
+
+                console.log(`L2 API Search Attempt ${i + 1}:`, {
+                    endpoint,
+                    filters: attemptFilters,
+                    application,
+                });
+
+                const attemptResponse = await fetch(`${endpoint}?${authParams.toString()}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        filters: attemptFilters,
+                        format: 'json',
+                        fieldset: 'SIMPLE',
+                        limit: 50,
+                        wait: 30000,
+                    }),
+                });
+
+                if (attemptResponse.ok) {
+                    const records = await attemptResponse.json();
+                    if (Array.isArray(records) && records.length > 0) {
+                        console.log(`L2 API found ${records.length} results on attempt ${i + 1}`);
+                        // Transform and return results
+                        const matches: L2VoterRecord[] = records.map((record: any) => ({
+                            voterId: record.LALVOTERID || record.VoterID || '',
+                            firstName: record.Voters_FirstName || '',
+                            lastName: record.Voters_LastName || '',
+                            middleName: record.Voters_MiddleName || undefined,
+                            fullName: `${record.Voters_FirstName || ''} ${record.Voters_MiddleName || ''} ${record.Voters_LastName || ''}`.trim(),
+                            address: record.Residence_Addresses_AddressLine || record.Residence_Addresses_FullAddress || '',
+                            city: record.Residence_Addresses_City || '',
+                            state: record.Residence_Addresses_State || stateCode,
+                            zipCode: record.Residence_Addresses_Zip || record.Residence_Addresses_Zip5 || '',
+                            birthYear: record.Voters_BirthYear || record.Voters_Age || undefined,
+                            gender: record.Voters_Gender || undefined,
+                            politicalAffiliation: record.Parties_Description || undefined,
+                            registrationDate: record.VoterRegistration_Date || undefined,
+                            voterStatus: record.Voters_Active || 'Active',
+                            constituentDescription: record.ConstituentDescription || null,
+                        }));
+                        return { success: true, matches };
+                    }
+                }
+
+                // If this was the last attempt, continue to error handling below
+                if (i === searchAttempts.length - 1) {
+                    console.log('L2 API: No results found after all attempts');
+                    return { success: true, matches: [] };
+                }
+            }
+
+            // This shouldn't be reached, but just in case
+            return { success: true, matches: [] };
         }
 
-        // Add city if provided
-        if (request.city) {
-            filters.Residence_Addresses_City = request.city;
-        }
+        console.log('L2 API Request:', {
+            endpoint,
+            filters,
+            application,
+        });
 
         const response = await fetch(`${endpoint}?${authParams.toString()}`, {
             method: 'POST',
@@ -103,6 +319,8 @@ export async function verifyVoter(
                 wait: 30000, // Wait up to 30 seconds for results
             }),
         });
+
+        console.log('L2 API Response status:', response.status, response.statusText);
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -125,7 +343,7 @@ export async function verifyVoter(
                     return {
                         success: false,
                         matches: [],
-                        error: `Voter verification is only available for ${demoState}. Please ensure the address is in ${demoState}.`,
+                        error: 'Your account does not have access to voter data for this state.',
                     };
                 }
 
@@ -166,7 +384,7 @@ export async function verifyVoter(
                     return {
                         success: false,
                         matches: [],
-                        error: `Voter verification is only available for ${demoState}. Please ensure the address is in ${demoState}.`,
+                        error: 'Your account does not have access to voter data for this state.',
                     };
                 }
 
