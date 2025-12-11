@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import MessageHistory from '@/components/dashboard/MessageHistory';
 import { useUserActivity } from '@/hooks/use-user-activity';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, Lock, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, BarChart3, Lock, ThumbsUp, ThumbsDown, Globe } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +39,7 @@ export default function MessagesPage() {
   const dashboardNavItems = [
     { label: 'Dashboard', href: '/dashboard', icon: UserIcon },
     { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
+    { label: 'Public Profile', href: '/dashboard/public-profile', icon: Globe },
     { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare, isActive: true },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },

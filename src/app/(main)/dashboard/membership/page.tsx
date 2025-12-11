@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Check, Heart, Eye, TrendingUp, Filter, Mail } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Check, Heart, Eye, TrendingUp, Filter, Mail, Globe } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +72,7 @@ export default function MembershipPage() {
   const dashboardNavItems = [
     { label: 'Dashboard', href: '/dashboard', icon: UserIcon },
     { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
+    { label: 'Public Profile', href: '/dashboard/public-profile', icon: Globe },
     { label: 'Membership', href: '/dashboard/membership', icon: Crown, isActive: true },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },

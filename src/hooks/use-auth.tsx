@@ -61,6 +61,18 @@ export interface User extends FirebaseUser {
   };
   createdAt?: Date;
   updatedAt?: Date;
+  nickname?: string;
+  publicProfileFields?: string[];
+  socialMedia?: {
+    twitter?: string;
+    instagram?: string;
+    facebook?: string;
+    linkedin?: string;
+    tiktok?: string;
+    youtube?: string;
+    threads?: string;
+    bluesky?: string;
+  };
 }
 
 type AuthContextType = {

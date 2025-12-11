@@ -5,8 +5,10 @@ service cloud.firestore {
   match /databases/{database}/documents {
   
     // Allow users to read and write their own data
+    // Public read is allowed for public profiles (client filters to publicProfileFields)
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if true;  // Public read for public profiles
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
     // Allow both authenticated users and verified users to create messages
@@ -57,6 +59,14 @@ service cloud.firestore {
 
     match /district_census/{districtId} {
         allow read, write: if true; // Public census data
+    }
+
+    // Nicknames collection for unique nickname reservation
+    match /nicknames/{nickname} {
+      allow read: if true;  // Public read for public profile lookups
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     // Allow anyone to submit poll responses (both authenticated and guest users)

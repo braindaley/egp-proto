@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Globe } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +31,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setProfile({
-        role: user.role || 'Retail',
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         address: user.address || '',
@@ -105,20 +104,17 @@ export default function ProfilePage() {
     return null;
   }
   
-  const birthYears = Array.from({length: 100}, (_, i) => new Date().getFullYear() - i - 18);
-  const genderOptions = ['Female', 'Male', 'Non-binary', 'Other', 'Prefer not to say'];
-  const partyOptions = ['Democrat', 'Republican', 'Independent', 'Libertarian', 'Green Party', 'Other', 'No Affiliation'];
   const educationOptions = ['High School', 'Some College', 'Associate Degree', "Bachelor's Degree", "Master's Degree", "Doctoral Degree", "Professional Degree"];
   const professionOptions = [
     'Technology', 'Healthcare', 'Education', 'Finance', 'Law', 'Skilled Trades', 'Sales & Marketing', 'Arts & Entertainment', 
     'Science & Research', 'Government & Public Service', 'Business & Management', 'Student', 'Homemaker', 'Retired', 'Other'
   ];
   const militaryOptions = [{label: 'Yes', value: 'true'}, {label: 'No', value: 'false'}];
-  const roleOptions = ['Wholesale', 'Retail'];
 
   const dashboardNavItems = [
     { label: 'Dashboard', href: '/dashboard', icon: UserIcon },
     { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon, isActive: true },
+    { label: 'Public Profile', href: '/dashboard/public-profile', icon: Globe },
     { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },
@@ -215,143 +211,121 @@ export default function ProfilePage() {
                 </p>
               </header>
               
-              <main className="space-y-8">
+              <main className="space-y-6">
+                {/* Voter Registration Data - Read Only */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Personal Information</CardTitle>
+                    <CardTitle>Voter Registration Data</CardTitle>
+                    <CardDescription>
+                      This information is from your voter registration record and cannot be edited here.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="firstName" className="text-muted-foreground">First Name</Label>
+                        <Input id="firstName" value={profile.firstName || ''} disabled className="bg-muted/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="lastName" className="text-muted-foreground">Last Name</Label>
+                        <Input id="lastName" value={profile.lastName || ''} disabled className="bg-muted/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="address" className="text-muted-foreground">Address</Label>
+                        <Input id="address" value={profile.address || ''} disabled className="bg-muted/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="city" className="text-muted-foreground">City</Label>
+                        <Input id="city" value={profile.city || ''} disabled className="bg-muted/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="state" className="text-muted-foreground">State</Label>
+                        <Input id="state" value={profile.state || ''} disabled className="bg-muted/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="zipCode" className="text-muted-foreground">Zip Code</Label>
+                        <Input id="zipCode" value={profile.zipCode || ''} disabled className="bg-muted/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="birthYear" className="text-muted-foreground">Birth Year</Label>
+                        <Input id="birthYear" value={profile.birthYear?.toString() || ''} disabled className="bg-muted/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="gender" className="text-muted-foreground">Gender</Label>
+                        <Input id="gender" value={profile.gender || ''} disabled className="bg-muted/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="politicalAffiliation" className="text-muted-foreground">Party Affiliation</Label>
+                        <Input id="politicalAffiliation" value={profile.politicalAffiliation || ''} disabled className="bg-muted/50" />
+                      </div>
+                      <div>
+                        <Label htmlFor="congressionalDistrict" className="text-muted-foreground">Congressional District</Label>
+                        <Input id="congressionalDistrict" value={profile.congressionalDistrict || ''} disabled className="bg-muted/50" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Editable Profile Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Additional Information</CardTitle>
                     <CardDescription>
                       Update your profile details and preferences.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                  <div className="space-y-4">
-                    <div className="mb-6">
-                      <Label htmlFor="role">Role</Label>
-                      <Select value={profile.role || ''} onValueChange={(value) => handleSelectChange('role', value)}>
-                        <SelectTrigger id="role" className="w-full">
-                          <SelectValue placeholder="Select your role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {roleOptions.map(option => (
-                            <SelectItem key={option} value={option}>{option}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="education">Education</Label>
+                          <Select value={profile.education || ''} onValueChange={(value) => handleSelectChange('education', value)}>
+                            <SelectTrigger id="education"><SelectValue placeholder="Select education level"/></SelectTrigger>
+                            <SelectContent>
+                              {educationOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="profession">Profession</Label>
+                          <Select value={profile.profession || ''} onValueChange={(value) => handleSelectChange('profession', value)}>
+                            <SelectTrigger id="profession"><SelectValue placeholder="Select profession"/></SelectTrigger>
+                            <SelectContent>
+                              {professionOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="militaryService">Military Service</Label>
+                          <Select
+                            value={profile.militaryService?.toString() || ''}
+                            onValueChange={(value) => handleSelectChange('militaryService', value)}
+                          >
+                            <SelectTrigger id="militaryService"><SelectValue placeholder="Select status"/></SelectTrigger>
+                            <SelectContent>
+                              {militaryOptions.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="mt-6">
+                        <Label htmlFor="constituentDescription">Describe yourself as a constituent</Label>
+                        <Textarea
+                          id="constituentDescription"
+                          name="constituentDescription"
+                          value={profile.constituentDescription || ''}
+                          onChange={handleInputChange}
+                          placeholder="Share your background, values, and what matters most to you as a constituent..."
+                          className="min-h-[120px] mt-2"
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-2 mt-6">
+                        <Button variant="outline" onClick={handleCancel}>Cancel</Button>
+                        <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div>
-                            <Label htmlFor="firstName">First Name</Label>
-                            <Input id="firstName" name="firstName" value={profile.firstName || ''} onChange={handleInputChange} />
-                        </div>
-                        <div>
-                            <Label htmlFor="lastName">Last Name</Label>
-                            <Input id="lastName" name="lastName" value={profile.lastName || ''} onChange={handleInputChange} />
-                        </div>
-                        <div>
-                            <Label htmlFor="address">Address</Label>
-                            <Input id="address" name="address" value={profile.address || ''} onChange={handleInputChange} />
-                        </div>
-                         <div>
-                            <Label htmlFor="city">City</Label>
-                            <Input id="city" name="city" value={profile.city || ''} onChange={handleInputChange} />
-                        </div>
-                         <div>
-                            <Label htmlFor="state">State</Label>
-                            <Input id="state" name="state" value={profile.state || ''} onChange={handleInputChange} />
-                        </div>
-                        <div>
-                            <Label htmlFor="zipCode">Zip Code</Label>
-                            <Input id="zipCode" name="zipCode" value={profile.zipCode || ''} onChange={handleInputChange} />
-                        </div>
-                        <div>
-                            <Label htmlFor="congressionalDistrict">Congressional District</Label>
-                            <Input id="congressionalDistrict" name="congressionalDistrict" value={profile.congressionalDistrict || ''} onChange={handleInputChange} placeholder="e.g., 5" />
-                        </div>
-                         <div>
-                            <Label htmlFor="birthYear">Birth Year</Label>
-                            <Select
-                                value={profile.birthYear?.toString() || ''}
-                                onValueChange={(value) => handleSelectChange('birthYear', value)}
-                            >
-                                <SelectTrigger id="birthYear">
-                                    <SelectValue placeholder="Select year" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {birthYears.map(year => (
-                                        <SelectItem key={year} value={year.toString()}>
-                                            {year}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label htmlFor="gender">Gender</Label>
-                            <Select value={profile.gender || ''} onValueChange={(value) => handleSelectChange('gender', value)}>
-                                <SelectTrigger id="gender"><SelectValue placeholder="Select gender"/></SelectTrigger>
-                                <SelectContent>
-                                    {genderOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label htmlFor="politicalAffiliation">Party Affiliation</Label>
-                            <Select value={profile.politicalAffiliation || ''} onValueChange={(value) => handleSelectChange('politicalAffiliation', value)}>
-                                <SelectTrigger id="politicalAffiliation"><SelectValue placeholder="Select party"/></SelectTrigger>
-                                <SelectContent>
-                                     {partyOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label htmlFor="education">Education</Label>
-                            <Select value={profile.education || ''} onValueChange={(value) => handleSelectChange('education', value)}>
-                                <SelectTrigger id="education"><SelectValue placeholder="Select education level"/></SelectTrigger>
-                                <SelectContent>
-                                   {educationOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                         <div>
-                            <Label htmlFor="profession">Profession</Label>
-                            <Select value={profile.profession || ''} onValueChange={(value) => handleSelectChange('profession', value)}>
-                                 <SelectTrigger id="profession"><SelectValue placeholder="Select profession"/></SelectTrigger>
-                                <SelectContent>
-                                   {professionOptions.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                         <div>
-                            <Label htmlFor="militaryService">Military Service</Label>
-                             <Select
-                                value={profile.militaryService?.toString() || ''}
-                                onValueChange={(value) => handleSelectChange('militaryService', value)}
-                            >
-                                <SelectTrigger id="militaryService"><SelectValue placeholder="Select status"/></SelectTrigger>
-                                <SelectContent>
-                                   {militaryOptions.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    
-                    <div className="mt-6">
-                      <Label htmlFor="constituentDescription">Describe yourself as a constituent</Label>
-                      <Textarea
-                        id="constituentDescription"
-                        name="constituentDescription"
-                        value={profile.constituentDescription || ''}
-                        onChange={handleInputChange}
-                        placeholder="Share your background, values, and what matters most to you as a constituent..."
-                        className="min-h-[120px] mt-2"
-                      />
-                    </div>
-                    
-                    <div className="flex justify-end gap-2 mt-6">
-                      <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-                      <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
-                    </div>
-                  </div>
                   </CardContent>
                 </Card>
               </main>

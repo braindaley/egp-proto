@@ -11,7 +11,7 @@ import { app } from '@/lib/firebase';
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Lock } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Lock, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export const dynamic = 'force-dynamic';
@@ -213,6 +213,7 @@ export default function InterestsPage() {
   const dashboardNavItems = [
     { label: 'Dashboard', href: '/dashboard', icon: UserIcon },
     { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
+    { label: 'Public Profile', href: '/dashboard/public-profile', icon: Globe },
     { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings, isActive: true },
