@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { campaignsService, type Campaign } from '@/lib/campaigns';
 import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
-import { ThumbsUp, ThumbsDown, ArrowRight, ChevronRight, Menu, Eye } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, ArrowRight, ChevronRight, Menu } from 'lucide-react';
 import { getBillTypeSlug } from '@/lib/utils';
 import { parseSimpleMarkdown } from '@/lib/markdown-utils';
 import { useState, useEffect } from 'react';
@@ -328,7 +328,6 @@ export default function CampaignsPage() {
                                 toggleWatchBill(campaign.bill.congress, campaign.bill.type, campaign.bill.number, campaign.bill.title);
                               }}
                             >
-                              <Eye className={`h-4 w-4 ${isWatched ? 'text-blue-600' : ''}`} />
                               {isWatched ? 'Watching' : 'Watch'}
                             </Button>
                           </div>

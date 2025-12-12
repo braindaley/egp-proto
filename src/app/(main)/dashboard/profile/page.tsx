@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Globe } from 'lucide-react';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Globe, Megaphone } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,6 +115,7 @@ export default function ProfilePage() {
     { label: 'Dashboard', href: '/dashboard', icon: UserIcon },
     { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon, isActive: true },
     { label: 'Public Profile', href: '/dashboard/public-profile', icon: Globe },
+    { label: 'My Campaigns', href: '/dashboard/campaigns', icon: Megaphone },
     { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },

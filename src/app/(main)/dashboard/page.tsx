@@ -77,6 +77,7 @@ export default function DashboardPage() {
         { label: 'Dashboard', href: '/dashboard', icon: UserIcon, isActive: true },
         { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
         { label: 'Public Profile', href: '/dashboard/public-profile', icon: Globe },
+        { label: 'My Campaigns', href: '/dashboard/campaigns', icon: Megaphone },
         { label: 'Membership', href: '/dashboard/membership', icon: Crown },
         { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
         // { label: 'Activity', href: '/dashboard/activity', icon: BarChart3 },

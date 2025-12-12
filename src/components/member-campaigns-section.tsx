@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Megaphone, ThumbsUp, ThumbsDown, Eye, ArrowRight } from 'lucide-react';
+import { Megaphone, ThumbsUp, ThumbsDown, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface Campaign {
@@ -263,7 +263,7 @@ export function MemberCampaignsSection({ bioguideId, memberName, congress }: Mem
                       </p>
                     )}
 
-                    {/* Action button and eye icon */}
+                    {/* Action button */}
                     <div className="flex items-center justify-between">
                       <Button size="default" variant="outline" asChild>
                         <Link href={advocacyUrl}>
@@ -271,7 +271,6 @@ export function MemberCampaignsSection({ bioguideId, memberName, congress }: Mem
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Link>
                       </Button>
-                      <Eye className="h-5 w-5 text-muted-foreground" />
                     </div>
                   </CardContent>
                 </Card>

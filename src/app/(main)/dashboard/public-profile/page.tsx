@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, User } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { getFirestore, doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { app, storage } from '@/lib/firebase';
 import Link from 'next/link';
-import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Globe, ExternalLink, Copy, Check } from 'lucide-react';
+import Image from 'next/image';
+import { Menu, ChevronRight, User as UserIcon, Settings, MessageSquare, Crown, Globe, ExternalLink, Copy, Check, Camera, Loader2, Megaphone } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +59,9 @@ export default function PublicProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const db = getFirestore(app);
 
@@ -66,7 +71,8 @@ export default function PublicProfilePage() {
       const extendedUser = user as User & {
         publicProfileFields?: string[],
         nickname?: string,
-        socialMedia?: Record<string, string>
+        socialMedia?: Record<string, string>,
+        profilePicture?: string
       };
 
       if (extendedUser.publicProfileFields && extendedUser.publicProfileFields.length > 0) {
@@ -82,6 +88,10 @@ export default function PublicProfilePage() {
 
       if (extendedUser.socialMedia) {
         setSocialMedia(extendedUser.socialMedia);
+      }
+
+      if (extendedUser.profilePicture) {
+        setProfilePicture(extendedUser.profilePicture);
       }
     }
   }, [user]);
@@ -131,6 +141,50 @@ export default function PublicProfilePage() {
       ...prev,
       [platform]: sanitized
     }));
+  };
+
+  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingPicture(true);
+    try {
+      // Create a reference to the file in Firebase Storage
+      const fileExtension = file.name.split('.').pop();
+      const storageRef = ref(storage, `profile-pictures/${user.uid}.${fileExtension}`);
+
+      // Upload the file
+      await uploadBytes(storageRef, file);
+
+      // Get the download URL
+      const downloadUrl = await getDownloadURL(storageRef);
+
+      // Update local state
+      setProfilePicture(downloadUrl);
+
+      // Save to user profile immediately
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, { profilePicture: downloadUrl }, { merge: true });
+
+      await refreshUserData();
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploadingPicture(false);
+    }
   };
 
   const handleSave = async () => {
@@ -239,6 +293,7 @@ export default function PublicProfilePage() {
     { label: 'Dashboard', href: '/dashboard', icon: UserIcon },
     { label: 'Edit Profile', href: '/dashboard/profile', icon: UserIcon },
     { label: 'Public Profile', href: '/dashboard/public-profile', icon: Globe, isActive: true },
+    { label: 'My Campaigns', href: '/dashboard/campaigns', icon: Megaphone },
     { label: 'Membership', href: '/dashboard/membership', icon: Crown },
     { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
     { label: 'Policy Interests', href: '/dashboard/interests', icon: Settings },
@@ -341,6 +396,55 @@ export default function PublicProfilePage() {
                     <CardTitle>Public Profile Settings</CardTitle>
                   </CardHeader>
                   <CardContent>
+                    {/* Profile Picture */}
+                    <div className="mb-6 pb-4 border-b">
+                      <Label className="text-sm font-medium mb-2 block">Profile Picture</Label>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Upload a profile picture to display on your public profile (max 5MB).
+                      </p>
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-border">
+                            {profilePicture ? (
+                              <Image
+                                src={profilePicture}
+                                alt="Profile picture"
+                                width={80}
+                                height={80}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <UserIcon className="h-8 w-8 text-muted-foreground" />
+                            )}
+                          </div>
+                          {isUploadingPicture && (
+                            <div className="absolute inset-0 bg-background/80 rounded-full flex items-center justify-center">
+                              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleProfilePictureChange}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploadingPicture}
+                            className="h-8 text-xs"
+                          >
+                            <Camera className="h-3 w-3 mr-1" />
+                            {profilePicture ? 'Change Photo' : 'Upload Photo'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Nickname field */}
                     <div className="mb-6 pb-4 border-b">
                       <Label htmlFor="nickname" className="text-sm font-medium">

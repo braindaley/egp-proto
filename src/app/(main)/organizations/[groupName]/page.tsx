@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getAdvocacyGroupData } from '@/lib/advocacy-groups';
 import { campaignsService } from '@/lib/campaigns';
-import { ArrowRight, ThumbsUp, ThumbsDown, Eye } from 'lucide-react';
+import { ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Calendar, CheckCircle } from 'lucide-react';
@@ -392,7 +392,6 @@ export default function GroupDetailPage({ params }: { params: { groupName: strin
                                                         size="sm"
                                                         className="flex items-center gap-2 text-muted-foreground"
                                                     >
-                                                        <Eye className="h-4 w-4" />
                                                         Watch
                                                     </Button>
                                                     )}

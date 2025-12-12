@@ -29,6 +29,12 @@ const nextConfig: NextConfig = {
         hostname: 'assets.civicengine.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
