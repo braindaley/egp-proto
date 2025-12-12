@@ -127,22 +127,18 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                     {/* 5. Bottom Section with Buttons */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div className="flex gap-2 flex-wrap justify-center sm:justify-start">
-                            <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                            <div
+                                className="flex items-center gap-2 text-green-600 border border-green-200 bg-green-50 rounded-md px-3 py-1.5 text-sm"
                             >
                                 <ThumbsUp className="h-4 w-4" />
                                 <span className="font-semibold">{supportCount.toLocaleString()}</span>
-                            </Button>
-                            <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                            </div>
+                            <div
+                                className="flex items-center gap-2 text-red-600 border border-red-200 bg-red-50 rounded-md px-3 py-1.5 text-sm"
                             >
                                 <ThumbsDown className="h-4 w-4" />
                                 <span className="font-semibold">{opposeCount.toLocaleString()}</span>
-                            </Button>
+                            </div>
 {ENABLE_WATCH_FEATURE && (
                             <Button
                                 variant={isWatched ? 'secondary' : 'outline'}
