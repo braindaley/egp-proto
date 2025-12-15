@@ -78,9 +78,6 @@ export async function verifyVoter(
             apikey: apiKey,
         });
 
-        // Build filters for the search
-        const filters: Record<string, string | string[]> = {};
-
         // Check if this is a refined search (has phone or DOB)
         const isRefinedSearch = request.phone || request.dobYear;
 
@@ -273,11 +270,6 @@ export async function verifyVoter(
                     Voters_FirstName: request.firstName,
                     Voters_LastName: request.lastName,
                     ...(houseNumber && { Residence_Addresses_HouseNumber: houseNumber }),
-                },
-                // Attempt 4: First + Last only (least strict)
-                {
-                    Voters_FirstName: request.firstName,
-                    Voters_LastName: request.lastName,
                 },
             ];
 
