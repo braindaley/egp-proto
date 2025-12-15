@@ -187,9 +187,51 @@ export async function verifyVoter(
                         }));
                         return { success: true, matches };
                     }
+                } else {
+                    // Handle error response
+                    const errorText = await attemptResponse.text();
+                    console.error(`L2 API Refined Search Attempt ${i + 1} error:`, attemptResponse.status, errorText);
+
+                    try {
+                        const errorData = JSON.parse(errorText);
+
+                        // Check for "no records" error - treat as empty results, continue to next attempt
+                        if (errorData.message?.includes('API_SEARCH_NO_RECORDS')) {
+                            console.log(`L2 API Refined Search Attempt ${i + 1}: No records found, trying next attempt`);
+                            // Continue to next attempt
+                        }
+                        // Check if account doesn't have access to this state - return error immediately
+                        else if (errorData.message?.includes('API_CUST_APP')) {
+                            return {
+                                success: false,
+                                matches: [],
+                                error: 'Your account does not have access to voter data for this state.',
+                            };
+                        }
+                        // On last attempt, return the error
+                        else if (i === searchAttempts.length - 1) {
+                            return {
+                                success: false,
+                                matches: [],
+                                error: errorData.message || `L2 API error: ${attemptResponse.status}`,
+                            };
+                        }
+                    } catch {
+                        // If not JSON, check text for known errors
+                        if (errorText.includes('API_SEARCH_NO_RECORDS') || attemptResponse.status === 404) {
+                            console.log(`L2 API Refined Search Attempt ${i + 1}: No records found, trying next attempt`);
+                            // Continue to next attempt
+                        } else if (i === searchAttempts.length - 1) {
+                            return {
+                                success: false,
+                                matches: [],
+                                error: `L2 API error: ${attemptResponse.status}`,
+                            };
+                        }
+                    }
                 }
 
-                // If this was the last attempt, return empty results
+                // If this was the last attempt and we're here, return empty results
                 if (i === searchAttempts.length - 1) {
                     console.log('L2 API Refined Search: No results found after all attempts');
                     return { success: true, matches: [] };
@@ -287,9 +329,51 @@ export async function verifyVoter(
                         }));
                         return { success: true, matches };
                     }
+                } else {
+                    // Handle error response
+                    const errorText = await attemptResponse.text();
+                    console.error(`L2 API Search Attempt ${i + 1} error:`, attemptResponse.status, errorText);
+
+                    try {
+                        const errorData = JSON.parse(errorText);
+
+                        // Check for "no records" error - treat as empty results, continue to next attempt
+                        if (errorData.message?.includes('API_SEARCH_NO_RECORDS')) {
+                            console.log(`L2 API Search Attempt ${i + 1}: No records found, trying next attempt`);
+                            // Continue to next attempt
+                        }
+                        // Check if account doesn't have access to this state - return error immediately
+                        else if (errorData.message?.includes('API_CUST_APP')) {
+                            return {
+                                success: false,
+                                matches: [],
+                                error: 'Your account does not have access to voter data for this state.',
+                            };
+                        }
+                        // On last attempt, return the error
+                        else if (i === searchAttempts.length - 1) {
+                            return {
+                                success: false,
+                                matches: [],
+                                error: errorData.message || `L2 API error: ${attemptResponse.status}`,
+                            };
+                        }
+                    } catch {
+                        // If not JSON, check text for known errors
+                        if (errorText.includes('API_SEARCH_NO_RECORDS') || attemptResponse.status === 404) {
+                            console.log(`L2 API Search Attempt ${i + 1}: No records found, trying next attempt`);
+                            // Continue to next attempt
+                        } else if (i === searchAttempts.length - 1) {
+                            return {
+                                success: false,
+                                matches: [],
+                                error: `L2 API error: ${attemptResponse.status}`,
+                            };
+                        }
+                    }
                 }
 
-                // If this was the last attempt, continue to error handling below
+                // If this was the last attempt and we're here, return empty results
                 if (i === searchAttempts.length - 1) {
                     console.log('L2 API: No results found after all attempts');
                     return { success: true, matches: [] };
@@ -299,133 +383,6 @@ export async function verifyVoter(
             // This shouldn't be reached, but just in case
             return { success: true, matches: [] };
         }
-
-        console.log('L2 API Request:', {
-            endpoint,
-            filters,
-            application,
-        });
-
-        const response = await fetch(`${endpoint}?${authParams.toString()}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                filters,
-                format: 'json',
-                fieldset: 'SIMPLE', // Can be SIMPLE, EXTENDED, or ALL
-                limit: 50, // Maximum results to return
-                wait: 30000, // Wait up to 30 seconds for results
-            }),
-        });
-
-        console.log('L2 API Response status:', response.status, response.statusText);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('L2 API error:', response.status, response.statusText, errorText);
-
-            // Try to parse as JSON to get structured error
-            try {
-                const errorData = JSON.parse(errorText);
-
-                // Check if it's a "no records" error (expected when no matches)
-                if (errorData.message?.includes('API_SEARCH_NO_RECORDS')) {
-                    return {
-                        success: true,
-                        matches: [],
-                    };
-                }
-
-                // Check if account doesn't have access to this state
-                if (errorData.message?.includes('API_CUST_APP')) {
-                    return {
-                        success: false,
-                        matches: [],
-                        error: 'Your account does not have access to voter data for this state.',
-                    };
-                }
-
-                // Return the API error message
-                return {
-                    success: false,
-                    matches: [],
-                    error: errorData.message || `L2 API error: ${response.status}`,
-                };
-            } catch {
-                // If not JSON, check text for known errors
-                if (errorText.includes('API_SEARCH_NO_RECORDS') || response.status === 404) {
-                    return {
-                        success: true,
-                        matches: [],
-                    };
-                }
-
-                return {
-                    success: false,
-                    matches: [],
-                    error: `L2 API error: ${response.status}`,
-                };
-            }
-        }
-
-        // L2 returns a JSON array of voter records
-        const records = await response.json();
-
-        // Check if response is an array
-        if (!Array.isArray(records)) {
-            console.error('Unexpected L2 API response format:', records);
-
-            // Check if it's an error response object
-            if (records && typeof records === 'object' && 'result' in records) {
-                const errorResponse = records as any;
-                if (errorResponse.result === 'fail' && errorResponse.message?.includes('API_CUST_APP')) {
-                    return {
-                        success: false,
-                        matches: [],
-                        error: 'Your account does not have access to voter data for this state.',
-                    };
-                }
-
-                return {
-                    success: false,
-                    matches: [],
-                    error: errorResponse.message || 'Unexpected API response format',
-                };
-            }
-
-            return {
-                success: false,
-                matches: [],
-                error: 'Unexpected API response format',
-            };
-        }
-
-        // Transform L2 API response to our format
-        // L2 uses field identifiers like LALVOTERID, Voters_FirstName, etc.
-        const matches: L2VoterRecord[] = records.map((record: any) => ({
-            voterId: record.LALVOTERID || record.VoterID || '',
-            firstName: record.Voters_FirstName || '',
-            lastName: record.Voters_LastName || '',
-            middleName: record.Voters_MiddleName || undefined,
-            fullName: `${record.Voters_FirstName || ''} ${record.Voters_MiddleName || ''} ${record.Voters_LastName || ''}`.trim(),
-            address: record.Residence_Addresses_AddressLine || record.Residence_Addresses_FullAddress || '',
-            city: record.Residence_Addresses_City || '',
-            state: record.Residence_Addresses_State || stateCode,
-            zipCode: record.Residence_Addresses_Zip || record.Residence_Addresses_Zip5 || '',
-            birthYear: record.Voters_BirthYear || record.Voters_Age || undefined,
-            gender: record.Voters_Gender || undefined,
-            politicalAffiliation: record.Parties_Description || undefined,
-            registrationDate: record.VoterRegistration_Date || undefined,
-            voterStatus: record.Voters_Active || 'Active',
-            constituentDescription: record.ConstituentDescription || null,
-        }));
-
-        return {
-            success: true,
-            matches,
-        };
     } catch (error) {
         console.error('Error verifying voter with L2 API:', error);
         return {
