@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Loader2, AlertCircle, User, Search, X, CheckCircle, CheckCircle2, XCircle, Mail, Shield, UserPlus, Upload, File, Image, ChevronLeft, ChevronRight, Check, AtSign, Globe, Crown, Heart, Eye, TrendingUp, Filter, ArrowRight, PlusCircle } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, User, Search, X, CheckCircle, CheckCircle2, Mail, Shield, UserPlus, Upload, File, Image, ChevronLeft, ChevronRight, Check, AtSign, Globe, Crown, Heart, Eye, TrendingUp, Filter, ArrowRight, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useZipCode } from '@/hooks/use-zip-code';
 import { useMembersByZip } from '@/hooks/useMembersByZip';
@@ -141,11 +141,14 @@ const AdvocacyMessageContent: React.FC = () => {
 
     // Refine search state (Check Your Registration)
     const [refinePhone, setRefinePhone] = useState('');
-    const [refineDobMonth, setRefineDobMonth] = useState('');
-    const [refineDobDay, setRefineDobDay] = useState('');
-    const [refineDobYear, setRefineDobYear] = useState('');
+    const [refineAge, setRefineAge] = useState('');
     const [refineVoterId, setRefineVoterId] = useState('');
+    const [hasAttemptedRefineSearch, setHasAttemptedRefineSearch] = useState(false);
     const [agreeToTerms, setAgreeToTerms] = useState(false);
+
+    // Voter registration info (for not_found step)
+    const [voterRegistrationUrl, setVoterRegistrationUrl] = useState<string | null>(null);
+    const [isLoadingRegistrationUrl, setIsLoadingRegistrationUrl] = useState(false);
     const [manualFirstName, setManualFirstName] = useState('');
     const [manualLastName, setManualLastName] = useState('');
     const [manualAddress, setManualAddress] = useState('');
@@ -685,6 +688,36 @@ const AdvocacyMessageContent: React.FC = () => {
         }
     }, [policyIssueParam]);
 
+    // Fetch voter registration URL when reaching not_found step or selection with no matches after refine search
+    useEffect(() => {
+        const shouldFetch = (
+            verificationStep === 'not_found' ||
+            (verificationStep === 'selection' && hasAttemptedRefineSearch && matches.length === 0)
+        ) && (address || city || state);
+
+        if (shouldFetch && !voterRegistrationUrl) {
+            const fetchRegistrationUrl = async () => {
+                setIsLoadingRegistrationUrl(true);
+                try {
+                    const fullAddress = `${address}, ${city}, ${state} ${verificationZipCode}`.trim();
+                    const response = await fetch(`/api/voter-registration?address=${encodeURIComponent(fullAddress)}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setVoterRegistrationUrl(data.registrationUrl || 'https://vote.org/register-to-vote/');
+                    } else {
+                        setVoterRegistrationUrl('https://vote.org/register-to-vote/');
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch registration URL:', error);
+                    setVoterRegistrationUrl('https://vote.org/register-to-vote/');
+                } finally {
+                    setIsLoadingRegistrationUrl(false);
+                }
+            };
+            fetchRegistrationUrl();
+        }
+    }, [verificationStep, address, city, state, verificationZipCode, hasAttemptedRefineSearch, matches.length, voterRegistrationUrl]);
+
     // Prepare available members
     useEffect(() => {
         const fetchMembers = async () => {
@@ -1055,6 +1088,11 @@ const AdvocacyMessageContent: React.FC = () => {
                 }),
             });
 
+            if (!response.ok) {
+                setVerificationError('Unable to connect to verification service. Please try again.');
+                return;
+            }
+
             const data = await response.json();
 
             if (!data.success) {
@@ -1077,8 +1115,12 @@ const AdvocacyMessageContent: React.FC = () => {
             }));
 
             setMatches(transformedMatches);
-            // Always go to selection screen - shows matches if found, or "Not Listed" option if not
-            setVerificationStep('selection');
+            // If matches found, go to selection screen; if not, go directly to refine search
+            if (transformedMatches.length > 0) {
+                setVerificationStep('selection');
+            } else {
+                setVerificationStep('refine_search');
+            }
         } catch (err) {
             console.error('Verification error:', err);
             setVerificationError('Unable to verify identity. Please try again.');
@@ -1260,20 +1302,14 @@ const AdvocacyMessageContent: React.FC = () => {
         setVerificationError('');
         // Reset refine search state
         setRefinePhone('');
-        setRefineDobMonth('');
-        setRefineDobDay('');
-        setRefineDobYear('');
+        setRefineAge('');
         setRefineVoterId('');
+        setHasAttemptedRefineSearch(false);
         setAgreeToTerms(false);
     };
 
-    // Handle refined search with additional fields (phone, DOB, voter ID)
+    // Handle refined search with additional fields (phone, age, voter ID)
     const handleRefineSearch = async () => {
-        if (!agreeToTerms) {
-            setVerificationError('Please agree to the Terms of Service and Privacy Policy');
-            return;
-        }
-
         setIsVerifying(true);
         setVerificationError('');
 
@@ -1292,12 +1328,15 @@ const AdvocacyMessageContent: React.FC = () => {
                     zipCode: verificationZipCode,
                     // Additional refinement fields
                     phone: refinePhone,
-                    dobMonth: refineDobMonth,
-                    dobDay: refineDobDay,
-                    dobYear: refineDobYear,
+                    age: refineAge ? parseInt(refineAge, 10) : undefined,
                     voterId: refineVoterId,
                 }),
             });
+
+            if (!response.ok) {
+                setVerificationError('Unable to connect to verification service. Please try again.');
+                return;
+            }
 
             const data = await response.json();
 
@@ -1306,28 +1345,32 @@ const AdvocacyMessageContent: React.FC = () => {
                 return;
             }
 
-            // After refined search: if found show verified screen, if not show not_found screen
+            // Mark that we've attempted a refined search
+            setHasAttemptedRefineSearch(true);
+
+            // After refined search: go back to selection screen with updated matches
             if (data.matches && data.matches.length > 0) {
-                // Use first match as the verified user
-                const match = data.matches[0];
-                setVerifiedUserInfo({
-                    voterId: match.voterId,
-                    firstName: match.firstName || match.fullName?.split(' ')[0] || firstName,
-                    lastName: match.lastName || match.fullName?.split(' ').slice(1).join(' ') || lastName,
-                    fullName: match.fullName,
-                    address: match.address,
-                    city: match.city,
-                    state: match.state,
-                    zipCode: match.zipCode,
-                    isVerified: true,
-                    isGuest: !user,
-                    constituentDescription: match.constituentDescription || null,
-                });
-                setVerificationStep('verified');
+                // Transform L2 records to matches format
+                const newMatches: VerificationMatch[] = data.matches.map((record: L2VoterRecord) => ({
+                    id: record.voterId,
+                    fullName: record.fullName,
+                    address: record.address,
+                    city: record.city,
+                    state: record.state,
+                    zipCode: record.zipCode,
+                }));
+                setMatches(newMatches);
+                setRawL2Records(data.matches);
+                setSelectedMatch('');
             } else {
-                // No matches found after refined search - show not found screen
+                // No matches after refined search - go to not_found step
+                setMatches([]);
+                setRawL2Records([]);
                 setVerificationStep('not_found');
+                return;
             }
+            // Go to selection screen to show results
+            setVerificationStep('selection');
         } catch (error) {
             console.error('Refined search error:', error);
             setVerificationError('An error occurred during verification. Please try again.');
@@ -2160,6 +2203,26 @@ const AdvocacyMessageContent: React.FC = () => {
                                 </div>
                             </div>
 
+                            <div className="flex items-center space-x-2 mt-4">
+                                <input
+                                    type="checkbox"
+                                    id="agreeToTermsInitial"
+                                    checked={agreeToTerms}
+                                    onChange={(e) => setAgreeToTerms(e.target.checked)}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                                <Label htmlFor="agreeToTermsInitial" className="text-sm font-normal">
+                                    I agree to the{' '}
+                                    <a href="/terms" className="underline" target="_blank">
+                                        Terms of Service
+                                    </a>{' '}
+                                    and{' '}
+                                    <a href="/privacy" className="underline" target="_blank">
+                                        Privacy Policy
+                                    </a>
+                                    .
+                                </Label>
+                            </div>
 
                             <div className="flex-1"></div>
                             <div className="flex justify-between items-center mt-auto pt-6">
@@ -2168,7 +2231,7 @@ const AdvocacyMessageContent: React.FC = () => {
                                 </Button>
                                 <Button
                                     onClick={handleVerificationSubmit}
-                                    disabled={isVerifying}
+                                    disabled={isVerifying || !agreeToTerms}
                                 >
                                     {isVerifying ? (
                                         <>
@@ -2217,19 +2280,51 @@ const AdvocacyMessageContent: React.FC = () => {
                                 <div className="flex items-start space-x-3">
                                     <AlertCircle className="h-5 w-5 mt-0.5 text-muted-foreground" />
                                     <div className="flex-1">
-                                        <p className="font-medium">{matches.length > 0 ? 'Not Listed?' : 'No Matches Found'}</p>
-                                        <p className="text-sm text-muted-foreground mb-3">
-                                            {matches.length > 0
-                                                ? 'If you don\'t see yourself, click "Check Your Registration" to enter your full details instead.'
-                                                : 'We couldn\'t find your voter registration. Please check your registration to verify your details.'}
-                                        </p>
-                                        <Button
-                                            variant="outline"
-                                            className="w-full"
-                                            onClick={() => setVerificationStep('refine_search')}
-                                        >
-                                            Check Your Registration
-                                        </Button>
+                                        {!hasAttemptedRefineSearch ? (
+                                            <>
+                                                <p className="font-medium">{matches.length > 0 ? 'Not Listed?' : 'No Matches Found'}</p>
+                                                <p className="text-sm text-muted-foreground mb-3">
+                                                    {matches.length > 0
+                                                        ? 'If you don\'t see yourself, click "Check Your Registration" to enter your full details instead.'
+                                                        : 'We couldn\'t find your voter registration. Please check your registration to verify your details.'}
+                                                </p>
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full"
+                                                    onClick={() => setVerificationStep('refine_search')}
+                                                >
+                                                    Check Your Registration
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <p className="font-medium">{matches.length > 0 ? 'Still Not Listed?' : 'No Matches Found'}</p>
+                                                <p className="text-sm text-muted-foreground mb-3">
+                                                    {matches.length > 0
+                                                        ? 'If you still don\'t see yourself, you can start over with different information.'
+                                                        : 'We couldn\'t find your voter registration with the information provided.'}
+                                                </p>
+                                                {matches.length === 0 && (
+                                                    <a
+                                                        href={voterRegistrationUrl || 'https://vote.org/register-to-vote/'}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="block mb-3"
+                                                    >
+                                                        <Button variant="default" className="w-full" disabled={isLoadingRegistrationUrl}>
+                                                            {isLoadingRegistrationUrl ? 'Loading...' : 'Register to Vote'}
+                                                        </Button>
+                                                    </a>
+                                                )}
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full"
+                                                    onClick={handleVerificationReset}
+                                                >
+                                                    Start Over
+                                                </Button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -2256,10 +2351,14 @@ const AdvocacyMessageContent: React.FC = () => {
 
                     {verificationStep === 'refine_search' && (
                         <>
-                            <div className="text-center mb-4">
-                                <h3 className="text-xl font-bold mb-2">Check Your Registration</h3>
+                            <div className="text-left mb-4">
+                                <h3 className="text-xl font-bold mb-2">
+                                    {matches.length === 0 ? 'Additional Information Needed' : 'Check Your Registration'}
+                                </h3>
                                 <p className="text-sm text-muted-foreground">
-                                    We verify your voter registration to ensure your messages are taken seriously by policymakers.
+                                    {matches.length === 0
+                                        ? "We couldn't verify your voter registration with your name and address. Not to worry, enter some additional data to be verified."
+                                        : 'We verify your voter registration to ensure your messages are taken seriously by policymakers.'}
                                 </p>
                             </div>
 
@@ -2287,48 +2386,17 @@ const AdvocacyMessageContent: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <Label>Date of Birth</Label>
-                                    <div className="grid grid-cols-3 gap-3 mt-1">
-                                        <select
-                                            value={refineDobMonth}
-                                            onChange={(e) => setRefineDobMonth(e.target.value)}
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                        >
-                                            <option value="">Month</option>
-                                            {Array.from({ length: 12 }, (_, i) => (
-                                                <option key={i + 1} value={String(i + 1).padStart(2, '0')}>
-                                                    {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <select
-                                            value={refineDobDay}
-                                            onChange={(e) => setRefineDobDay(e.target.value)}
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                        >
-                                            <option value="">Day</option>
-                                            {Array.from({ length: 31 }, (_, i) => (
-                                                <option key={i + 1} value={String(i + 1).padStart(2, '0')}>
-                                                    {i + 1}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <select
-                                            value={refineDobYear}
-                                            onChange={(e) => setRefineDobYear(e.target.value)}
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                        >
-                                            <option value="">Year</option>
-                                            {Array.from({ length: 100 }, (_, i) => {
-                                                const year = new Date().getFullYear() - 18 - i;
-                                                return (
-                                                    <option key={year} value={String(year)}>
-                                                        {year}
-                                                    </option>
-                                                );
-                                            })}
-                                        </select>
-                                    </div>
+                                    <Label htmlFor="refineAge">Age</Label>
+                                    <Input
+                                        id="refineAge"
+                                        type="number"
+                                        min="18"
+                                        max="120"
+                                        placeholder="Enter your age"
+                                        value={refineAge}
+                                        onChange={(e) => setRefineAge(e.target.value)}
+                                        className="mt-1"
+                                    />
                                 </div>
 
                                 <div>
@@ -2340,27 +2408,6 @@ const AdvocacyMessageContent: React.FC = () => {
                                         onChange={(e) => setRefineVoterId(e.target.value)}
                                         className="mt-1"
                                     />
-                                </div>
-
-                                <div className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        id="agreeToTerms"
-                                        checked={agreeToTerms}
-                                        onChange={(e) => setAgreeToTerms(e.target.checked)}
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                    />
-                                    <Label htmlFor="agreeToTerms" className="text-sm font-normal">
-                                        I agree to the{' '}
-                                        <a href="/terms" className="underline" target="_blank">
-                                            Terms of Service
-                                        </a>{' '}
-                                        and{' '}
-                                        <a href="/privacy" className="underline" target="_blank">
-                                            Privacy Policy
-                                        </a>
-                                        .
-                                    </Label>
                                 </div>
                             </div>
 
@@ -2427,51 +2474,41 @@ const AdvocacyMessageContent: React.FC = () => {
 
                     {verificationStep === 'not_found' && (
                         <>
-                            <div className="text-center mb-4">
-                                <h3 className="text-xl font-bold">We were unable to verify your voter registration</h3>
+                            <div className="text-left mb-4">
+                                <h3 className="text-xl font-bold mb-2">Voter Registration Not Found</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    We were unable to find your voter registration. This could mean you&apos;re not yet registered to vote, or your information may be recorded differently.
+                                </p>
                             </div>
 
-                            <div className="border rounded-lg p-4 bg-red-50">
+                            <div className="border rounded-lg p-4 bg-blue-50 mb-4">
                                 <div className="flex items-start space-x-3">
-                                    <div className="rounded-full bg-red-100 p-1">
-                                        <XCircle className="h-5 w-5 text-red-600" />
-                                    </div>
                                     <div className="flex-1">
-                                        <p className="font-semibold text-red-900">Voter registration not found</p>
-                                        <p className="text-sm text-red-700 mt-1">
-                                            You can still continue without voter verification, but your message may carry less weight with representatives.
+                                        <p className="font-semibold text-blue-900">Not registered to vote?</p>
+                                        <p className="text-sm text-blue-700 mt-1">
+                                            Registering to vote takes just a few minutes. Make your voice heard!
                                         </p>
+                                        <a
+                                            href={voterRegistrationUrl || 'https://vote.org/register-to-vote/'}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-block mt-3"
+                                        >
+                                            <Button variant="default" size="sm" disabled={isLoadingRegistrationUrl}>
+                                                {isLoadingRegistrationUrl ? 'Loading...' : 'Register to Vote'}
+                                            </Button>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-3 pt-4">
+                            <div className="space-y-3 pt-2">
                                 <Button
                                     className="w-full"
                                     variant="outline"
                                     onClick={handleVerificationReset}
                                 >
-                                    Try Again
-                                </Button>
-                                <Button
-                                    className="w-full"
-                                    onClick={() => {
-                                        // Continue without verification
-                                        setVerifiedUserInfo({
-                                            firstName,
-                                            lastName,
-                                            fullName: `${firstName} ${lastName}`,
-                                            address,
-                                            city,
-                                            state,
-                                            zipCode: verificationZipCode,
-                                            isVerified: false,
-                                            isGuest: !user,
-                                        });
-                                        setStep(2);
-                                    }}
-                                >
-                                    Continue Without Verification
+                                    Start Over
                                 </Button>
                             </div>
                         </>
@@ -3503,11 +3540,25 @@ const AdvocacyMessageContent: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        <div className="bg-secondary/50 rounded-lg p-4 text-sm">
-                                            <p className="font-medium mb-2">Your Privacy Matters</p>
-                                            <p className="text-muted-foreground">
-                                                Your information is only used for verification and is never shared beyond what's required to deliver your letter to your representatives.
-                                            </p>
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id="agreeToTermsInitial2"
+                                                checked={agreeToTerms}
+                                                onChange={(e) => setAgreeToTerms(e.target.checked)}
+                                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                            />
+                                            <Label htmlFor="agreeToTermsInitial2" className="text-sm font-normal">
+                                                I agree to the{' '}
+                                                <a href="/terms" className="underline" target="_blank">
+                                                    Terms of Service
+                                                </a>{' '}
+                                                and{' '}
+                                                <a href="/privacy" className="underline" target="_blank">
+                                                    Privacy Policy
+                                                </a>
+                                                .
+                                            </Label>
                                         </div>
 
                                         <div className="flex justify-between items-center">
@@ -3516,7 +3567,7 @@ const AdvocacyMessageContent: React.FC = () => {
                                             </Button>
                                             <Button
                                                 onClick={handleVerificationSubmit}
-                                                disabled={isVerifying}
+                                                disabled={isVerifying || !agreeToTerms}
                                             >
                                                 {isVerifying ? (
                                                     <>
@@ -3565,19 +3616,51 @@ const AdvocacyMessageContent: React.FC = () => {
                                             <div className="flex items-start space-x-3">
                                                 <AlertCircle className="h-5 w-5 mt-0.5 text-muted-foreground" />
                                                 <div className="flex-1">
-                                                    <p className="font-medium">{matches.length > 0 ? 'Not Listed?' : 'No Matches Found'}</p>
-                                                    <p className="text-sm text-muted-foreground mb-3">
-                                                        {matches.length > 0
-                                                            ? 'If you don\'t see yourself, click "Check Your Registration" to enter your full details instead.'
-                                                            : 'We couldn\'t find your voter registration. Please check your registration to verify your details.'}
-                                                    </p>
-                                                    <Button
-                                                        variant="outline"
-                                                        className="w-full"
-                                                        onClick={() => setVerificationStep('refine_search')}
-                                                    >
-                                                        Check Your Registration
-                                                    </Button>
+                                                    {!hasAttemptedRefineSearch ? (
+                                                        <>
+                                                            <p className="font-medium">{matches.length > 0 ? 'Not Listed?' : 'No Matches Found'}</p>
+                                                            <p className="text-sm text-muted-foreground mb-3">
+                                                                {matches.length > 0
+                                                                    ? 'If you don\'t see yourself, click "Check Your Registration" to enter your full details instead.'
+                                                                    : 'We couldn\'t find your voter registration. Please check your registration to verify your details.'}
+                                                            </p>
+                                                            <Button
+                                                                variant="outline"
+                                                                className="w-full"
+                                                                onClick={() => setVerificationStep('refine_search')}
+                                                            >
+                                                                Check Your Registration
+                                                            </Button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <p className="font-medium">{matches.length > 0 ? 'Still Not Listed?' : 'No Matches Found'}</p>
+                                                            <p className="text-sm text-muted-foreground mb-3">
+                                                                {matches.length > 0
+                                                                    ? 'If you still don\'t see yourself, you can start over with different information.'
+                                                                    : 'We couldn\'t find your voter registration with the information provided.'}
+                                                            </p>
+                                                            {matches.length === 0 && (
+                                                                <a
+                                                                    href={voterRegistrationUrl || 'https://vote.org/register-to-vote/'}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="block mb-3"
+                                                                >
+                                                                    <Button variant="default" className="w-full" disabled={isLoadingRegistrationUrl}>
+                                                                        {isLoadingRegistrationUrl ? 'Loading...' : 'Register to Vote'}
+                                                                    </Button>
+                                                                </a>
+                                                            )}
+                                                            <Button
+                                                                variant="outline"
+                                                                className="w-full"
+                                                                onClick={handleVerificationReset}
+                                                            >
+                                                                Start Over
+                                                            </Button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -3600,10 +3683,14 @@ const AdvocacyMessageContent: React.FC = () => {
 
                                 {verificationStep === 'refine_search' && (
                                     <>
-                                        <div className="text-center mb-4">
-                                            <h3 className="text-xl font-bold mb-2">Check Your Registration</h3>
+                                        <div className="text-left mb-4">
+                                            <h3 className="text-xl font-bold mb-2">
+                                                {matches.length === 0 ? 'Additional Information Needed' : 'Check Your Registration'}
+                                            </h3>
                                             <p className="text-sm text-muted-foreground">
-                                                We verify your voter registration to ensure your messages are taken seriously by policymakers.
+                                                {matches.length === 0
+                                                    ? "We couldn't verify your voter registration with your name and address. Not to worry, enter some additional data to be verified."
+                                                    : 'We verify your voter registration to ensure your messages are taken seriously by policymakers.'}
                                             </p>
                                         </div>
 
@@ -3631,48 +3718,17 @@ const AdvocacyMessageContent: React.FC = () => {
                                             </div>
 
                                             <div>
-                                                <Label>Date of Birth</Label>
-                                                <div className="grid grid-cols-3 gap-3 mt-1">
-                                                    <select
-                                                        value={refineDobMonth}
-                                                        onChange={(e) => setRefineDobMonth(e.target.value)}
-                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                    >
-                                                        <option value="">Month</option>
-                                                        {Array.from({ length: 12 }, (_, i) => (
-                                                            <option key={i + 1} value={String(i + 1).padStart(2, '0')}>
-                                                                {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    <select
-                                                        value={refineDobDay}
-                                                        onChange={(e) => setRefineDobDay(e.target.value)}
-                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                    >
-                                                        <option value="">Day</option>
-                                                        {Array.from({ length: 31 }, (_, i) => (
-                                                            <option key={i + 1} value={String(i + 1).padStart(2, '0')}>
-                                                                {i + 1}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    <select
-                                                        value={refineDobYear}
-                                                        onChange={(e) => setRefineDobYear(e.target.value)}
-                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                    >
-                                                        <option value="">Year</option>
-                                                        {Array.from({ length: 100 }, (_, i) => {
-                                                            const year = new Date().getFullYear() - 18 - i;
-                                                            return (
-                                                                <option key={year} value={String(year)}>
-                                                                    {year}
-                                                                </option>
-                                                            );
-                                                        })}
-                                                    </select>
-                                                </div>
+                                                <Label htmlFor="refineAge2">Age</Label>
+                                                <Input
+                                                    id="refineAge2"
+                                                    type="number"
+                                                    min="18"
+                                                    max="120"
+                                                    placeholder="Enter your age"
+                                                    value={refineAge}
+                                                    onChange={(e) => setRefineAge(e.target.value)}
+                                                    className="mt-1"
+                                                />
                                             </div>
 
                                             <div>
@@ -3684,27 +3740,6 @@ const AdvocacyMessageContent: React.FC = () => {
                                                     onChange={(e) => setRefineVoterId(e.target.value)}
                                                     className="mt-1"
                                                 />
-                                            </div>
-
-                                            <div className="flex items-center space-x-2">
-                                                <input
-                                                    type="checkbox"
-                                                    id="agreeToTerms2"
-                                                    checked={agreeToTerms}
-                                                    onChange={(e) => setAgreeToTerms(e.target.checked)}
-                                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                                />
-                                                <Label htmlFor="agreeToTerms2" className="text-sm font-normal">
-                                                    I agree to the{' '}
-                                                    <a href="/terms" className="underline" target="_blank">
-                                                        Terms of Service
-                                                    </a>{' '}
-                                                    and{' '}
-                                                    <a href="/privacy" className="underline" target="_blank">
-                                                        Privacy Policy
-                                                    </a>
-                                                    .
-                                                </Label>
                                             </div>
                                         </div>
 
@@ -3771,51 +3806,41 @@ const AdvocacyMessageContent: React.FC = () => {
 
                                 {verificationStep === 'not_found' && (
                                     <>
-                                        <div className="text-center mb-4">
-                                            <h3 className="text-xl font-bold">We were unable to verify your voter registration</h3>
+                                        <div className="text-left mb-4">
+                                            <h3 className="text-xl font-bold mb-2">Voter Registration Not Found</h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                We were unable to find your voter registration. This could mean you&apos;re not yet registered to vote, or your information may be recorded differently.
+                                            </p>
                                         </div>
 
-                                        <div className="border rounded-lg p-4 bg-red-50">
+                                        <div className="border rounded-lg p-4 bg-blue-50 mb-4">
                                             <div className="flex items-start space-x-3">
-                                                <div className="rounded-full bg-red-100 p-1">
-                                                    <XCircle className="h-5 w-5 text-red-600" />
-                                                </div>
                                                 <div className="flex-1">
-                                                    <p className="font-semibold text-red-900">Voter registration not found</p>
-                                                    <p className="text-sm text-red-700 mt-1">
-                                                        You can still continue without voter verification, but your message may carry less weight with representatives.
+                                                    <p className="font-semibold text-blue-900">Not registered to vote?</p>
+                                                    <p className="text-sm text-blue-700 mt-1">
+                                                        Registering to vote takes just a few minutes. Make your voice heard!
                                                     </p>
+                                                    <a
+                                                        href={voterRegistrationUrl || 'https://vote.org/register-to-vote/'}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-block mt-3"
+                                                    >
+                                                        <Button variant="default" size="sm" disabled={isLoadingRegistrationUrl}>
+                                                            {isLoadingRegistrationUrl ? 'Loading...' : 'Register to Vote'}
+                                                        </Button>
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="space-y-3 pt-4">
+                                        <div className="space-y-3 pt-2">
                                             <Button
                                                 className="w-full"
                                                 variant="outline"
                                                 onClick={handleVerificationReset}
                                             >
-                                                Try Again
-                                            </Button>
-                                            <Button
-                                                className="w-full"
-                                                onClick={() => {
-                                                    // Continue without verification
-                                                    setVerifiedUserInfo({
-                                                        firstName,
-                                                        lastName,
-                                                        fullName: `${firstName} ${lastName}`,
-                                                        address,
-                                                        city,
-                                                        state,
-                                                        zipCode: verificationZipCode,
-                                                        isVerified: false,
-                                                        isGuest: !user,
-                                                    });
-                                                    setStep(2);
-                                                }}
-                                            >
-                                                Continue Without Verification
+                                                Start Over
                                             </Button>
                                         </div>
                                     </>

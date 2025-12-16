@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -72,12 +72,44 @@ function SignupForm() {
 
   // Refine search state (Check Your Registration)
   const [refinePhone, setRefinePhone] = useState('');
-  const [refineDobMonth, setRefineDobMonth] = useState('');
-  const [refineDobDay, setRefineDobDay] = useState('');
-  const [refineDobYear, setRefineDobYear] = useState('');
+  const [refineAge, setRefineAge] = useState('');
   const [refineVoterId, setRefineVoterId] = useState('');
+  const [hasAttemptedRefineSearch, setHasAttemptedRefineSearch] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
+  // Voter registration URL state (from Google Civic API)
+  const [voterRegistrationUrl, setVoterRegistrationUrl] = useState<string | null>(null);
+  const [isLoadingRegistrationUrl, setIsLoadingRegistrationUrl] = useState(false);
+
+  // Fetch voter registration URL when verification fails
+  useEffect(() => {
+    const shouldFetch = (
+      verificationStep === 'not_found' ||
+      (verificationStep === 'selection' && hasAttemptedRefineSearch && matches.length === 0)
+    ) && (address || city || state);
+
+    if (shouldFetch && !voterRegistrationUrl) {
+      const fetchRegistrationUrl = async () => {
+        setIsLoadingRegistrationUrl(true);
+        try {
+          const fullAddress = `${address}, ${city}, ${state} ${verificationZipCode}`.trim();
+          const response = await fetch(`/api/voter-registration?address=${encodeURIComponent(fullAddress)}`);
+          if (response.ok) {
+            const data = await response.json();
+            setVoterRegistrationUrl(data.registrationUrl || 'https://vote.org/register-to-vote/');
+          } else {
+            setVoterRegistrationUrl('https://vote.org/register-to-vote/');
+          }
+        } catch (error) {
+          console.error('Error fetching voter registration URL:', error);
+          setVoterRegistrationUrl('https://vote.org/register-to-vote/');
+        } finally {
+          setIsLoadingRegistrationUrl(false);
+        }
+      };
+      fetchRegistrationUrl();
+    }
+  }, [verificationStep, address, city, state, verificationZipCode, hasAttemptedRefineSearch, matches.length, voterRegistrationUrl]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -157,6 +189,11 @@ function SignupForm() {
         }),
       });
 
+      if (!response.ok) {
+        setVerificationError('Unable to connect to verification service. Please try again.');
+        return;
+      }
+
       const data = await response.json();
 
       if (!data.success) {
@@ -177,8 +214,12 @@ function SignupForm() {
       }));
 
       setMatches(transformedMatches);
-      // Always go to selection screen - shows matches if found, or "Not Listed" option if not
-      setVerificationStep('selection');
+      // If matches found, go to selection screen; if not, go directly to refine search
+      if (transformedMatches.length > 0) {
+        setVerificationStep('selection');
+      } else {
+        setVerificationStep('refine_search');
+      }
     } catch (error) {
       console.error('Verification error:', error);
       setVerificationError('An error occurred during verification. Please try again.');
@@ -205,13 +246,8 @@ function SignupForm() {
     }
   };
 
-  // Handle refined search with additional fields (phone, DOB, voter ID)
+  // Handle refined search with additional fields (phone, age, voter ID)
   const handleRefineSearch = async () => {
-    if (!agreeToTerms) {
-      setVerificationError('Please agree to the Terms of Service and Privacy Policy');
-      return;
-    }
-
     setIsVerifying(true);
     setVerificationError('');
 
@@ -230,12 +266,15 @@ function SignupForm() {
           zipCode: verificationZipCode,
           // Additional refinement fields
           phone: refinePhone,
-          dobMonth: refineDobMonth,
-          dobDay: refineDobDay,
-          dobYear: refineDobYear,
+          age: refineAge ? parseInt(refineAge, 10) : undefined,
           voterId: refineVoterId,
         }),
       });
+
+      if (!response.ok) {
+        setVerificationError('Unable to connect to verification service. Please try again.');
+        return;
+      }
 
       const data = await response.json();
 
@@ -244,27 +283,28 @@ function SignupForm() {
         return;
       }
 
-      // After refined search: if found show verified screen, if not show not_found screen
+      // Mark that we've attempted a refined search
+      setHasAttemptedRefineSearch(true);
+
+      // After refined search: go back to selection screen with updated matches
       if (data.matches && data.matches.length > 0) {
-        // Use first match as the verified user
-        const match = data.matches[0];
-        setVerifiedUserInfo({
-          voterId: match.voterId,
-          firstName: match.firstName || match.fullName?.split(' ')[0] || firstName,
-          lastName: match.lastName || match.fullName?.split(' ').slice(1).join(' ') || lastName,
-          fullName: match.fullName,
-          address: match.address,
-          city: match.city,
-          state: match.state,
-          zipCode: match.zipCode,
-          isVerified: true,
-          constituentDescription: match.constituentDescription || null,
-        });
-        setVerificationStep('verified');
+        // Transform L2 records to matches format
+        const newMatches: VerificationMatch[] = data.matches.map((record: any) => ({
+          id: record.voterId,
+          fullName: record.fullName,
+          address: record.address,
+          city: record.city,
+          state: record.state,
+          zipCode: record.zipCode,
+        }));
+        setMatches(newMatches);
+        setSelectedMatch('');
       } else {
-        // No matches found after refined search - show not found screen
-        setVerificationStep('not_found');
+        // No matches - clear the matches array
+        setMatches([]);
       }
+      // Go to selection screen to show results (or "Not Listed" options)
+      setVerificationStep('selection');
     } catch (error) {
       console.error('Refined search error:', error);
       setVerificationError('An error occurred during verification. Please try again.');
@@ -278,6 +318,12 @@ function SignupForm() {
     setMatches([]);
     setSelectedMatch('');
     setVerificationError('');
+    // Reset refine search state
+    setRefinePhone('');
+    setRefineAge('');
+    setRefineVoterId('');
+    setHasAttemptedRefineSearch(false);
+    setAgreeToTerms(false);
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -439,13 +485,34 @@ function SignupForm() {
               </div>
             </div>
 
+            <div className="flex items-center space-x-2 mt-4">
+              <input
+                type="checkbox"
+                id="agreeToTermsInitial"
+                checked={agreeToTerms}
+                onChange={(e) => setAgreeToTerms(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <Label htmlFor="agreeToTermsInitial" className="text-sm font-normal">
+                I agree to the{' '}
+                <a href="/terms" className="underline" target="_blank">
+                  Terms of Service
+                </a>{' '}
+                and{' '}
+                <a href="/privacy" className="underline" target="_blank">
+                  Privacy Policy
+                </a>
+                .
+              </Label>
+            </div>
+
             <div className="flex justify-between items-center pt-4">
               <Link href={returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : "/login"} className="text-sm text-muted-foreground hover:underline">
                 Already have an account? Login
               </Link>
               <Button
                 onClick={handleVerificationSubmit}
-                disabled={isVerifying}
+                disabled={isVerifying || !agreeToTerms}
               >
                 {isVerifying ? (
                   <>
@@ -494,19 +561,51 @@ function SignupForm() {
               <div className="flex items-start space-x-3">
                 <AlertCircle className="h-5 w-5 mt-0.5 text-muted-foreground" />
                 <div className="flex-1">
-                  <p className="font-medium">{matches.length > 0 ? 'Not Listed?' : 'No Matches Found'}</p>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {matches.length > 0
-                      ? 'If you don\'t see yourself, click "Check Your Registration" to enter your full details instead.'
-                      : 'We couldn\'t find your voter registration. Please check your registration to verify your details.'}
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setVerificationStep('refine_search')}
-                  >
-                    Check Your Registration
-                  </Button>
+                  {!hasAttemptedRefineSearch ? (
+                    <>
+                      <p className="font-medium">{matches.length > 0 ? 'Not Listed?' : 'No Matches Found'}</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {matches.length > 0
+                          ? 'If you don\'t see yourself, click "Check Your Registration" to enter your full details instead.'
+                          : 'We couldn\'t find your voter registration. Please check your registration to verify your details.'}
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setVerificationStep('refine_search')}
+                      >
+                        Check Your Registration
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium">{matches.length > 0 ? 'Still Not Listed?' : 'No Matches Found'}</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {matches.length > 0
+                          ? 'If you still don\'t see yourself, you can start over with different information.'
+                          : 'We couldn\'t find your voter registration. You may not be registered to vote.'}
+                      </p>
+                      {matches.length === 0 && (
+                        <a
+                          href={voterRegistrationUrl || 'https://vote.org/register-to-vote/'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block mb-3"
+                        >
+                          <Button variant="default" className="w-full" disabled={isLoadingRegistrationUrl}>
+                            {isLoadingRegistrationUrl ? 'Loading...' : 'Register to Vote'}
+                          </Button>
+                        </a>
+                      )}
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleVerificationReset}
+                      >
+                        Start Over
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -529,11 +628,15 @@ function SignupForm() {
 
         {verificationStep === 'refine_search' && (
           <>
-            <div className="text-center mb-6">
+            <div className="text-left mb-6">
               <p className="text-sm text-primary font-medium mb-2">SIGN UP</p>
-              <h3 className="text-2xl font-bold mb-2">Check Your Registration</h3>
+              <h3 className="text-2xl font-bold mb-2">
+                {matches.length === 0 ? 'Additional Information Needed' : 'Check Your Registration'}
+              </h3>
               <p className="text-sm text-muted-foreground">
-                We verify your voter registration to ensure your messages are taken seriously by policymakers.
+                {matches.length === 0
+                  ? "We couldn't verify your voter registration with your name and address. Not to worry, enter some additional data to be verified."
+                  : 'We verify your voter registration to ensure your messages are taken seriously by policymakers.'}
               </p>
             </div>
 
@@ -561,48 +664,17 @@ function SignupForm() {
               </div>
 
               <div>
-                <Label>Date of Birth</Label>
-                <div className="grid grid-cols-3 gap-3 mt-1">
-                  <select
-                    value={refineDobMonth}
-                    onChange={(e) => setRefineDobMonth(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="">Month</option>
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <option key={i + 1} value={String(i + 1).padStart(2, '0')}>
-                        {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={refineDobDay}
-                    onChange={(e) => setRefineDobDay(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="">Day</option>
-                    {Array.from({ length: 31 }, (_, i) => (
-                      <option key={i + 1} value={String(i + 1).padStart(2, '0')}>
-                        {i + 1}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={refineDobYear}
-                    onChange={(e) => setRefineDobYear(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="">Year</option>
-                    {Array.from({ length: 100 }, (_, i) => {
-                      const year = new Date().getFullYear() - 18 - i;
-                      return (
-                        <option key={year} value={String(year)}>
-                          {year}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
+                <Label htmlFor="refineAge">Age</Label>
+                <Input
+                  id="refineAge"
+                  type="number"
+                  min="18"
+                  max="120"
+                  placeholder="Enter your age"
+                  value={refineAge}
+                  onChange={(e) => setRefineAge(e.target.value)}
+                  className="mt-1"
+                />
               </div>
 
               <div>
@@ -614,27 +686,6 @@ function SignupForm() {
                   onChange={(e) => setRefineVoterId(e.target.value)}
                   className="mt-1"
                 />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="agreeToTerms"
-                  checked={agreeToTerms}
-                  onChange={(e) => setAgreeToTerms(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <Label htmlFor="agreeToTerms" className="text-sm font-normal">
-                  I agree to the{' '}
-                  <Link href="/terms" className="underline">
-                    Terms of Service
-                  </Link>{' '}
-                  and{' '}
-                  <Link href="/privacy" className="underline">
-                    Privacy Policy
-                  </Link>
-                  .
-                </Label>
               </div>
             </div>
 
@@ -717,16 +768,17 @@ function SignupForm() {
                   <p className="text-sm text-red-700 mt-1">
                     You are unable to sign up at this time. Please register to vote in order to use eVotersUnited.
                   </p>
-                  <Button
-                    variant="outline"
-                    className="mt-3"
-                    asChild
+                  <a
+                    href={voterRegistrationUrl || 'https://vote.org/register-to-vote/'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block mt-3"
                   >
-                    <a href="https://vote.gov" target="_blank" rel="noopener noreferrer">
-                      Register to Vote
+                    <Button variant="outline" className="w-full" disabled={isLoadingRegistrationUrl}>
+                      {isLoadingRegistrationUrl ? 'Loading...' : 'Register to Vote'}
                       <span className="ml-1">↗</span>
-                    </a>
-                  </Button>
+                    </Button>
+                  </a>
                 </div>
               </div>
             </div>

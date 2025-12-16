@@ -14,9 +14,7 @@ import { verifyVoter } from '@/lib/l2-api';
  * - state?: string (optional)
  * - zipCode?: string (optional)
  * - phone?: string (optional, for refined search)
- * - dobMonth?: string (optional, for refined search)
- * - dobDay?: string (optional, for refined search)
- * - dobYear?: string (optional, for refined search)
+ * - age?: number (optional, for refined search - converted to estimated DOB)
  * - voterId?: string (optional, for refined search)
  *
  * Response:
@@ -27,7 +25,7 @@ import { verifyVoter } from '@/lib/l2-api';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { firstName, lastName, address, city, state, zipCode, phone, dobMonth, dobDay, dobYear, voterId } = body;
+        const { firstName, lastName, address, city, state, zipCode, phone, age, voterId } = body;
 
         // Validate required fields
         if (!firstName || !lastName || !address) {
@@ -84,9 +82,7 @@ export async function POST(request: NextRequest) {
             state,
             zipCode,
             phone,
-            dobMonth,
-            dobDay,
-            dobYear,
+            age: age ? Number(age) : undefined,
             voterId,
         });
 

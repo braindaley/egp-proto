@@ -14,9 +14,7 @@ export interface L2VerificationRequest {
     zipCode?: string;
     // Additional refinement fields for "Check Your Registration"
     phone?: string;
-    dobMonth?: string;
-    dobDay?: string;
-    dobYear?: string;
+    age?: number; // Age in years - will be converted to estimated DOB for L2 API
     voterId?: string;
 }
 
@@ -78,8 +76,8 @@ export async function verifyVoter(
             apikey: apiKey,
         });
 
-        // Check if this is a refined search (has phone or DOB)
-        const isRefinedSearch = request.phone || request.dobYear;
+        // Check if this is a refined search (has phone or age)
+        const isRefinedSearch = request.phone || request.age;
 
         if (isRefinedSearch) {
             // Refined search: use progressive fallback strategy
@@ -94,45 +92,41 @@ export async function verifyVoter(
                 }
             }
 
-            // Prepare DOB (format: YYYY-MM-DD)
+            // Estimate DOB from age (format: YYYY-MM-DD)
+            // L2 API matches if within 366 days, so using today's date with estimated birth year works
             let dob: string | null = null;
-            if (request.dobYear && request.dobMonth && request.dobDay) {
-                dob = `${request.dobYear}-${request.dobMonth.padStart(2, '0')}-${request.dobDay.padStart(2, '0')}`;
+            if (request.age && request.age > 0) {
+                const today = new Date();
+                const birthYear = today.getFullYear() - request.age;
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                dob = `${birthYear}-${month}-${day}`;
             }
 
-            // Define search attempts in order of strictness
+            // Define search attempts - phone first (most unique), then name + age
             const searchAttempts: Record<string, string>[] = [];
 
-            // Attempt 1: All provided fields (most strict)
-            const allFilters: Record<string, string> = { Voters_LastName: request.lastName };
-            if (phoneDigits) allFilters.VoterTelephones_CellPhoneUnformatted = phoneDigits;
-            if (dob) allFilters.Voters_BirthDate = dob;
-            if (request.voterId) allFilters.Voters_StateVoterID = request.voterId;
-            searchAttempts.push(allFilters);
+            // Attempt 1: Phone only (phone is unique, try first)
+            if (phoneDigits) {
+                searchAttempts.push({
+                    VoterTelephones_CellPhoneUnformatted: phoneDigits,
+                });
+            }
 
-            // Attempt 2: Last name + DOB only (drop phone)
+            // Attempt 2: First + Last + Age (if no phone match, use name + DOB)
+            if (dob) {
+                searchAttempts.push({
+                    Voters_FirstName: request.firstName,
+                    Voters_LastName: request.lastName,
+                    Voters_BirthDate: dob,
+                });
+            }
+
+            // Attempt 3: Last + Age (fallback for unusual first name situations)
             if (dob) {
                 searchAttempts.push({
                     Voters_LastName: request.lastName,
                     Voters_BirthDate: dob,
-                    ...(request.voterId && { Voters_StateVoterID: request.voterId }),
-                });
-            }
-
-            // Attempt 3: Last name + Phone only (drop DOB)
-            if (phoneDigits) {
-                searchAttempts.push({
-                    Voters_LastName: request.lastName,
-                    VoterTelephones_CellPhoneUnformatted: phoneDigits,
-                    ...(request.voterId && { Voters_StateVoterID: request.voterId }),
-                });
-            }
-
-            // Attempt 4: Last name + Voter ID only (if provided)
-            if (request.voterId) {
-                searchAttempts.push({
-                    Voters_LastName: request.lastName,
-                    Voters_StateVoterID: request.voterId,
                 });
             }
 
@@ -250,26 +244,13 @@ export async function verifyVoter(
                 }
             }
 
-            // Define search attempts in order of strictness
+            // Single search attempt - trust L2's built-in flexibility for names and addresses
             const searchAttempts = [
-                // Attempt 1: All 4 filters (most strict)
                 {
                     Voters_FirstName: request.firstName,
                     Voters_LastName: request.lastName,
                     ...(houseNumber && { Residence_Addresses_HouseNumber: houseNumber }),
                     ...(request.zipCode && { Residence_Addresses_Zip: request.zipCode }),
-                },
-                // Attempt 2: First + Last + ZIP (no house number)
-                {
-                    Voters_FirstName: request.firstName,
-                    Voters_LastName: request.lastName,
-                    ...(request.zipCode && { Residence_Addresses_Zip: request.zipCode }),
-                },
-                // Attempt 3: First + Last + House (no ZIP)
-                {
-                    Voters_FirstName: request.firstName,
-                    Voters_LastName: request.lastName,
-                    ...(houseNumber && { Residence_Addresses_HouseNumber: houseNumber }),
                 },
             ];
 
