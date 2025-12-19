@@ -25,6 +25,7 @@ import { campaignsService } from '@/lib/campaigns';
 import { BillProgress, type BillProgressStage } from '@/components/BillProgress';
 import { RepresentativeVotes } from '@/components/RepresentativeVotes';
 import { ENABLE_WATCH_FEATURE } from '@/config/features';
+import { SupportGauge } from '@/components/ui/support-gauge';
 
 const getBillStatus = (latestAction: any): string => {
     if (!latestAction?.text) return 'Introduced';
@@ -259,31 +260,11 @@ export function BillDetailClient({ bill }: { bill: Bill }) {
                   <span className="text-xs sm:text-sm font-medium">Voice your opinion</span>
                 </button>
                 
-                <div
-                  className="flex items-center gap-1 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 text-green-600 bg-green-50 flex-shrink-0"
-                  title={`${countsLoading ? '...' : supportCount.toLocaleString()} ${supportCount === 1 ? 'person contacted' : 'people contacted'} their representative in support`}
-                >
-                  <Mail className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
-                  <span className="text-xs sm:text-sm font-medium">
-                    {countsLoading ? '...' : supportCount.toLocaleString()}
-                  </span>
-                  <span className="text-xs sm:text-sm font-medium hidden sm:inline">
-                    support
-                  </span>
-                </div>
-
-                <div
-                  className="flex items-center gap-1 rounded-full px-2 sm:px-3 py-1.5 sm:py-2 text-red-600 bg-red-50 flex-shrink-0"
-                  title={`${countsLoading ? '...' : opposeCount.toLocaleString()} ${opposeCount === 1 ? 'person contacted' : 'people contacted'} their representative in opposition`}
-                >
-                  <Mail className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
-                  <span className="text-xs sm:text-sm font-medium">
-                    {countsLoading ? '...' : opposeCount.toLocaleString()}
-                  </span>
-                  <span className="text-xs sm:text-sm font-medium hidden sm:inline">
-                    oppose
-                  </span>
-                </div>
+                <SupportGauge
+                  supportCount={countsLoading ? 0 : supportCount}
+                  opposeCount={countsLoading ? 0 : opposeCount}
+                  className="w-36 sm:w-44"
+                />
                 
 {ENABLE_WATCH_FEATURE && (
                 <button

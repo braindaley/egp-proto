@@ -10,9 +10,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Landmark, CalendarDays, Mail } from 'lucide-react';
+import { ArrowRight, Landmark, CalendarDays } from 'lucide-react';
 import { getBillTypeSlug } from '@/lib/utils';
 import { useBillSupportCounts } from '@/hooks/use-bill-support-counts';
+import { SupportGauge } from '@/components/ui/support-gauge';
 
 function formatDate(dateString: string) {
   if (!dateString) return 'N/A';
@@ -61,26 +62,12 @@ export function BillCard({ bill }: { bill: Bill }) {
                 </div>
             )}
             
-            {/* Support/Oppose counts */}
-            <div className="flex items-center justify-around text-center py-2 border-t border-b">
-                <div className="flex items-center gap-2 text-green-600">
-                    <Mail className="h-4 w-4" />
-                    <div>
-                        <p className="font-bold text-sm" title={`${countsLoading ? '...' : supportCount.toLocaleString()} ${supportCount === 1 ? 'person contacted' : 'people contacted'} their representative in support`}>
-                            {countsLoading ? '...' : supportCount.toLocaleString()}
-                        </p>
-                        <p className="text-xs font-medium">Support</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2 text-red-600">
-                    <Mail className="h-4 w-4" />
-                    <div>
-                        <p className="font-bold text-sm" title={`${countsLoading ? '...' : opposeCount.toLocaleString()} ${opposeCount === 1 ? 'person contacted' : 'people contacted'} their representative in opposition`}>
-                            {countsLoading ? '...' : opposeCount.toLocaleString()}
-                        </p>
-                        <p className="text-xs font-medium">Oppose</p>
-                    </div>
-                </div>
+            {/* Support/Oppose gauge */}
+            <div className="py-2 border-t border-b">
+                <SupportGauge
+                    supportCount={countsLoading ? 0 : supportCount}
+                    opposeCount={countsLoading ? 0 : opposeCount}
+                />
             </div>
         </CardContent>
         <CardFooter className="flex justify-between items-center text-xs text-muted-foreground pt-4 border-t mt-auto">

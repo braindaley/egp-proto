@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { getBillTypeSlug, formatDate } from '@/lib/utils';
-import { Check, Dot, Users, Library, ArrowRight, Mail, Flame, TrendingUp, Award, ClipboardCheck, MessageSquareText, Tags, Share } from 'lucide-react';
+import { Check, Dot, Users, Library, ArrowRight, Flame, TrendingUp, Award, ClipboardCheck, MessageSquareText, Tags, Share } from 'lucide-react';
+import { SupportGauge } from '@/components/ui/support-gauge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
@@ -219,22 +220,11 @@ export function BillFeedCard({ bill, index }: { bill: FeedBill, index?: number }
                 >
                     Voice your opinion
                 </Button>
-                <div
-                    className="flex items-center gap-1.5 text-green-600 bg-green-50 border border-green-200 rounded-md px-3 py-1.5 text-sm"
-                    title={`${countsLoading ? '...' : supportCount.toLocaleString()} ${supportCount === 1 ? 'person contacted' : 'people contacted'} their representative in support`}
-                >
-                    <Mail className="h-4 w-4" />
-                    <span>{countsLoading ? '...' : supportCount.toLocaleString()}</span>
-                    <span className="hidden sm:inline">support</span>
-                </div>
-                <div
-                    className="flex items-center gap-1.5 text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-1.5 text-sm"
-                    title={`${countsLoading ? '...' : opposeCount.toLocaleString()} ${opposeCount === 1 ? 'person contacted' : 'people contacted'} their representative in opposition`}
-                >
-                    <Mail className="h-4 w-4" />
-                    <span>{countsLoading ? '...' : opposeCount.toLocaleString()}</span>
-                    <span className="hidden sm:inline">oppose</span>
-                </div>
+                <SupportGauge
+                    supportCount={countsLoading ? 0 : supportCount}
+                    opposeCount={countsLoading ? 0 : opposeCount}
+                    className="w-36 sm:w-44"
+                />
 {ENABLE_WATCH_FEATURE && (
                 <Button
                     variant="outline"

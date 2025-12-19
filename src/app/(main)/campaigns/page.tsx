@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { campaignsService, type Campaign } from '@/lib/campaigns';
 import { SITE_ISSUE_CATEGORIES } from '@/lib/policy-area-mapping';
 import { ThumbsUp, ThumbsDown, ArrowRight, ChevronRight, Menu } from 'lucide-react';
+import { SupportGauge } from '@/components/ui/support-gauge';
 import { getBillTypeSlug } from '@/lib/utils';
 import { parseSimpleMarkdown } from '@/lib/markdown-utils';
 import { useState, useEffect } from 'react';
@@ -263,41 +264,12 @@ export default function CampaignsPage() {
 
                         {/* 5. Bottom Section with Buttons */}
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t gap-3">
-                          <div className="flex gap-2 flex-wrap justify-center sm:justify-start">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className={`flex items-center gap-2 transition-colors ${
-                                currentUserAction === 'support'
-                                  ? 'bg-green-100 text-green-800 border-green-300'
-                                  : 'text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200'
-                              }`}
-                              onClick={() => handleSupportOppose(campaign, 'support')}
-                              title={user ? 'Support this bill' : 'Login to support this bill'}
-                              disabled={currentUserAction === 'support'}
-                            >
-                              <ThumbsUp className="h-4 w-4" />
-                              <span className="font-semibold">
-                                {currentUserAction === 'support' ? 'Supported!' : campaign.supportCount.toLocaleString()}
-                              </span>
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className={`flex items-center gap-2 transition-colors ${
-                                currentUserAction === 'oppose'
-                                  ? 'bg-red-100 text-red-800 border-red-300'
-                                  : 'text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200'
-                              }`}
-                              onClick={() => handleSupportOppose(campaign, 'oppose')}
-                              title={user ? 'Oppose this bill' : 'Login to oppose this bill'}
-                              disabled={currentUserAction === 'oppose'}
-                            >
-                              <ThumbsDown className="h-4 w-4" />
-                              <span className="font-semibold">
-                                {currentUserAction === 'oppose' ? 'Opposed!' : campaign.opposeCount.toLocaleString()}
-                              </span>
-                            </Button>
+                          <div className="flex gap-2 flex-wrap justify-center sm:justify-start items-center">
+                            <SupportGauge
+                              supportCount={campaign.supportCount}
+                              opposeCount={campaign.opposeCount}
+                              className="w-36 sm:w-44"
+                            />
                             <Button
                               variant={isWatched ? 'secondary' : 'outline'}
                               size="sm"

@@ -7,7 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getBillTypeSlug } from '@/lib/utils';
-import { Users, Mail, ExternalLink, MessageSquareText } from 'lucide-react';
+import { Users, ExternalLink, MessageSquareText } from 'lucide-react';
+import { SupportGauge } from '@/components/ui/support-gauge';
 import { cn } from '@/lib/utils';
 import type { FeedBill } from '@/types';
 import { useBillSupportCounts } from '@/hooks/use-bill-support-counts';
@@ -236,31 +237,11 @@ export function BillCarouselCard({ bill, index }: BillCarouselCardProps) {
           <span className="text-sm font-medium">58</span>
         </button>
         
-        <div
-          className="flex items-center gap-1 rounded-full px-3 py-2 text-green-600 bg-green-50"
-          title={`${countsLoading ? '...' : supportCount.toLocaleString()} ${supportCount === 1 ? 'person contacted' : 'people contacted'} their representative in support`}
-        >
-          <Mail className="h-4 w-4" />
-          <span className="text-sm font-medium">
-            {countsLoading ? '...' : supportCount.toLocaleString()}
-          </span>
-          <span className="text-sm font-medium hidden sm:inline">
-            support
-          </span>
-        </div>
-
-        <div
-          className="flex items-center gap-1 rounded-full px-3 py-2 text-red-600 bg-red-50"
-          title={`${countsLoading ? '...' : opposeCount.toLocaleString()} ${opposeCount === 1 ? 'person contacted' : 'people contacted'} their representative in opposition`}
-        >
-          <Mail className="h-4 w-4" />
-          <span className="text-sm font-medium">
-            {countsLoading ? '...' : opposeCount.toLocaleString()}
-          </span>
-          <span className="text-sm font-medium hidden sm:inline">
-            oppose
-          </span>
-        </div>
+        <SupportGauge
+          supportCount={countsLoading ? 0 : supportCount}
+          opposeCount={countsLoading ? 0 : opposeCount}
+          className="w-36 sm:w-44"
+        />
         
 {ENABLE_WATCH_FEATURE && (
         <button

@@ -12,6 +12,7 @@ import { getBillTypeSlug } from '@/lib/utils';
 import { parseSimpleMarkdown } from '@/lib/markdown-utils';
 import { useState } from 'react';
 import { ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { SupportGauge } from '@/components/ui/support-gauge';
 import { useAuth } from '@/hooks/use-auth';
 import { useWatchedBills } from '@/hooks/use-watched-bills';
 import { ENABLE_WATCH_FEATURE } from '@/config/features';
@@ -126,19 +127,12 @@ const AdvocacyBillCard: React.FC<AdvocacyBillCardProps> = ({ bill, position, rea
                 <div className="mt-auto pt-4 border-t">
                     {/* 5. Bottom Section with Buttons */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div className="flex gap-2 flex-wrap justify-center sm:justify-start">
-                            <div
-                                className="flex items-center gap-2 text-green-600 border border-green-200 bg-green-50 rounded-md px-3 py-1.5 text-sm"
-                            >
-                                <ThumbsUp className="h-4 w-4" />
-                                <span className="font-semibold">{supportCount.toLocaleString()}</span>
-                            </div>
-                            <div
-                                className="flex items-center gap-2 text-red-600 border border-red-200 bg-red-50 rounded-md px-3 py-1.5 text-sm"
-                            >
-                                <ThumbsDown className="h-4 w-4" />
-                                <span className="font-semibold">{opposeCount.toLocaleString()}</span>
-                            </div>
+                        <div className="flex gap-2 flex-wrap justify-center sm:justify-start items-center">
+                            <SupportGauge
+                                supportCount={supportCount}
+                                opposeCount={opposeCount}
+                                className="w-36 sm:w-44"
+                            />
 {ENABLE_WATCH_FEATURE && (
                             <Button
                                 variant={isWatched ? 'secondary' : 'outline'}
