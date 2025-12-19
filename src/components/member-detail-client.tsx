@@ -19,7 +19,6 @@ import { BillAmendments } from './bill-amendments';
 import { SummaryDisplay } from './bill-summary-display';
 import { SocialMediaLinks } from './social-media-links';
 import { DistrictOffices } from './district-offices';
-import { CampaignPromisesCard } from './campaign-promises-card';
 import { LegislativeActivityCard } from './legislative-activity-card';
 import { NewsCard } from './news-card';
 import { CampaignFinanceCard } from './campaign-finance-card';
@@ -29,6 +28,7 @@ import { useMembersByZip } from '@/hooks/useMembersByZip';
 import { Separator } from './ui/separator';
 import { SimpleIdeologyChart } from './simple-ideology-chart';
 import { MemberCampaignsSection } from './member-campaigns-section';
+import { PopularTopicsCard } from './popular-topics-card';
 
 // --- Name Matching Function ---
 function areNamesSimilar(nameA: string, nameB: string): boolean {
@@ -221,6 +221,12 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
           </CardContent>
         </Card>
 
+        <PopularTopicsCard
+          bioguideId={member.bioguideId}
+          memberName={member.directOrderName}
+          congress={congress}
+        />
+
         <NewsCard bioguideId={member.bioguideId} />
         <LegislativeActivityCard member={member} />
         <CampaignFinanceDetailCard member={member} />
@@ -297,7 +303,6 @@ export function MemberDetailClient({ initialMember, congress }: { initialMember:
           </CardContent>
         </Card>
 
-        <CampaignPromisesCard member={member} congress={congress} />
         {allTerms.length > 0 && (
           <Card>
             <CardHeader> <CardTitle className="flex items-center gap-2"><History /> Service History</CardTitle> </CardHeader>
