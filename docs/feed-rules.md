@@ -1,7 +1,9 @@
 # Feed Rules Specification
 
 ## Overview
-Rules for "The Feed" on Homepage and Issue Policy Landing Pages. The feed appears after the filter badges (For You, News, Campaigns, Bills) and displays interleaved content from three sources: News, Bills, and Campaigns.
+Rules for "The Feed" on **Homepage** and **Issue Policy Landing Pages**. This specification replaces the current homepage feed implementation (which uses hardcoded positions for polls, campaigns, etc.).
+
+The feed appears after the filter badges (For You, News, Campaigns, Bills) and displays interleaved content from three sources: News, Bills, and Campaigns.
 
 ---
 
@@ -15,10 +17,10 @@ Rules for "The Feed" on Homepage and Issue Policy Landing Pages. The feed appear
 ## Interleaving Pattern
 
 ```
-3 News → 3 Bills → 1 Campaign → (repeat)
+2 News → 2 Bills → 1 Campaign → (repeat)
 ```
 
-Each cycle = 7 items (3 news + 3 bills + 1 campaign)
+Each cycle = 5 items (2 news + 2 bills + 1 campaign)
 
 ---
 
@@ -78,6 +80,8 @@ Each cycle = 7 items (3 news + 3 bills + 1 campaign)
 ---
 
 ## Campaigns Feed Logic
+
+Campaigns include all campaign types: **Legislation**, **Issue**, **Candidate**, and **Poll**.
 
 ### Ranking
 | Tier | Criteria | Sort |

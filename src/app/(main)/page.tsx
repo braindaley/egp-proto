@@ -839,11 +839,33 @@ export default function Home() {
   ];
 
   // Get all real campaigns from the service and transform them for the homepage
-  // Only include bill campaigns (not candidate campaigns) for the homepage feed
+  // Sort by engagement (supportCount + opposeCount) for campaigns with >25 engagement in last 7 days
+  // Then by recency for the rest
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
   const allCampaigns = campaignsService.getAllCampaigns()
-    .filter(campaign => campaign.isActive && (campaign.bill || campaign.poll)) // Include campaigns with bills or polls
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
+    .filter(campaign => campaign.isActive && (campaign.bill || campaign.poll || campaign.campaignType === 'Issue' || campaign.campaignType === 'Candidate'))
+    .sort((a, b) => {
+      const aEngagement = (a.supportCount || 0) + (a.opposeCount || 0);
+      const bEngagement = (b.supportCount || 0) + (b.opposeCount || 0);
+      const aCreatedAt = new Date(a.createdAt);
+      const bCreatedAt = new Date(b.createdAt);
+      const aIsRecent = aCreatedAt >= sevenDaysAgo;
+      const bIsRecent = bCreatedAt >= sevenDaysAgo;
+      const aHighEngagement = aIsRecent && aEngagement > 25;
+      const bHighEngagement = bIsRecent && bEngagement > 25;
+
+      // High engagement recent campaigns first (sorted by engagement)
+      if (aHighEngagement && bHighEngagement) {
+        return bEngagement - aEngagement;
+      }
+      if (aHighEngagement) return -1;
+      if (bHighEngagement) return 1;
+
+      // Then by recency
+      return bCreatedAt.getTime() - aCreatedAt.getTime();
+    });
 
   const campaignStories = allCampaigns.map(campaign => {
     // Poll campaign
@@ -862,7 +884,45 @@ export default function Home() {
       };
     }
 
-    // Regular campaign
+    // Candidate campaign
+    if (campaign.campaignType === 'Candidate' && campaign.candidate) {
+      return {
+        id: campaign.id,
+        type: 'candidateCampaign',
+        organization: campaign.groupName,
+        groupSlug: campaign.groupSlug,
+        position: campaign.position,
+        policyIssue: 'National Conditions',
+        candidate1Name: campaign.candidate.candidate1Name,
+        candidate1Bio: campaign.candidate.candidate1Bio || '',
+        candidate2Name: campaign.candidate.candidate2Name,
+        candidate2Bio: campaign.candidate.candidate2Bio || '',
+        selectedCandidate: campaign.candidate.selectedCandidate,
+        reasoning: campaign.reasoning,
+        supportCount: campaign.supportCount,
+        opposeCount: campaign.opposeCount
+      };
+    }
+
+    // Issue campaign (no bill)
+    if (campaign.campaignType === 'Issue' || !campaign.bill) {
+      return {
+        id: campaign.id,
+        type: 'campaign',
+        organization: campaign.groupName,
+        groupSlug: campaign.groupSlug,
+        position: campaign.position,
+        policyIssue: 'National Conditions',
+        billNumber: 'Issue',
+        billTitle: campaign.reasoning?.substring(0, 50) || 'Issue Campaign',
+        description: campaign.reasoning,
+        supportCount: campaign.supportCount,
+        opposeCount: campaign.opposeCount,
+        issueCategory: 'National Conditions'
+      };
+    }
+
+    // Regular bill campaign
     return {
       id: campaign.id,
       type: 'campaign',
@@ -870,162 +930,72 @@ export default function Home() {
       groupSlug: campaign.groupSlug,
       position: campaign.position,
       policyIssue: 'National Conditions',
-      billNumber: `${campaign.bill!.type} ${campaign.bill!.number}`,
-      billTitle: campaign.bill!.title || `${campaign.bill!.type} ${campaign.bill!.number}`,
+      billNumber: `${campaign.bill.type} ${campaign.bill.number}`,
+      billTitle: campaign.bill.title || `${campaign.bill.type} ${campaign.bill.number}`,
       description: campaign.reasoning,
       supportCount: campaign.supportCount,
       opposeCount: campaign.opposeCount,
-      congress: campaign.bill!.congress || '119',
-      billType: campaign.bill!.type,
-      billNumberOnly: campaign.bill!.number
+      congress: campaign.bill.congress || '119',
+      billType: campaign.bill.type,
+      billNumberOnly: campaign.bill.number
     };
   });
 
 
-  // Fisher-Yates shuffle algorithm with deterministic seed for SSR
-  const shuffleArray = (array: any[]) => {
-    const shuffled = [...array];
-    // Use a simple deterministic seed based on array length and first item id
-    let seed = array.length > 0 ? array[0].id || 1 : 1;
+  // Interleave content in pattern: 2 News → 2 Bills → 1 Campaign → repeat
+  // Per feed-rules.md specification
+  const interleaveContent = (news: any[], bills: any[], campaigns: any[]) => {
+    const result: any[] = [];
+    let newsIndex = 0;
+    let billsIndex = 0;
+    let campaignsIndex = 0;
 
-    const seededRandom = () => {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280;
-    };
+    // Pattern: 2 news, 2 bills, 1 campaign (5 items per cycle)
+    while (newsIndex < news.length || billsIndex < bills.length || campaignsIndex < campaigns.length) {
+      // Add 2 news items
+      for (let i = 0; i < 2 && newsIndex < news.length; i++) {
+        result.push(news[newsIndex++]);
+      }
 
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(seededRandom() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      // Add 2 bill items
+      for (let i = 0; i < 2 && billsIndex < bills.length; i++) {
+        result.push(bills[billsIndex++]);
+      }
+
+      // Add 1 campaign item
+      if (campaignsIndex < campaigns.length) {
+        result.push(campaigns[campaignsIndex++]);
+      }
     }
-    return shuffled;
+
+    return result;
   };
 
   // Filter stories based on selected filter
   const getFilteredStories = () => {
-    let stories = newsStories;
-    let campaigns = campaignStories;
-
-    // Add state-specific articles
-    if (stateSpecificArticles.length > 0 && (selectedFilter === 'all' || selectedFilter === 'news')) {
-      stories = [...stateSpecificArticles, ...stories];
+    // Prepare news array (with state-specific articles if available)
+    let newsArray = [...newsStories];
+    if (stateSpecificArticles.length > 0) {
+      newsArray = [...stateSpecificArticles, ...newsArray];
     }
+
+    // Prepare bills array from billCTAByCategory
+    const billsArray = Object.values(billCTAByCategory).filter(Boolean);
+
+    // Prepare campaigns array (already sorted by engagement/recency)
+    const campaignsArray = [...campaignStories];
 
     // Apply content type filter
-    let filteredStories = stories;
-    let filteredCampaigns = campaigns;
-    let includeBillCTAs = false;
-
     if (selectedFilter === 'news') {
-      filteredCampaigns = [];
-      includeBillCTAs = false;
+      return newsArray;
     } else if (selectedFilter === 'campaigns') {
-      filteredStories = [];
-      includeBillCTAs = false;  // Don't show bill CTAs in campaigns
+      return campaignsArray;
     } else if (selectedFilter === 'bills') {
-      filteredStories = [];
-      filteredCampaigns = [];  // Don't show regular campaigns, only bill CTAs
-      includeBillCTAs = true;
-    } else {
-      // 'all' filter
-      includeBillCTAs = true;
+      return billsArray;
     }
 
-    // Combine stories and campaigns, then randomize
-    const combinedContent = [...filteredStories, ...filteredCampaigns];
-
-    // Define special campaign items
-    const educationIssueCampaign = {
-      id: 'education-dept-education-issue',
-      type: 'campaign',
-      organization: 'League of Women Voters',
-      groupSlug: 'league-of-women-voters',
-      position: 'Save the Dept of Education',
-      policyIssue: 'Education',
-      billNumber: 'Education',
-      billTitle: 'Department of Education',
-      description: 'The Department of Education plays a crucial role in ensuring equal access to quality education for all Americans. We must protect federal support for schools, students, and educators.',
-      supportCount: 0,
-      opposeCount: 0,
-      issueCategory: 'Education'
-    };
-
-    const candidateCampaign = {
-      id: 'candidate-maria-alvarez',
-      type: 'candidateCampaign',
-      organization: 'League of Women Voters',
-      groupSlug: 'league-of-women-voters',
-      position: 'Support',
-      policyIssue: 'National Conditions',
-      candidate1Name: 'Maria Alvarez',
-      candidate1Bio: 'Maria Alvarez is a community organizer who has spent the last 15 years fighting for affordable housing and small business growth in her district.',
-      candidate2Name: 'James Whitman',
-      candidate2Bio: 'James Whitman is a former technology executive and veteran who believes in modernizing government through innovation.',
-      selectedCandidate: 1,
-      reasoning: 'The League of Women Voters supports Maria Alvarez because she has a clear track record of putting people first. She\'s spent years working at the community level, pushing for affordable housing, stronger renter protections, and opportunities for small businesses.',
-      supportCount: 0,
-      opposeCount: 0
-    };
-
-    // Add special campaigns for 'campaigns' filter
-    if (selectedFilter === 'campaigns') {
-      combinedContent.push(educationIssueCampaign);
-      combinedContent.push(candidateCampaign);
-    }
-
-    // Only shuffle and add special items for 'all' view
-    if (selectedFilter === 'all') {
-      const shuffled = shuffleArray(combinedContent);
-
-      // Find and move poll campaign to position 0
-      const pollCampaignIndex = shuffled.findIndex(item =>
-        item.type === 'pollCampaign' &&
-        item.pollId === 'poll-testtitle'
-      );
-
-      if (pollCampaignIndex !== -1) {
-        const [pollCard] = shuffled.splice(pollCampaignIndex, 1);
-        shuffled.unshift(pollCard); // Add to the very beginning
-      }
-
-      const blackVotersHR1Index = shuffled.findIndex(item =>
-        item.type === 'campaign' &&
-        item.organization === 'Black Voters Matter' &&
-        item.billNumber === 'HR 1'
-      );
-
-      if (blackVotersHR1Index !== -1 && blackVotersHR1Index !== 2) {
-        const [blackVotersCard] = shuffled.splice(blackVotersHR1Index, 1);
-        shuffled.splice(2, 0, blackVotersCard);
-      }
-
-      if (includeBillCTAs) {
-        const climateBillCTA = billCTAByCategory['Climate, Energy & Environment'];
-        if (climateBillCTA && shuffled.length >= 3) {
-          shuffled.splice(3, 0, climateBillCTA);
-        }
-      }
-
-      // Insert candidate at position 5
-      shuffled.splice(5, 0, candidateCampaign);
-
-      // Insert education at position 6 (after candidate)
-      shuffled.splice(6, 0, educationIssueCampaign);
-
-      return shuffled;
-    }
-
-    // For 'bills' filter only, add bill CTAs
-    if (selectedFilter === 'bills' && includeBillCTAs) {
-      // Add all available bill CTAs
-      Object.values(billCTAByCategory).forEach(billCTA => {
-        if (billCTA) {
-          combinedContent.push(billCTA);
-        }
-      });
-    }
-
-    // For other filters, just return the combined content without shuffling
-    return combinedContent;
+    // 'all' filter - use 2-2-1 interleaving pattern
+    return interleaveContent(newsArray, billsArray, campaignsArray);
   };
 
   const filteredStories = getFilteredStories();
